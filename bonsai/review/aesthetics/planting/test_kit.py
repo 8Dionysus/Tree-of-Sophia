@@ -306,6 +306,71 @@ class DuplicateWitnessAcceptanceTest(unittest.TestCase):
                 with self.assertRaises(SystemExit):kit.cmd_accept(args)
             self.assertEqual(list((path/'witnesses').glob('*.accepted')),[])
 
+class AnonymousTranslationTest(unittest.TestCase):
+    def test_commands_bind_sources_review_and_allow_clearing(self):
+        import argparse, hashlib, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True);cache=Path(tmp)/'cache';folder=cache/'work'/'witnesses'/'en';folder.mkdir(parents=True)
+            sources=[]
+            for name in ('edition.html','catalogue.html'):
+                raw=('Evidence '+name).encode();(folder/name).write_bytes(raw);sources.append({'file':name,'url':'https://example.org/'+name,'sha256':hashlib.sha256(raw).hexdigest()})
+            file=path/'witnesses/en.json';file.write_text(json.dumps({'language':'en','witness':{'edition':'1902 edition','year':1902,'maker':'maker'},'sources':sources,'review':{}}))
+            info={'first_publication_year':1875,'lawful_publication':'A catalogue establishes lawful publication of this exact translation.',
+                  'identity_research':'Independent catalogues and later editions were searched for disclosure of the translator.',
+                  'same_version':'The passages and bibliographic history establish the same translation in both editions.',
+                  'searches':[{'url':f'https://example.org/search/{i}','outcome':'The catalogue was searched for the translator identity.'} for i in range(3)],'sources':[x['file'] for x in sources]}
+            evidence=Path(tmp)/'evidence.json';evidence.write_text(json.dumps(info))
+            with patch.object(kit,'CACHE',str(cache)):
+                kit.cmd_witness_anonymous(argparse.Namespace(packet=str(path),language='en',file=str(evidence)))
+                data=json.loads(file.read_text());data['review']={'reader':'second'};file.write_text(json.dumps(data))
+                kit.cmd_witness_anonymous_review(argparse.Namespace(packet=str(path),language='en',assessment='I checked the edition, publication date and the identity searches independently.'))
+                data=json.loads(file.read_text());self.assertEqual(data['review']['anonymous']['sha256'],kit.anonymous_digest(data['witness']['anonymous_translation']))
+                kit.cmd_witness_anonymous_clear(argparse.Namespace(packet=str(path),language='en'))
+                data=json.loads(file.read_text());self.assertNotIn('anonymous_translation',data['witness']);self.assertEqual(data['review'],{})
+
+    def test_eu_anonymous_term_requires_version_sources_search_and_independent_review(self):
+        import datetime, hashlib, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir();cache=Path(tmp)/'cache';folder=cache/'work'/'witnesses'/'en';folder.mkdir(parents=True)
+            sources=[]
+            for name,text in [('edition.html',b'First publication and the exact edition.'),('catalogue.html',b'Translation identity research.')]:
+                (folder/name).write_bytes(text);sources.append({'file':name,'url':'https://example.org/'+name,'sha256':hashlib.sha256(text).hexdigest()})
+            author={'role':'author','qid':'Q1','name':{'en':'Author'},'died':1800,'source':'https://www.wikidata.org/wiki/Q1',
+                    'evidence':{'file':'author.json','sha256':'a'*64,'url':'https://www.wikidata.org/wiki/Special:EntityData/Q1.json'}}
+            proof={'edition':'Anonymous edition','first_publication_year':datetime.date.today().year-71,
+                   'lawful_publication':'The catalogue and edition establish the first lawful publication of this translation.',
+                   'identity_research':'The identified catalogues and subsequent editions were searched for a disclosed identity.',
+                   'same_version':'The wording and edition records establish that the first publication is the same translation.',
+                   'searches':[{'url':f'https://example.org/search/{i}','outcome':'The named catalogue was searched for the translator identity.'} for i in range(3)],
+                   'sources':sources}
+            rights={'russia':{'basis':'short-quotation','law':'Quotation for the documented scholarly purpose.'},
+                    'usa':{'basis':'short-quotation','law':'Quotation for the documented scholarly purpose.'},
+                    'eu':{'basis':'public-domain','law':'The anonymous translation term has expired.'}}
+            data={'language':'en','witness':{'maker':'maker','edition':'Anonymous edition','attribution':'Author and anonymous translator','licence':'Public domain','url':'https://example.org/edition','year':1900,'persons':[author],'rights':rights,'anonymous_translation':proof},
+                  'sources':sources+[{'file':'text.txt','url':'https://example.org/text','sha256':'b'*64}],
+                  'images':[{'file':'page.jpg','url':'https://example.org/page','sha256':'c'*64,'by':'maker'},{'file':'page2.jpg','url':'https://example.org/page','sha256':'c'*64,'by':'second'}],
+                  'places':{'p':{'text':'A whole sentence.','source':'text.txt','page':'1','url':'https://example.org/page','lines':'1–2','image_sha256':'c'*64,'alignment':'This is the corresponding complete original sentence.'}},
+                  'review':{'reader':'second','model':'gpt-6.1-terra','date':'2026-11-12','places':{'p':{'reads':'as the packet','image_sha256':'c'*64,'alignment':'This is the corresponding complete original sentence.'}}}}
+            # Use a sufficiently old edition while retaining an exact dynamic threshold.
+            data['witness']['year']=datetime.date.today().year-71
+            data['review']['anonymous']={'reader':'second','sha256':kit.anonymous_digest(proof),'assessment':'I checked the same edition, lawful publication and the identity searches independently.'}
+            with patch.object(kit,'CACHE',str(cache)),patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
+                self.assertEqual(kit.witness_problems(str(path),'en',data,second=True,offline=True),[])
+                self.assertEqual(kit.anonymous_problems(str(path),'en',data,second=True),[])
+                proof['identity_research']+=' Changed.'
+                self.assertTrue(any('independent assessment' in x for x in kit.witness_problems(str(path),'en',data,second=True,offline=True)))
+                data['review']['anonymous']['sha256']=kit.anonymous_digest(proof)
+                proof['first_publication_year']=datetime.date.today().year-70;data['witness']['year']=proof['first_publication_year']
+                data['review']['anonymous']['sha256']=kit.anonymous_digest(proof)
+                self.assertTrue(any('rights.eu is not established' in x for x in kit.witness_problems(str(path),'en',data,second=True,offline=True)))
+                proof['first_publication_year']=datetime.date.today().year-71;data['witness']['year']=proof['first_publication_year'];data['review']['anonymous']['sha256']=kit.anonymous_digest(proof)
+                rights['russia']={'basis':'public-domain','law':'A claimed Russian public-domain term.'}
+                self.assertTrue(any('rights.russia is not established' in x for x in kit.witness_problems(str(path),'en',data,second=True,offline=True)))
+                (folder/'edition.html').write_bytes(b'Changed version.')
+                self.assertTrue(any('source changed' in x for x in kit.anonymous_problems(str(path),'en',data,second=True)))
+
 class LocatorEvidenceTest(unittest.TestCase):
     def test_locator_needs_a_documented_search_and_a_read_book(self):
         loc='Section p1'
