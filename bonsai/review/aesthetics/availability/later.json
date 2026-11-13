@@ -23,6 +23,14 @@
             "https://archive.org/metadata/senseofbeautybei00sant",
             "https://d-nb.info/gnd/118794507"
           ]
+        },
+        {
+          "name": "Carmen García Trevijano",
+          "role": "Spanish translator candidate",
+          "dates_status": "not established",
+          "evidence": [
+            "https://books.google.com/books?vid=ISBN8430932992"
+          ]
         }
       ],
       "original_candidates": [
@@ -31,7 +39,12 @@
           "scan": "https://archive.org/details/senseofbeautybei00sant",
           "metadata": "https://archive.org/metadata/senseofbeautybei00sant",
           "ocr": "https://archive.org/download/senseofbeautybei00sant/senseofbeautybei00sant_djvu.txt",
-          "status": "candidate; verify scan pages and editorial hands"
+          "status": "images personally inspected: both named passages in §11, pp49–50; full text and rights verification still pending",
+          "pages": "§11 pp49–50; IA image n62–n63",
+          "page_images": [
+            "https://archive.org/download/senseofbeautybei00sant/page/n62_w1400.jpg",
+            "https://archive.org/download/senseofbeautybei00sant/page/n63_w1400.jpg"
+          ]
         },
         {
           "edition": "The Sense of Beauty, New York: Scribner, 1896",
@@ -43,8 +56,9 @@
       "rights_assessment": {
         "status": "preliminary; independently verify hands and jurisdictional grounds",
         "usa": "1896 publication, subject to edition verification",
-        "eu": "author died 1952; other textual contributors remain to verify",
-        "russia": "brief directs short quotation until 2027; independently verify facts and relevant law"
+        "eu": "author died 1952; Spain transitional regime for pre-1987 deaths must be assessed for this text and foreign author",
+        "russia": "brief directs short quotation until 2027; independently verify facts and relevant law",
+        "mexico": "life-plus-100 and transitional rules need case-specific review"
       },
       "searches": [
         {
@@ -66,8 +80,21 @@
           "language": "es",
           "edition": "El sentido de la belleza, Madrid: Tecnos, 2002, ISBN 9788430932993",
           "catalogue": "https://openlibrary.org/books/OL13231704M",
-          "status": "catalogue candidate only: translator identity, page and lawful copy not established"
+          "status": "Google Books record identifies translator and 1999, while Open Library gives 2002; verify title page, translator dates, lawful pages and exact edition",
+          "translator": "Carmen García Trevijano",
+          "additional_catalogue": "https://books.google.com/books?vid=ISBN8430932992"
         }
+      ],
+      "transcription_candidates": [
+        {
+          "language": "en",
+          "url": "https://www.gutenberg.org/files/26842/26842-h/26842-h.htm#11",
+          "status": "transcription candidate; transcriber notes a table-of-contents change and one spelling correction; compare each chosen passage to scan"
+        }
+      ],
+      "requested_places": [
+        "A:E027 §11 p49 definition of beauty",
+        "A:E028 §11 pp49–50 positive value and the ugly"
       ]
     },
     {
@@ -78,7 +105,95 @@
         "AE22",
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Charles Sanders Peirce",
+          "role": "author",
+          "birth": 1839,
+          "death": 1914,
+          "evidence": [
+            "https://www.tha.de/~harsch/anglica/Chronology/19thC/Peirce/pei_sign.html"
+          ]
+        },
+        {
+          "name": "Uxía Rivas",
+          "role": "Spanish translator, 1999 institutional edition",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.unav.es/gep/Signo.html"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "MS 404, The Art of Reasoning, Chapter II: What is a Sign?; manuscript 1894, publication of different portions requires separate verification",
+          "catalogue": "https://depts.washington.edu/lsearlec/peirce/robin.htm",
+          "transcription": "https://www.tha.de/~harsch/anglica/Chronology/19thC/Peirce/pei_sign.html",
+          "status": "transcription available, source edition and lawful rights not established; manuscript dates do not prove early publication"
+        },
+        {
+          "edition": "What Is a Sign?, The Essential Peirce vol. 2, Peirce Edition Project, Indiana University Press, 1998, pp.4–10",
+          "publisher_preview": "https://books.google.com.mx/books?id=sSPlBeBlcaIC",
+          "status": "Publisher-authorized Google Books preview: chapter p.4 identifies MS 404 and partial earlier publication in CP 2.281, 285, 297–302; p.7 starts section 5 Indications and p.9 section 6 Symbols. Exact alignment to four requested readings and rights require review."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "¿Qué es un signo?, translation Uxía Rivas, Grupo de Estudios Peirceanos, 1999, revision 2011",
+          "url": "https://www.unav.es/gep/Signo.html",
+          "status": "institutional online text, sections 1–9 available; no page numbers or open redistribution licence established; quotation and alignment need review"
+        },
+        {
+          "language": "ru",
+          "edition": "Что такое знак?, METOD, INION, 2019, pp400–408, DOI 10.31249/metod/2019.09.25",
+          "catalogue": "https://api.crossref.org/works/10.31249/metod/2019.09.25",
+          "status": "title and bibliographic record; translator, actual language, passage coverage and lawful copy not yet established"
+        }
+      ],
+      "requested_places": [
+        "C:A-I033 §2 sign",
+        "C:A-I034 §3 and §7 symbol and habit",
+        "C:A-I035 §4 likeness",
+        "C:A-I036 §5 index"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; assess publication history and each edition independently",
+        "usa": "unpublished pre-1978 text first published by 2002 may be subject to 17 USC §303 minimum; publication date for each part not established",
+        "eu": "author died 1914; posthumous first-publication rights and national rules remain to check",
+        "russia": "author died 1914; posthumous publisher rights and edition remain to check",
+        "mexico": "posthumous publication and transition rules remain to check"
+      },
+      "searches": [
+        {
+          "source": "Robin manuscript catalogue",
+          "result": "MS 404 manuscript pages 31–46 and partial Collected Papers mappings; conflicting reported missing pages require review",
+          "url": "https://depts.washington.edu/lsearlec/peirce/robin.htm"
+        },
+        {
+          "source": "University of Navarra Grupo de Estudios Peirceanos",
+          "result": "Spanish translation and §§1–9 online; institutional availability is not an open licence",
+          "url": "https://www.unav.es/gep/Signo.html"
+        },
+        {
+          "source": "Crossref and OpenAlex",
+          "result": "INION 2019 Russian-titled DOI pp400–408; translator and actual language not supplied in metadata",
+          "url": "https://api.crossref.org/works/10.31249/metod/2019.09.25"
+        },
+        {
+          "source": "Hathi, Google Books, Gallica, DDB",
+          "result": "403/429 or unavailable; full search not established",
+          "url": "https://catalog.hathitrust.org/"
+        },
+        {
+          "source": "Google Books Indiana University Press preview, application browser",
+          "result": "Visually inspected pp.4–10 selectively; chapter identifies MS 404 and relevant parts. The numbered sections differ from other witnesses; do not transfer numbering mechanically. Preview rights and republication rights are distinct.",
+          "url": "https://books.google.com.mx/books?id=sSPlBeBlcaIC"
+        }
+      ],
+      "remaining": "Identify exact lawful English edition and page for each place, align Spanish and find ru/de/zh-Hans passages and participants; complete mandatory search. No conclusion of absence has been made."
     },
     {
       "work": "edmund-husserl.ideen-zu-einer-reinen-phaenomenologie",
@@ -87,7 +202,90 @@
       "areas": [
         "AE15"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "de",
+      "people": [
+        {
+          "name": "Edmund Husserl",
+          "role": "author",
+          "birth": 1859,
+          "death": 1938,
+          "evidence": [
+            "https://husserl.net/texts/husserliana/6"
+          ]
+        },
+        {
+          "name": "Marly Biemel",
+          "role": "editor of 1952 volume",
+          "dates_status": "not established",
+          "evidence": [
+            "https://philosophie.uni-wuppertal.de/fileadmin/philosophie/PDFs_allg/Seminarmaterialien/Brudzinska/Pages_from_Hua_IV_-_Ideen_II_1-5-2.pdf"
+          ]
+        },
+        {
+          "name": "Richard Rojcewicz and André Schuwer",
+          "role": "English translators, 1989",
+          "dates_status": "not established",
+          "evidence": [
+            "https://hiw.kuleuven.be/hua/editionspublications/collected-works"
+          ]
+        },
+        {
+          "name": "Antonio Zirión",
+          "role": "Spanish translator, 1997",
+          "dates_status": "not established",
+          "evidence": [
+            "https://repositorio.pucp.edu.pe/items/313bd6a4-b8ba-4a11-a05e-1907ba2b66dd/full"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Ideen II: Phänomenologische Untersuchungen zur Konstitution, Husserliana IV, The Hague: Martinus Nijhoff, 1952, ed. Marly Biemel",
+          "catalogue": "https://husserl.net/texts/husserliana/6",
+          "contents": "https://philosophie.uni-wuppertal.de/fileadmin/philosophie/PDFs_allg/Seminarmaterialien/Brudzinska/Pages_from_Hua_IV_-_Ideen_II_1-5-2.pdf",
+          "status": "1952 first edition title and table of contents available; 1912 is manuscript origin, not publication. Required text pages not inspected."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "Ideas II, trans. Rojcewicz and Schuwer, 1989",
+          "catalogue": "https://hiw.kuleuven.be/hua/editionspublications/collected-works",
+          "status": "archive catalog identifies translators; relevant pages and rights not checked."
+        },
+        {
+          "language": "es",
+          "edition": "Ideas libro segundo, trans. Antonio Zirión, UNAM, 2005",
+          "catalogue": "https://openlibrary.org/books/OL26389710M",
+          "status": "catalogue; relevant pages and rights not checked."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "现象学的构成研究, trans. 李幼蒸, 2013",
+          "catalogue": "https://book.douban.com/subject/25750863/",
+          "status": "catalogue candidate; pages and rights not checked."
+        },
+        {
+          "language": "ru",
+          "edition": "Идеи к чистой феноменологии, книга 2, БФУ, 2025",
+          "catalogue": "https://bartleby.ru/philosophy/tproduct/504340146912-edmund-gusserl-idei-k-chistoi-fenomenolo",
+          "status": "catalogue candidate; translator and pages not established."
+        }
+      ],
+      "requested_places": [
+        "B:A-I025 §§18a–b, 36–42, 59–60a",
+        "B:A-I032 §§18a–b, 36–42",
+        "B:A-I035 §§59–60a; compare §41a as a candidate"
+      ],
+      "searches": [
+        {
+          "source": "Wuppertal university 1952 title and contents",
+          "result": "§18a p.55, §18b p.58, §41a orientation centre p.158, §59 p.253, §60a p.257; contents identifies section starts only, not the textual claims.",
+          "url": "https://philosophie.uni-wuppertal.de/fileadmin/philosophie/PDFs_allg/Seminarmaterialien/Brudzinska/Pages_from_Hua_IV_-_Ideen_II_1-5-2.pdf"
+        }
+      ],
+      "remaining": "Read exact places from lawful source, verify original and translation rights and contributors, search all required venues; first edition is 1952, not 1912."
     },
     {
       "work": "howard-phillips-lovecraft.supernatural-horror-in-literature",
@@ -113,13 +311,30 @@
           "role": "publisher/editor of journal, exact role and dates to verify",
           "evidence": [
             "https://archive.org/metadata/therecluse",
-            "https://www.wikidata.org/w/rest.php/v1/search/page?q=W.%20Paul%20Cook&limit=5"
+            "https://www.wikidata.org/w/rest.php/v1/search/page?q=W.%20Paul%20Cook&limit=5",
+            "https://id.loc.gov/authorities/names/n82032305.html"
           ],
           "birth": 1881,
           "death": 1948,
           "identifiers": {
             "wikidata": "Q7945883"
           }
+        },
+        {
+          "name": "Michael Koseler",
+          "role": "German translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.suhrkamp.de/buch/h-p-lovecraft-die-literatur-der-angst-t-9783518389225"
+          ]
+        },
+        {
+          "name": "Roberto Dulce",
+          "role": "Spanish translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://openlibrary.org/books/OL13002645M.json"
+          ]
         }
       ],
       "original_candidates": [
@@ -128,7 +343,12 @@
           "scan": "https://archive.org/details/therecluse",
           "metadata": "https://archive.org/metadata/therecluse",
           "ocr": "https://archive.org/download/therecluse/9923699973506421_djvu.txt",
-          "status": "OCR fetched: names Lovecraft and contains Introduction. Page images and full textual comparison pending."
+          "status": "images personally inspected; both target places visible across pp24–25. The 1927 printed page has the ae ligature in daemons; do not assume OCR spelling is decisive.",
+          "pages": "Introduction pp24–25, image n28–n29",
+          "page_images": [
+            "https://archive.org/download/therecluse/page/n28_w1600.jpg",
+            "https://archive.org/download/therecluse/page/n29_w1600.jpg"
+          ]
         }
       ],
       "requested_places": [
@@ -163,9 +383,30 @@
           "query": "W. Paul Cook",
           "result": "Q7945883 described as American writer 1881–1948; match against publisher role and source edition still to verify",
           "url": "https://www.wikidata.org/w/rest.php/v1/search/page?q=W.%20Paul%20Cook&limit=5"
+        },
+        {
+          "source": "Suhrkamp publisher preview",
+          "result": "PDF page 13, printed p12, contains German counterparts for both target readings; visual inspection, no quoted text copied into registry",
+          "url": "https://res.cloudinary.com/suhrkamp/images/q_auto/v1742126141/51772/die-literatur-der-angst_9783518389225_leseprobe.pdf"
         }
       ],
-      "remaining": "Find and verify exact scan pages, editor identity and dates, ru/es/de/zh-Hans witnesses and their rights; complete mandatory catalog searches. No conclusion of absence has been made."
+      "remaining": "Find and verify target ru/es/zh-Hans passages and participants; choose and independently align short German quotation from publisher preview; establish editorial role and complete required source search. No conclusion of absence has been made.",
+      "translation_candidates": [
+        {
+          "language": "de",
+          "edition": "Die Literatur der Angst, translated Michael Koseler, Suhrkamp, first 1995, fourth 2017",
+          "catalogue": "https://www.suhrkamp.de/buch/h-p-lovecraft-die-literatur-der-angst-t-9783518389225",
+          "preview": "https://res.cloudinary.com/suhrkamp/images/q_auto/v1742126141/51772/die-literatur-der-angst_9783518389225_leseprobe.pdf",
+          "pages": "p12, PDF page 13",
+          "status": "publisher preview personally inspected: corresponding passages for both A:E128 and A:E129 appear on p12; select complete sentences and review alignment and quotation basis"
+        },
+        {
+          "language": "es",
+          "edition": "El horror sobrenatural en la literatura, Roberto Dulce, Buenos Aires: Leviatán, 1998",
+          "catalogue": "https://openlibrary.org/books/OL13002645M.json",
+          "status": "catalogue identifies translator; lawful copy and pages of target passages not established"
+        }
+      ]
     },
     {
       "work": "richard-payne-knight.an-analytical-inquiry-into-the-principles",
@@ -196,7 +437,7 @@
           "scan": "https://archive.org/details/analyticalinquir00knig",
           "metadata": "https://archive.org/metadata/analyticalinquir00knig",
           "pages": "II §17 pp148–149, image n171–n172",
-          "status": "packet accepted by old gate; edition number and scan attribution require review"
+          "status": "Hathi catalog identifies 1806 as third edition, OCLC 2049959; scan attribution Getty; sentence reading and independent review pending"
         }
       ],
       "requested_places": [
@@ -231,6 +472,18 @@
           "source": "Google Books, Hathi, Gallica, NЭБ, BDH, OAPEN",
           "result": "403/429 or unavailable; these searches remain incomplete",
           "url": "https://catalog.hathitrust.org/"
+        },
+        {
+          "source": "HathiTrust, browser",
+          "query": "Richard Payne Knight",
+          "result": "48 catalogue results; 1806 third edition OCLC 2049959, four full-view scans. Translated target passage not established.",
+          "url": "https://catalog.hathitrust.org/Record/000248593"
+        },
+        {
+          "source": "RSL, browser",
+          "query": "Пейн Найт",
+          "result": "Broad search returned 367 records; Voytenko dissertation discusses the picturesque, restricted to reading rooms; Sexual Symbolism is a different work.",
+          "url": "https://search.rsl.ru/ru/record/01002299677"
         }
       ],
       "remaining": "Find and verify translators, matching passages and lawful witnesses in ru/es/de/zh-Hans; complete required catalogue and full-text searches. No conclusion of absence has been made."
@@ -245,7 +498,99 @@
         "AE23",
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "it",
+      "people": [
+        {
+          "name": "Benedetto Croce",
+          "role": "author",
+          "birth": 1866,
+          "death": 1952,
+          "evidence": [
+            "https://catalog.hathitrust.org/Record/008700744"
+          ]
+        },
+        {
+          "name": "V. Yakovenko",
+          "role": "Russian translator from fourth Italian edition",
+          "dates_status": "identity and dates not established",
+          "evidence": [
+            "https://search.rsl.ru/ru/record/01008967880"
+          ]
+        },
+        {
+          "name": "Zhu Guangqian",
+          "role": "Chinese translator via Ainslie English edition",
+          "dates_status": "not established",
+          "evidence": [
+            "https://catalog.hathitrust.org/Record/003028979"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Estetica come scienza dell’espressione e linguistica generale, Milano: R. Sandron, 1902",
+          "catalogue": "https://catalog.hathitrust.org/Record/008700744",
+          "status": "NYPL scan search-only; precise pages and first edition image not yet inspected"
+        },
+        {
+          "edition": "Estetica, Laterza, 1908",
+          "scan": "https://archive.org/details/esteticacomesci00crocgoog",
+          "status": "later edition; OCR page candidates require visual verification and comparison with 1902"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "ru",
+          "edition": "Эстетика как наука о выражении и как общая лингвистика, V. Yakovenko, Moscow, Sabashnikov, 1920, part 1",
+          "catalogue": "https://search.rsl.ru/ru/record/01009040312",
+          "status": "RSL says full text at library or virtual reading rooms; passages and translator identity and rights unverified"
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "美学原理, Beijing, Wai guo wen xue chu ban she, 1983, Zhu Guangqian",
+          "catalogue": "https://catalog.hathitrust.org/Record/003028979",
+          "status": "catalogue says translation from Ainslie 1922 English edition; scan search-only, script and target pages unverified"
+        },
+        {
+          "language": "en",
+          "edition": "Aesthetic as Science of Expression and General Linguistic, Douglas Ainslie, 1909",
+          "scan": "https://archive.org/details/aestheticasscien00crocuoft",
+          "status": "candidate; target pages and rights need review"
+        },
+        {
+          "language": "de",
+          "edition": "Aesthetik als Wissenschaft des Ausdrucks und allgemeine Linguistik, Karl Federn, 1905",
+          "scan": "https://archive.org/details/aesthetikalswis02crocgoog",
+          "status": "candidate translated from second Italian edition; target pages and rights need review"
+        },
+        {
+          "language": "es",
+          "edition": "Estética, José Sánchez-Rojas, Madrid: Francisco Beltrán, 1912",
+          "scan": "https://archive.org/details/estetica-croce",
+          "status": "candidate; title date, target pages and rights need review"
+        }
+      ],
+      "searches": [
+        {
+          "source": "HathiTrust, browser",
+          "query": "Benedetto Croce estetica",
+          "result": "1902 first edition and Russian and Chinese editions catalogued; target scans search-only",
+          "url": "https://catalog.hathitrust.org/Search/Home?lookfor=Benedetto%20Croce%20estetica&type=all"
+        },
+        {
+          "source": "RSL, browser",
+          "query": "Кроче эстетика",
+          "result": "1920 part 1 and 2000 Yakovenko edition identified; full text in RSL or virtual reading rooms",
+          "url": "https://search.rsl.ru/ru/record/01009040312"
+        },
+        {
+          "source": "Internet Archive",
+          "result": "1908 Italian, 1909 English, 1905 German and 1912 Spanish candidates; OCR page references pending image verification",
+          "url": "https://archive.org/details/esteticacomesci00crocgoog"
+        }
+      ],
+      "remaining": "Review all target passages and sentence alignment, edition and translation participants, lawful access and applicable rights; continue required searches. No conclusion of absence has been made."
     },
     {
       "work": "maurice-merleau-ponty.phenomenologie-de-la-perception",
@@ -255,7 +600,75 @@
         "AE13",
         "AE15"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "fr",
+      "people": [
+        {
+          "name": "Maurice Merleau-Ponty",
+          "role": "author",
+          "birth": 1908,
+          "death": 1961,
+          "evidence": [
+            "https://catalogue.bnf.fr/ark:/12148/cb32442979d"
+          ]
+        },
+        {
+          "name": "Donald A. Landes",
+          "role": "English translator, 2012",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.routledge.com/Phenomenology-of-Perception/Merleau-Ponty-Landes/p/book/9780415834339"
+          ]
+        },
+        {
+          "name": "Rudolf Boehm",
+          "role": "German translator",
+          "birth": 1927,
+          "death": 2019,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q104255",
+            "https://openlibrary.org/works/OL37552074W"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Phénoménologie de la perception, Paris: Gallimard, 1945",
+          "catalogue": "https://catalogue.bnf.fr/ark:/12148/cb32442979d",
+          "status": "BnF record describes 1952 printing; lawful original passages not established."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "Phenomenology of Perception, trans. Donald A. Landes, Routledge, 2012",
+          "catalogue": "https://www.routledge.com/Phenomenology-of-Perception/Merleau-Ponty-Landes/p/book/9780415834339",
+          "status": "edition identified; lawful copies of relevant pages not established; PDF from register is a locator until hosting rights established."
+        },
+        {
+          "language": "de",
+          "edition": "Phänomenologie der Wahrnehmung, trans. Rudolf Boehm",
+          "catalogue": "https://openlibrary.org/works/OL37552074W",
+          "status": "bibliographic lead; lawful pages and applicable rights unverified."
+        }
+      ],
+      "requested_places": [
+        "B:A-I003",
+        "B:A-I026",
+        "B:A-I031",
+        "B:A-I028",
+        "B:A-I047",
+        "B:A-I040",
+        "B:A-I034"
+      ],
+      "searches": [
+        {
+          "source": "BnF, publisher Routledge, Open Library and Crossref",
+          "result": "Original and translations identified at catalogue level; Crossref DOI has no license field, which does not establish absence of a license.",
+          "url": "https://api.crossref.org/works/10.4324/9780203720714"
+        }
+      ],
+      "remaining": "Verify exact original and translated sentences in lawful witnesses, each contributor and applicable rights; complete mandatory searches. English PDF page numbers are not French page numbers."
     },
     {
       "work": "kendall-l-walton.categories-of-art",
@@ -267,7 +680,49 @@
         "AE24",
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Kendall L. Walton",
+          "role": "author",
+          "birth": 1939,
+          "death_status": "not established; 2013 in imported register conflicts with university CV listing teaching 2015–2019",
+          "evidence": [
+            "https://sites.lsa.umich.edu/kendallwalton/wp-content/uploads/sites/225/2025/10/Kendall-Walton-CV.pdf",
+            "https://lsa.umich.edu/philosophy/people/emeritus-faculty/klwalton.html"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Categories of Art, The Philosophical Review 79(3), 1970, pp.334–367",
+          "doi": "10.2307/2183933",
+          "catalogue": "https://www.pdcnet.org/phr/content/phr_1970_0079_0003_0334_0367",
+          "status": "Publisher platform reports subscription or purchase; exact pages have not been examined through this access."
+        }
+      ],
+      "requested_places": [
+        "B:C-I023",
+        "B:C-I049",
+        "C:A-I103",
+        "C:A-I104",
+        "D:B-I123",
+        "D:B-I122"
+      ],
+      "searches": [
+        {
+          "source": "PDC, Crossref, OpenAlex and Unpaywall",
+          "result": "Exact 1970 article and journal pages identified; indexes report closed, not proof there is no legal copy elsewhere.",
+          "url": "https://www.pdcnet.org/phr/content/phr_1970_0079_0003_0334_0367"
+        },
+        {
+          "source": "University of Michigan Walton profile and CV",
+          "result": "Profile identifies professor emeritus, and CV lists Stanford visiting professorship in 2015–2019, contrary to death year 2013 in imported registry/B/agents.jsonl. Do not use that year for rights; verify current status and correct at source with provenance.",
+          "url": "https://sites.lsa.umich.edu/kendallwalton/wp-content/uploads/sites/225/2025/10/Kendall-Walton-CV.pdf"
+        }
+      ],
+      "remaining": "Verify legal copies of exact passages, source authority for biographical correction, all translation witnesses and rights; complete minimum searches."
     },
     {
       "work": "clive-bell.art",
@@ -278,7 +733,116 @@
         "AE22",
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Clive Bell",
+          "role": "author",
+          "birth": 1881,
+          "death": 1964,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q684978"
+          ]
+        },
+        {
+          "name": "Paul Westheim",
+          "role": "German translator, later edition adapted",
+          "birth": 1886,
+          "death": 1963,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q98283",
+            "https://openlibrary.org/books/OL59541080M"
+          ]
+        },
+        {
+          "name": "Stefan Majetschak",
+          "role": "editor of German 2019 edition",
+          "dates_status": "not established",
+          "evidence": [
+            "https://openlibrary.org/books/OL59541080M"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Art, New York: Frederick A. Stokes, 1914",
+          "scan": "https://archive.org/details/art1914bell",
+          "transcription": "https://www.gutenberg.org/ebooks/16917",
+          "status": "scan pp8,16–17,22,42–43,63–64 personally inspected; exact sentence boundaries and transcription alignment require independent review"
+        },
+        {
+          "edition": "Art, New York: Frederick A. Stokes, catalogued [1913]",
+          "scan": "https://babel.hathitrust.org/cgi/pt?id=yale.39002028938760&seq=9",
+          "status": "Hathi full view and Public Domain; title and verso inspected, verso states Third Edition and gives no date; catalog date is not proof of first publication"
+        }
+      ],
+      "original_places": [
+        {
+          "reading": "C:A-I012",
+          "pages": "p8, n35",
+          "url": "https://archive.org/download/art1914bell/page/n35_w1200.jpg"
+        },
+        {
+          "reading": "C:A-I013",
+          "pages": "p22, n49",
+          "url": "https://archive.org/download/art1914bell/page/n49_w1200.jpg"
+        },
+        {
+          "reading": "C:A-I014",
+          "pages": "pp16–17, n43–n44",
+          "url": "https://archive.org/details/art1914bell/page/n43/mode/1up"
+        },
+        {
+          "reading": "C:A-I015",
+          "pages": "pp63–64, n90–n91",
+          "url": "https://archive.org/details/art1914bell/page/n90/mode/1up"
+        },
+        {
+          "reading": "C:A-I016",
+          "pages": "pp42–43, n69–n70",
+          "url": "https://archive.org/details/art1914bell/page/n69/mode/1up"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "de",
+          "edition": "Kunst, Mentis, 2019, based on Paul Westheim translation, edited Stefan Majetschak",
+          "catalogue": "https://openlibrary.org/books/OL59541080M",
+          "status": "catalogue only; adaptations, pages and rights need verification"
+        },
+        {
+          "language": "zh",
+          "edition": "Yi shu, Taipei: Shang ding wen hua chu ban she, 1991, Zhou Jinhuan and Ma Zhong-yüan",
+          "catalogue": "https://openlibrary.org/books/OL22944797M.json",
+          "status": "catalogue only; Chinese script, dates and target pages unverified"
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary; exact edition, contributions and national rules need independent review",
+        "usa": "1914 text predates 1931; Gutenberg labels PD USA",
+        "eu": "author died 1964; ordinary life-plus-70 term runs through 2034; translations separate",
+        "russia": "author died 1964; applicable national and transition rules require examination",
+        "mexico": "life-plus-100 and transitional rules require examination"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive and Gutenberg",
+          "result": "1914 scan and full transcription; personally viewed listed page images",
+          "url": "https://archive.org/details/art1914bell"
+        },
+        {
+          "source": "Hathi bibliographic API",
+          "result": "multiple US full-view/pdus candidates; actual target access may depend on location",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/lccn/14010203.json"
+        },
+        {
+          "source": "Open Library",
+          "result": "German and Chinese translation candidates; actual target pages and rights not established",
+          "url": "https://openlibrary.org/works/OL351149W/editions.json?limit=100"
+        }
+      ],
+      "remaining": "Verify printing details, all language witnesses and matching passages, participants and national rights; complete required searches. No conclusion of absence has been made."
     },
     {
       "work": "de-witt-henry-parker.the-principles-of-aesthetics",
@@ -318,6 +882,12 @@
           "scan": "https://archive.org/details/theprinciplesofa00parkuoft",
           "metadata": "https://archive.org/metadata/theprinciplesofa00parkuoft",
           "status": "candidate"
+        },
+        {
+          "edition": "The principles of æsthetics, Boston and New York: Silver, Burdett and Company, [c1920], 374 pp.",
+          "catalogue": "https://catalog.hathitrust.org/Record/008700567",
+          "scan": "https://babel.hathitrust.org/cgi/pt?id=nyp.33433081904454",
+          "status": "full view NYPL scan, Hathi marks Public Domain Google-digitized; personally viewed p84 and p204, remaining sentences and independent alignment to review"
         }
       ],
       "transcription_candidates": [
@@ -371,9 +941,56 @@
           "source": "Google Books API and ru/en Wikisource API",
           "result": "HTTP 429; not searched successfully",
           "url": "https://www.googleapis.com/books/v1/volumes?q=intitle:principles+of+aesthetics+inauthor:parker"
+        },
+        {
+          "source": "Internet Archive page images",
+          "result": "Inspected pp83–85, 88, 92, 97 and 204; locate whole sentence boundaries and conduct independent semantic review before use",
+          "url": "https://archive.org/details/principlesofaest00parkiala"
+        },
+        {
+          "source": "HathiTrust browser",
+          "query": "The Principles of Aesthetics Parker",
+          "result": "1920 NYPL full view; chapter V starts p80 and chapter IX p188. Personally viewed pp84 and 204; target passages and translations not fully reviewed.",
+          "url": "https://babel.hathitrust.org/cgi/pt?id=nyp.33433081904454&seq=214"
         }
       ],
-      "remaining": "Search other required catalogues and actual translations for ru, es, de and zh-Hans; verify named hands, places and rights. No conclusion of absence has been made."
+      "remaining": "Search other required catalogues and actual translations for ru, es, de and zh-Hans; verify named hands, places and rights. No conclusion of absence has been made.",
+      "original_places": [
+        {
+          "reading": "C:A-I040",
+          "page": "p88",
+          "image": "https://archive.org/download/principlesofaest00parkiala/page/n97_w1400.jpg",
+          "status": "personally inspected; contrast and common whole present"
+        },
+        {
+          "reading": "C:A-I041",
+          "page": "pp83–84, p92",
+          "images": [
+            "https://archive.org/download/principlesofaest00parkiala/page/n92_w1400.jpg",
+            "https://archive.org/download/principlesofaest00parkiala/page/n93_w1400.jpg",
+            "https://archive.org/download/principlesofaest00parkiala/page/n101_w1400.jpg"
+          ],
+          "status": "personally inspected as contextual candidates; the register explicitly says plot complexity, exact sentence selection needs independent reading"
+        },
+        {
+          "reading": "C:A-I042",
+          "page": "p85",
+          "image": "https://archive.org/download/principlesofaest00parkiala/page/n94_w1400.jpg",
+          "status": "personally inspected; unity in variety, dominance and equilibrium named"
+        },
+        {
+          "reading": "C:A-I043",
+          "page": "p97",
+          "image": "https://archive.org/download/principlesofaest00parkiala/page/n106_w1400.jpg",
+          "status": "personally inspected; form/content discussed, sentence continues on next page"
+        },
+        {
+          "reading": "C:A-I044",
+          "page": "p204",
+          "image": "https://archive.org/download/principlesofaest00parkiala/page/n213_w1400.jpg",
+          "status": "personally inspected; thought-pulsations and rhythm discussed"
+        }
+      ]
     },
     {
       "work": "max-koelbel.aesthetic-judge-dependence-and-expertise",
@@ -403,7 +1020,101 @@
         "AE21",
         "AE22"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "ru",
+      "people": [
+        {
+          "name": "Viktor Borisovich Shklovsky",
+          "role": "author",
+          "birth": 1893,
+          "death": 1984,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q312467"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Сборники по теории поэтического языка II, Petrograd: Z. Sokolinsky, 1917, article pp3–14",
+          "catalogue": "https://search.rsl.ru/ru/record/01008012773",
+          "scan": "https://viewer.rsl.ru/ru/rsl01008823097?page=4&rotate=0&theme=black&inversion=off",
+          "status": "RSL labels volume open access; personally inspected title, contents, pp3 and 6–9; selected sentences, alignment with 1919 and lawful republication remain to review"
+        },
+        {
+          "edition": "Поэтика. Сборники по теории поэтического языка I–II, Petrograd, 1919, pp101–114",
+          "scan": "https://archive.org/details/i-ii-1919",
+          "status": "pp103–105 personally inspected; scan provenance and lawful availability for protected jurisdictions require verification; compare with 1917 first printing"
+        }
+      ],
+      "original_places": [
+        {
+          "reading": "C:A-I094 and B:D-I044",
+          "page": "p103, n103",
+          "url": "https://archive.org/download/i-ii-1919/page/n103_w1400.jpg",
+          "status": "image inspected; poetic image and examples, whole sentence selection pending"
+        },
+        {
+          "reading": "B:D-I043 and C:A-I095",
+          "pages": "pp104–105, n104–n105",
+          "url": "https://archive.org/details/i-ii-1919/page/n104/mode/1up",
+          "status": "images inspected; automatization and defamiliarization, source legality and complete sentence selection pending"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "Russian Formalist Criticism: Four Essays, Lee T. Lemon and Marion J. Reis, 1965",
+          "catalogue": "https://openlibrary.org/works/OL16065608W",
+          "status": "catalogue/restricted copy; actual translation and cited passages not established"
+        },
+        {
+          "language": "en",
+          "url": "https://zuckermanhartung.org/wp-content/uploads/2022/08/shklovsky-art-as-technique.pdf",
+          "status": "unattributed selection with substantive differences from 1919 Russian edition; provenance, translator and legal availability not established"
+        },
+        {
+          "language": "de",
+          "edition": "Texte der russischen Formalisten, W. Fink, 1969, ed. Jurij Striedter",
+          "catalogue": "https://openlibrary.org/books/OL4616665M",
+          "status": "catalogue candidate; article translator and target pages unverified"
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary; verify edition and lawful copy for each jurisdiction",
+        "usa": "1919 publication precedes 1931; verify actual source and its contributions",
+        "eu": "author died 1984; translations and quotation use separate",
+        "russia": "author died 1984; consider lawful source and quotation conditions",
+        "mexico": "rights and transitions require jurisdiction-specific review"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive",
+          "result": "1919 volume contains candidate text; images pp103–105 inspected, rights and legal provenance not established",
+          "url": "https://archive.org/details/i-ii-1919"
+        },
+        {
+          "source": "Open Library",
+          "result": "1965 English and 1969 German candidates, target pages not verified",
+          "url": "https://openlibrary.org/works/OL16065608W"
+        },
+        {
+          "source": "НЭБ, РГБ, Google Books",
+          "result": "403, script shell or 429; incomplete searches",
+          "url": "https://rusneb.ru/"
+        },
+        {
+          "source": "RSL browser",
+          "query": "Сборники по теории поэтического языка",
+          "result": "1917 issue II open-view in RSL; pp6–9 personally inspected, target on pp7–8, precise sentence and 1919 collation pending",
+          "url": "https://viewer.rsl.ru/ru/rsl01008823097?page=4&rotate=0&theme=black&inversion=off"
+        },
+        {
+          "source": "HathiTrust browser",
+          "result": "1965 Russian Formalist Criticism, translated Lee T. Lemon and Marion J. Reis, search-only; target pages not viewed",
+          "url": "https://catalog.hathitrust.org/Record/001010607"
+        }
+      ],
+      "remaining": "Collate 1917 first printing with 1919 for exact passages, verify translations, participants and republication rights; complete required searches. No conclusion of absence has been made."
     },
     {
       "work": "aaron-smuts.the-paradox-of-suspense",
@@ -413,7 +1124,29 @@
         "AE08",
         "AE12"
       ],
-      "status": "research-pending"
+      "status": "research-pending",
+      "search_attempts": [
+        {
+          "source": "Crossref title search",
+          "query": "The Paradox of Suspense",
+          "url": "https://api.crossref.org/works?query.title=The+Paradox+of+Suspense&rows=4",
+          "http_status": 200,
+          "candidate_doi": "10.1016/s0304-422x(98)00014-x",
+          "candidate_title": "The paradox of suspense",
+          "candidate_authors": [
+            "Juan A. Prieto-Pablos"
+          ],
+          "candidate_date": {
+            "date-parts": [
+              [
+                1998,
+                11
+              ]
+            ]
+          },
+          "result": "rejected: identical title belongs to Juan A. Prieto-Pablos (1998), not the register author or year"
+        }
+      ]
     },
     {
       "work": "berys-gaut.the-ethical-criticism-of-art",
@@ -432,7 +1165,16 @@
       "areas": [
         "AE18"
       ],
-      "status": "research-pending"
+      "status": "research-pending",
+      "search_attempts": [
+        {
+          "source": "Crossref title search",
+          "query": "Art in the Advancement of Understanding",
+          "url": "https://api.crossref.org/works?query.title=Art+in+the+Advancement+of+Understanding&rows=4",
+          "http_status": 200,
+          "result": "no sufficiently strong title match in first four records; not proof of absence"
+        }
+      ]
     },
     {
       "work": "david-lewis.truth-in-fiction",
@@ -442,7 +1184,45 @@
         "AE18",
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "David Kellogg Lewis",
+          "role": "author",
+          "birth": 1941,
+          "death": 2001,
+          "evidence": [
+            "https://archive.org/details/philosophicalpap0002lewi"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Truth in Fiction, American Philosophical Quarterly 15(1), 1978, pp.37–46",
+          "catalogue": "https://www.andrewmbailey.com/dkl/",
+          "status": "Third-party scan supplies original page orientation, but its hosting permission has not been established. DOI of original not established."
+        },
+        {
+          "edition": "Philosophical Papers vol. I, Oxford University Press, 1983, pp.261–280, including postscript",
+          "doi": "10.1093/0195032047.003.0015",
+          "catalogue": "https://api.crossref.org/works/10.1093/0195032047.003.0015",
+          "status": "Reprint DOI and pages, not DOI or pages of original article; Crossref has no license field."
+        }
+      ],
+      "requested_places": [
+        "B:D-I012 original p.37",
+        "B:D-I013 original p.45",
+        "B:D-I014 original pp.45–46"
+      ],
+      "searches": [
+        {
+          "source": "Crossref, Unpaywall and HathiTrust",
+          "result": "1983 book chapter identified; Unpaywall marks closed and Hathi volume is search-only. Original 1978 article DOI not established.",
+          "url": "https://catalog.hathitrust.org/Record/000238445"
+        }
+      ],
+      "remaining": "Identify a lawful copy of exact English passages, translation witnesses and rights; complete required searches."
     },
     {
       "work": "frank-sibley.aesthetic-concepts",
@@ -452,7 +1232,73 @@
         "AE16",
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Frank Sibley",
+          "role": "author",
+          "birth": 1923,
+          "death": 1996,
+          "evidence": [
+            "https://id.loc.gov/authorities/names/n00102040.html"
+          ]
+        },
+        {
+          "name": "Vygandas Aleksandravičius",
+          "role": "Lithuanian translator, 2001",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.15388/SocMintVei.2001.3-4.5901"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Aesthetic Concepts, The Philosophical Review 68(4), 1959, pp.421–450",
+          "doi": "10.2307/2182490",
+          "catalogue": "https://api.crossref.org/works/10.2307/2182490",
+          "status": "bibliographic record; exact lawful page copies and US notice/renewal not checked."
+        },
+        {
+          "edition": "Approach to Aesthetics, chapter 1, Oxford, 2001, pp.1–23",
+          "doi": "10.1093/0198238991.003.0001",
+          "catalogue": "https://api.crossref.org/works/10.1093/0198238991.003.0001",
+          "status": "Clarendon 2001 publisher preview: pp.1, 7 and 13 visually inspected; this is the 2001 collection, not pagination of the 1959 original. Align exact sentences and review quotation rights.",
+          "publisher_preview": "https://books.google.com.mx/books?id=7XqMlgoBFV0C&pg=PA1"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "lt",
+          "edition": "Lithuanian translation, 2001, trans. Vygandas Aleksandravičius",
+          "catalogue": "https://journals.vu.lt/sociologija-mintis-ir-veiksmas/en/article/view/5901",
+          "status": "Some existing reading locators refer to Lithuanian translation rather than English original; edition alignment and rights remain unverified."
+        }
+      ],
+      "requested_places": [
+        "B:C-I022 pp.1–8",
+        "B:C-I018 pp.7–14",
+        "D:B-I121 publisher abstract"
+      ],
+      "searches": [
+        {
+          "source": "Crossref and Unpaywall",
+          "result": "DOIs of 1959 article and 2001 chapter are distinct; no Crossref license field and both indexed closed.",
+          "url": "https://api.crossref.org/works/10.2307/2182490"
+        },
+        {
+          "source": "Vilnius University journal metadata",
+          "result": "Previously used locators identify a Lithuanian translation; not the English original.",
+          "url": "https://api.crossref.org/works/10.15388/SocMintVei.2001.3-4.5901"
+        },
+        {
+          "source": "Google Books Clarendon Press preview",
+          "result": "Visually inspected pp.1, 7, 13 in the 2001 collection; appearance, taste and sufficient conditions. The preview is limited and not a blanket licence to republish.",
+          "url": "https://books.google.com.mx/books?id=7XqMlgoBFV0C&pg=PA1"
+        }
+      ],
+      "remaining": "Obtain lawful English source at target pages; align original/translation editions, check US renewal and locate other requested languages, complete searches."
     },
     {
       "work": "george-dickie.the-myth-of-the-aesthetic-attitude",
@@ -471,7 +1317,64 @@
         "AE18",
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "J. R. R. Tolkien",
+          "role": "author",
+          "birth": 1892,
+          "death": 1973,
+          "evidence": [
+            "https://www.planetadelibros.com/libro-arbol-y-hoja/386145"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "On Fairy-Stories, in Essays Presented to Charles Williams, Oxford University Press, 1947, pp.38–89",
+          "catalogue": "https://tolkiengateway.net/wiki/Essays_Presented_to_Charles_Williams",
+          "status": "first-publication lead; exact places and lawful page images still require verification; 1939 lecture differs from published essay."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Árbol y hoja, Minotauro, 2024, ISBN 9788445016862",
+          "catalogue": "https://www.planetadelibros.com/libro-arbol-y-hoja/386145",
+          "status": "Publisher confirms inclusion and lists various translators; its excerpt link currently returns 404; essay translator and pages unknown."
+        },
+        {
+          "language": "ru",
+          "edition": "multiple translations 1991–2006",
+          "catalogue": "https://fantlab.ru/work2253",
+          "status": "bibliographic leads only; particular witnesses, contributors, pages and rights not established."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "险境奇谈, 上海人民出版社, 2024",
+          "catalogue": "https://book.douban.com/subject/36810986/",
+          "status": "catalogue lead; translator of essay and pages not verified."
+        }
+      ],
+      "requested_places": [
+        "B:D-I046 Children, secondary belief",
+        "B:D-I045 Fantasy, §§65–66",
+        "B:D-I047 Recovery"
+      ],
+      "searches": [
+        {
+          "source": "Publisher Planeta and BNE/other sources still in progress",
+          "result": "Publisher identifies 2024 Spanish collection but PDF preview link returned 404 in browser; individual essay translator not named.",
+          "url": "https://www.planetadelibros.com/libro-arbol-y-hoja/386145"
+        },
+        {
+          "source": "Internet Archive and Open Library",
+          "result": "2014 edition candidate restricted; other copies and permissions require assessment.",
+          "url": "https://archive.org/details/tolkienonfairyst0000verl"
+        }
+      ],
+      "remaining": "Verify lawful copies and exact pages in every requested language, contributors, publication history and jurisdiction-specific rights; complete mandatory search."
     },
     {
       "work": "janet-h-murray.hamlet-on-the-holodeck",
@@ -517,7 +1420,116 @@
       "areas": [
         "AE03"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "de",
+      "people": [
+        {
+          "name": "Karl Rosenkranz",
+          "role": "author",
+          "birth": 1805,
+          "death": 1879,
+          "evidence": [
+            "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991012121989708606&context=L&vid=34BNE_INST:CATALOGO"
+          ]
+        },
+        {
+          "name": "Miguel Salmerón Infante",
+          "role": "Spanish editor and translator, 2015",
+          "dates_status": "not established",
+          "evidence": [
+            "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991012121989708606&context=L&vid=34BNE_INST:CATALOGO",
+            "https://books.google.com.mx/books?vid=ISBN9788416230679"
+          ]
+        },
+        {
+          "name": "Andrei Pop",
+          "role": "English translator, 2015",
+          "dates_status": "not established",
+          "evidence": [
+            "https://books.google.com.mx/books?vid=ISBN9781472568878"
+          ]
+        },
+        {
+          "name": "Mechtild Widrich",
+          "role": "English translator, 2015",
+          "dates_status": "not established",
+          "evidence": [
+            "https://books.google.com.mx/books?vid=ISBN9781472568878"
+          ]
+        },
+        {
+          "name": "Мария Алексеевна Шкепу",
+          "role": "Russian translator/adaptor, 2010 institutional edition",
+          "dates_status": "not established",
+          "evidence": [
+            "https://mari.kiev.ua/sites/default/files/inline-images/pdfs/Shkepu_book_site.pdf"
+          ]
+        },
+        {
+          "name": "Victor Ernest Mașek",
+          "role": "Romanian translator, 1984, cited intermediary",
+          "dates_status": "identity and dates need independent authority verification",
+          "evidence": [
+            "https://mari.kiev.ua/sites/default/files/inline-images/pdfs/Shkepu_book_site.pdf"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Ästhetik des Häßlichen, Königsberg: Gebrüder Bornträger, 1853",
+          "transcription": "https://www.textgridrep.de/browse/4bn1h.0",
+          "scan": "https://archive.org/details/aesthetikdeshass00rose",
+          "status": "TextGrid transcription successfully fetched by kit; page alignment and independent review in progress."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Estética de lo feo, ed. and trans. Miguel Salmerón, Sevilla: Athenaica, 2015; ebook ISBN 9788416230600",
+          "catalogue": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991012121989708606&context=L&vid=34BNE_INST:CATALOGO",
+          "status": "BNE ebook restricted to BNE and conservation centres; relevant pages and rights not checked."
+        },
+        {
+          "language": "en",
+          "edition": "Aesthetics of Ugliness: A Critical Edition, trans. Andrei Pop and Mechtild Widrich, Bloomsbury, 2015, ISBN 9781472568878",
+          "catalogue": "https://books.google.com.mx/books?vid=ISBN9781472568878",
+          "status": "Google Books publisher-authorized preview visually inspected pp.63, 89, 115, corresponding to 1853 pp.67, 115, 164 as marked within the edition; align exact passages and evaluate quotation rights."
+        },
+        {
+          "language": "ru",
+          "edition": "Мария Шкепу, Эстетика безобразного Карла Розенкранца, Киев: Феникс, 2010, ISBN 9789666518739",
+          "url": "https://mari.kiev.ua/sites/default/files/inline-images/pdfs/Shkepu_book_site.pdf",
+          "status": "Institution-hosted 448-page edition includes Russian rendering pp.33–245; foreword pp.26–28 explicitly describes indirect translation via Romanian and cautions against direct attribution. Relevant preface pp.33–34 and formlessness pp.70–71; verify full sentence alignment, roles and legal quotation."
+        }
+      ],
+      "searches": [
+        {
+          "source": "TextGrid and Internet Archive",
+          "result": "German 1853 transcription now fetchable; scan available, transcription and pages require collation.",
+          "url": "https://www.textgridrep.de/browse/4bn1h.0"
+        },
+        {
+          "source": "BNE catalog viewed in application",
+          "result": "Spanish 2015 names Miguel Salmerón editor and translator, digital access restricted to library and conservation centres.",
+          "url": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991012121989708606&context=L&vid=34BNE_INST:CATALOGO"
+        },
+        {
+          "source": "Open Library title searches",
+          "result": "English 2015 Bloomsbury and Spanish 2015 Athenaica edition leads; Russian and Chinese queries returned zero results, not a conclusion of absence.",
+          "url": "https://openlibrary.org/works/OL36034117W/editions.json"
+        },
+        {
+          "source": "Google Books publisher preview, visually inspected",
+          "result": "Part One Formlessness p.63 reproduces original-page marker [67], Part Two Incorrectness p.89 marker [115], Part Three Disfiguration or Deformation p.115 marker [164]. Translator names listed; publisher authorizes preview, reuse rights and exact sentence alignment remain open.",
+          "url": "https://books.google.com.mx/books?id=xE-9CAAAQBAJ&pg=PA63"
+        },
+        {
+          "source": "National Academy of Arts of Ukraine, Modern Art Research Institute hosted edition",
+          "result": "2010 monograph includes Russian rendering of Rosenkranz; own bibliographic note explicitly calls it translation of a translation and discusses Romanian intermediary. Printed pp.33–34 and 70–71 match relevant German 1853 preface IV–V and pp.67–68 in broad subject; exact collation and contributor rights remain open.",
+          "url": "https://mari.kiev.ua/sites/default/files/inline-images/pdfs/Shkepu_book_site.pdf"
+        }
+      ],
+      "remaining": "Use the institution-hosted indirect Russian rendering and publisher English preview to align exact places; independently verify all translation contributors and rights, finish the required searches and apply the owner line. No absence finding."
     },
     {
       "work": "kendall-l-walton.fearing-fictions",
@@ -554,7 +1566,29 @@
         "AE08",
         "AE20"
       ],
-      "status": "research-pending"
+      "status": "research-pending",
+      "search_attempts": [
+        {
+          "source": "Crossref title search",
+          "query": "The Paradox of Suspense",
+          "url": "https://api.crossref.org/works?query.title=The+Paradox+of+Suspense&rows=4",
+          "http_status": 200,
+          "candidate_doi": "10.1016/s0304-422x(98)00014-x",
+          "candidate_title": "The paradox of suspense",
+          "candidate_authors": [
+            "Juan A. Prieto-Pablos"
+          ],
+          "candidate_date": {
+            "date-parts": [
+              [
+                1998,
+                11
+              ]
+            ]
+          },
+          "result": "rejected: identical title belongs to Juan A. Prieto-Pablos (1998), not the register author or year"
+        }
+      ]
     },
     {
       "work": "richard-shusterman.thinking-through-the-body-educating",
@@ -850,7 +1884,137 @@
       "areas": [
         "AE18"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Godfrey Harold Hardy",
+          "role": "author",
+          "birth": 1877,
+          "death": 1947,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Special:EntityData/Q184337.json"
+          ]
+        },
+        {
+          "name": "Pedro Pacheco González",
+          "role": "Spanish translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://capitanswing.com/libros/apologia-de-un-matematico/"
+          ]
+        },
+        {
+          "name": "王希勇",
+          "role": "Chinese translator, 2007 candidate",
+          "dates_status": "not established",
+          "evidence": [
+            "https://book.douban.com/subject/2135227/"
+          ]
+        },
+        {
+          "name": "凌复华",
+          "role": "Chinese translator, 2023 candidate",
+          "dates_status": "not established",
+          "evidence": [
+            "https://book.douban.com/subject/36363233/"
+          ]
+        },
+        {
+          "name": "Jesús Fernández",
+          "role": "Spanish translator, Nivola 1999 edition",
+          "dates_status": "not established",
+          "evidence": [
+            "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991057789609708606&context=L&vid=34BNE_INST:CATALOGO"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "A Mathematician’s Apology, Cambridge University Press, 1940",
+          "catalogue": "https://openlibrary.org/books/OL6417322M.json",
+          "status": "first edition catalogue; exact pages and actual accessible scan not verified"
+        },
+        {
+          "edition": "Cambridge University Press, 2012, section 18",
+          "publisher_preview": "https://www.cambridge.org/core/product/identifier/CBO9781107295599A024/type/book_part",
+          "doi": "10.1017/CBO9781107295599.020",
+          "pages": "section pp112–115; precise cited sentence pages not yet established",
+          "status": "publisher preview contains starts relevant to both readings; access is not a reuse licence"
+        },
+        {
+          "edition": "A Mathematician’s Apology, Cambridge University Press, February 1941 reprint",
+          "catalogue": "https://catalog.hathitrust.org/Record/102100625",
+          "witness": "https://babel.hathitrust.org/cgi/pt?id=uva.x001445931&seq=8",
+          "pages": "pp. 53–54, scans 65–66",
+          "status": "Title and verso identify 1941 reprint of November 1940 first edition. Scans 65–66 visually inspected: theorems and proofs p.53, chess problem p.54. Hathi marks In Copyright in the United States; browser full view from current location is not a reuse licence or proof of first printing pagination."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Apología de un matemático, trans. Pedro Pacheco González, Capitán Swing, 2017",
+          "catalogue": "https://capitanswing.com/libros/apologia-de-un-matematico/",
+          "status": "publisher identifies translator; target page and rights unverified"
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "一个数学家的辩白, trans. 王希勇, 商务印书馆, 2007",
+          "catalogue": "https://book.douban.com/subject/2135227/",
+          "status": "catalogue candidate; matching pages and rights unverified"
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "一个数学家的辩白, trans. 凌复华, 云南人民出版社, 2023",
+          "catalogue": "https://book.douban.com/subject/36363233/",
+          "status": "catalogue candidate; matching pages and rights unverified"
+        },
+        {
+          "language": "es",
+          "edition": "Apología de un matemático, trans. Jesús Fernández, Nivola, 1999, ISBN 84-930719-0-0",
+          "catalogue": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991057789609708606&context=L&vid=34BNE_INST:CATALOGO",
+          "status": "BNE physical copy; exact passage, rights and comparison to other translations unverified"
+        }
+      ],
+      "requested_places": [
+        "B:D-I024 §18 mathematical proof, unexpectedness and economy",
+        "B:D-I025 §18 chess, aesthetic value and significance"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; publisher preview access and applicable rights are separate",
+        "usa": "1940 printing does not meet pre-1931 rule; assess US publication history, restoration and quotation",
+        "eu": "author died 1947; national rules and translation rights separate",
+        "russia": "author died 1947; national rules and translation rights separate",
+        "mexico": "life-plus-100 and transition rules require case-specific review"
+      },
+      "searches": [
+        {
+          "source": "Cambridge publisher preview and Crossref",
+          "result": "§18 preview with passages corresponding to both readings; section is pp112–115, exact page not yet determined",
+          "url": "https://www.cambridge.org/core/product/identifier/CBO9781107295599A024/type/book_part"
+        },
+        {
+          "source": "Capitán Swing and Douban",
+          "result": "Spanish and Chinese translator candidates identified; no source pages for the target places",
+          "url": "https://capitanswing.com/libros/apologia-de-un-matematico/"
+        },
+        {
+          "source": "Hathi bibliographic API",
+          "result": "API labelled 1940 copy search-only; browser full view from current location shows 1941 reprint, not verified 1940 first printing. Hathi marks in copyright in the US.",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/oclc/880626.json"
+        },
+        {
+          "source": "Biblioteca Nacional de España catalog, viewed in browser",
+          "result": "Nivola 1999 identifies Jesús Fernández as translator and 136 pages; physical copy. Capitán Swing 2019 EPUB is restricted to BNE and conservation centres; its record does not identify a translator. No target pages examined.",
+          "url": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991061098969208606&context=L&vid=34BNE_INST:CATALOGO"
+        },
+        {
+          "source": "HathiTrust viewer, direct inspection",
+          "result": "1941 reprint rather than an independently verified 1940 printing: title scan 7, verso scan 8, proof unexpectedness/inevitability/economy p.53 scan 65 and chess comparison p.54 scan 66. Full view observed; Hathi rights label In Copyright in the United States.",
+          "url": "https://babel.hathitrust.org/cgi/pt?id=uva.x001445931&seq=65"
+        }
+      ],
+      "remaining": "Obtain exact lawful pages in each language, verify all contributors, legal rights and complete required searches. No conclusion of absence has been made."
     },
     {
       "work": "gaston-bachelard.la-poetique-de-l-espace",
@@ -923,7 +2087,49 @@
       "areas": [
         "AE11"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1386/eapc.2.1.79_1",
+      "original_candidates": [
+        {
+          "title": "The two-layer model of ‘kawaii’: A behavioural science framework for understanding kawaii and cuteness",
+          "url": "https://doi.org/10.1386/eapc.2.1.79_1",
+          "publisher": "Intellect",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification"
+        }
+      ],
+      "people": [
+        {
+          "name": "Hiroshi Nittono",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1386/eapc.2.1.79_1"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": null,
+        "openalex_oa_status": "closed",
+        "openalex_license": null,
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1386/eapc.2.1.79_1",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1386/eapc.2.1.79_1",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "johan-huizinga.homo-ludens",
@@ -1164,7 +2370,92 @@
       "areas": [
         "AE11"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1371/journal.pone.0340903",
+      "original_candidates": [
+        {
+          "title": "Beyond the baby schema: Objects being touched are perceived to be cute",
+          "url": "https://doi.org/10.1371/journal.pone.0340903",
+          "publisher": "Public Library of Science (PLoS)",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification",
+          "publisher_page": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0340903"
+        }
+      ],
+      "people": [
+        {
+          "name": "Akane Ohashi",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1371/journal.pone.0340903"
+          ]
+        },
+        {
+          "name": "Hiroshi Nittono",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1371/journal.pone.0340903"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": [
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2026,
+                  2,
+                  19
+                ]
+              ],
+              "date-time": "2026-02-19T00:00:00Z",
+              "timestamp": 1771459200000
+            },
+            "content-version": "vor",
+            "delay-in-days": 0,
+            "URL": "http://creativecommons.org/licenses/by/4.0/"
+          }
+        ],
+        "openalex_oa_status": "gold",
+        "openalex_license": "cc-by",
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1371/journal.pone.0340903",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1371/journal.pone.0340903",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        },
+        {
+          "source": "publisher article page",
+          "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0340903",
+          "result": "Publisher page and JATS identify CC BY 4.0, 2026; record author credits and inspect exact requested places."
+        },
+        {
+          "source": "publisher JATS XML",
+          "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0340903&type=manuscript",
+          "result": "full article and metadata available; target sections inspected; license verified in permissions element to the extent indicated in rights assessment"
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made.",
+      "requested_places": [
+        {
+          "reading": "A:E158",
+          "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0340903&type=manuscript",
+          "status": "Publisher JATS Abstract and Discussion inspected; text reports manipulation of touch and ratings, with Japan and US samples. Exact sentence cut, print pages and independent review pending."
+        }
+      ]
     },
     {
       "work": "albert-camus.nobel-banquet-speech",
@@ -1364,7 +2655,82 @@
       "areas": [
         "AE13"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1080/23808985.2024.2382752",
+      "original_candidates": [
+        {
+          "title": "What is ‘Being There’? An ontology of the immersive experience",
+          "url": "https://doi.org/10.1080/23808985.2024.2382752",
+          "publisher": "Oxford University Press (OUP)",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification"
+        }
+      ],
+      "people": [
+        {
+          "name": "Chen (Crystal) Chen",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1080/23808985.2024.2382752"
+          ]
+        },
+        {
+          "name": "Xiaohan Hu",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1080/23808985.2024.2382752"
+          ]
+        },
+        {
+          "name": "Jacob Fisher",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1080/23808985.2024.2382752"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": [
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2024,
+                  7,
+                  31
+                ]
+              ],
+              "date-time": "2024-07-31T00:00:00Z",
+              "timestamp": 1722384000000
+            },
+            "content-version": "vor",
+            "delay-in-days": 0,
+            "URL": "http://creativecommons.org/licenses/by/4.0/"
+          }
+        ],
+        "openalex_oa_status": "hybrid",
+        "openalex_license": "cc-by",
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1080/23808985.2024.2382752",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1080/23808985.2024.2382752",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "christopher-mole.real-objective-beauty",
@@ -1401,7 +2767,40 @@
       "areas": [
         "AE14"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1111/j.1467-8721.2008.00595.x",
+      "original_candidates": [
+        {
+          "title": "Nostalgia: Past, Present, and Future",
+          "url": "https://doi.org/10.1111/j.1467-8721.2008.00595.x",
+          "publisher": null,
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification"
+        }
+      ],
+      "people": [],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": null,
+        "openalex_oa_status": "closed",
+        "openalex_license": null,
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1111/j.1467-8721.2008.00595.x",
+          "http_status": 429,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1111/j.1467-8721.2008.00595.x",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "constantine-sedikides.nostalgia-fosters-self-continuity",
@@ -1437,7 +2836,81 @@
       "areas": [
         "AE32"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "search_attempts": [
+        {
+          "source": "Crossref title search",
+          "query": "Reading Literary Fiction and Theory of Mind: Three Preregistered Replications and Extensions of Kidd and Castano (2013)",
+          "url": "https://api.crossref.org/works?query.title=Reading+Literary+Fiction+and+Theory+of+Mind%3A+Three+Preregistered+Replications+and+Extensions+of+Kidd+and+Castano+%282013%29&rows=4",
+          "http_status": 200,
+          "candidate_doi": "10.1177/1948550618775410",
+          "candidate_title": "Reading Literary Fiction and Theory of Mind: Three Preregistered Replications and Extensions of Kidd and Castano (2013)",
+          "candidate_authors": [
+            "David Kidd",
+            "Emanuele Castano"
+          ],
+          "candidate_date": {
+            "date-parts": [
+              [
+                2018,
+                6,
+                20
+              ]
+            ]
+          },
+          "result": "title match only; author, year and edition must match before treating DOI as identity"
+        }
+      ],
+      "doi": "10.1177/1948550618775410",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "David Kidd",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1177/1948550618775410"
+          ]
+        },
+        {
+          "name": "Emanuele Castano",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1177/1948550618775410"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "title": "Reading Literary Fiction and Theory of Mind: Three Preregistered Replications and Extensions of Kidd and Castano (2013)",
+          "url": "https://doi.org/10.1177/1948550618775410",
+          "status": "2018 title and authors matched to register; actual source, places and licence need verification"
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary",
+        "crossref_license": [
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2018,
+                  6,
+                  20
+                ]
+              ],
+              "date-time": "2018-06-20T00:00:00Z",
+              "timestamp": 1529452800000
+            },
+            "content-version": "tdm",
+            "delay-in-days": 0,
+            "URL": "https://journals.sagepub.com/page/policies/text-and-data-mining-license"
+          }
+        ],
+        "caution": "TDM permission is not a general public reuse licence; seek lawful copies and publisher terms"
+      },
+      "remaining": "Verify original places, lawful publication, translations and rights; complete catalogue searches. No conclusion of absence has been made."
     },
     {
       "work": "david-comer-kidd.reading-literary-fiction-improves-theory-of-mind",
@@ -1685,7 +3158,9 @@
           "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Bruckmann, 1915, first edition",
           "catalogue": "https://openlibrary.org/books/OL52927149M",
           "scan": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1915",
-          "status": "catalogue and OA metadata; server delivered challenge instead of scan"
+          "status": "Heidelberg 1915 edition and page opened, OCR gives gerüstet where 1943 gives gefaßt; complete visual collation and first-edition attribution remain to review",
+          "page": "p57, image 0075",
+          "page_image": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1915/0075"
         },
         {
           "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Hugo Bruckmann, 1917, second edition",
@@ -1694,6 +3169,12 @@
           "page": "p57, IA leaf 73, image n72",
           "status": "image personally inspected: p57 contains the colour and arrangement passage; correspondence to 1943 still requires review",
           "page_image": "https://archive.org/download/kunstgeschichtli00wluoft/page/n72_w1400.jpg"
+        },
+        {
+          "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Bruckmann, 1943",
+          "scan": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1943a/0076",
+          "page": "p58, image 0076",
+          "status": "Heidelberg scan and OCR opened; OCR gives gefaßt in passage; complete visual collation pending; Public Domain Mark shown by library"
         }
       ],
       "translation_candidates": [
@@ -1708,14 +3189,14 @@
         {
           "language": "ru",
           "edition": "Основные понятия истории искусств, translation attributed Adrian Frankovsky, Academia, 1930",
-          "catalogue": "https://ru.wikipedia.org/wiki/Франковский,_Адриан_Антонович",
-          "status": "secondary bibliography; target page and lawful source unverified"
+          "catalogue": "https://search.rsl.ru/ru/record/01009016593",
+          "status": "RSL catalog confirms 1930 Academia, translation A. A. Frankovsky, introduction R. Pelshe; target page and title scan not yet checked"
         },
         {
           "language": "es",
           "edition": "Conceptos fundamentales en la Historia del Arte, translation attributed José Moreno Villa, 1924",
-          "catalogue": "https://es.wikipedia.org/wiki/José_Moreno_Villa",
-          "status": "secondary bibliography; title page and target lawful source unverified"
+          "catalogue": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991011245469708606&context=L&vid=34BNE_INST:CATALOGO",
+          "status": "BNE identifies 1924 candidate and 2014 Austral translation by José Moreno Villa (1887–1955); 2014 text restricted to BNE or conservation centers, target page unverified"
         }
       ],
       "requested_places": [
@@ -1731,7 +3212,7 @@
       "searches": [
         {
           "source": "Internet Archive metadata and OCR",
-          "result": "1917 German scan and 1950 English reprint identified; target passage located in OCR, images not yet checked",
+          "result": "1917 German scan and 1950 English reprint found; specified target images personally inspected; sentence alignment requires independent review",
           "url": "https://archive.org/details/kunstgeschichtli00wluoft"
         },
         {
@@ -1748,6 +3229,23 @@
           "source": "Gallica, Google Books, Hathi full text, NЭБ",
           "result": "403, 429 or unavailable; search is incomplete",
           "url": "https://catalog.hathitrust.org/"
+        },
+        {
+          "source": "Heidelberg Digital Library, browser",
+          "result": "1915 p57 and 1943 p58 accessible; OCR differs gerüstet/gefaßt; Public Domain Mark shown; full scan comparison pending",
+          "url": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1915/0075"
+        },
+        {
+          "source": "BNE catalogue, browser",
+          "query": "Wölfflin conceptos fundamentales historia arte",
+          "result": "1924 Moreno Villa, 1945 second edition and restricted 2014 digital edition; exact text correspondence and 1945 translator unverified",
+          "url": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991057911169708606&context=L&vid=34BNE_INST:CATALOGO"
+        },
+        {
+          "source": "RSL, browser",
+          "query": "Вельфлин основные понятия",
+          "result": "1930 Academia catalogue names A. A. Frankovsky and R. Pelshe; pages not viewed",
+          "url": "https://search.rsl.ru/ru/record/01009016593"
         }
       ],
       "remaining": "View and compare 1915/1917/1943 source pages; identify lawful target pages and contributors of all translation witnesses; search remaining required catalogues. No conclusion of absence has been made."
@@ -1759,7 +3257,71 @@
       "areas": [
         "AE20"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1007/s11097-011-9195-1",
+      "original_candidates": [
+        {
+          "title": "Emotions outside the box—the new phenomenology of feeling and corporeality",
+          "url": "https://doi.org/10.1007/s11097-011-9195-1",
+          "publisher": "Springer Science and Business Media LLC",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification",
+          "publisher_page": "https://link.springer.com/article/10.1007/s11097-011-9195-1"
+        }
+      ],
+      "people": [
+        {
+          "name": "Hermann Schmitz",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1007/s11097-011-9195-1"
+          ]
+        },
+        {
+          "name": "Rudolf Owen Müllan",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1007/s11097-011-9195-1"
+          ]
+        },
+        {
+          "name": "Jan Slaby",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1007/s11097-011-9195-1"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": null,
+        "openalex_oa_status": "hybrid",
+        "openalex_license": "cc-by-nc",
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1007/s11097-011-9195-1",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1007/s11097-011-9195-1",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        },
+        {
+          "source": "publisher article page",
+          "url": "https://link.springer.com/article/10.1007/s11097-011-9195-1",
+          "result": "Publisher identifies CC BY-NC 2.0. Noncommercial condition requires separate compatibility analysis."
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "hiroshi-nittono.cross-cultural-comparisons-of-the-cute",
@@ -1768,7 +3330,82 @@
       "areas": [
         "AE11"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1177/2158244020988730",
+      "original_candidates": [
+        {
+          "title": "Cross-Cultural Comparisons of the Cute and Related Concepts in Japan, the United States, and Israel",
+          "url": "https://doi.org/10.1177/2158244020988730",
+          "publisher": "SAGE Publications",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification"
+        }
+      ],
+      "people": [
+        {
+          "name": "Hiroshi Nittono",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1177/2158244020988730"
+          ]
+        },
+        {
+          "name": "Shiri Lieber-Milo",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1177/2158244020988730"
+          ]
+        },
+        {
+          "name": "Joshua P. Dale",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1177/2158244020988730"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": [
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2021,
+                  1,
+                  1
+                ]
+              ],
+              "date-time": "2021-01-01T00:00:00Z",
+              "timestamp": 1609459200000
+            },
+            "content-version": "unspecified",
+            "delay-in-days": 0,
+            "URL": "https://creativecommons.org/licenses/by/4.0/"
+          }
+        ],
+        "openalex_oa_status": "gold",
+        "openalex_license": "cc-by",
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1177/2158244020988730",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1177/2158244020988730",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "hiroshi-nittono.the-power-of-kawaii",
@@ -1777,7 +3414,108 @@
       "areas": [
         "AE11"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1371/journal.pone.0046362",
+      "original_candidates": [
+        {
+          "title": "The Power of Kawaii: Viewing Cute Images Promotes a Careful Behavior and Narrows Attentional Focus",
+          "url": "https://doi.org/10.1371/journal.pone.0046362",
+          "publisher": "Public Library of Science (PLoS)",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification",
+          "publisher_page": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0046362"
+        }
+      ],
+      "people": [
+        {
+          "name": "Hiroshi Nittono",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1371/journal.pone.0046362"
+          ]
+        },
+        {
+          "name": "Michiko Fukushima",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1371/journal.pone.0046362"
+          ]
+        },
+        {
+          "name": "Akihiro Yano",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1371/journal.pone.0046362"
+          ]
+        },
+        {
+          "name": "Hiroki Moriya",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1371/journal.pone.0046362"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": [
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2012,
+                  9,
+                  26
+                ]
+              ],
+              "date-time": "2012-09-26T00:00:00Z",
+              "timestamp": 1348617600000
+            },
+            "content-version": "unspecified",
+            "delay-in-days": 0,
+            "URL": "http://creativecommons.org/licenses/by/4.0/"
+          }
+        ],
+        "openalex_oa_status": "gold",
+        "openalex_license": "cc-by",
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1371/journal.pone.0046362",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1371/journal.pone.0046362",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        },
+        {
+          "source": "publisher article page",
+          "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0046362",
+          "result": "Publisher page and JATS name Creative Commons Attribution, but JATS gives no version; Crossref lists BY 4.0 with unspecified content version. Verify scope/version before admission."
+        },
+        {
+          "source": "publisher JATS XML",
+          "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0046362&type=manuscript",
+          "result": "full article and metadata available; target sections inspected; license verified in permissions element to the extent indicated in rights assessment"
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made.",
+      "requested_places": [
+        {
+          "reading": "A:E155",
+          "url": "https://journals.plos.org/plosone/article/file?id=10.1371/journal.pone.0046362&type=manuscript",
+          "status": "Publisher JATS Abstract and General Discussion inspected; text reports three experiments and effects limited to studied tasks. Exact sentence cut, print pages and independent review pending."
+        }
+      ]
     },
     {
       "work": "iris-vidmar.literature-and-truth",
@@ -1923,7 +3661,49 @@
       "areas": [
         "AE17"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1086/698732",
+      "original_candidates": [
+        {
+          "title": "Moral Realism, Aesthetic Realism, and the Asymmetry Claim",
+          "url": "https://doi.org/10.1086/698732",
+          "publisher": "University of Chicago Press",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification"
+        }
+      ],
+      "people": [
+        {
+          "name": "Louise Hanson",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1086/698732"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": null,
+        "openalex_oa_status": "bronze",
+        "openalex_license": null,
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1086/698732",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1086/698732",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "louise-hanson.the-reality-of-non-aesthetic-artistic-value",
@@ -1986,7 +3766,88 @@
       "areas": [
         "AE20"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1007/978-3-030-63614-2_6",
+      "original_candidates": [
+        {
+          "title": "Transportation into Narrative Worlds",
+          "url": "https://doi.org/10.1007/978-3-030-63614-2_6",
+          "publisher": "Springer International Publishing",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification",
+          "publisher_page": "https://link.springer.com/chapter/10.1007/978-3-030-63614-2_6"
+        }
+      ],
+      "people": [
+        {
+          "name": "Melanie C. Green",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1007/978-3-030-63614-2_6"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": [
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2021,
+                  1,
+                  1
+                ]
+              ],
+              "date-time": "2021-01-01T00:00:00Z",
+              "timestamp": 1609459200000
+            },
+            "content-version": "tdm",
+            "delay-in-days": 0,
+            "URL": "https://creativecommons.org/licenses/by-nc-nd/4.0"
+          },
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2021,
+                  1,
+                  1
+                ]
+              ],
+              "date-time": "2021-01-01T00:00:00Z",
+              "timestamp": 1609459200000
+            },
+            "content-version": "vor",
+            "delay-in-days": 0,
+            "URL": "https://creativecommons.org/licenses/by-nc-nd/4.0"
+          }
+        ],
+        "openalex_oa_status": "hybrid",
+        "openalex_license": "cc-by-nc-nd",
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1007/978-3-030-63614-2_6",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1007/978-3-030-63614-2_6",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        },
+        {
+          "source": "publisher article page",
+          "url": "https://link.springer.com/chapter/10.1007/978-3-030-63614-2_6",
+          "result": "Publisher identifies CC BY-NC-ND 4.0. Noncommercial and no-derivatives conditions require separate compatibility analysis."
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "melanie-c-green.understanding-media-enjoyment",
@@ -1995,7 +3856,82 @@
       "areas": [
         "AE20"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1111/j.1468-2885.2004.tb00317.x",
+      "original_candidates": [
+        {
+          "title": "Understanding Media Enjoyment: The Role of Transportation Into Narrative Worlds",
+          "url": "https://doi.org/10.1111/j.1468-2885.2004.tb00317.x",
+          "publisher": "Oxford University Press (OUP)",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification"
+        }
+      ],
+      "people": [
+        {
+          "name": "Melanie C. Green",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1111/j.1468-2885.2004.tb00317.x"
+          ]
+        },
+        {
+          "name": "Timothy C. Brock",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1111/j.1468-2885.2004.tb00317.x"
+          ]
+        },
+        {
+          "name": "Geoff F. Kaufman",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1111/j.1468-2885.2004.tb00317.x"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": [
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2015,
+                  9,
+                  1
+                ]
+              ],
+              "date-time": "2015-09-01T00:00:00Z",
+              "timestamp": 1441065600000
+            },
+            "content-version": "tdm",
+            "delay-in-days": 3956,
+            "URL": "http://doi.wiley.com/10.1002/tdm_license_1.1"
+          }
+        ],
+        "openalex_oa_status": "closed",
+        "openalex_license": null,
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1111/j.1468-2885.2004.tb00317.x",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1111/j.1468-2885.2004.tb00317.x",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "melanie-l-glocker.baby-schema-in-infant-faces-induces-cuteness",
@@ -2067,7 +4003,66 @@
       "areas": [
         "AE12"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.2190/12AV-AH2P-MCEH-289E",
+      "original_candidates": [
+        {
+          "title": "Cognitive Appraisals and Interest in Visual Art: Exploring an Appraisal Theory of Aesthetic Emotions",
+          "url": "https://doi.org/10.2190/12av-ah2p-mceh-289e",
+          "publisher": "SAGE Publications",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification"
+        }
+      ],
+      "people": [
+        {
+          "name": "Paul J. Silvia",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.2190/12AV-AH2P-MCEH-289E"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": [
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2005,
+                  7,
+                  1
+                ]
+              ],
+              "date-time": "2005-07-01T00:00:00Z",
+              "timestamp": 1120176000000
+            },
+            "content-version": "tdm",
+            "delay-in-days": 0,
+            "URL": "https://journals.sagepub.com/page/policies/text-and-data-mining-license"
+          }
+        ],
+        "openalex_oa_status": "closed",
+        "openalex_license": null,
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.2190/12AV-AH2P-MCEH-289E",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.2190/12AV-AH2P-MCEH-289E",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "paul-j-silvia.what-is-interesting-exploring-the-appraisal",
@@ -2121,7 +4116,66 @@
       "areas": [
         "AE20"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.1177/1029864914542842",
+      "original_candidates": [
+        {
+          "title": "The emotional connotations of major versus minor tonality: One or more origins?",
+          "url": "https://doi.org/10.1177/1029864914542842",
+          "publisher": "SAGE Publications",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification"
+        }
+      ],
+      "people": [
+        {
+          "name": "Richard Parncutt",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1177/1029864914542842"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": [
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2014,
+                  8,
+                  20
+                ]
+              ],
+              "date-time": "2014-08-20T00:00:00Z",
+              "timestamp": 1408492800000
+            },
+            "content-version": "tdm",
+            "delay-in-days": 0,
+            "URL": "https://journals.sagepub.com/page/policies/text-and-data-mining-license"
+          }
+        ],
+        "openalex_oa_status": "closed",
+        "openalex_license": null,
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.1177/1029864914542842",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1177/1029864914542842",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "richard-wollheim.painting-as-an-art",
@@ -2203,7 +4257,67 @@
       "areas": [
         "AE18"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "T. S. Eliot",
+          "role": "author",
+          "birth": 1888,
+          "death": 1965,
+          "evidence": [
+            "https://openlibrary.org/authors/OL116256A.json"
+          ]
+        },
+        {
+          "name": "Sara Rubinstein",
+          "role": "Spanish translator candidate in Selected Essays edition",
+          "dates_status": "not established",
+          "evidence": [
+            "https://openlibrary.org/books/OL6025284M.json"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "The Sacred Wood: Essays on Poetry and Criticism, London: Methuen, 1920, Hamlet and His Problems",
+          "scan": "https://archive.org/details/sacredwoodessays00eliorich/page/n115/mode/1up",
+          "page": "p92, image n115",
+          "transcription": "https://www.gutenberg.org/files/57795/57795-h/57795-h.htm#Page_92",
+          "status": "p92 scan personally inspected, objective correlative passage present; exact independent collation pending; 1919 first publication not established"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Los poetas metafísicos y otros ensayos sobre teatro y religión, Emecé 1944, Sara Rubinstein",
+          "catalogue": "https://openlibrary.org/books/OL6025284M.json",
+          "status": "candidate collection only; inclusion of target essay, pages and rights not established"
+        }
+      ],
+      "requested_places": [
+        "B:D-I061, The Sacred Wood p92, objective correlative"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; each translation and edition separately",
+        "usa": "1920 publication predates 1931",
+        "eu": "author died 1965; ordinary term through 2035, national rules and exceptions require verification",
+        "russia": "life-plus-70 and special provisions require case-specific assessment",
+        "mexico": "transition rules and lawful quotation require case-specific assessment"
+      },
+      "searches": [
+        {
+          "source": "Gutenberg and IA",
+          "result": "Methuen 1920 transcription and scan p92; first publication not established",
+          "url": "https://www.gutenberg.org/files/57795/57795-h/57795-h.htm#Page_92"
+        },
+        {
+          "source": "Open Library",
+          "result": "Spanish Selected Essays candidate, contents and target passage unverified",
+          "url": "https://openlibrary.org/books/OL6025284M.json"
+        }
+      ],
+      "remaining": "Determine first publication, exact passage alignment, translation witnesses and rights and complete mandatory searches. No conclusion of absence has been made."
     },
     {
       "work": "thomas-j-palmeri.the-perceptual-reality-of-synesthetic-colors",
@@ -2257,7 +4371,63 @@
       "areas": [
         "AE14"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi": "10.3389/fpsyg.2015.00343",
+      "original_candidates": [
+        {
+          "title": "Being moved as one of the major aesthetic emotional states: A commentary on “Being moved: linguistic representation and conceptual structure”",
+          "url": "https://doi.org/10.3389/fpsyg.2015.00343",
+          "publisher": "Frontiers Media SA",
+          "status": "DOI metadata matched the register title; actual cited places and participants need verification",
+          "publisher_page": "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2015.00343/full"
+        }
+      ],
+      "people": [
+        {
+          "name": "Vladimir J. Konečni",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.3389/fpsyg.2015.00343",
+            "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2015.00343/full"
+          ]
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary DOI metadata only; actual text, all contributors and permitted use require review",
+        "crossref_license": null,
+        "openalex_oa_status": "gold",
+        "openalex_license": "cc-by",
+        "caution": "Missing licence metadata or a closed OA indicator is not an exhaustive search or proof of absence. TDM-only licence is not a public reuse licence."
+      },
+      "searches": [
+        {
+          "source": "Crossref",
+          "url": "https://api.crossref.org/works/10.3389/fpsyg.2015.00343",
+          "http_status": 200,
+          "result": "title and license field collected; null or TDM-only fields do not establish unrestricted reuse"
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.3389/fpsyg.2015.00343",
+          "http_status": 200,
+          "result": "OA status and best location recorded as metadata; underlying source and licence must be checked"
+        },
+        {
+          "source": "publisher article page",
+          "url": "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2015.00343/full",
+          "result": "Publisher identifies CC BY 4.0, 2015; attribution and exact article-specific places need review."
+        }
+      ],
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made.",
+      "requested_places": [
+        {
+          "reading": "B:B-I011",
+          "url": "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2015.00343/full",
+          "status": "publisher HTML personally read: opening names tripartite hierarchy, being moved described more common and less pronounced than aesthetic awe; exact sentence boundary and independent reading pending"
+        }
+      ]
     },
     {
       "work": "vladimir-nabokov.nikolai-gogol",
@@ -2284,7 +4454,66 @@
       "areas": [
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "William Empson",
+          "role": "author",
+          "birth": 1906,
+          "death": 1984,
+          "evidence": [
+            "https://www.fondodeculturaeconomica.com/Ficha/9789681672669/F"
+          ]
+        },
+        {
+          "name": "Ricardo Martín Rubio Ruiz",
+          "role": "Spanish translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.fondodeculturaeconomica.com/Ficha/9789681672669/F"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Seven Types of Ambiguity, London: Chatto and Windus, 1930",
+          "scan": "https://archive.org/details/hseventypesofamb0000will",
+          "page": "p1 image n12; p2 n13; p3 n14",
+          "status": "personally inspected pages 1–3; sentence boundaries, classification of seven types and independent reading remain to review; edition title page still to verify visually"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Siete clases de ambigüedad, Mexico: Fondo de Cultura Económica, 2006, 456 pp., ISBN 9789681672669, translator Ricardo Martín Rubio Ruiz",
+          "catalogue": "https://www.fondodeculturaeconomica.com/Ficha/9789681672669/F",
+          "status": "publisher catalogue, not target page; underlying English edition and translator rights unverified"
+        }
+      ],
+      "requested_places": [
+        "C:A-I084, extended ambiguity and seven types"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; each edition and translation separately",
+        "usa": "1930 published original text may qualify as public domain, subject to checking exact publication and contributions",
+        "eu": "author died 1984; ordinary term through 2054; verify exceptions",
+        "russia": "author died 1984; copyright remains, verify quotation basis",
+        "mexico": "term and transition provisions and translation rights unverified"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive",
+          "result": "1930 English scan and OCR; personally viewed pp1–3; title and remaining passages require verification",
+          "url": "https://archive.org/details/hseventypesofamb0000will"
+        },
+        {
+          "source": "Fondo de Cultura Económica",
+          "result": "2006 Spanish translation candidate, target pages not viewed",
+          "url": "https://www.fondodeculturaeconomica.com/Ficha/9789681672669/F"
+        }
+      ],
+      "remaining": "Verify title, complete source loci, translations and their participants, lawful access and rights; complete mandatory searches. No conclusion of absence has been made."
     },
     {
       "work": "william-k-wimsatt.the-intentional-fallacy",
