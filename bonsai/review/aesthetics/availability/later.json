@@ -2625,7 +2625,9 @@
           "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Bruckmann, 1915, first edition",
           "catalogue": "https://openlibrary.org/books/OL52927149M",
           "scan": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1915",
-          "status": "catalogue and OA metadata; server delivered challenge instead of scan"
+          "status": "Heidelberg 1915 edition and page opened, OCR gives gerüstet where 1943 gives gefaßt; complete visual collation and first-edition attribution remain to review",
+          "page": "p57, image 0075",
+          "page_image": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1915/0075"
         },
         {
           "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Hugo Bruckmann, 1917, second edition",
@@ -2634,6 +2636,12 @@
           "page": "p57, IA leaf 73, image n72",
           "status": "image personally inspected: p57 contains the colour and arrangement passage; correspondence to 1943 still requires review",
           "page_image": "https://archive.org/download/kunstgeschichtli00wluoft/page/n72_w1400.jpg"
+        },
+        {
+          "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Bruckmann, 1943",
+          "scan": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1943a/0076",
+          "page": "p58, image 0076",
+          "status": "Heidelberg scan and OCR opened; OCR gives gefaßt in passage; complete visual collation pending; Public Domain Mark shown by library"
         }
       ],
       "translation_candidates": [
@@ -2648,14 +2656,14 @@
         {
           "language": "ru",
           "edition": "Основные понятия истории искусств, translation attributed Adrian Frankovsky, Academia, 1930",
-          "catalogue": "https://ru.wikipedia.org/wiki/Франковский,_Адриан_Антонович",
-          "status": "secondary bibliography; target page and lawful source unverified"
+          "catalogue": "https://search.rsl.ru/ru/record/01009016593",
+          "status": "RSL catalog confirms 1930 Academia, translation A. A. Frankovsky, introduction R. Pelshe; target page and title scan not yet checked"
         },
         {
           "language": "es",
           "edition": "Conceptos fundamentales en la Historia del Arte, translation attributed José Moreno Villa, 1924",
-          "catalogue": "https://es.wikipedia.org/wiki/José_Moreno_Villa",
-          "status": "secondary bibliography; title page and target lawful source unverified"
+          "catalogue": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991011245469708606&context=L&vid=34BNE_INST:CATALOGO",
+          "status": "BNE identifies 1924 candidate and 2014 Austral translation by José Moreno Villa (1887–1955); 2014 text restricted to BNE or conservation centers, target page unverified"
         }
       ],
       "requested_places": [
@@ -2671,7 +2679,7 @@
       "searches": [
         {
           "source": "Internet Archive metadata and OCR",
-          "result": "1917 German scan and 1950 English reprint identified; target passage located in OCR, images not yet checked",
+          "result": "1917 German scan and 1950 English reprint found; specified target images personally inspected; sentence alignment requires independent review",
           "url": "https://archive.org/details/kunstgeschichtli00wluoft"
         },
         {
@@ -2688,6 +2696,23 @@
           "source": "Gallica, Google Books, Hathi full text, NЭБ",
           "result": "403, 429 or unavailable; search is incomplete",
           "url": "https://catalog.hathitrust.org/"
+        },
+        {
+          "source": "Heidelberg Digital Library, browser",
+          "result": "1915 p57 and 1943 p58 accessible; OCR differs gerüstet/gefaßt; Public Domain Mark shown; full scan comparison pending",
+          "url": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1915/0075"
+        },
+        {
+          "source": "BNE catalogue, browser",
+          "query": "Wölfflin conceptos fundamentales historia arte",
+          "result": "1924 Moreno Villa, 1945 second edition and restricted 2014 digital edition; exact text correspondence and 1945 translator unverified",
+          "url": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991057911169708606&context=L&vid=34BNE_INST:CATALOGO"
+        },
+        {
+          "source": "RSL, browser",
+          "query": "Вельфлин основные понятия",
+          "result": "1930 Academia catalogue names A. A. Frankovsky and R. Pelshe; pages not viewed",
+          "url": "https://search.rsl.ru/ru/record/01009016593"
         }
       ],
       "remaining": "View and compare 1915/1917/1943 source pages; identify lawful target pages and contributors of all translation witnesses; search remaining required catalogues. No conclusion of absence has been made."
