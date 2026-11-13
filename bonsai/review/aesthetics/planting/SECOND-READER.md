@@ -2,7 +2,8 @@
 
 You read a packet another reader made. Your working directory is the packet.
 The card `AGENTS.md` two levels up holds the laws. `K` stands for
-`python3 ../../kit.py`. You write one file, `review.json`, and change no other.
+`python3 ../../kit.py`. Record your review through the kit; its image and
+witness commands also record the evidence of your independent reading.
 
 Your question for every conception and every link is one: **do these sentences
 say this?** The maker's notes and the registers' theses are no ground. The
