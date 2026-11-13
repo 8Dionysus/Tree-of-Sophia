@@ -558,6 +558,15 @@ TRUSTED=('wikipedia.org','wikidata.org','d-nb.info','viaf.org','bnf.fr','plato.s
 def trusted(url):
     host=urllib.parse.urlparse(str(url)).netloc.lower();return str(url).startswith('https://') and any(host==name or host.endswith('.'+name) for name in TRUSTED)
 
+def entity_year(entity,property_):
+    claims=[claim for claim in entity.get('claims',{}).get(property_,[]) if claim.get('rank')!='deprecated' and claim.get('mainsnak',{}).get('datavalue')]
+    preferred=[claim for claim in claims if claim.get('rank')=='preferred']
+    values=[claim['mainsnak']['datavalue']['value'] for claim in (preferred or claims)]
+    # An approximate decade/century or conflicting years cannot establish a cutoff.
+    if not values or any(value.get('precision',0)<9 for value in values):return None
+    years={int(value['time'][:5]) for value in values}
+    return next(iter(years)) if len(years)==1 else None
+
 def cmd_person(args):
     """A hand in the text, by its Wikidata item: the kit reads the name and the year of death there, so that no date is typed."""
     path=packet(args.packet);ev=evidence(path)
@@ -569,7 +578,7 @@ def cmd_person(args):
         if not re.fullmatch(r'Q\d+',args.qid):die('a Wikidata item reads Q12345')
         entity=json.loads(get(f'https://www.wikidata.org/wiki/Special:EntityData/{args.qid}.json'))['entities'][args.qid]
         label=lambda lang:(entity.get('labels',{}).get(lang) or {}).get('value')
-        year=lambda prop:next((int(claim['mainsnak']['datavalue']['value']['time'][:5]) for claim in sorted(entity.get('claims',{}).get(prop,[]),key=lambda claim:claim.get('rank')!='preferred') if claim['mainsnak'].get('datavalue')),None)
+        year=lambda prop:entity_year(entity,prop)
         died=year('P570');print(f"{args.qid}: {label('en')} / {label('ru')} — {(entity.get('descriptions',{}).get('en') or {}).get('value')}; born {year('P569')}, died {died}")
         person={'qid':args.qid,'name':{'en':label('en'),'ru':label('ru') or label('en')},'role':args.role,'born':year('P569'),'died':died,'source':f'https://www.wikidata.org/wiki/{args.qid}'}
     else:
@@ -1292,9 +1301,7 @@ def cmd_witness_person(args):
     if not re.fullmatch(r'Q[1-9]\d*',args.qid):die('person must be a Wikidata QID')
     url=f'https://www.wikidata.org/wiki/Special:EntityData/{args.qid}.json';raw=get(url)
     entity=json.loads(raw)['entities'][args.qid]
-    def year(prop):
-        claims=sorted(entity.get('claims',{}).get(prop,[]),key=lambda claim:claim.get('rank')!='preferred')
-        return next((int(claim['mainsnak']['datavalue']['value']['time'][:5]) for claim in claims if claim.get('rank')!='deprecated' and claim['mainsnak'].get('datavalue')),None)
+    year=lambda prop:entity_year(entity,prop)
     died=year('P570')
     labels=entity.get('labels',{});label=lambda lang:(labels.get(lang) or {}).get('value')
     name={'en':label('en') or label('ru') or args.qid,'ru':label('ru') or label('en') or args.qid}
@@ -1441,9 +1448,11 @@ def witness_problems(path,lang,data,second=False,offline=False):
                     content=plain(raw,evidence_record['file']).casefold();name=(person.get('name') or {}).get('en','')
                     if not name or name.casefold() not in content or any(year is not None and str(year) not in content for year in (person.get('born'),person.get('died'))):add(f'{name}: stated name or dates are absent from the fetched reference')
                 else:
-                    entity=json.loads(raw)['entities'][qid];claims=entity.get('claims',{}).get('P570',[])
-                    years={int(claim['mainsnak']['datavalue']['value']['time'][:5]) for claim in claims if claim.get('rank')!='deprecated' and claim.get('mainsnak',{}).get('datavalue')}
-                    if (person.get('died') is None and years) or (person.get('died') is not None and person.get('died') not in years):add(f'{qid}: death year differs from the fetched entity')
+                    entity=json.loads(raw)['entities'][qid]
+                    for field,prop in (('born','P569'),('died','P570')):
+                        if person.get(field)!=entity_year(entity,prop):add(f'{qid}: {field} year differs from the fetched entity or is not precise enough')
+                    labels={value.get('value','').casefold() for value in entity.get('labels',{}).values()}
+                    if not any(str(value).casefold() in labels for value in (person.get('name') or {}).values() if value):add(f'{qid}: name differs from the fetched entity')
             except (OSError,KeyError,ValueError,TypeError):add(f'{qid or person.get("name")}: person evidence is missing or invalid')
     dates=public_domain_by_dates(people,witness.get('year'))
     for country in JURISDICTIONS:
