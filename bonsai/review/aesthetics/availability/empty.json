@@ -459,6 +459,10 @@
         {
           "url": "https://www.gutenberg.org/ebooks/3773",
           "observation": "The existing English witness is the 1919 Hopes and Fears for Art scan https://archive.org/details/hopesfearsforart1919morr paired with Gutenberg 3773. The passage about pleasure in use and making appears on printed p. 4, visually inspected at IA image n17 (SHA-256 01a4f41dcfc154bc955759040ec965982dd3c8ab98a49b2fbb62bcf91865ec9a). IA scandata labels leaf 18 as p. 4 while the image service uses n17, so verify the offset in the line. Independent maker and second-reader page checks remain necessary."
+        },
+        {
+          "url": "https://search.rsl.ru/ru/record/01007377758",
+          "observation": "RSL catalog identifies Morris, Искусство и жизнь: selected articles, lectures, speeches and letters, Moscow: Iskusstvo, 1973, 512 pp., edited by A. A. Anikst and translated by V. A. Smirnova and E. V. Kornilova. It offers reading-room access or an extract order; contents, the relevant passage and which translator produced it have not been verified. A modern translation is independently protected pending rights assessment."
         }
       ],
       "searches": [
@@ -527,6 +531,13 @@
           "query": "contribution.agent.label:\"Morris, William\"",
           "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Morris%2C+William%22&format=json&size=5",
           "result": "HTTP 200, 857 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
+        },
+        {
+          "service": "Russian State Library structured author/title search",
+          "query": "author:Моррис title:Лекции; author:Моррис title:\"Лекции об искусстве\"",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "Two broad author/title records and zero for the exact quoted title respectively; the 1973 volume is a candidate. These bounded catalog searches do not establish the absence of the cited 1903 edition."
         }
       ]
     },
