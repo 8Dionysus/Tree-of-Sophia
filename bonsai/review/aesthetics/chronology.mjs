@@ -493,7 +493,10 @@ const dating=(more)=>({role:'historical-time',calendar:null,year_numbering:'astr
 const sources={},situations={},lifeOf={},workOf={};
 for(const [agent,entry] of Object.entries(library.agents)){
   const life=lives[agent];if(!life?.item)throw new Error(`${agent}: no verified Wikidata identity in layer/lives.json (resolve it before fetching)`);
-  const years=entries=>entries.flatMap(item=>[item.time,...(item.bounds?.earliest??[]).map(bound=>bound.time),...(item.bounds?.latest??[]).map(bound=>bound.time)]).map(yearOf);
+  const years=entries=>entries.flatMap(item=>{
+    const earliest=(item.bounds?.earliest??[]).map(bound=>bound.time),latest=(item.bounds?.latest??[]).map(bound=>bound.time);
+    return earliest.length&&latest.length?[...earliest,...latest]:[item.time,...earliest,...latest];
+  }).map(yearOf);
   const born=years(life.born),died=years(life.died);
   const complete=born.length>0&&died.length>0;
   const exact=complete&&new Set(born).size===1&&new Set(died).size===1&&[...life.born,...life.died].every(item=>item.precision>=9&&!item.approximate);

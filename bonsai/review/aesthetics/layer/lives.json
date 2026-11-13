@@ -3936,16 +3936,25 @@
   }
  },
  "e-h-gombrich": {
-  "item": null,
+  "item": "Q78504",
   "label": {
-   "ru": "Эрнст Гомбрих",
-   "en": "E. H. Gombrich"
+   "en": "Ernst Gombrich",
+   "ru": "Эрнст Гомбрих"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1909-03-30T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2001-11-03T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-12",
+  "identity_work": "Q4797164",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -5251,16 +5260,40 @@
   }
  },
  "gaius-plinius-secundus": {
-  "item": null,
+  "item": "Q82778",
   "label": {
-   "ru": "Плиний Старший",
-   "en": "Gaius Plinius Secundus"
+   "en": "Pliny the Elder",
+   "ru": "Плиний Старший"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+0020-00-00T00:00:00Z",
+    "precision": 8,
+    "bounds": {
+     "earliest": [
+      {
+       "time": "+0023-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ],
+     "latest": [
+      {
+       "time": "+0024-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ]
+    },
+    "approximate": true
+   }
+  ],
+  "died": [
+   {
+    "time": "+0079-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "fetched": "2026-11-12",
+  "identity_work": "Q442",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -17938,16 +17971,33 @@
   }
  },
  "zhuangzi": {
-  "item": null,
+  "item": "Q47739",
   "label": {
-   "ru": "Чжуан-цзы / авторы «Чжуан-цзы»",
-   "en": "Zhuangzi"
+   "en": "Zhuang Zhou",
+   "ru": "Чжуан-цзы"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "-0369-00-00T00:00:00Z",
+    "precision": 9,
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "died": [
+   {
+    "time": "-0288-00-00T00:00:00Z",
+    "precision": 9,
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "fetched": "2026-11-12",
+  "identity_work": "Q1074987",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -17973,6 +18023,7 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_work_note": "Wikidata records traditional attribution; the register notes that the received text is a multilayer corpus."
  }
 }

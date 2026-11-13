@@ -579,6 +579,7 @@ class LivingAuthorChronologyTest(unittest.TestCase):
             self.assertIn('born',life['dating']['source_wording']['text'])
             self.assertIn('no death year recorded',life['dating']['source_wording']['text'])
             lives['immanuel-kant']['died']=[{'time':'+1804-01-01T00:00:00Z','precision':9,'approximate':True,'qualifiers':['Q5727902']}]
+            lives['immanuel-kant']['born'][0].update({'time':'+1720-01-01T00:00:00Z','precision':8})
             lives['immanuel-kant']['born'][0]['bounds']={'earliest':[{'time':'+1723-01-01T00:00:00Z','precision':9}],'latest':[{'time':'+1725-01-01T00:00:00Z','precision':9}]}
             lives['immanuel-kant']['born'][0]['approximate']=True
             (layer/'lives.json').write_text(json.dumps(lives,ensure_ascii=False))
