@@ -109,6 +109,20 @@ class RussianSpellingTest(unittest.TestCase):
         self.assertEqual(kit.modern_russian('История и свет.'), 'История и свет.')
 
 
+class SentenceBoundaryTest(unittest.TestCase):
+    def test_uncased_script_and_exact_source_boundaries(self):
+        self.assertEqual(kit.sentences('这是一句完整的话。'),[])
+        self.assertEqual(kit.sentences('「这是一个句子。」'),[])
+        self.assertEqual(kit.sentences('هذه جملة كاملة؟'),[])
+        self.assertTrue(kit.sentences('начало внутри.'))
+        self.assertTrue(kit.sentences('这是不完整的话'))
+        source='这是第一句。这是第二句。'
+        self.assertIsNone(kit.in_transcription('这是第二句。',source))
+        self.assertIsNotNone(kit.in_transcription('第二句。',source))
+        proof={'source':'https://example.org/page','page':'1','lines':'1–4','sha256':'a'*64}
+        ev={'images':[{'sha256':'a'*64,'by':'maker'}]}
+        self.assertTrue(any('exceeds' in p for p in kit.quotation_problems('p','一句。二句。三句。四句。',proof,ev)))
+
 class RussianExtensionTest(unittest.TestCase):
     def test_extension_normalizes_without_editing_parent(self):
         import argparse, json, tempfile
@@ -173,7 +187,7 @@ class TranslationWitnessTest(unittest.TestCase):
             with patch.object(kit,'CACHE',str(cache)), patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
                 license_url='https://creativecommons.org/licenses/by/4.0/'
-                license_raw=('Publisher grants '+license_url).encode();(folder/'licence.html').write_bytes(license_raw)
+                license_raw=('Publisher grants '+license_url.replace('https://','http://')).encode();(folder/'licence.html').write_bytes(license_raw)
                 source_record={'file':'licence.html','url':'https://example.org/exact-edition','sha256':hashlib.sha256(license_raw).hexdigest()}
                 data['sources'].append(source_record)
                 data['witness']['rights']['eu']={'basis':'licensed','law':'Open licence covers this specific edition.'}

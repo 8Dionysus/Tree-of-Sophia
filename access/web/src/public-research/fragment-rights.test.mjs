@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {fragmentMayShow,externalPlacesIssues} from '../../../../bonsai/lib/fragments.mjs';
+import {fragmentMayShow,externalPlacesIssues,wholeExternalSentence} from '../../../../bonsai/lib/fragments.mjs';
 import {aestheticsReadingLanguages} from './fragments.mjs';
 
 const entry=(basis)=>({basis,law:'The applicable statutory provision and its term.'});
@@ -10,6 +10,13 @@ describe('territorial fragment rights',()=>{
     expect(aestheticsReadingLanguages('ru','de',['de','en','ru'])).toEqual(['de','ru']);
     expect(aestheticsReadingLanguages('ru','de',['de','en'])).toEqual(['de']);
     expect(aestheticsReadingLanguages('zh-Hans','de',['de','zh-Hans'])).toEqual(['de','zh-Hans']);
+  });
+  it('handles uncased scripts and full-width sentence endings',()=>{
+    expect(wholeExternalSentence('这是一句完整的话。')).toBe(true);
+    expect(wholeExternalSentence('「这是一个句子。」')).toBe(true);
+    expect(wholeExternalSentence('هذه جملة كاملة؟')).toBe(true);
+    expect(wholeExternalSentence('lowercase fragment.')).toBe(false);
+    expect(wholeExternalSentence('没有终点')).toBe(false);
   });
   it('requires a complete permission and withholds text if any jurisdiction has only a locator',()=>{
     expect(fragmentMayShow(witness())).toBe(true);
@@ -27,6 +34,8 @@ describe('territorial fragment rights',()=>{
   });
   it('checks every jurisdiction and limits a quotation',()=>{
     const module={schema:'tos.bonsai.fragments.v1',works:{w:{title:{ru:'Книга',en:'Book'},original:'en',witnesses:{en:witness('short-quotation')}}},places:{w:{p:{label:{ru:'с. 1',en:'p. 1'},texts:{en:'A'.repeat(901)}}}}};
+    expect(externalPlacesIssues(module)).toContain('w p en quotation is longer than a short quotation');
+    module.places.w.p.texts.en='一句。二句。三句。四句。';
     expect(externalPlacesIssues(module)).toContain('w p en quotation is longer than a short quotation');
     module.places.w.p.quotation_justification={en:'The complete sentence requires this length.'};
     module.places.w.p.address={kind:'section',value:'III.2',url:'https://example.org/section'};

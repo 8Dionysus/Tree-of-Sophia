@@ -10,13 +10,11 @@ jurisdiction, witness, evidence, gate and projection wiring. Please base the
 change on PR #432 or coordinate its exact commit before touching `kit.py`.
 The short-quotation counter must count the same sentence endings.
 
-## PR #432 review blocks landing
+## Sentence boundary coordination
 
-The required review has confirmed that a real `zh-Hans` witness cannot pass
-`sentences()` (`这是一句完整的话。` is rejected). This is now an unresolved
-blocking review thread, so the writing-system sentence change is needed before
-PR1 can merge; waiting for PR1 would be circular. Please prepare the smallest
-sentence-boundary change against `claude/aesthetics-line` and publish its exact
-commit for line to integrate. Keep letter folds in the ancient-owned follow-up.
-The counter for short quotations and original formula checks need matching
-Unicode boundaries as well.
+The owner authorized line to fix the blocking PR #432 review before PR1.
+The line now accepts uncased sentence initials and Chinese, Japanese and Arabic
+sentence endings, checks exact unspaced CJK source runs at sentence boundaries,
+and counts those endings in quotation limits. Please build the assigned letter
+folds on the merged line; extend or replace these boundary checks as needed,
+keeping the gate, builder and quotation counter consistent.
