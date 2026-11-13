@@ -1,0 +1,31 @@
+{
+ "reader": {
+  "id": "codex-2026-11-12-plotinus",
+  "model": "gpt-6",
+  "date": "2026-11-12",
+  "reads": "Plotinus, Enneads I.6.5, in the Greek text of the public corpus, beside register A:E005."
+ },
+ "library": {
+  "agents": {"plotinus": {"tree": "tos.agent.plotinus"}},
+  "works": {"plotinus.enneads": {"title": {"ru": "Эннеады", "en": "Enneads"}, "original": "grc", "tree": "tos.work.retained-antiquity.enneads"}}
+ },
+ "conceptions": [
+  {
+   "id": "plotinus.enneads:soul-purification",
+   "of": ["A:C001"],
+   "areas": ["AE01"],
+   "work": "plotinus.enneads",
+   "locus": "I.6.5",
+   "formula": [{"unit": "Книга 1 · Глава 6", "from": "καὶ ἔστι τοῦτο αἶσχος ψυχῇ", "to": "τῆς ἑτέρας φύσεως ἅπαν ἀπεθήκατο."}],
+   "thesis": {
+    "ru": "Душа, освободившись от страстей, связанных с телом, и очистившись, оставляет безобразное, пришедшее от иной природы; Плотин уподобляет это золоту, очищенному от земли.",
+    "en": "The soul, freed from passions associated with the body and purified, lays aside the ugliness that came from another nature; Plotinus likens this to gold cleansed of earth."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register also names the Beautiful itself; these sentences speak of purification of the soul and the beauty of gold, so the conception follows those words.",
+   "from": ["A:E005"]
+  }
+ ],
+ "links": []
+}
