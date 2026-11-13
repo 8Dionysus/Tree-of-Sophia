@@ -404,6 +404,14 @@ def against_ocr(text,o,modern_ru=False):
 
 def in_transcription(text,source,dropped=None):
     """Whether a place is a run of the transcription, letter for letter as kit.py cut writes it, and opens a sentence there."""
+    # Unspaced CJK text cannot be split into words by the Latin OCR tokenizer.
+    # Accept an exact run only at a source sentence boundary; page review still applies.
+    if re.search(r'[\u3400-\u9fff\u3040-\u30ff]',text) and not dropped:
+        positions=[m.start() for m in re.finditer(re.escape(text),source)]
+        for position in positions:
+            before=source[:position].rstrip().rstrip(CLOSING).rstrip()
+            if not before or before[-1] in '.!?:…。！？؟':return None
+        if positions:return 'it opens inside a sentence of the transcription'
     words=[(m.group(0),m.start()) for m in WORD.finditer(source.translate(QUOTES))];hay=[key(word) for word,_ in words];index={}
     for position,word in enumerate(hay):index.setdefault(word,[]).append(position)
     needle=[key(m.group(0)) for m in WORD.finditer(text.translate(QUOTES))];best=locate(needle,hay,index)
@@ -418,7 +426,7 @@ def in_transcription(text,source,dropped=None):
     opened=bool(re.search(r'\n\s*\n[\s"“„«‘\'(\[_*]*$',before)) or not before.strip()
     before=re.sub(r'(\[[^\]]{0,12}\]|\(\d+\)|[\d*†‡§]+)\s*$','',re.sub(r'[\s"“„«‘\'(\[_*]+$','',before))
     before=re.sub(r'[\s"”»’\')\]_*]+$','',re.sub(r'[\s—–-]+$','',re.sub(r'[\s"”»’\')\]_*]+$','',before)))   # «… kommen. — Eben jene …»: the dash after a full stop opens a sentence
-    if not opened and before and before[-1] not in '.!?:…':return f'it opens inside a sentence of the transcription (after «…{before[-40:]}»)'
+    if not opened and before and before[-1] not in '.!?:…。！？؟':return f'it opens inside a sentence of the transcription (after «…{before[-40:]}»)'
     blocks=[block for block in match.get_matching_blocks() if block.size];a=words[start+blocks[0].b][1];last=words[start+blocks[-1].b+blocks[-1].size-1];z=last[1]+len(last[0])
     def written(end,begin=a):
         run=source[begin:end]
@@ -488,14 +496,15 @@ def cmd_cut(args):
     print(f'{args.loc} [{lang}] {len(run)} characters:\n{run}')
     for problem in sentences(run):print('  ! '+problem)
 
-OPENING='"“„«‚‘\'([—–- ';CLOSING='"”“»’‘\')] '        # the marks of speech and brackets a sentence may stand in: a quoted sentence is a whole sentence
+OPENING='"“„«‚‘「『\'([—–- ';CLOSING='"”“»’‘」』\')] '        # the marks of speech and brackets a sentence may stand in: a quoted sentence is a whole sentence
 
 def sentences(text,limit=LONGEST):
     problems=[]
     if text!=unicodedata.normalize('NFC',text):problems.append('the text is not NFC')
     if text!=text.strip() or '  ' in text or '\t' in text:problems.append('stray whitespace')
-    if not text.lstrip(OPENING)[:1].isupper():problems.append(f'it does not open with a capital letter («{text[:24]}»): a place runs over whole sentences')
-    if text.rstrip(CLOSING)[-1:] not in '.!?…':problems.append(f'it does not close a sentence («{text[-24:]}»)')
+    first=text.lstrip(OPENING)[:1]
+    if not first or not first.isalpha() or (first.lower()!=first.upper() and not first.isupper()):problems.append(f'it does not open with a capital letter or uncased sentence initial («{text[:24]}»)')
+    if text.rstrip(CLOSING)[-1:] not in '.!?…。！？؟':problems.append(f'it does not close a sentence («{text[-24:]}»)')
     if limit is not None and len(text)>limit:problems.append(f'{len(text)} characters: a place is the sentences that say the thing, at most {limit} characters')
     return problems
 
@@ -885,7 +894,7 @@ def quotation_problems(loc,text,proof,ev,second=False,path=None,offline=False):
                     elif not raw:problems.append(f'place {loc}: {by} image is empty')
                 except (OSError,KeyError):problems.append(f'place {loc}: {by} image is missing locally')
     # Sentence endings are an upper-bound aid. The printed page still decides the boundaries.
-    count=len(re.findall(r'[.!?…]+(?:[”»’\"\')\]]+)?(?=\s|$)',text))
+    count=len(re.findall(r'(?:[.!?…]+(?:[”»’」』\"\')\]]+)?(?=\s|$)|[。！？؟]+[”»’」』\"\')\]]*)',text))
     if (len(text)>900 or count>3) and len(str(proof.get('justification',''))) < 30:problems.append(f'place {loc}: quotation exceeds 900 characters or three sentences and needs a justification')
     return problems
 
@@ -1356,6 +1365,9 @@ def cmd_witness_rights(args):
     data['review']={};save(witness_file(path,args.language),data)
     print('jurisdictional rights updated; a new second reading is required')
 
+def source_names_licence(raw,url):
+    return url.encode() in raw or url.replace('https://','http://',1).encode() in raw
+
 def license_problems(witness,sources,local_file,review,maker,second=False,offline=False):
     rights=witness.get('rights') or {}
     if not any(isinstance(rights.get(country),dict) and rights[country].get('basis')=='licensed' for country in JURISDICTIONS):return []
@@ -1367,7 +1379,7 @@ def license_problems(witness,sources,local_file,review,maker,second=False,offlin
     elif not offline:
         try:
             raw=Path(local_file(source['file'])).read_bytes()
-            if hashlib.sha256(raw).hexdigest()!=source['sha256'] or url.encode() not in raw:problems.append('licensed source changed or does not name that licence URL')
+            if hashlib.sha256(raw).hexdigest()!=source['sha256'] or not source_names_licence(raw,url):problems.append('licensed source changed or does not name that licence URL')
         except (OSError,KeyError,TypeError):problems.append('licensed source is unavailable')
     if second:
         checked=review.get('licence') or {}
@@ -1388,7 +1400,7 @@ def cmd_licence(args):
     source=next((item for item in sources if item.get('file')==args.source),None)
     if not source or not lawful_url(args.url):die('fetch the exact edition source and provide a lawful licence URL')
     raw=Path(local(args.source)).read_bytes()
-    if hashlib.sha256(raw).hexdigest()!=source.get('sha256') or args.url.encode() not in raw:die('source changed or does not contain the licence URL')
+    if hashlib.sha256(raw).hexdigest()!=source.get('sha256') or not source_names_licence(raw,args.url):die('source changed or does not contain the licence URL')
     if len(args.explanation.strip())<40:die('explain how this licence covers this exact edition')
     witness['licence_evidence']={'edition':witness.get('edition'),'licence_url':args.url,'source':{key:source[key] for key in ('file','url','sha256')},'explanation':args.explanation}
     if args.language:
@@ -1634,7 +1646,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
                 except (OSError,KeyError):add(f'{loc}: local source or image is missing')
         if quote:
             if not place.get('lines'):add(f'{loc}: quotation lines are missing')
-            count=len(re.findall(r'[.!?…]+(?:[”»’\"\')\]]+)?(?=\s|$)',text))
+            count=len(re.findall(r'(?:[.!?…]+(?:[”»’」』\"\')\]]+)?(?=\s|$)|[。！？؟]+[”»’」』\"\')\]]*)',text))
             if (len(text)>900 or count>3) and len(str(place.get('justification','')))<30:add(f'{loc}: quotation exceeds the default and needs a justification')
         if second:
             review=data.get('review') or {};answer=(review.get('places') or {}).get(loc) or {}

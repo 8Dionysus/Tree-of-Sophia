@@ -20,7 +20,7 @@ import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {corpusReader} from '../../lib/corpus-align.mjs';
 import {FIELD_SCHEMA,LIBRARY_SCHEMA,fieldIssues,libraryIssues} from '../../lib/field.mjs';
-import {externalPlacesIssues,rightsBases} from '../../lib/fragments.mjs';
+import {externalPlacesIssues,rightsBases,wholeExternalSentence} from '../../lib/fragments.mjs';
 import {formulaSpan} from './formula-span.mjs';
 
 const here=dirname(fileURLToPath(import.meta.url)),root=join(here,'..','..','..'),home=join(root,'bonsai','aesthetics');
@@ -174,7 +174,7 @@ function cite(record,conception,formula,libraryWork){
       if(place?.url&&bases.length===3&&bases.every(basis=>basis==='locator-only'))return {w:conception.work,loc:formula.place};
       fail(`${at}: fragments.json holds no place ${JSON.stringify(formula.place)} of ${conception.work} in the original`);
     }
-    if(!/^[\p{Lu}„“"(]/u.test(text)||!/[.!?][)”"]?$/u.test(text.trimEnd()))fail(`${at}: the place ${formula.place} does not run over whole sentences`);
+    if(!wholeExternalSentence(text))fail(`${at}: the place ${formula.place} does not run over whole sentences`);
     return {w:conception.work,loc:formula.place};
   }
   if(formula.place)fail(`${at}: a place is named for a work the record keeps in the corpus`);

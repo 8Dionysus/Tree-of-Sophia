@@ -59,6 +59,13 @@ export function fragmentMayShow(witness){
   const bases=rightsBases(witness?.rights);
   return bases.length>0&&!bases.includes('locator-only')&&(!bases.includes('licensed')||licensedEvidence(witness));
 }
+// Sentence boundaries are shared by the original-place builder and its tests.
+export function wholeExternalSentence(text){
+  const start=String(text??'').trim().replace(/^[\s"“„«‚‘「『'([—–-]+/u,'');
+  const first=Array.from(start)[0]??'';
+  const sentenceInitial=/^\p{L}$/u.test(first)&&(first.toLowerCase()===first.toUpperCase()||first===first.toUpperCase());
+  return sentenceInitial&&/[.!?…。！？؟][”»’」』"')\]]*$/u.test(String(text??'').trimEnd());
+}
 // What a link opens: the whole work, the page a quotation is taken from, or where a book can be found.
 const OPENS=['work','quotation','book'];
 const bilingual=value=>typeof value?.ru==='string'&&value.ru.trim()&&typeof value?.en==='string'&&value.en.trim();
@@ -102,7 +109,7 @@ export function externalPlacesIssues(module){
         if(!bases.length)problems.push(`${id} ${loc} has ${language} text without a witness`);
         if(bases.includes('locator-only'))problems.push(`${id} ${loc} shows ${language} text of a work cited by locator only`);
         const territorial=['russia','usa','eu'].some(country=>typeof witnessOf(language)?.rights?.[country]==='object');
-        const tooLong=Array.from(text).length>900||(territorial&&(text.match(/[.!?…]+[”»’"')\]]*(?=\s|$)/gu)??[]).length>3);
+        const tooLong=Array.from(text).length>900||(territorial&&(text.match(/(?:[.!?…]+[”»’」』"')\]]*(?=\s|$)|[。！？؟]+[”»’」』"')\]]*)/gu)??[]).length>3);
         if(bases.includes('short-quotation')&&tooLong&&(!territorial||String(place.quotation_justification?.[language]??'').trim().length<30))problems.push(`${id} ${loc} ${language} quotation is longer than a short quotation`);
       }
     }
