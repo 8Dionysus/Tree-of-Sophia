@@ -491,6 +491,10 @@ class WikidataDatePrecisionTest(unittest.TestCase):
         def claim(year,precision=11,rank='normal'):
             return {'rank':rank,'mainsnak':{'datavalue':{'value':{'time':f'+{year}-01-01T00:00:00Z','precision':precision}}}}
         self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950,8)]}},'P570'))
+        approximate=claim(1950);approximate['qualifiers']={'P1480':[{'datavalue':{'value':{'id':'Q5727902'}}}]}
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[approximate]}},'P570'))
+        interval=claim(1950);interval['mainsnak']['datavalue']['value']['after']=1
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[interval]}},'P570'))
         self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951)]}},'P570'))
         self.assertEqual(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951,11,'preferred')]}},'P570'),1951)
 

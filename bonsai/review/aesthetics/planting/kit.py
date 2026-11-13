@@ -593,9 +593,11 @@ def layer_authors(w,work):
 def entity_year(entity,property_):
     claims=[claim for claim in entity.get('claims',{}).get(property_,[]) if claim.get('rank')!='deprecated' and claim.get('mainsnak',{}).get('datavalue')]
     preferred=[claim for claim in claims if claim.get('rank')=='preferred']
-    values=[claim['mainsnak']['datavalue']['value'] for claim in (preferred or claims)]
-    # An approximate decade/century or conflicting years cannot establish a cutoff.
-    if not values or any(value.get('precision',0)<9 for value in values):return None
+    chosen=preferred or claims
+    values=[claim['mainsnak']['datavalue']['value'] for claim in chosen]
+    # A year with an approximation qualifier or an interval is not an exact cutoff.
+    if not values or any((claim.get('qualifiers') or {}).get('P1480') for claim in chosen):return None
+    if any(value.get('precision',0)<9 or value.get('before',0) or value.get('after',0) for value in values):return None
     years={int(value['time'][:5]) for value in values}
     return next(iter(years)) if len(years)==1 else None
 
