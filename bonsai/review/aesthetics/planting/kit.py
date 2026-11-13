@@ -599,7 +599,9 @@ def entity_year(entity,property_):
     calendars={'Q38173183','Q26877143','Q26877139','Q27055388'}
     if not values:return None
     for claim,value in zip(chosen,values):
-        qualifiers=(claim.get('qualifiers') or {}).get('P1480') or []
+        all_qualifiers=claim.get('qualifiers') or {}
+        if any(all_qualifiers.get(prop) for prop in ('P1319','P1326')):return None
+        qualifiers=all_qualifiers.get('P1480') or []
         ids=[((item.get('datavalue') or {}).get('value') or {}).get('id') for item in qualifiers]
         if any(qid not in calendars for qid in ids):return None
         if qualifiers and (value.get('precision',0)==9 or re.search(r'-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T',value.get('time',''))):return None

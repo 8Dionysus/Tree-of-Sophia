@@ -13419,13 +13419,43 @@
   "born": [
    {
     "time": "-0428-00-00T00:00:00Z",
-    "precision": 8
+    "precision": 8,
+    "bounds": {
+     "earliest": [
+      {
+       "time": "-0428-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ],
+     "latest": [
+      {
+       "time": "-0427-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ]
+    },
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "-0348-00-00T00:00:00Z",
-    "precision": 8
+    "precision": 8,
+    "bounds": {
+     "earliest": [
+      {
+       "time": "-0348-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ],
+     "latest": [
+      {
+       "time": "-0347-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ]
+    },
+    "approximate": true
    }
   ],
   "fetched": "2026-11-13"
