@@ -343,6 +343,17 @@ class ExtensionPlantingTest(unittest.TestCase):
             self.assertEqual(projected['provenance']['translation_packets'][work]['ru']['corrections'][0]['loc'],loc)
             self.assertFalse(any(item['language']=='ru' for item in projected['works'][work].get('unsearched',[])))
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+            # An accepted translation cannot keep the packet-owned original alive.
+            (parent/'accepted.json').unlink()
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            withdrawn=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertNotIn(work,withdrawn['works'])
+            self.assertNotIn(work,withdrawn['places'])
+            (parent/'accepted.json').symlink_to(source/'accepted.json')
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            restored=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertEqual(restored['places'][work][loc]['texts']['ru'],'Русское предложение.')
+            subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
             # Parent translations may refer to newly introduced extension places;
             # accepted witnesses inside that extension must also be projected.
             (ext/'accepted.json').write_text('{}')
