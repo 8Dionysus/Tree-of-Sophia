@@ -54,7 +54,16 @@
           "observation": "HathiTrust identifies Propaganda, 1928, record 001108118; items uc1.$b21229 and mdp.39015000218522 have rightsCode pd and US rights string Full view. The record describes these US access rights and does not settle other jurisdictions."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "Open Library title and author search",
+          "query": "Бернейс Пропаганда",
+          "url": "https://openlibrary.org/search.json?q=%D0%91%D0%B5%D1%80%D0%BD%D0%B5%D0%B9%D1%81+%D0%9F%D1%80%D0%BE%D0%BF%D0%B0%D0%B3%D0%B0%D0%BD%D0%B4%D0%B0&limit=4",
+          "http": 200,
+          "result": "No records returned for this exact query; other spellings, catalogs and editions remain unsearched."
+        }
+      ]
     },
     {
       "work": "w-e-b-du-bois.criteria-of-negro-art",
@@ -96,9 +105,22 @@
         {
           "url": "https://www.dareyoufight.org/Volumes/32/06/criteria_of_negro_art.html",
           "observation": "Accessible transcription identifies the October 1926 Crisis issue; its web publication date field says April 1, 1926. Compare with the original issue."
+        },
+        {
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/issn/1559-1573.json",
+          "observation": "ISSN from the Internet Archive item led HathiTrust to a Crisis record dated 2003 with no returned items; it did not identify the 1926 issue. Other identifiers and HathiTrust records remain to be searched."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "Open Library title and author search",
+          "query": "Дюбуа Критерии негритянского искусства",
+          "url": "https://openlibrary.org/search.json?q=%D0%94%D1%8E%D0%B1%D1%83%D0%B0+%D0%9A%D1%80%D0%B8%D1%82%D0%B5%D1%80%D0%B8%D0%B8+%D0%BD%D0%B5%D0%B3%D1%80%D0%B8%D1%82%D1%8F%D0%BD%D1%81%D0%BA%D0%BE%D0%B3%D0%BE+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&limit=4",
+          "http": 200,
+          "result": "No records returned for this exact query; other spellings, catalogs and editions remain unsearched."
+        }
+      ]
     },
     {
       "work": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste",
@@ -235,7 +257,23 @@
           "observation": "The US Catalog of Copyright Entries, Third Series, Part 1, Books and Pamphlets, January–June 1961, printed p. 820 (scan leaf n837), records Art as experience, John Dewey, original registration 23 March 1934 A71183 and renewal 14 April 1961 R274497 in the name of Roberta L. Dewey, widow. The scan image was visually checked; OCR alone did not determine the entry."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Art as Experience",
+          "url": "https://api.openalex.org/works?search=Art+as+Experience&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        },
+        {
+          "service": "Open Library title and author search",
+          "query": "Джон Дьюи Искусство как опыт",
+          "url": "https://openlibrary.org/search.json?q=%D0%94%D0%B6%D0%BE%D0%BD+%D0%94%D1%8C%D1%8E%D0%B8+%D0%98%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE+%D0%BA%D0%B0%D0%BA+%D0%BE%D0%BF%D1%8B%D1%82&limit=4",
+          "http": 200,
+          "result": "No records returned for this exact query; other spellings, catalogs and editions remain unsearched."
+        }
+      ]
     },
     {
       "work": "walter-benjamin.das-kunstwerk-im-zeitalter-seiner-technischen",
@@ -295,7 +333,23 @@
           "observation": "OpenAlex identifies a third-version PDF dated 1974 and labels it public-domain, with a Wikimedia file URL. Direct file request returned HTTP 403; editor, edition and jurisdictional rights remain unverified."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Das Kunstwerk im Zeitalter seiner technischen Reproduzierbarkeit",
+          "url": "https://api.openalex.org/works?search=Das+Kunstwerk+im+Zeitalter+seiner+technischen+Reproduzierbarkeit&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        },
+        {
+          "service": "Open Library title and author search",
+          "query": "Вальтер Беньямин Произведение искусства эпоху технической воспроизводимости",
+          "url": "https://openlibrary.org/search.json?q=%D0%92%D0%B0%D0%BB%D1%8C%D1%82%D0%B5%D1%80+%D0%91%D0%B5%D0%BD%D1%8C%D1%8F%D0%BC%D0%B8%D0%BD+%D0%9F%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0+%D1%8D%D0%BF%D0%BE%D1%85%D1%83+%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B9+%D0%B2%D0%BE%D1%81%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D0%B8%D0%BC%D0%BE%D1%81%D1%82%D0%B8&limit=4",
+          "http": 200,
+          "result": "No records returned for this exact query; other spellings, catalogs and editions remain unsearched."
+        }
+      ]
     },
     {
       "work": "nelson-goodman.languages-of-art",
@@ -308,7 +362,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1968,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -324,7 +378,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Languages of Art",
+          "url": "https://api.openalex.org/works?search=Languages+of+Art&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "hans-georg-gadamer.wahrheit-und-methode",
@@ -336,7 +399,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1960,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -352,7 +415,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Wahrheit und Methode",
+          "url": "https://api.openalex.org/works?search=Wahrheit+und+Methode&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "erika-fischer-lichte.the-transformative-power-of-performance",
@@ -363,7 +435,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2004,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -379,7 +451,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Transformative Power of Performance: A New Aesthetics",
+          "url": "https://api.openalex.org/works?search=The+Transformative+Power+of+Performance%3A+A+New+Aesthetics&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "martin-heidegger.der-ursprung-des-kunstwerkes",
@@ -420,7 +501,16 @@
           "observation": "Crossref identifies a Heidegger chapter in a 2015 publication, with no license field. OpenAlex labels it CC BY, while the corresponding Inlibra book page states the work is copyright-protected and subject to its license agreement. The exact chapter rights, text and edition remain unverified."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Der Ursprung des Kunstwerkes",
+          "url": "https://api.openalex.org/works?search=Der+Ursprung+des+Kunstwerkes&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "pierre-bourdieu.la-distinction",
@@ -430,7 +520,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1979,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -446,7 +536,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "La Distinction: Critique sociale du jugement",
+          "url": "https://api.openalex.org/works?search=La+Distinction%3A+Critique+sociale+du+jugement&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "yuriko-saito.everyday-aesthetics",
@@ -471,7 +570,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Everyday Aesthetics",
+          "url": "https://api.openalex.org/works?search=Everyday+Aesthetics&per-page=3",
+          "http": 429,
+          "result": "request failed or was rate limited; retry"
+        }
+      ]
     },
     {
       "work": "aldo-leopold.conservation-esthetic",
@@ -513,9 +621,34 @@
         {
           "url": "https://archive.org/metadata/sim_bird-lore_march-april-1938_40_2",
           "observation": "Bird-Lore vol. 40 no. 2, March–April 1938. OCR returned HTTP 200 and identifies the article and author. Page images, rights and renewal remain to be checked. The OCR table of contents lists the article at page 101. Page-indexed DjVu XML places the named D:X-I006 phrases at leaf 10; printed page and page image remain to be verified."
+        },
+        {
+          "url": "https://archive.org/details/catalogofcopy19653191lib",
+          "observation": "Searched OCR of US Catalog of Copyright Entries 1965 books (both halves), 1965 periodicals, and 1966 books (both halves) for Conservation Esth*, Leopold, Aldo and Bird-Lore. No matching 1938 article renewal was found in those exact OCR searches. OCR errors, alternate title/indexing and other records remain unexamined; this does not establish nonrenewal or US public-domain status."
+        },
+        {
+          "url": "https://archive.org/details/catalogofcopyrig332lib/page/n24/mode/1up",
+          "observation": "Catalog of Copyright Entries, New Series, Part 2 Periodicals, 1938, printed p. 15 (scan leaf n24): Bird-lore volume 40 issue 2, March–April 1938, original copyright April 1, registration B374425, National Association of Audubon Societies. The page was visually checked. This is an issue-level registration, not proof of article-level renewal or nonrenewal."
+        },
+        {
+          "url": "https://archive.org/details/catalogofcopy19653192libr/page/n369/mode/1up",
+          "observation": "The 1965 annual Periodicals renewal section, printed p. 352 (leaf n369), was visually checked: the B entries run from Baby Talk to Big-Book and Black Book without Bird-lore. The 1966 annual Periodicals catalog OCR also returned no exact Bird-lore, Leopold or B374425 hit. This is bounded evidence only: other registrations, indexing, OCR errors and independent article rights remain to be checked."
+        },
+        {
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/issn/1059-8626.json",
+          "observation": "HathiTrust identifies Bird lore record 000497136; the returned volume 40–41, 1938–1939 item mdp.39015001475626 is rightsCode ic, US Limited (search-only). Other volumes returned Full view. This item classification does not settle separate article-level rights."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Conservation Esthetic",
+          "url": "https://api.openalex.org/works?search=Conservation+Esthetic&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "arthur-c-danto.the-artworld",
@@ -557,7 +690,16 @@
           "observation": "University-hosted PDF returned HTTP 200; 473,895 bytes; SHA-256 7fc793014704b7c84ed276fe364813ceb5ab09a213d06d899b681165602968b0. Its first page identifies the Journal of Philosophy, 1964, pp. 571–584; extraction contains text. Compare registered pp. 579–584 against page images; reuse permissions require separate assessment."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Artworld",
+          "url": "https://api.openalex.org/works?search=The+Artworld&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "bell-hooks.the-oppositional-gaze",
@@ -567,7 +709,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1992,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -583,7 +725,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Oppositional Gaze: Black Female Spectators",
+          "url": "https://api.openalex.org/works?search=The+Oppositional+Gaze%3A+Black+Female+Spectators&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "jacques-ranciere.le-partage-du-sensible",
@@ -613,6 +764,15 @@
         {
           "url": "https://api.crossref.org/works/10.3917/lafab.ranci.2000.01",
           "observation": "Crossref identifies Jacques Rancière, Le partage du sensible, La Fabrique Editions, 2000, ISBN 9782913372054. Its record has no license field; this alone establishes neither license nor access."
+        }
+      ],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Le partage du sensible",
+          "url": "https://api.openalex.org/works?search=Le+partage+du+sensible&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
         }
       ]
     },
@@ -661,7 +821,16 @@
           "observation": "OpenAlex identifies publisher and institutional locations; its record calls the JYX copy submittedVersion, unlike the JYX PDF cover, which says published version. Resolve this discrepancy by comparing text and edition before planting."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Traditional Ecological Knowledge and the Aesthetic Appreciation of Nature: Lessons from Gilbbesjávri and Guovdageaidnu",
+          "url": "https://api.openalex.org/works?search=Traditional+Ecological+Knowledge+and+the+Aesthetic+Appreciation+of+Nature%3A+Lessons+from+Gilbbesj%C3%A1vri+and+Guovdageaidnu&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "louis-althusser.ideologie-et-appareils-ideologiques-d-etat",
@@ -670,7 +839,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1970,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -686,7 +855,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Idéologie et appareils idéologiques d’État",
+          "url": "https://api.openalex.org/works?search=Id%C3%A9ologie+et+appareils+id%C3%A9ologiques+d%E2%80%99%C3%89tat&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "martin-heidegger.sein-und-zeit",
@@ -753,7 +931,23 @@
           "observation": "Metadata identifies Clarendon Press, Oxford, 1938, with OCR and page images listed; accessibility, text participants and rights are not yet verified."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Principles of Art",
+          "url": "https://api.openalex.org/works?search=The+Principles+of+Art&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        },
+        {
+          "service": "Open Library title and author search",
+          "query": "Коллингвуд Принципы искусства",
+          "url": "https://openlibrary.org/search.json?q=%D0%9A%D0%BE%D0%BB%D0%BB%D0%B8%D0%BD%D0%B3%D0%B2%D1%83%D0%B4+%D0%9F%D1%80%D0%B8%D0%BD%D1%86%D0%B8%D0%BF%D1%8B+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&limit=4",
+          "http": 200,
+          "result": "No records returned for this exact query; other spellings, catalogs and editions remain unsearched."
+        }
+      ]
     },
     {
       "work": "sherrie-levine.after-walker-evans",
@@ -762,7 +956,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1981,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -778,7 +972,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "After Walker Evans: 4",
+          "url": "https://api.openalex.org/works?search=After+Walker+Evans%3A+4&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "susan-buck-morss.aesthetics-and-anaesthetics",
@@ -826,7 +1029,16 @@
           "observation": "Crossref identifies the 1992 article and author; no license field. It gives starting page 3 but does not map the requested passages."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Aesthetics and Anaesthetics: Walter Benjamin’s Artwork Essay Reconsidered",
+          "url": "https://api.openalex.org/works?search=Aesthetics+and+Anaesthetics%3A+Walter+Benjamin%E2%80%99s+Artwork+Essay+Reconsidered&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "susan-sontag.notes-on-camp",
@@ -835,7 +1047,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1964,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -851,7 +1063,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Notes on “Camp”",
+          "url": "https://api.openalex.org/works?search=Notes+on+%E2%80%9CCamp%E2%80%9D&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "yuriko-saito.aesthetics-of-the-everyday",
@@ -861,7 +1082,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2016,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -877,7 +1098,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Aesthetics of the Everyday",
+          "url": "https://api.openalex.org/works?search=Aesthetics+of+the+Everyday&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "yuriko-saito.scenic-national-landscapes",
@@ -920,7 +1150,16 @@
           "observation": "OpenAlex reports a repository location and CC BY for a submitted version; the linked Pacific University page returned HTTP 404. This metadata does not establish a license for the PDCnet PDF."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Scenic National Landscapes: Common Themes in Japan and the United States",
+          "url": "https://api.openalex.org/works?search=Scenic+National+Landscapes%3A+Common+Themes+in+Japan+and+the+United+States&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "allen-carlson.appreciation-and-the-natural-environment",
@@ -929,7 +1168,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1979,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -945,7 +1184,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Appreciation and the Natural Environment",
+          "url": "https://api.openalex.org/works?search=Appreciation+and+the+Natural+Environment&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "anibal-quijano.coloniality-of-power-eurocentrism-and-latin",
@@ -954,7 +1202,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2000,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -970,7 +1218,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Coloniality of Power, Eurocentrism, and Latin America",
+          "url": "https://api.openalex.org/works?search=Coloniality+of+Power%2C+Eurocentrism%2C+and+Latin+America&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "arnold-berleant.aesthetics-and-environment",
@@ -979,7 +1236,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2005,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -995,7 +1252,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Aesthetics and Environment: Variations on a Theme",
+          "url": "https://api.openalex.org/works?search=Aesthetics+and+Environment%3A+Variations+on+a+Theme&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "carol-duncan.art-museums-and-the-ritual-of-citizenship",
@@ -1005,7 +1271,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1991,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1021,7 +1287,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Art Museums and the Ritual of Citizenship",
+          "url": "https://api.openalex.org/works?search=Art+Museums+and+the+Ritual+of+Citizenship&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "carolyn-korsmeyer.feminist-aesthetics",
@@ -1031,7 +1306,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2004,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1047,7 +1322,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Feminist Aesthetics",
+          "url": "https://api.openalex.org/works?search=Feminist+Aesthetics&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "claire-bishop.antagonism-and-relational-aesthetics",
@@ -1087,7 +1371,16 @@
           "observation": "Crossref reports title Antagonism and Relational Aesthetics, author(s) Claire Bishop and publication date 2004-10. This is a bibliographic candidate; verify edition, access and the registered passages. The Crossref record has no license field."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Antagonism and Relational Aesthetics",
+          "url": "https://api.openalex.org/works?search=Antagonism+and+Relational+Aesthetics&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "clement-greenberg.avant-garde-and-kitsch",
@@ -1097,7 +1390,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1939,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1113,7 +1406,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Avant-Garde and Kitsch",
+          "url": "https://api.openalex.org/works?search=Avant-Garde+and+Kitsch&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "dick-higgins.intermedia",
@@ -1123,7 +1425,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1965,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1139,7 +1441,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Intermedia",
+          "url": "https://api.openalex.org/works?search=Intermedia&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "don-norman.the-design-of-everyday-things",
@@ -1148,7 +1459,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2013,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1164,7 +1475,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Design of Everyday Things: Revised and Expanded Edition",
+          "url": "https://api.openalex.org/works?search=The+Design+of+Everyday+Things%3A+Revised+and+Expanded+Edition&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "edward-w-said.orientalism",
@@ -1173,7 +1493,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1978,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1189,7 +1509,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Orientalism",
+          "url": "https://api.openalex.org/works?search=Orientalism&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "esther-newton.mother-camp",
@@ -1199,7 +1528,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1972,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1215,7 +1544,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Mother Camp: Female Impersonators in America",
+          "url": "https://api.openalex.org/works?search=Mother+Camp%3A+Female+Impersonators+in+America&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "george-dickie.defining-art",
@@ -1225,7 +1563,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1969,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1241,7 +1579,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Defining Art",
+          "url": "https://api.openalex.org/works?search=Defining+Art&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "gilles-deleuze.difference-et-repetition",
@@ -1250,7 +1597,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1968,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1266,7 +1613,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Différence et répétition",
+          "url": "https://api.openalex.org/works?search=Diff%C3%A9rence+et+r%C3%A9p%C3%A9tition&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "glenn-parsons.environmental-aesthetics",
@@ -1275,7 +1631,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2024,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1291,7 +1647,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Environmental Aesthetics",
+          "url": "https://api.openalex.org/works?search=Environmental+Aesthetics&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "holmes-rolston-iii.does-aesthetic-appreciation-of-landscapes-need",
@@ -1300,7 +1665,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1995,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1316,7 +1681,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Does Aesthetic Appreciation of Landscapes Need to Be Science-Based?",
+          "url": "https://api.openalex.org/works?search=Does+Aesthetic+Appreciation+of+Landscapes+Need+to+Be+Science-Based%3F&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "howard-s-becker.art-as-collective-action",
@@ -1356,7 +1730,16 @@
           "observation": "University-hosted PDF returned HTTP 200; 1,164,253 bytes; SHA-256 798ff727e9fbeb47dcd86831362e954bbb25e64fdfd859314d31f80b216d4446. Visual inspection of first and last PDF pages identified a 1974 American Sociological Review scan covering article pages 767–776; the first page and final spread were inspected, not the registered passages. The PDF has no extractable OCR; page-level transcription and independent review remain required."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Art as Collective Action",
+          "url": "https://api.openalex.org/works?search=Art+as+Collective+Action&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "jacques-ranciere.politics-and-aesthetics",
@@ -1395,7 +1778,16 @@
           "observation": "Crossref reports title Politics and aesthetics an interview, author(s) Jacques Rancie`re and publication date 2003-8. This is a bibliographic candidate; verify edition, access and the registered passages. The Crossref record has no license field."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Politics and Aesthetics: An Interview",
+          "url": "https://api.openalex.org/works?search=Politics+and+Aesthetics%3A+An+Interview&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "james-baldwin.the-creative-process",
@@ -1405,7 +1797,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1962,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1421,7 +1813,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Creative Process",
+          "url": "https://api.openalex.org/works?search=The+Creative+Process&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "jean-baudrillard.simulacres-et-simulation",
@@ -1430,7 +1831,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1981,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1446,7 +1847,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Simulacres et Simulation: “La précession des simulacres”",
+          "url": "https://api.openalex.org/works?search=Simulacres+et+Simulation%3A+%E2%80%9CLa+pr%C3%A9cession+des+simulacres%E2%80%9D&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "jerrold-levinson.defining-art-historically",
@@ -1476,6 +1886,15 @@
         {
           "url": "https://is.muni.cz/el/phil/podzim2020/DU2345/um/week_1_introduction_what_is_art/Levinson_Defining_Art_Historically.pdf",
           "observation": "University PDF URL in the source register timed out on connection; retry or seek another lawful copy. No absence conclusion follows."
+        }
+      ],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Defining Art Historically",
+          "url": "https://api.openalex.org/works?search=Defining+Art+Historically&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
         }
       ]
     },
@@ -1515,7 +1934,16 @@
           "observation": "OpenAlex identifies this author and work as a repository thesis. Direct HTTP to item page returned 202 and to alternate PDF 403; access and licence need further verification. Browser request recorded separately."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Consuming Hygge at Home: Perception, Representation, Practice",
+          "url": "https://api.openalex.org/works?search=Consuming+Hygge+at+Home%3A+Perception%2C+Representation%2C+Practice&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "judith-butler.performative-acts-and-gender-constitution",
@@ -1553,7 +1981,16 @@
           "observation": "Stanford course PDF returned HTTP 200; 4,578,039 bytes; SHA-256 aa0f7c59de01fe04e5b3ffed7eeae09c3d6bfbfb32ee1f10073906fa61cd2238. It identifies Theatre Journal 40 no. 4, December 1988, pp. 519–531; verify requested passages on pp. 519–520 and 528 against images and assess quotation. No open reuse licence has been established."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Performative Acts and Gender Constitution: An Essay in Phenomenology and Feminist Theory",
+          "url": "https://api.openalex.org/works?search=Performative+Acts+and+Gender+Constitution%3A+An+Essay+in+Phenomenology+and+Feminist+Theory&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "katherine-thomson-jones.the-philosophy-of-digital-art",
@@ -1563,7 +2000,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2022,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1579,7 +2016,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Philosophy of Digital Art",
+          "url": "https://api.openalex.org/works?search=The+Philosophy+of+Digital+Art&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "laura-mulvey.visual-pleasure-and-narrative-cinema",
@@ -1588,7 +2034,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1975,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1604,7 +2050,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Visual Pleasure and Narrative Cinema",
+          "url": "https://api.openalex.org/works?search=Visual+Pleasure+and+Narrative+Cinema&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "lev-manovich.new-media",
@@ -1614,7 +2069,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1999,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1630,7 +2085,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "New Media: a User’s Guide",
+          "url": "https://api.openalex.org/works?search=New+Media%3A+a+User%E2%80%99s+Guide&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "lev-manovich.post-media-aesthetics",
@@ -1660,6 +2124,15 @@
           "url": "https://manovich.net/content/04-projects/033-post-media-aesthetics/29_article_2001.pdf",
           "observation": "Author-site PDF URL in the source register returned HTTP 404; search for the current authoritative URL and edition."
         }
+      ],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Post-media Aesthetics",
+          "url": "https://api.openalex.org/works?search=Post-media+Aesthetics&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
       ]
     },
     {
@@ -1670,7 +2143,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1971,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1686,7 +2159,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Why Have There Been No Great Women Artists?",
+          "url": "https://api.openalex.org/works?search=Why+Have+There+Been+No+Great+Women+Artists%3F&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "martin-heidegger.bauen-wohnen-denken",
@@ -1695,7 +2177,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1951,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1711,7 +2193,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Bauen Wohnen Denken",
+          "url": "https://api.openalex.org/works?search=Bauen+Wohnen+Denken&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "max-horkheimer.kulturindustrie",
@@ -1721,7 +2212,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1944,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1737,7 +2228,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Kulturindustrie. Aufklärung als Massenbetrug",
+          "url": "https://api.openalex.org/works?search=Kulturindustrie.+Aufkl%C3%A4rung+als+Massenbetrug&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "olav-velthuis.symbolic-meanings-of-prices",
@@ -1775,7 +2275,16 @@
           "observation": "Crossref reports title Symbolic meanings of prices: Constructing the value of contemporary art in Amsterdam and New York galleries, author(s) Olav Velthuis and publication date 2003-4. This is a bibliographic candidate; verify edition, access and the registered passages. Its listed license URL(s) refer to text and data mining; they are not evidence of general permission to reproduce or translate."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Symbolic Meanings of Prices: Constructing the Value of Contemporary Art in Amsterdam and New York Galleries",
+          "url": "https://api.openalex.org/works?search=Symbolic+Meanings+of+Prices%3A+Constructing+the+Value+of+Contemporary+Art+in+Amsterdam+and+New+York+Galleries&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "roland-barthes.le-mythe-aujourd-hui",
@@ -1785,7 +2294,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1957,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1801,7 +2310,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Le mythe, aujourd’hui",
+          "url": "https://api.openalex.org/works?search=Le+mythe%2C+aujourd%E2%80%99hui&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "roland-barthes.the-death-of-the-author",
@@ -1811,7 +2329,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1967,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1827,7 +2345,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Death of the Author",
+          "url": "https://api.openalex.org/works?search=The+Death+of+the+Author&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "stuart-hall.cultural-identity-and-diaspora",
@@ -1836,7 +2363,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1990,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1852,7 +2379,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Cultural Identity and Diaspora",
+          "url": "https://api.openalex.org/works?search=Cultural+Identity+and+Diaspora&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "stuart-hall.notes-on-deconstructing-the-popular",
@@ -1861,7 +2397,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1981,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1877,7 +2413,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Notes on Deconstructing “the Popular”",
+          "url": "https://api.openalex.org/works?search=Notes+on+Deconstructing+%E2%80%9Cthe+Popular%E2%80%9D&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "theodor-w-adorno.resume-ueber-kulturindustrie",
@@ -1887,7 +2432,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1963,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1903,7 +2448,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Résumé über Kulturindustrie",
+          "url": "https://api.openalex.org/works?search=R%C3%A9sum%C3%A9+%C3%BCber+Kulturindustrie&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "thomas-adajian.the-definition-of-art",
@@ -1913,7 +2467,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2007,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1929,7 +2483,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Definition of Art",
+          "url": "https://api.openalex.org/works?search=The+Definition+of+Art&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "thomas-leddy.everyday-surface-aesthetic-qualities",
@@ -1938,7 +2501,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1995,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1954,7 +2517,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Everyday Surface Aesthetic Qualities: “Neat,” “Messy,” “Clean,” “Dirty”",
+          "url": "https://api.openalex.org/works?search=Everyday+Surface+Aesthetic+Qualities%3A+%E2%80%9CNeat%2C%E2%80%9D+%E2%80%9CMessy%2C%E2%80%9D+%E2%80%9CClean%2C%E2%80%9D+%E2%80%9CDirty%E2%80%9D&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "tony-bennett.the-exhibitionary-complex",
@@ -1964,7 +2536,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1988,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -1980,7 +2552,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Exhibitionary Complex",
+          "url": "https://api.openalex.org/works?search=The+Exhibitionary+Complex&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "walter-d-mignolo.aiesthesis-decolonial",
@@ -2028,7 +2609,16 @@
           "observation": "Crossref identifies Mignolo, 2011-05-04 and a CC BY-NC-SA 4.0 license with unspecified content version, which conflicts with publisher historical-license wording."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Aiesthesis decolonial",
+          "url": "https://api.openalex.org/works?search=Aiesthesis+decolonial&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "yuriko-saito.everyday-aesthetics-and-world-making",
@@ -2075,7 +2665,16 @@
           "observation": "Crossref identifies 2021-01-19 publication and has no license field; publisher page is the observed source of license information."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Everyday Aesthetics and World-Making",
+          "url": "https://api.openalex.org/works?search=Everyday+Aesthetics+and+World-Making&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "ariane-nomikos.how-could-anybody-ever-feel-at-home-aesthetic",
@@ -2117,7 +2716,16 @@
           "observation": "Crossref identifies Ariane Nomikos and 2024-07-28; no license field. Identity of its registered text with the full cited places remains to be checked."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "How Could Anybody Ever Feel at Home? Aesthetic Familiarity, Epistemic Comfort, and Displacement",
+          "url": "https://api.openalex.org/works?search=How+Could+Anybody+Ever+Feel+at+Home%3F+Aesthetic+Familiarity%2C+Epistemic+Comfort%2C+and+Displacement&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "carolyn-korsmeyer.aesthetic-value-art-and-food",
@@ -2126,7 +2734,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2014,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2142,7 +2750,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Aesthetic Value, Art, and Food",
+          "url": "https://api.openalex.org/works?search=Aesthetic+Value%2C+Art%2C+and+Food&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "elena-abate.fashion-as-an-aesthetic-form-of-life",
@@ -2188,7 +2805,16 @@
           "observation": "OpenAlex lists the work as open access, but reports no license. Open access alone does not establish reuse permission."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Fashion as an Aesthetic Form of Life: A Wittgensteinian Interpretation",
+          "url": "https://api.openalex.org/works?search=Fashion+as+an+Aesthetic+Form+of+Life%3A+A+Wittgensteinian+Interpretation&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "elizabeth-telfer.food-as-art",
@@ -2197,7 +2823,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1996,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2213,7 +2839,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Food as Art",
+          "url": "https://api.openalex.org/works?search=Food+as+Art&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "emily-brady.imagination-and-the-aesthetic-appreciation",
@@ -2222,7 +2857,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1998,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2238,7 +2873,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Imagination and the Aesthetic Appreciation of Nature",
+          "url": "https://api.openalex.org/works?search=Imagination+and+the+Aesthetic+Appreciation+of+Nature&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "esther-leslie.political-aesthetics",
@@ -2247,7 +2891,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2020,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2263,7 +2907,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Political Aesthetics",
+          "url": "https://api.openalex.org/works?search=Political+Aesthetics&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "frantz-fanon.peau-noire-masques-blancs",
@@ -2272,7 +2925,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1952,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2288,7 +2941,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Peau noire, masques blancs",
+          "url": "https://api.openalex.org/works?search=Peau+noire%2C+masques+blancs&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "giovanni-matteucci.aesthetics-of-fashion",
@@ -2326,7 +2988,16 @@
           "observation": "Crossref reports title Aesthetics of fashion, author(s) Giovanni Matteucci and publication date 2021-8-10. This is a bibliographic candidate; verify edition, access and the registered passages. The Crossref record has no license field."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Aesthetics of Fashion",
+          "url": "https://api.openalex.org/works?search=Aesthetics+of+Fashion&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "glenn-parsons.functional-beauty",
@@ -2335,7 +3006,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2009,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2351,7 +3022,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Functional Beauty",
+          "url": "https://api.openalex.org/works?search=Functional+Beauty&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "hannah-higgins.appendix-to-intermedia",
@@ -2360,7 +3040,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2001,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2376,7 +3056,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Appendix to “Intermedia”",
+          "url": "https://api.openalex.org/works?search=Appendix+to+%E2%80%9CIntermedia%E2%80%9D&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "nanda-jarosz.indigenous-and-local-knowledge-and-aesthetics",
@@ -2414,7 +3103,16 @@
           "observation": "Crossref reports title Indigenous and Local Knowledge and Aesthetics: Towards an Intergenerational Aesthetics of Nature, author(s) Nanda Jarosz and publication date 2023-4. This is a bibliographic candidate; verify edition, access and the registered passages. Its listed license URL(s) refer to text and data mining; they are not evidence of general permission to reproduce or translate."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Indigenous and Local Knowledge and Aesthetics: Towards an Intergenerational Aesthetics of Nature",
+          "url": "https://api.openalex.org/works?search=Indigenous+and+Local+Knowledge+and+Aesthetics%3A+Towards+an+Intergenerational+Aesthetics+of+Nature&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "noam-tractinsky.aesthetics-and-apparent-usability",
@@ -2423,7 +3121,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1997,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2439,7 +3137,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Aesthetics and Apparent Usability: Empirically Assessing Cultural and Methodological Issues",
+          "url": "https://api.openalex.org/works?search=Aesthetics+and+Apparent+Usability%3A+Empirically+Assessing+Cultural+and+Methodological+Issues&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "noam-tractinsky.what-is-beautiful-is-usable",
@@ -2493,7 +3200,16 @@
           "observation": "University faculty PDF returned HTTP 200; 497,234 bytes; SHA-256 3af4882ce15973de2bd923d3c7910a1b9b4a17068a13884abb5bcd8e70204b64. First page identifies authors Tractinsky, Katz and Ikar; Interacting with Computers 13 (2000), pp. 127–145, and states all rights reserved. Verify registered pp. 139–140 on page images and assess quotation; this is not an open-licence claim."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "What Is Beautiful Is Usable",
+          "url": "https://api.openalex.org/works?search=What+Is+Beautiful+Is+Usable&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "rebecca-journey.a-semiotics-of-coziness-and-disappearing-night",
@@ -2536,7 +3252,16 @@
           "observation": "Publisher PDF returned HTTP 200; 1,860,519 bytes; SHA-256 28e9a2fce4b516b36f7a0bfc851705ecd1264449fcf07b50c597bc269a1658e1. The article states CC BY 4.0 and the PDF text contains the registered sections Permanent Daylight and Ontologies of Coziness. Compare quotations on the page and assess any third-party material separately."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "A Semiotics of Coziness and Disappearing Night",
+          "url": "https://api.openalex.org/works?search=A+Semiotics+of+Coziness+and+Disappearing+Night&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "roman-ingarden.das-literarische-kunstwerk",
@@ -2545,7 +3270,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1931,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2561,7 +3286,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Das literarische Kunstwerk",
+          "url": "https://api.openalex.org/works?search=Das+literarische+Kunstwerk&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "ronald-hepburn.contemporary-aesthetics-and-the-neglect",
@@ -2570,7 +3304,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1966,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2586,7 +3320,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Contemporary Aesthetics and the Neglect of Natural Beauty",
+          "url": "https://api.openalex.org/works?search=Contemporary+Aesthetics+and+the+Neglect+of+Natural+Beauty&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "ronald-hepburn.nature-humanised",
@@ -2595,7 +3338,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1998,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2611,7 +3354,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Nature Humanised: Nature Respected",
+          "url": "https://api.openalex.org/works?search=Nature+Humanised%3A+Nature+Respected&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "sheila-lintott.the-link-between-aesthetic-appreciation",
@@ -2657,7 +3409,16 @@
           "observation": "Crossref reports title The Link Between Aesthetic Appreciation and the Preservation Imperative, author(s) Sheila Lintott, Allen Carlson and publication date 2013. This is a bibliographic candidate; verify edition, access and the registered passages. Its listed license URL(s) refer to text and data mining; they are not evidence of general permission to reproduce or translate."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Link Between Aesthetic Appreciation and the Preservation Imperative",
+          "url": "https://api.openalex.org/works?search=The+Link+Between+Aesthetic+Appreciation+and+the+Preservation+Imperative&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "verity-platt.getting-to-grips-with-classical-art",
@@ -2666,7 +3427,7 @@
       ],
       "queue_wave": "later",
       "register_year": 2017,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2682,7 +3443,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Getting to Grips with Classical Art: Rethinking the Haptics of Graeco-Roman Visual Culture",
+          "url": "https://api.openalex.org/works?search=Getting+to+Grips+with+Classical+Art%3A+Rethinking+the+Haptics+of+Graeco-Roman+Visual+Culture&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "victor-papanek.design-for-the-real-world",
@@ -2691,7 +3461,7 @@
       ],
       "queue_wave": "later",
       "register_year": 1971,
-      "research_status": "not_started",
+      "research_status": "in_progress",
       "participants": [],
       "jurisdiction_basis": {
         "us": "unverified",
@@ -2707,7 +3477,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Design for the Real World: Human Ecology and Social Change",
+          "url": "https://api.openalex.org/works?search=Design+for+the+Real+World%3A+Human+Ecology+and+Social+Change&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     },
     {
       "work": "william-cronon.the-trouble-with-wilderness-or-getting-back",
@@ -2736,6 +3515,15 @@
         {
           "url": "https://www.williamcronon.net/writing/Cronon_Trouble_with_Wilderness_1995.htm",
           "observation": "Author-site address in the source register returned HTTP 406 in this session; this is not an absence claim."
+        }
+      ],
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "The Trouble with Wilderness; or, Getting Back to the Wrong Nature",
+          "url": "https://api.openalex.org/works?search=The+Trouble+with+Wilderness%3B+or%2C+Getting+Back+to+the+Wrong+Nature&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
         }
       ]
     },
@@ -2776,7 +3564,16 @@
           "observation": "Crossref reports title Appreciating Nature on Its Own Terms, author(s) Yuriko Saito and publication date 1998. This is a bibliographic candidate; verify edition, access and the registered passages. The Crossref record has no license field."
         }
       ],
-      "participants_incomplete": true
+      "participants_incomplete": true,
+      "searches": [
+        {
+          "service": "OpenAlex title search",
+          "query": "Appreciating Nature on Its Own Terms",
+          "url": "https://api.openalex.org/works?search=Appreciating+Nature+on+Its+Own+Terms&per-page=3",
+          "http": 200,
+          "result": "candidate discovery only; titles, identities, editions and rights require independent checks"
+        }
+      ]
     }
   ],
   "additional_priority": [
@@ -2815,6 +3612,15 @@
         {
           "url": "https://catalog.hathitrust.org/api/volumes/brief/oclc/2789096.json",
           "observation": "HathiTrust record 001595089 identifies Homo ludens, 1949; its returned item mdp.39015002996273 has US rights string Limited (search-only). This is an English-edition candidate, not the 1938 original; translator and rights still need verification."
+        }
+      ],
+      "searches": [
+        {
+          "service": "Open Library title and author search",
+          "query": "Хёйзинга Homo Ludens",
+          "url": "https://openlibrary.org/search.json?q=%D0%A5%D1%91%D0%B9%D0%B7%D0%B8%D0%BD%D0%B3%D0%B0+Homo+Ludens&limit=4",
+          "http": 200,
+          "result": "No records returned for this exact query; other spellings, catalogs and editions remain unsearched."
         }
       ]
     }
@@ -3003,6 +3809,39 @@
         "Dewey, John; Art as experience; R274497"
       ],
       "outcome": "1961 Jan–Jun catalog printed p. 820, leaf n837, records registration A71183 and renewal R274497; page image visually checked. The remaining three volumes had no exact title match in OCR; this result is secondary to the positive renewal record."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "Internet Archive OCR of US Catalog of Copyright Entries",
+      "queries": [
+        "catalogofcopy19653191lib",
+        "catalogofcopy19653191libr",
+        "catalogofcopy19653192libr",
+        "catalogofco1966320112lib",
+        "catalogofco1966320112libr",
+        "Conservation Esth*, Leopold, Aldo, Bird-Lore"
+      ],
+      "outcome": "No exact OCR hit tying the 1938 Conservation Esthetic article to a renewal in the searched volumes; a 1966 Almanac record is a separate edition. OCR, additional indexes and registrations require further checking; no US rights conclusion drawn."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "US Catalog of Copyright Entries, 1938",
+      "queries": [
+        "catalogofcopyrig351lib",
+        "catalogofcopyrig332lib",
+        "catalogofcopyr371lib",
+        "Conservation Esth*, Leopold, Aldo, Bird-lore"
+      ],
+      "outcome": "Located original issue registration B374425 for Bird-lore vol. 40 no. 2 on the 1938 periodicals catalog page; visually checked scan leaf n24. OCR searches of the other two catalogs did not find the named title or author. Issue renewal and any independent article registration remain unresolved."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "US Catalog of Copyright Entries, periodicals renewal",
+      "queries": [
+        "1965 catalogofcopy19653192libr printed p. 352 scan leaf n369",
+        "1966 catalogofcopy19663202libr OCR: Bird-lore, Bird lore, Leopold, 374425"
+      ],
+      "outcome": "1965 B entries inspected on the page; no Bird-lore entry appears between Baby Talk and Big-Book. 1966 searches returned no exact OCR hit. Other records and article-level registrations remain open; this does not establish nonrenewal."
     }
   ]
 }
