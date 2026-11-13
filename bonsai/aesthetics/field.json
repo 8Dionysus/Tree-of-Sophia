@@ -66,6 +66,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-10-hogarth.json"
   },
   {
+   "id": "codex-2026-11-12-poetics",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Aristotle, Poetics IV–VI and IX, in the Greek text of the public corpus, beside the registers' readings.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-poetics-places.json"
+  },
+  {
    "id": "terra-2026-11-10-aesthetica",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -11101,6 +11108,210 @@
    ]
   },
   {
+   "id": "aristotle.poetics:pleasure-in-images",
+   "type": "tos.entity.conception",
+   "of": [
+    "mimesis",
+    "the-ugly-object-and-its-depiction",
+    "recognition",
+    "pleasure",
+    "cognitive-value",
+    "the-artistic-image"
+   ],
+   "areas": [
+    "area-ugly",
+    "area-tragic",
+    "area-experience-and-affect",
+    "area-knowledge-and-truth",
+    "area-image-and-mimesis"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "4, 1448b",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-45462b43ee0949b98f1c95cfd15ff4f7",
+       "tos.text-unit.sid-45462b43ee0949b98f1c95cfd15ff4f7"
+      ],
+      "s": 287,
+      "e": 473
+     },
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-45462b43ee0949b98f1c95cfd15ff4f7",
+       "tos.text-unit.sid-45462b43ee0949b98f1c95cfd15ff4f7"
+      ],
+      "s": 474,
+      "e": 870
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Точные изображения вещей, на которые неприятно смотреть, доставляют удовольствие: рассматривая изображения, люди учатся и узнают, что изображено.",
+    "en": "Accurate images of things painful to look at give pleasure: in looking at images people learn and recognise what each represents."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics",
+    "verdict": "revise",
+    "note": "The register also names aestheticisation of ugliness; the passage explains pleasure in images through learning and recognition, and gives unpleasant animals and corpses as examples."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E008",
+    "B:B-I001",
+    "B:D-I001",
+    "C:A-I007"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:the-laughable",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-comic",
+    "the-ugly",
+    "the-mask"
+   ],
+   "areas": [
+    "area-ugly",
+    "area-comic",
+    "area-grotesque"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "5, 1449a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-e3d4b8d1dbcb45e1a4c715a080ab4985",
+       "tos.text-unit.sid-e3d4b8d1dbcb45e1a4c715a080ab4985"
+      ],
+      "s": 129,
+      "e": 272
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Смешное — ошибка и безобразие, которые не причиняют боли и вреда; пример тому — смешная маска.",
+    "en": "The laughable is an error and ugliness without pain or harm; a comic mask is an example."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E091"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:definition-of-tragedy",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-tragic",
+    "mimesis",
+    "pity",
+    "fear",
+    "catharsis"
+   ],
+   "areas": [
+    "area-tragic",
+    "area-experience-and-affect"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "6, 1449b",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-bb82b60981c64ba990f31e843917ca19",
+       "tos.text-unit.sid-bb82b60981c64ba990f31e843917ca19"
+      ],
+      "s": 170,
+      "e": 396
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Трагедия изображает важное завершённое действие через действующих лиц и совершает через сострадание и страх очищение таких переживаний.",
+    "en": "Tragedy represents a serious complete action through acting persons and accomplishes through pity and fear the catharsis of such experiences."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E072",
+    "B:B-I016"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:poetry-and-the-possible",
+   "type": "tos.entity.conception",
+   "of": [
+    "likelihood",
+    "mimesis",
+    "cognitive-value",
+    "representation"
+   ],
+   "areas": [
+    "area-tragic",
+    "area-knowledge-and-truth",
+    "area-image-and-mimesis"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "9, 1451a–b",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-36a08016a3aa48aeb186d7d3075f2d99",
+       "tos.text-unit.sid-36a08016a3aa48aeb186d7d3075f2d99"
+      ],
+      "s": 2,
+      "e": 545
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Поэт говорит о возможном по вероятности или необходимости; поэзия стремится к общему, а история говорит об отдельных событиях.",
+    "en": "The poet speaks of what is possible according to probability or necessity; poetry aims at the universal, while history speaks of particular events."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics",
+    "verdict": "revise",
+    "note": "The register names inevitability and artistic truth as concepts; this passage speaks of necessity as a condition of possibility and of the universal."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E074",
+    "B:D-I003",
+    "C:A-I005"
+   ]
+  },
+  {
    "id": "alexander-gottlieb-baumgarten.aesthetica:beauty-perfection-of-sensitive-cognition",
    "type": "tos.entity.conception",
    "of": [
@@ -18734,6 +18945,48 @@
    "admission": "map",
    "grew_from": [
     "A:R015"
+   ]
+  },
+  {
+   "id": "the-comic:includes-a-painless-kind-of:the-ugly",
+   "from": "the-comic",
+   "to": "the-ugly",
+   "verb": {
+    "ru": "охватывает безболезненный вид",
+    "en": "includes a painless kind of"
+   },
+   "grounds": [
+    "aristotle.poetics:the-laughable"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R084"
+   ]
+  },
+  {
+   "id": "mask:exemplifies:the-comic",
+   "from": "the-mask",
+   "to": "the-comic",
+   "verb": {
+    "ru": "служит примером",
+    "en": "exemplifies"
+   },
+   "grounds": [
+    "aristotle.poetics:the-laughable"
+   ],
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:R085"
    ]
   },
   {
