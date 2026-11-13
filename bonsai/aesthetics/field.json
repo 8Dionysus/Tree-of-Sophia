@@ -73,6 +73,20 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-12-plotinus-purification.json"
   },
   {
+   "id": "codex-2026-11-12-politics",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Aristotle, Politics VIII.7 1342a, in the Greek public corpus, beside the register’s reading.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-politics.json"
+  },
+  {
+   "id": "codex-2026-11-12-sophist",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Plato, Sophist 235d–236b, in the Greek public corpus, beside the registers’ readings.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-sophist.json"
+  },
+  {
    "id": "terra-2026-11-10-aesthetica",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -11147,6 +11161,109 @@
    "admission": "map",
    "grew_from": [
     "A:E005"
+   ]
+  },
+  {
+   "id": "aristotle.politics:music-and-catharsis",
+   "type": "tos.entity.conception",
+   "of": [
+    "catharsis"
+   ],
+   "areas": [
+    "area-experience-and-affect"
+   ],
+   "work": "aristotle.politics",
+   "agents": [
+    "aristotle"
+   ],
+   "voice": {
+    "ru": "Аристотель",
+    "en": "Aristotle"
+   },
+   "locus": "VIII.7, 1342a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.politics",
+      "u": [
+       "tos.text-unit.sid-72761607a0194b58875a85c088402b76",
+       "tos.text-unit.sid-72761607a0194b58875a85c088402b76"
+      ],
+      "s": 220,
+      "e": 783
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Аристотель сравнивает успокоение некоторых охваченных исступлением людей после священных напевов с врачеванием и очищением; он также говорит об очищении и приятном облегчении людей, подверженных другим переживаниям.",
+    "en": "Aristotle compares the calming of some people subject to inspiration after sacred melodies to healing and purification; he also speaks of purification and pleasant relief for those subject to other emotions."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-politics",
+    "verdict": "confirmed",
+    "note": "This passage concerns music; it does not by itself decide what catharsis means in the Poetics."
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:B-I017"
+   ]
+  },
+  {
+   "id": "plato.sophist:likeness-and-proportion",
+   "type": "tos.entity.conception",
+   "of": [
+    "resemblance",
+    "the-relation-of-image-to-object"
+   ],
+   "areas": [
+    "area-image-and-mimesis"
+   ],
+   "work": "plato.sophist",
+   "agents": [
+    "plato"
+   ],
+   "voice": {
+    "ru": "Элейский чужеземец и Теэтет",
+    "en": "The Eleatic Stranger and Theaetetus"
+   },
+   "locus": "235d–236b",
+   "formula": {
+    "cite": [
+     {
+      "w": "plato.sophist",
+      "u": [
+       "tos.text-unit.sid-1f744218c79045f5a635d95f64d4cc2c",
+       "tos.text-unit.sid-1f744218c79045f5a635d95f64d4cc2c"
+      ],
+      "s": 1672,
+      "e": 1919
+     },
+     {
+      "w": "plato.sophist",
+      "u": [
+       "tos.text-unit.sid-7f74063d96434556927b7edd4ec87add",
+       "tos.text-unit.sid-7f74063d96434556927b7edd4ec87add"
+      ],
+      "s": 6,
+      "e": 416
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Чужеземец различает воспроизведение размеров и цветов образца и работу, в которой художники больших произведений меняют действительные пропорции ради кажущейся красоты с точки зрения зрителя.",
+    "en": "The Stranger distinguishes reproducing the proportions and colours of a model from the work of artists who adjust the actual proportions of large works so they look beautiful to the viewer."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-sophist",
+    "verdict": "revise",
+    "note": "Both registers describe the distinction through 236c. This reading is confined to 235d–236b: the later definition of phantasm is not included. The Russian corpus splits a sentence across units 235–236 and translates the later 236b viewing position differently from the Greek; the alignment must be checked independently."
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:A-I010",
+    "C:A-I011"
    ]
   },
   {

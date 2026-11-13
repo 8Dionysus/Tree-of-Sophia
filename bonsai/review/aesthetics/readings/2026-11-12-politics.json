@@ -1,0 +1,60 @@
+{
+ "reader": {
+  "id": "codex-2026-11-12-politics",
+  "model": "gpt-6",
+  "date": "2026-11-12",
+  "reads": "Aristotle, Politics VIII.7 1342a, in the Greek public corpus, beside the register’s reading."
+ },
+ "library": {
+  "agents": {
+   "aristotle": {
+    "tree": "tos.agent.aristotle"
+   }
+  },
+  "works": {
+   "aristotle.politics": {
+    "title": {
+     "ru": "Политика",
+     "en": "Politics"
+    },
+    "original": "grc",
+    "tree": "tos.work.retained-antiquity.politics"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "aristotle.politics:music-and-catharsis",
+   "of": [
+    "A:C047"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "aristotle.politics",
+   "locus": "VIII.7, 1342a",
+   "voice": {
+    "ru": "Аристотель",
+    "en": "Aristotle"
+   },
+   "formula": [
+    {
+     "unit": "Книга 8 · Раздел 1342a",
+     "from": "ὃ γὰρ περὶ ἐνίας",
+     "to": "κουφίζεσθαι μεθʼ ἡδονῆς."
+    }
+   ],
+   "thesis": {
+    "ru": "Аристотель сравнивает успокоение некоторых охваченных исступлением людей после священных напевов с врачеванием и очищением; он также говорит об очищении и приятном облегчении людей, подверженных другим переживаниям.",
+    "en": "Aristotle compares the calming of some people subject to inspiration after sacred melodies to healing and purification; he also speaks of purification and pleasant relief for those subject to other emotions."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "note": "This passage concerns music; it does not by itself decide what catharsis means in the Poetics.",
+   "from": [
+    "B:B-I017"
+   ]
+  }
+ ],
+ "links": []
+}
