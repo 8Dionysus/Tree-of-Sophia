@@ -335,3 +335,19 @@ and outcome of each required search. An unsearched language is not absent.
 The maker prepares source and image evidence; the separate second reader reviews
 each witness. The packet acceptance binds those reviewed language files.
 Existing accepted packets and continuations retain gaps as `owes`.
+
+
+### Licensed editions still under copyright
+
+Use `licensed` for a protected edition covered by an open licence; it does not
+assert public domain. Fetch the exact publisher or repository edition as a
+source (`fetch` for the original, `witness-fetch` for a translation), then run
+`licence PACKET SOURCE_FILE LICENCE_URL EXPLANATION` (add `--language LANG`
+for a translation). The fetched source must contain that licence URL; the
+record binds its digest and the precise edition. Set `licensed` separately for
+each jurisdiction covered by that licence. The second reader must verify the
+rightsholder, the precise version, applicable licence terms and attribution,
+then record `licence-review PACKET ASSESSMENT` (with `--language LANG` for a
+translation) under their existing second-reader identity. A conflicting or
+unspecified version remains unresolved until checked. The licence evidence
+checks do not replace source-page and semantic review.

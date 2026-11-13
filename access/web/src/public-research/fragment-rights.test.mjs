@@ -15,6 +15,10 @@ describe('territorial fragment rights',()=>{
     expect(fragmentMayShow(witness())).toBe(true);
     expect(fragmentMayShow(witness('public-domain','short-quotation','public-domain'))).toBe(true);
     expect(fragmentMayShow(witness('public-domain','locator-only','public-domain'))).toBe(false);
+    const licensed=witness('licensed');
+    expect(fragmentMayShow(licensed)).toBe(false);
+    licensed.licence_evidence={edition:'Book',licence_url:'https://creativecommons.org/licenses/by/4.0/',source:{file:'edition.html',url:'https://example.org/edition',sha256:'a'.repeat(64)},explanation:'The publisher licenses this exact edition under CC BY 4.0.'};
+    expect(fragmentMayShow(licensed)).toBe(true);
     const incomplete=witness();delete incomplete.rights.eu;
     expect(fragmentMayShow(incomplete)).toBe(false);
     incomplete.rights.basis='public-domain';

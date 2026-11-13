@@ -153,6 +153,22 @@ class TranslationWitnessTest(unittest.TestCase):
                   'review':{'reader':'reader','model':'gpt-6.1-terra','date':'2026-11-12','places':{'p':{'reads':'as the packet','image_sha256':digest,'alignment':'This sentence matches the complete original.'}}}}
             with patch.object(kit,'CACHE',str(cache)), patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                license_url='https://creativecommons.org/licenses/by/4.0/'
+                license_raw=('Publisher grants '+license_url).encode();(folder/'licence.html').write_bytes(license_raw)
+                source_record={'file':'licence.html','url':'https://example.org/exact-edition','sha256':hashlib.sha256(license_raw).hexdigest()}
+                data['sources'].append(source_record)
+                data['witness']['rights']['eu']={'basis':'licensed','law':'Open licence covers this specific edition.'}
+                self.assertTrue(any('licensed basis' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['witness']['licence_evidence']={'edition':'Book','licence_url':license_url,'source':source_record,'explanation':'The publisher licenses this exact edition under CC BY 4.0.'}
+                data['review']['licence']={'reader':'reader','source_sha256':source_record['sha256'],'licence_url':license_url,'assessment':'The publisher confirms this exact edition and its licence terms.'}
+                self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                data['review']['licence']['reader']='maker'
+                self.assertTrue(any('independent review' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['review']['licence']['reader']='reader'
+                (folder/'licence.html').write_bytes(b'Changed publisher page')
+                self.assertTrue(any('licensed source changed' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                (folder/'licence.html').write_bytes(license_raw)
+                data['witness']['rights']['eu']={'basis':'public-domain','law':'Public domain according to applicable law.'}
                 data['images'][1]['url']='https://example.org/other-page'
                 self.assertTrue(any('second reader page image' in item for item in kit.witness_problems(str(path),'en',data,second=True)))
                 data['images'][1]['url']='https://example.org/page'
@@ -167,6 +183,26 @@ class TranslationWitnessTest(unittest.TestCase):
                 self.assertTrue(any('different second reader' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
                 data['review']['reader']='reader';(folder/'text.txt').write_bytes(b'Other words.')
                 self.assertTrue(any('changed' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+
+class LicensedOriginalTest(unittest.TestCase):
+    def test_licence_commands_bind_source_and_independent_reader(self):
+        import argparse, hashlib, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir();cache=Path(tmp)/'cache';folder=cache/'work';folder.mkdir(parents=True)
+            url='https://creativecommons.org/licenses/by/4.0/'
+            raw=('Exact publisher edition: '+url).encode();(folder/'publisher.html').write_bytes(raw)
+            source={'file':'publisher.html','url':'https://publisher.example/edition','sha256':hashlib.sha256(raw).hexdigest()}
+            entry={'original':'en','witnesses':{'en':{'edition':'2026 journal version','rights':{'eu':{'basis':'licensed'}}}}}
+            (path/'places.json').write_text(json.dumps({'entry':entry}));(path/'evidence.json').write_text(json.dumps({'sources':[source]}))
+            (path/'reading.json').write_text(json.dumps({'reader':{'id':'maker'}}));(path/'review.json').write_text(json.dumps({'reader':{'id':'second'}}))
+            with patch.object(kit,'CACHE',str(cache)):
+                kit.cmd_licence(argparse.Namespace(packet=str(path),language=None,source='publisher.html',url=url,explanation='The publisher licenses the exact journal edition under CC BY 4.0.'))
+                kit.cmd_licence_review(argparse.Namespace(packet=str(path),language=None,assessment='The publisher confirms that this exact version has the stated open licence.'))
+                witness=json.loads((path/'places.json').read_text())['entry']['witnesses']['en'];review=json.loads((path/'review.json').read_text())
+                self.assertEqual(kit.license_problems(witness,[source],lambda name:folder/name,review,'maker',True),[])
+                witness['edition']='A different edition'
+                self.assertTrue(kit.license_problems(witness,[source],lambda name:folder/name,review,'maker',True))
 
 class LocatorEvidenceTest(unittest.TestCase):
     def test_locator_needs_a_documented_search_and_a_read_book(self):

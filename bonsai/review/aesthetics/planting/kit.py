@@ -51,7 +51,7 @@ def public_domain_by_dates(persons,published,year=None):
             'usa':type(published) is int and published <= year - 96,
             'eu':valid and all(p['died'] <= year - 71 for p in persons)}
 
-BASES={'public-domain','public-domain+licence','short-quotation','locator-only'}
+BASES={'public-domain','public-domain+licence','licensed','short-quotation','locator-only'}
 JURISDICTIONS=('russia','usa','eu')
 LONGEST=2400                                         # a place is a formula, not a page
 AGENT='ToS-planting/1 (+https://github.com/8Dionysus/Tree-of-Sophia)'
@@ -104,7 +104,7 @@ def wave(w,work):
     bases=[(rights.get(country) or {}).get('basis') if isinstance(rights.get(country),dict) else None for country in JURISDICTIONS]
     if all(basis in BASES for basis in bases):
         if all(basis=='locator-only' for basis in bases):return 'locator-only'
-        free=sum(basis in ('public-domain','public-domain+licence') for basis in bases)
+        free=sum(basis in ('public-domain','public-domain+licence','licensed') for basis in bases)
         return 'free-all' if free==3 else 'free-some' if free else 'quotation'
     people=[]
     for agent in known['agents']:
@@ -955,6 +955,7 @@ def gate(path,second=False,offline=False):
                 item=rights.get(country) or {}
                 if not isinstance(item,dict) or item.get('basis') not in BASES or len(str(item.get('law',''))) < 20:add(f'witness.rights.{country} wants a basis and a law statement')
         if len(str(rights.get('reasoning','')))<60:add('witness.rights.reasoning wants its sentences: whose text, which transcription (and which edition it follows), which scan, what was normalised')
+        problems.extend(license_problems(witness,ev.get('sources') or [],lambda name:cache(path,name),part(path,'review.json') or {},(reading.get('reader') or {}).get('id'),second,offline))
         for item in entry.get('absent') or []:
             if not item.get('tried'):
                 owe(f"entry.absent {item.get('language')}: record searches with outcomes, or leave the language unsearched")
@@ -1350,6 +1351,65 @@ def cmd_witness_rights(args):
     data['review']={};save(witness_file(path,args.language),data)
     print('jurisdictional rights updated; a new second reading is required')
 
+def license_problems(witness,sources,local_file,review,maker,second=False,offline=False):
+    rights=witness.get('rights') or {}
+    if not any(isinstance(rights.get(country),dict) and rights[country].get('basis')=='licensed' for country in JURISDICTIONS):return []
+    problems=[];proof=witness.get('licence_evidence') or {};url=proof.get('licence_url','');source=proof.get('source') or {}
+    if not lawful_url(url) or len(str(proof.get('explanation','')).strip())<40 or proof.get('edition')!=witness.get('edition'):
+        problems.append('licensed basis needs its licence URL, exact edition and an explanation of coverage')
+    known=next((item for item in sources if item.get('file')==source.get('file') and item.get('url')==source.get('url') and item.get('sha256')==source.get('sha256')),None)
+    if not known or not lawful_url(source.get('url','')) or not re.fullmatch(r'[a-f0-9]{64}',str(source.get('sha256',''))):problems.append('licensed basis needs the fetched source and its SHA-256')
+    elif not offline:
+        try:
+            raw=Path(local_file(source['file'])).read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=source['sha256'] or url.encode() not in raw:problems.append('licensed source changed or does not name that licence URL')
+        except (OSError,KeyError,TypeError):problems.append('licensed source is unavailable')
+    if second:
+        checked=review.get('licence') or {}
+        if checked.get('source_sha256')!=source.get('sha256') or checked.get('licence_url')!=url or len(str(checked.get('assessment','')).strip())<40 or not checked.get('reader') or checked.get('reader')==maker:
+            problems.append('licensed basis requires an independent review of the same edition and licence evidence')
+        reader=review.get('reader') or {}
+        reader_id=reader.get('id') if isinstance(reader,dict) else reader
+        if checked.get('reader')!=reader_id:problems.append('licence reviewer must be the packet second reader')
+    return problems
+
+def cmd_licence(args):
+    path=packet(args.packet)
+    if args.language:
+        data=witness_data(path,args.language);witness=data['witness'];sources=data['sources'];local=lambda name:witness_cache(path,args.language,name)
+    else:
+        places=part(path,'places.json') or {};entry=places.get('entry') or {};witness=(entry.get('witnesses') or {}).get(entry.get('original')) or die('no original witness')
+        sources=evidence(path).get('sources') or [];local=lambda name:cache(path,name)
+    source=next((item for item in sources if item.get('file')==args.source),None)
+    if not source or not lawful_url(args.url):die('fetch the exact edition source and provide a lawful licence URL')
+    raw=Path(local(args.source)).read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=source.get('sha256') or args.url.encode() not in raw:die('source changed or does not contain the licence URL')
+    if len(args.explanation.strip())<40:die('explain how this licence covers this exact edition')
+    witness['licence_evidence']={'edition':witness.get('edition'),'licence_url':args.url,'source':{key:source[key] for key in ('file','url','sha256')},'explanation':args.explanation}
+    if args.language:
+        data['review']={};save(witness_file(path,args.language),data)
+    else:
+        save(os.path.join(path,'places.json'),places)
+        review=part(path,'review.json')
+        if review is not None:review.pop('licence',None);save(os.path.join(path,'review.json'),review)
+    print('licence evidence recorded; an independent review is required')
+
+def cmd_licence_review(args):
+    path=packet(args.packet)
+    if len(args.assessment.strip())<40:die('explain the second reader’s assessment of this edition and licence')
+    if args.language:
+        data=witness_data(path,args.language);witness=data['witness'];review=data.setdefault('review',{});reader=review.get('reader');maker=witness.get('maker')
+    else:
+        places=part(path,'places.json') or {};entry=places.get('entry') or {};witness=(entry.get('witnesses') or {}).get(entry.get('original')) or die('no original witness')
+        review=part(path,'review.json') or die('review.json is missing');reader=(review.get('reader') or {}).get('id');maker=((part(path,'reading.json') or {}).get('reader') or {}).get('id')
+    if not reader or reader==maker:die('first record a different second reader')
+    proof=witness.get('licence_evidence') or {};source=proof.get('source') or {}
+    if not source.get('sha256') or not proof.get('licence_url'):die('record licence evidence first')
+    review['licence']={'reader':reader,'source_sha256':source['sha256'],'licence_url':proof['licence_url'],'assessment':args.assessment}
+    if args.language:save(witness_file(path,args.language),data)
+    else:save(os.path.join(path,'review.json'),review)
+    print('independent licence assessment recorded')
+
 def cmd_witness_candidate(args):
     path=packet(args.packet);data=witness_data(path,args.language);raw=Path(args.file).read_bytes();candidate=json.loads(raw)
     if not isinstance(candidate,dict) or candidate.get('work')!=work_of(path):die('candidate names another work')
@@ -1525,6 +1585,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
                     labels={value.get('value','').casefold() for value in entity.get('labels',{}).values()}
                     if not any(str(value).casefold() in labels for value in (person.get('name') or {}).values() if value):add(f'{qid}: name differs from the fetched entity')
             except (OSError,KeyError,ValueError,TypeError):add(f'{qid or person.get("name")}: person evidence is missing or invalid')
+    problems.extend(license_problems(witness,data.get('sources') or [],lambda name:witness_cache(path,lang,name),data.get('review') or {},witness.get('maker'),second,offline))
     dates=public_domain_by_dates(people,witness.get('year'))
     for country in JURISDICTIONS:
         item=(witness.get('rights') or {}).get(country) or {}
@@ -1608,6 +1669,8 @@ def main():
     sub('witness-open',cmd_witness_open,P,(('language',),{}),(('metadata',),{}))
     sub('witness-info',cmd_witness_info,P,(('language',),{}),(('file',),{}));
     sub('witness-rights',cmd_witness_rights,P,(('language',),{}),(('jurisdiction',),{'choices':JURISDICTIONS}),(('basis',),{'choices':sorted(BASES)}),(('law',),{}));
+    sub('licence',cmd_licence,P,(('source',),{}),(('url',),{}),(('explanation',),{}),(('--language',),{}));
+    sub('licence-review',cmd_licence_review,P,(('assessment',),{}),(('--language',),{}));
     sub('witness-candidate',cmd_witness_candidate,P,(('language',),{}),(('file',),{}));
     sub('witness-person',cmd_witness_person,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}));
     sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));
