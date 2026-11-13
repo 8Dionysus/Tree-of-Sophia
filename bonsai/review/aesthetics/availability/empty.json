@@ -104,6 +104,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "560 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Бернейс Пропаганда",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B5%D1%80%D0%BD%D0%B5%D0%B9%D1%81+%D0%9F%D1%80%D0%BE%D0%BF%D0%B0%D0%B3%D0%B0%D0%BD%D0%B4%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -187,6 +194,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "334 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Дюбуа Критерии афроамериканского искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%94%D1%8E%D0%B1%D1%83%D0%B0+%D0%9A%D1%80%D0%B8%D1%82%D0%B5%D1%80%D0%B8%D0%B8+%D0%B0%D1%84%D1%80%D0%BE%D0%B0%D0%BC%D0%B5%D1%80%D0%B8%D0%BA%D0%B0%D0%BD%D1%81%D0%BA%D0%BE%D0%B3%D0%BE+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -213,7 +227,12 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": [],
+      "candidates": [
+        {
+          "url": "https://ru.wikisource.org/wiki/%D0%A0%D0%BE%D0%B6%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5%20%D1%82%D1%80%D0%B0%D0%B3%D0%B5%D0%B4%D0%B8%D0%B8%2C%20%D0%B8%D0%BB%D0%B8%20%D0%AD%D0%BB%D0%BB%D0%B8%D0%BD%D1%81%D1%82%D0%B2%D0%BE%20%D0%B8%20%D0%BF%D0%B5%D1%81%D1%81%D0%B8%D0%BC%D0%B8%D0%B7%D0%BC%20%28%D0%9D%D0%B8%D1%86%D1%88%D0%B5%3B%20%D0%A0%D0%B0%D1%87%D0%B8%D0%BD%D1%81%D0%BA%D0%B8%D0%B9%29",
+          "observation": "Russian Wikisource search returned a transcription titled Birth of Tragedy, translated Rachinsky; direct parse request returned HTTP 403. Publication edition, page-level agreement with the register and translator dates/rights need verification."
+        }
+      ],
       "searches": [
         {
           "site": "Project Gutenberg",
@@ -236,6 +255,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "23385 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Ницше Рождение трагедии из духа музыки",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9D%D0%B8%D1%86%D1%88%D0%B5+%D0%A0%D0%BE%D0%B6%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5+%D1%82%D1%80%D0%B0%D0%B3%D0%B5%D0%B4%D0%B8%D0%B8+%D0%B8%D0%B7+%D0%B4%D1%83%D1%85%D0%B0+%D0%BC%D1%83%D0%B7%D1%8B%D0%BA%D0%B8&srlimit=5&format=json",
+          "http": 200,
+          "result": "261 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -285,6 +311,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "6565 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Моррис Декоративные искусства / Малые искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9C%D0%BE%D1%80%D1%80%D0%B8%D1%81+%D0%94%D0%B5%D0%BA%D0%BE%D1%80%D0%B0%D1%82%D0%B8%D0%B2%D0%BD%D1%8B%D0%B5+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0+%2F+%D0%9C%D0%B0%D0%BB%D1%8B%D0%B5+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "28 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -321,7 +354,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": [],
+      "candidates": [
+        {
+          "url": "https://search.rsl.ru/ru/record/01003683011",
+          "observation": "RSL catalog lists Kant, Kritika sposobnosti suzhdeniya, translated N. M. Sokolov, Saint Petersburg, M. V. Popov, 1898, 390 pages and labels it freely accessible. Its linked viewer https://viewer.rsl.ru/rsl01003683011 opened blank in the ChatGPT in-app browser on 2026-11-12; requested sections and translator identity/dates remain unverified."
+        },
+        {
+          "url": "https://archive.org/details/20200404_20200404_1235",
+          "observation": "IA item identifies Russian 1898 M. V. Popov edition translated N. M. Sokolov; contributor-uploaded scan marked Public Domain Mark, which is not itself a rights determination. OCR contains §§43–46. Visually checked page/n87.jpg: two-page spread pp. 172–173 beginning §43; page/n90.jpg: pp. 178–179 beginning §46. Translator identity, death year, scan provenance and rights need verification; compare the RSL-listed edition before use."
+        }
+      ],
       "searches": [
         {
           "site": "Project Gutenberg",
@@ -344,6 +386,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "65965 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Кант Критика способности суждения",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9A%D0%B0%D0%BD%D1%82+%D0%9A%D1%80%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+%D1%81%D0%BF%D0%BE%D1%81%D0%BE%D0%B1%D0%BD%D0%BE%D1%81%D1%82%D0%B8+%D1%81%D1%83%D0%B6%D0%B4%D0%B5%D0%BD%D0%B8%D1%8F&srlimit=5&format=json",
+          "http": 200,
+          "result": "836 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -442,6 +491,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "21057 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Дьюи Искусство как опыт",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%94%D1%8C%D1%8E%D0%B8+%D0%98%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE+%D0%BA%D0%B0%D0%BA+%D0%BE%D0%BF%D1%8B%D1%82&srlimit=5&format=json",
+          "http": 200,
+          "result": "15 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -564,6 +620,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "2285 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Беньямин Произведение искусства в эпоху его технической воспроизводимости",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B5%D0%BD%D1%8C%D1%8F%D0%BC%D0%B8%D0%BD+%D0%9F%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0+%D0%B2+%D1%8D%D0%BF%D0%BE%D1%85%D1%83+%D0%B5%D0%B3%D0%BE+%D1%82%D0%B5%D1%85%D0%BD%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B9+%D0%B2%D0%BE%D1%81%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%BE%D0%B4%D0%B8%D0%BC%D0%BE%D1%81%D1%82%D0%B8&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -624,6 +687,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "2871 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Гудмен Языки искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%93%D1%83%D0%B4%D0%BC%D0%B5%D0%BD+%D0%AF%D0%B7%D1%8B%D0%BA%D0%B8+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -683,6 +753,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "16009 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Гадамер Истина и метод",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%93%D0%B0%D0%B4%D0%B0%D0%BC%D0%B5%D1%80+%D0%98%D1%81%D1%82%D0%B8%D0%BD%D0%B0+%D0%B8+%D0%BC%D0%B5%D1%82%D0%BE%D0%B4&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -741,6 +818,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "180 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Фишер-Лихте Трансформирующая сила перформанса",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A4%D0%B8%D1%88%D0%B5%D1%80-%D0%9B%D0%B8%D1%85%D1%82%D0%B5+%D0%A2%D1%80%D0%B0%D0%BD%D1%81%D1%84%D0%BE%D1%80%D0%BC%D0%B8%D1%80%D1%83%D1%8E%D1%89%D0%B0%D1%8F+%D1%81%D0%B8%D0%BB%D0%B0+%D0%BF%D0%B5%D1%80%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D0%BD%D1%81%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -813,6 +897,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "19365 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Хайдеггер Исток художественного творения",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A5%D0%B0%D0%B9%D0%B4%D0%B5%D0%B3%D0%B3%D0%B5%D1%80+%D0%98%D1%81%D1%82%D0%BE%D0%BA+%D1%85%D1%83%D0%B4%D0%BE%D0%B6%D0%B5%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D0%BE%D0%B3%D0%BE+%D1%82%D0%B2%D0%BE%D1%80%D0%B5%D0%BD%D0%B8%D1%8F&srlimit=5&format=json",
+          "http": 200,
+          "result": "2 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -870,6 +961,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "1560 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Бурдьё Различение: социальная критика суждения вкуса; глава «Аристократия культуры»",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D1%83%D1%80%D0%B4%D1%8C%D1%91+%D0%A0%D0%B0%D0%B7%D0%BB%D0%B8%D1%87%D0%B5%D0%BD%D0%B8%D0%B5%3A+%D1%81%D0%BE%D1%86%D0%B8%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F+%D0%BA%D1%80%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+%D1%81%D1%83%D0%B6%D0%B4%D0%B5%D0%BD%D0%B8%D1%8F+%D0%B2%D0%BA%D1%83%D1%81%D0%B0%3B+%D0%B3%D0%BB%D0%B0%D0%B2%D0%B0+%C2%AB%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D0%BA%D1%80%D0%B0%D1%82%D0%B8%D1%8F+%D0%BA%D1%83%D0%BB%D1%8C%D1%82%D1%83%D1%80%D1%8B%C2%BB&srlimit=5&format=json",
+          "http": 200,
+          "result": "2 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -926,6 +1024,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "167 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Сайто Эстетика повседневности",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A1%D0%B0%D0%B9%D1%82%D0%BE+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0+%D0%BF%D0%BE%D0%B2%D1%81%D0%B5%D0%B4%D0%BD%D0%B5%D0%B2%D0%BD%D0%BE%D1%81%D1%82%D0%B8&srlimit=5&format=json",
+          "http": 200,
+          "result": "9 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1021,6 +1126,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "6398 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Леопольд Эстетика охраны природы",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9B%D0%B5%D0%BE%D0%BF%D0%BE%D0%BB%D1%8C%D0%B4+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0+%D0%BE%D1%85%D1%80%D0%B0%D0%BD%D1%8B+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D1%8B&srlimit=5&format=json",
+          "http": 200,
+          "result": "81 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1094,6 +1206,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "1262 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Данто Мир искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%94%D0%B0%D0%BD%D1%82%D0%BE+%D0%9C%D0%B8%D1%80+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "1616 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1151,6 +1270,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "1 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "хукс Оппозиционный взгляд: чёрные зрительницы",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D1%85%D1%83%D0%BA%D1%81+%D0%9E%D0%BF%D0%BF%D0%BE%D0%B7%D0%B8%D1%86%D0%B8%D0%BE%D0%BD%D0%BD%D1%8B%D0%B9+%D0%B2%D0%B7%D0%B3%D0%BB%D1%8F%D0%B4%3A+%D1%87%D1%91%D1%80%D0%BD%D1%8B%D0%B5+%D0%B7%D1%80%D0%B8%D1%82%D0%B5%D0%BB%D1%8C%D0%BD%D0%B8%D1%86%D1%8B&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1213,6 +1339,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "440 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Рансьер Разделяя чувственное: политика эстетики",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A0%D0%B0%D0%BD%D1%81%D1%8C%D0%B5%D1%80+%D0%A0%D0%B0%D0%B7%D0%B4%D0%B5%D0%BB%D1%8F%D1%8F+%D1%87%D1%83%D0%B2%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D0%BE%D0%B5%3A+%D0%BF%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B8&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1295,6 +1428,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Микконен Традиционное экологическое знание и эстетическая оценка природы: уроки Гилббесъяври и Гувдагайдну",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9C%D0%B8%D0%BA%D0%BA%D0%BE%D0%BD%D0%B5%D0%BD+%D0%A2%D1%80%D0%B0%D0%B4%D0%B8%D1%86%D0%B8%D0%BE%D0%BD%D0%BD%D0%BE%D0%B5+%D1%8D%D0%BA%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5+%D0%B7%D0%BD%D0%B0%D0%BD%D0%B8%D0%B5+%D0%B8+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F+%D0%BE%D1%86%D0%B5%D0%BD%D0%BA%D0%B0+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D1%8B%3A+%D1%83%D1%80%D0%BE%D0%BA%D0%B8+%D0%93%D0%B8%D0%BB%D0%B1%D0%B1%D0%B5%D1%81%D1%8A%D1%8F%D0%B2%D1%80%D0%B8+%D0%B8+%D0%93%D1%83%D0%B2%D0%B4%D0%B0%D0%B3%D0%B0%D0%B9%D0%B4%D0%BD%D1%83&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1351,6 +1491,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "2099 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Альтюссер Идеология и идеологические аппараты государства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%90%D0%BB%D1%8C%D1%82%D1%8E%D1%81%D1%81%D0%B5%D1%80+%D0%98%D0%B4%D0%B5%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D1%8F+%D0%B8+%D0%B8%D0%B4%D0%B5%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5+%D0%B0%D0%BF%D0%BF%D0%B0%D1%80%D0%B0%D1%82%D1%8B+%D0%B3%D0%BE%D1%81%D1%83%D0%B4%D0%B0%D1%80%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1401,6 +1548,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "36305 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Хайдеггер Бытие и время",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A5%D0%B0%D0%B9%D0%B4%D0%B5%D0%B3%D0%B3%D0%B5%D1%80+%D0%91%D1%8B%D1%82%D0%B8%D0%B5+%D0%B8+%D0%B2%D1%80%D0%B5%D0%BC%D1%8F&srlimit=5&format=json",
+          "http": 200,
+          "result": "6 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1492,6 +1646,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "3210 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Коллингвуд Принципы искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9A%D0%BE%D0%BB%D0%BB%D0%B8%D0%BD%D0%B3%D0%B2%D1%83%D0%B4+%D0%9F%D1%80%D0%B8%D0%BD%D1%86%D0%B8%D0%BF%D1%8B+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "6 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1548,6 +1709,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "757 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Левин После Уокера Эванса: 4",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9B%D0%B5%D0%B2%D0%B8%D0%BD+%D0%9F%D0%BE%D1%81%D0%BB%D0%B5+%D0%A3%D0%BE%D0%BA%D0%B5%D1%80%D0%B0+%D0%AD%D0%B2%D0%B0%D0%BD%D1%81%D0%B0%3A+4&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1627,6 +1795,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "6 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Бак-Морс Эстетика и анестетика: новое прочтение эссе Беньямина о произведении искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B0%D0%BA-%D0%9C%D0%BE%D1%80%D1%81+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0+%D0%B8+%D0%B0%D0%BD%D0%B5%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0%3A+%D0%BD%D0%BE%D0%B2%D0%BE%D0%B5+%D0%BF%D1%80%D0%BE%D1%87%D1%82%D0%B5%D0%BD%D0%B8%D0%B5+%D1%8D%D1%81%D1%81%D0%B5+%D0%91%D0%B5%D0%BD%D1%8C%D1%8F%D0%BC%D0%B8%D0%BD%D0%B0+%D0%BE+%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B8+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1683,6 +1858,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "124 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Зонтаг Заметки о кэмпе",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%97%D0%BE%D0%BD%D1%82%D0%B0%D0%B3+%D0%97%D0%B0%D0%BC%D0%B5%D1%82%D0%BA%D0%B8+%D0%BE+%D0%BA%D1%8D%D0%BC%D0%BF%D0%B5&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1740,6 +1922,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "167 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Сайто Эстетика повседневности",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A1%D0%B0%D0%B9%D1%82%D0%BE+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0+%D0%BF%D0%BE%D0%B2%D1%81%D0%B5%D0%B4%D0%BD%D0%B5%D0%B2%D0%BD%D0%BE%D1%81%D1%82%D0%B8&srlimit=5&format=json",
+          "http": 200,
+          "result": "9 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1814,6 +2003,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "194 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Сайто Национальные живописные ландшафты: общие темы Японии и США",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A1%D0%B0%D0%B9%D1%82%D0%BE+%D0%9D%D0%B0%D1%86%D0%B8%D0%BE%D0%BD%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5+%D0%B6%D0%B8%D0%B2%D0%BE%D0%BF%D0%B8%D1%81%D0%BD%D1%8B%D0%B5+%D0%BB%D0%B0%D0%BD%D0%B4%D1%88%D0%B0%D1%84%D1%82%D1%8B%3A+%D0%BE%D0%B1%D1%89%D0%B8%D0%B5+%D1%82%D0%B5%D0%BC%D1%8B+%D0%AF%D0%BF%D0%BE%D0%BD%D0%B8%D0%B8+%D0%B8+%D0%A1%D0%A8%D0%90&srlimit=5&format=json",
+          "http": 200,
+          "result": "1 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1870,6 +2066,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "4056 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Карлсон Эстетическое восприятие природной среды",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9A%D0%B0%D1%80%D0%BB%D1%81%D0%BE%D0%BD+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5+%D0%B2%D0%BE%D1%81%D0%BF%D1%80%D0%B8%D1%8F%D1%82%D0%B8%D0%B5+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D0%BD%D0%BE%D0%B9+%D1%81%D1%80%D0%B5%D0%B4%D1%8B&srlimit=5&format=json",
+          "http": 200,
+          "result": "2 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1926,6 +2129,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "3 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Кихано Колониальность власти, евроцентризм и Латинская Америка",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9A%D0%B8%D1%85%D0%B0%D0%BD%D0%BE+%D0%9A%D0%BE%D0%BB%D0%BE%D0%BD%D0%B8%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D1%81%D1%82%D1%8C+%D0%B2%D0%BB%D0%B0%D1%81%D1%82%D0%B8%2C+%D0%B5%D0%B2%D1%80%D0%BE%D1%86%D0%B5%D0%BD%D1%82%D1%80%D0%B8%D0%B7%D0%BC+%D0%B8+%D0%9B%D0%B0%D1%82%D0%B8%D0%BD%D1%81%D0%BA%D0%B0%D1%8F+%D0%90%D0%BC%D0%B5%D1%80%D0%B8%D0%BA%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -1982,6 +2192,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Берлиант Эстетика и окружающая среда: вариации на тему",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B5%D1%80%D0%BB%D0%B8%D0%B0%D0%BD%D1%82+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0+%D0%B8+%D0%BE%D0%BA%D1%80%D1%83%D0%B6%D0%B0%D1%8E%D1%89%D0%B0%D1%8F+%D1%81%D1%80%D0%B5%D0%B4%D0%B0%3A+%D0%B2%D0%B0%D1%80%D0%B8%D0%B0%D1%86%D0%B8%D0%B8+%D0%BD%D0%B0+%D1%82%D0%B5%D0%BC%D1%83&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2039,6 +2256,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "530 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Дункан Художественные музеи и ритуал гражданственности",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%94%D1%83%D0%BD%D0%BA%D0%B0%D0%BD+%D0%A5%D1%83%D0%B4%D0%BE%D0%B6%D0%B5%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D1%8B%D0%B5+%D0%BC%D1%83%D0%B7%D0%B5%D0%B8+%D0%B8+%D1%80%D0%B8%D1%82%D1%83%D0%B0%D0%BB+%D0%B3%D1%80%D0%B0%D0%B6%D0%B4%D0%B0%D0%BD%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D0%BE%D1%81%D1%82%D0%B8&srlimit=5&format=json",
+          "http": 200,
+          "result": "3 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2096,6 +2320,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "2 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Корсмейер Феминистская эстетика",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9A%D0%BE%D1%80%D1%81%D0%BC%D0%B5%D0%B9%D0%B5%D1%80+%D0%A4%D0%B5%D0%BC%D0%B8%D0%BD%D0%B8%D1%81%D1%82%D1%81%D0%BA%D0%B0%D1%8F+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2167,6 +2398,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "33 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Бишоп Антагонизм и реляционная эстетика",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B8%D1%88%D0%BE%D0%BF+%D0%90%D0%BD%D1%82%D0%B0%D0%B3%D0%BE%D0%BD%D0%B8%D0%B7%D0%BC+%D0%B8+%D1%80%D0%B5%D0%BB%D1%8F%D1%86%D0%B8%D0%BE%D0%BD%D0%BD%D0%B0%D1%8F+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2224,6 +2462,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "412 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Гринберг Авангард и китч",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%93%D1%80%D0%B8%D0%BD%D0%B1%D0%B5%D1%80%D0%B3+%D0%90%D0%B2%D0%B0%D0%BD%D0%B3%D0%B0%D1%80%D0%B4+%D0%B8+%D0%BA%D0%B8%D1%82%D1%87&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2281,6 +2526,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "36 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Хиггинс Интермедиа",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A5%D0%B8%D0%B3%D0%B3%D0%B8%D0%BD%D1%81+%D0%98%D0%BD%D1%82%D0%B5%D1%80%D0%BC%D0%B5%D0%B4%D0%B8%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2337,6 +2589,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "6315 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Норман Дизайн привычных вещей",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9D%D0%BE%D1%80%D0%BC%D0%B0%D0%BD+%D0%94%D0%B8%D0%B7%D0%B0%D0%B9%D0%BD+%D0%BF%D1%80%D0%B8%D0%B2%D1%8B%D1%87%D0%BD%D1%8B%D1%85+%D0%B2%D0%B5%D1%89%D0%B5%D0%B9&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2393,6 +2652,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "1591 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Саид Ориентализм",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A1%D0%B0%D0%B8%D0%B4+%D0%9E%D1%80%D0%B8%D0%B5%D0%BD%D1%82%D0%B0%D0%BB%D0%B8%D0%B7%D0%BC&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2450,6 +2716,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Ньютон Мать кэмпа: женские имперсонаторы в Америке",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9D%D1%8C%D1%8E%D1%82%D0%BE%D0%BD+%D0%9C%D0%B0%D1%82%D1%8C+%D0%BA%D1%8D%D0%BC%D0%BF%D0%B0%3A+%D0%B6%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B5+%D0%B8%D0%BC%D0%BF%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D1%82%D0%BE%D1%80%D1%8B+%D0%B2+%D0%90%D0%BC%D0%B5%D1%80%D0%B8%D0%BA%D0%B5&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2507,6 +2780,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "277672 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Дики Определение искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%94%D0%B8%D0%BA%D0%B8+%D0%9E%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "5815 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2563,6 +2843,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "3124 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Делёз Различие и повторение",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%94%D0%B5%D0%BB%D1%91%D0%B7+%D0%A0%D0%B0%D0%B7%D0%BB%D0%B8%D1%87%D0%B8%D0%B5+%D0%B8+%D0%BF%D0%BE%D0%B2%D1%82%D0%BE%D1%80%D0%B5%D0%BD%D0%B8%D0%B5&srlimit=5&format=json",
+          "http": 200,
+          "result": "7 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2619,6 +2906,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "10274 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Парсонс Эстетика окружающей среды",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9F%D0%B0%D1%80%D1%81%D0%BE%D0%BD%D1%81+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0+%D0%BE%D0%BA%D1%80%D1%83%D0%B6%D0%B0%D1%8E%D1%89%D0%B5%D0%B9+%D1%81%D1%80%D0%B5%D0%B4%D1%8B&srlimit=5&format=json",
+          "http": 200,
+          "result": "2 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2675,6 +2969,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "60 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "III Нужно ли эстетической оценке ландшафта опираться на науку?",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=III+%D0%9D%D1%83%D0%B6%D0%BD%D0%BE+%D0%BB%D0%B8+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B9+%D0%BE%D1%86%D0%B5%D0%BD%D0%BA%D0%B5+%D0%BB%D0%B0%D0%BD%D0%B4%D1%88%D0%B0%D1%84%D1%82%D0%B0+%D0%BE%D0%BF%D0%B8%D1%80%D0%B0%D1%82%D1%8C%D1%81%D1%8F+%D0%BD%D0%B0+%D0%BD%D0%B0%D1%83%D0%BA%D1%83%3F&srlimit=5&format=json",
+          "http": 200,
+          "result": "90 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2746,6 +3047,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "19805 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Беккер Искусство как коллективное действие",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B5%D0%BA%D0%BA%D0%B5%D1%80+%D0%98%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE+%D0%BA%D0%B0%D0%BA+%D0%BA%D0%BE%D0%BB%D0%BB%D0%B5%D0%BA%D1%82%D0%B8%D0%B2%D0%BD%D0%BE%D0%B5+%D0%B4%D0%B5%D0%B9%D1%81%D1%82%D0%B2%D0%B8%D0%B5&srlimit=5&format=json",
+          "http": 200,
+          "result": "46 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2816,6 +3124,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "427 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Рансьер Политика и эстетика: интервью",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A0%D0%B0%D0%BD%D1%81%D1%8C%D0%B5%D1%80+%D0%9F%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0+%D0%B8+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0%3A+%D0%B8%D0%BD%D1%82%D0%B5%D1%80%D0%B2%D1%8C%D1%8E&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2873,6 +3188,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "7454 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Болдуин Творческий процесс",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%BE%D0%BB%D0%B4%D1%83%D0%B8%D0%BD+%D0%A2%D0%B2%D0%BE%D1%80%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9+%D0%BF%D1%80%D0%BE%D1%86%D0%B5%D1%81%D1%81&srlimit=5&format=json",
+          "http": 200,
+          "result": "4 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2929,6 +3251,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "92 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Бодрийяр Симулякры и симуляция: «Прецессия симулякров»",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%BE%D0%B4%D1%80%D0%B8%D0%B9%D1%8F%D1%80+%D0%A1%D0%B8%D0%BC%D1%83%D0%BB%D1%8F%D0%BA%D1%80%D1%8B+%D0%B8+%D1%81%D0%B8%D0%BC%D1%83%D0%BB%D1%8F%D1%86%D0%B8%D1%8F%3A+%C2%AB%D0%9F%D1%80%D0%B5%D1%86%D0%B5%D1%81%D1%81%D0%B8%D1%8F+%D1%81%D0%B8%D0%BC%D1%83%D0%BB%D1%8F%D0%BA%D1%80%D0%BE%D0%B2%C2%BB&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -2991,6 +3320,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "10615 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Левинсон Историческое определение искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9B%D0%B5%D0%B2%D0%B8%D0%BD%D1%81%D0%BE%D0%BD+%D0%98%D1%81%D1%82%D0%BE%D1%80%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5+%D0%BE%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "28 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3064,6 +3400,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "19 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Бин Потребление hygge дома: восприятие, представление, практика",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B8%D0%BD+%D0%9F%D0%BE%D1%82%D1%80%D0%B5%D0%B1%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5+hygge+%D0%B4%D0%BE%D0%BC%D0%B0%3A+%D0%B2%D0%BE%D1%81%D0%BF%D1%80%D0%B8%D1%8F%D1%82%D0%B8%D0%B5%2C+%D0%BF%D1%80%D0%B5%D0%B4%D1%81%D1%82%D0%B0%D0%B2%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%2C+%D0%BF%D1%80%D0%B0%D0%BA%D1%82%D0%B8%D0%BA%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3133,6 +3476,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "154 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Батлер Перформативные акты и конституирование гендера",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B0%D1%82%D0%BB%D0%B5%D1%80+%D0%9F%D0%B5%D1%80%D1%84%D0%BE%D1%80%D0%BC%D0%B0%D1%82%D0%B8%D0%B2%D0%BD%D1%8B%D0%B5+%D0%B0%D0%BA%D1%82%D1%8B+%D0%B8+%D0%BA%D0%BE%D0%BD%D1%81%D1%82%D0%B8%D1%82%D1%83%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D0%B5+%D0%B3%D0%B5%D0%BD%D0%B4%D0%B5%D1%80%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3190,6 +3540,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "849 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Томсон-Джонс Философия цифрового искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A2%D0%BE%D0%BC%D1%81%D0%BE%D0%BD-%D0%94%D0%B6%D0%BE%D0%BD%D1%81+%D0%A4%D0%B8%D0%BB%D0%BE%D1%81%D0%BE%D1%84%D0%B8%D1%8F+%D1%86%D0%B8%D1%84%D1%80%D0%BE%D0%B2%D0%BE%D0%B3%D0%BE+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "1 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3246,6 +3603,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "139 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Малви Визуальное удовольствие и нарративное кино",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9C%D0%B0%D0%BB%D0%B2%D0%B8+%D0%92%D0%B8%D0%B7%D1%83%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D0%B5+%D1%83%D0%B4%D0%BE%D0%B2%D0%BE%D0%BB%D1%8C%D1%81%D1%82%D0%B2%D0%B8%D0%B5+%D0%B8+%D0%BD%D0%B0%D1%80%D1%80%D0%B0%D1%82%D0%B8%D0%B2%D0%BD%D0%BE%D0%B5+%D0%BA%D0%B8%D0%BD%D0%BE&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3308,6 +3672,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "1400 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Манович Новые медиа: руководство пользователя",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9C%D0%B0%D0%BD%D0%BE%D0%B2%D0%B8%D1%87+%D0%9D%D0%BE%D0%B2%D1%8B%D0%B5+%D0%BC%D0%B5%D0%B4%D0%B8%D0%B0%3A+%D1%80%D1%83%D0%BA%D0%BE%D0%B2%D0%BE%D0%B4%D1%81%D1%82%D0%B2%D0%BE+%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D1%82%D0%B5%D0%BB%D1%8F&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3373,6 +3744,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "8 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Манович Постмедийная эстетика",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9C%D0%B0%D0%BD%D0%BE%D0%B2%D0%B8%D1%87+%D0%9F%D0%BE%D1%81%D1%82%D0%BC%D0%B5%D0%B4%D0%B8%D0%B9%D0%BD%D0%B0%D1%8F+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3430,6 +3808,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "72 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Нохлин Почему не было великих художниц?",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9D%D0%BE%D1%85%D0%BB%D0%B8%D0%BD+%D0%9F%D0%BE%D1%87%D0%B5%D0%BC%D1%83+%D0%BD%D0%B5+%D0%B1%D1%8B%D0%BB%D0%BE+%D0%B2%D0%B5%D0%BB%D0%B8%D0%BA%D0%B8%D1%85+%D1%85%D1%83%D0%B4%D0%BE%D0%B6%D0%BD%D0%B8%D1%86%3F&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3486,6 +3871,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "9559 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Хайдеггер Строить, обитать, мыслить",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A5%D0%B0%D0%B9%D0%B4%D0%B5%D0%B3%D0%B3%D0%B5%D1%80+%D0%A1%D1%82%D1%80%D0%BE%D0%B8%D1%82%D1%8C%2C+%D0%BE%D0%B1%D0%B8%D1%82%D0%B0%D1%82%D1%8C%2C+%D0%BC%D1%8B%D1%81%D0%BB%D0%B8%D1%82%D1%8C&srlimit=5&format=json",
+          "http": 200,
+          "result": "4 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3543,6 +3935,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "1516 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Хоркхаймер Культурная индустрия: Просвещение как обман масс",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A5%D0%BE%D1%80%D0%BA%D1%85%D0%B0%D0%B9%D0%BC%D0%B5%D1%80+%D0%9A%D1%83%D0%BB%D1%8C%D1%82%D1%83%D1%80%D0%BD%D0%B0%D1%8F+%D0%B8%D0%BD%D0%B4%D1%83%D1%81%D1%82%D1%80%D0%B8%D1%8F%3A+%D0%9F%D1%80%D0%BE%D1%81%D0%B2%D0%B5%D1%89%D0%B5%D0%BD%D0%B8%D0%B5+%D0%BA%D0%B0%D0%BA+%D0%BE%D0%B1%D0%BC%D0%B0%D0%BD+%D0%BC%D0%B0%D1%81%D1%81&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3612,6 +4011,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Велтхейс Символические значения цен",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%92%D0%B5%D0%BB%D1%82%D1%85%D0%B5%D0%B9%D1%81+%D0%A1%D0%B8%D0%BC%D0%B2%D0%BE%D0%BB%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5+%D0%B7%D0%BD%D0%B0%D1%87%D0%B5%D0%BD%D0%B8%D1%8F+%D1%86%D0%B5%D0%BD&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3669,6 +4075,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "27451 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Барт Миф сегодня",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B0%D1%80%D1%82+%D0%9C%D0%B8%D1%84+%D1%81%D0%B5%D0%B3%D0%BE%D0%B4%D0%BD%D1%8F&srlimit=5&format=json",
+          "http": 200,
+          "result": "37 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3726,6 +4139,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "37749 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Барт Смерть автора",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B0%D1%80%D1%82+%D0%A1%D0%BC%D0%B5%D1%80%D1%82%D1%8C+%D0%B0%D0%B2%D1%82%D0%BE%D1%80%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "174 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3782,6 +4202,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "4136 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Холл Культурная идентичность и диаспора",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A5%D0%BE%D0%BB%D0%BB+%D0%9A%D1%83%D0%BB%D1%8C%D1%82%D1%83%D1%80%D0%BD%D0%B0%D1%8F+%D0%B8%D0%B4%D0%B5%D0%BD%D1%82%D0%B8%D1%87%D0%BD%D0%BE%D1%81%D1%82%D1%8C+%D0%B8+%D0%B4%D0%B8%D0%B0%D1%81%D0%BF%D0%BE%D1%80%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3838,6 +4265,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "2377 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Холл Заметки о деконструкции популярного",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A5%D0%BE%D0%BB%D0%BB+%D0%97%D0%B0%D0%BC%D0%B5%D1%82%D0%BA%D0%B8+%D0%BE+%D0%B4%D0%B5%D0%BA%D0%BE%D0%BD%D1%81%D1%82%D1%80%D1%83%D0%BA%D1%86%D0%B8%D0%B8+%D0%BF%D0%BE%D0%BF%D1%83%D0%BB%D1%8F%D1%80%D0%BD%D0%BE%D0%B3%D0%BE&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3895,6 +4329,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "3684 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Адорно Культурная индустрия: пересмотр",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%90%D0%B4%D0%BE%D1%80%D0%BD%D0%BE+%D0%9A%D1%83%D0%BB%D1%8C%D1%82%D1%83%D1%80%D0%BD%D0%B0%D1%8F+%D0%B8%D0%BD%D0%B4%D1%83%D1%81%D1%82%D1%80%D0%B8%D1%8F%3A+%D0%BF%D0%B5%D1%80%D0%B5%D1%81%D0%BC%D0%BE%D1%82%D1%80&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -3952,6 +4393,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Ададжян Определение искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%90%D0%B4%D0%B0%D0%B4%D0%B6%D1%8F%D0%BD+%D0%9E%D0%BF%D1%80%D0%B5%D0%B4%D0%B5%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4008,6 +4456,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "1062 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Ледди Обычные поверхностные эстетические качества: «аккуратное», «неопрятное», «чистое», «грязное»",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9B%D0%B5%D0%B4%D0%B4%D0%B8+%D0%9E%D0%B1%D1%8B%D1%87%D0%BD%D1%8B%D0%B5+%D0%BF%D0%BE%D0%B2%D0%B5%D1%80%D1%85%D0%BD%D0%BE%D1%81%D1%82%D0%BD%D1%8B%D0%B5+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5+%D0%BA%D0%B0%D1%87%D0%B5%D1%81%D1%82%D0%B2%D0%B0%3A+%C2%AB%D0%B0%D0%BA%D0%BA%D1%83%D1%80%D0%B0%D1%82%D0%BD%D0%BE%D0%B5%C2%BB%2C+%C2%AB%D0%BD%D0%B5%D0%BE%D0%BF%D1%80%D1%8F%D1%82%D0%BD%D0%BE%D0%B5%C2%BB%2C+%C2%AB%D1%87%D0%B8%D1%81%D1%82%D0%BE%D0%B5%C2%BB%2C+%C2%AB%D0%B3%D1%80%D1%8F%D0%B7%D0%BD%D0%BE%D0%B5%C2%BB&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4065,6 +4520,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "804 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Беннетт Выставочный комплекс",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D0%B5%D0%BD%D0%BD%D0%B5%D1%82%D1%82+%D0%92%D1%8B%D1%81%D1%82%D0%B0%D0%B2%D0%BE%D1%87%D0%BD%D1%8B%D0%B9+%D0%BA%D0%BE%D0%BC%D0%BF%D0%BB%D0%B5%D0%BA%D1%81&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4152,6 +4614,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Миньоло Деколониальная айстезис",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9C%D0%B8%D0%BD%D1%8C%D0%BE%D0%BB%D0%BE+%D0%94%D0%B5%D0%BA%D0%BE%D0%BB%D0%BE%D0%BD%D0%B8%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F+%D0%B0%D0%B9%D1%81%D1%82%D0%B5%D0%B7%D0%B8%D1%81&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4238,6 +4707,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "165 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Сайто Эстетика повседневности и создание мира",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A1%D0%B0%D0%B9%D1%82%D0%BE+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0+%D0%BF%D0%BE%D0%B2%D1%81%D0%B5%D0%B4%D0%BD%D0%B5%D0%B2%D0%BD%D0%BE%D1%81%D1%82%D0%B8+%D0%B8+%D1%81%D0%BE%D0%B7%D0%B4%D0%B0%D0%BD%D0%B8%D0%B5+%D0%BC%D0%B8%D1%80%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "7 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4315,6 +4791,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Номикос Как вообще можно чувствовать себя дома? Эстетическая привычность, эпистемический комфорт и вытеснение",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9D%D0%BE%D0%BC%D0%B8%D0%BA%D0%BE%D1%81+%D0%9A%D0%B0%D0%BA+%D0%B2%D0%BE%D0%BE%D0%B1%D1%89%D0%B5+%D0%BC%D0%BE%D0%B6%D0%BD%D0%BE+%D1%87%D1%83%D0%B2%D1%81%D1%82%D0%B2%D0%BE%D0%B2%D0%B0%D1%82%D1%8C+%D1%81%D0%B5%D0%B1%D1%8F+%D0%B4%D0%BE%D0%BC%D0%B0%3F+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F+%D0%BF%D1%80%D0%B8%D0%B2%D1%8B%D1%87%D0%BD%D0%BE%D1%81%D1%82%D1%8C%2C+%D1%8D%D0%BF%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9+%D0%BA%D0%BE%D0%BC%D1%84%D0%BE%D1%80%D1%82+%D0%B8+%D0%B2%D1%8B%D1%82%D0%B5%D1%81%D0%BD%D0%B5%D0%BD%D0%B8%D0%B5&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4371,6 +4854,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "12 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Корсмейер Эстетическая ценность, искусство и пища",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9A%D0%BE%D1%80%D1%81%D0%BC%D0%B5%D0%B9%D0%B5%D1%80+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F+%D1%86%D0%B5%D0%BD%D0%BD%D0%BE%D1%81%D1%82%D1%8C%2C+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE+%D0%B8+%D0%BF%D0%B8%D1%89%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4452,6 +4942,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "57 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Абате Мода как эстетическая форма жизни: витгенштейновская интерпретация",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%90%D0%B1%D0%B0%D1%82%D0%B5+%D0%9C%D0%BE%D0%B4%D0%B0+%D0%BA%D0%B0%D0%BA+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F+%D1%84%D0%BE%D1%80%D0%BC%D0%B0+%D0%B6%D0%B8%D0%B7%D0%BD%D0%B8%3A+%D0%B2%D0%B8%D1%82%D0%B3%D0%B5%D0%BD%D1%88%D1%82%D0%B5%D0%B9%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%B0%D1%8F+%D0%B8%D0%BD%D1%82%D0%B5%D1%80%D0%BF%D1%80%D0%B5%D1%82%D0%B0%D1%86%D0%B8%D1%8F&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4508,6 +5005,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "23 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Телфер Еда как искусство — глава из «Пища для размышления»",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A2%D0%B5%D0%BB%D1%84%D0%B5%D1%80+%D0%95%D0%B4%D0%B0+%D0%BA%D0%B0%D0%BA+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE+%E2%80%94+%D0%B3%D0%BB%D0%B0%D0%B2%D0%B0+%D0%B8%D0%B7+%C2%AB%D0%9F%D0%B8%D1%89%D0%B0+%D0%B4%D0%BB%D1%8F+%D1%80%D0%B0%D0%B7%D0%BC%D1%8B%D1%88%D0%BB%D0%B5%D0%BD%D0%B8%D1%8F%C2%BB&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4564,6 +5068,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "209 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Брэди Воображение и эстетическая оценка природы",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%91%D1%80%D1%8D%D0%B4%D0%B8+%D0%92%D0%BE%D0%BE%D0%B1%D1%80%D0%B0%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5+%D0%B8+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F+%D0%BE%D1%86%D0%B5%D0%BD%D0%BA%D0%B0+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D1%8B&srlimit=5&format=json",
+          "http": 200,
+          "result": "1 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4620,6 +5131,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "3177 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Лесли Политическая эстетика",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9B%D0%B5%D1%81%D0%BB%D0%B8+%D0%9F%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "18 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4676,6 +5194,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "70 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Фанон Чёрная кожа, белые маски",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A4%D0%B0%D0%BD%D0%BE%D0%BD+%D0%A7%D1%91%D1%80%D0%BD%D0%B0%D1%8F+%D0%BA%D0%BE%D0%B6%D0%B0%2C+%D0%B1%D0%B5%D0%BB%D1%8B%D0%B5+%D0%BC%D0%B0%D1%81%D0%BA%D0%B8&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4745,6 +5270,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "31 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Маттеуччи Эстетика моды",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9C%D0%B0%D1%82%D1%82%D0%B5%D1%83%D1%87%D1%87%D0%B8+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0+%D0%BC%D0%BE%D0%B4%D1%8B&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4801,6 +5333,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "12210 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Парсонс Функциональная красота",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9F%D0%B0%D1%80%D1%81%D0%BE%D0%BD%D1%81+%D0%A4%D1%83%D0%BD%D0%BA%D1%86%D0%B8%D0%BE%D0%BD%D0%B0%D0%BB%D1%8C%D0%BD%D0%B0%D1%8F+%D0%BA%D1%80%D0%B0%D1%81%D0%BE%D1%82%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4857,6 +5396,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "28 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Хиггинс Приложение к «Интермедиа»",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A5%D0%B8%D0%B3%D0%B3%D0%B8%D0%BD%D1%81+%D0%9F%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5+%D0%BA+%C2%AB%D0%98%D0%BD%D1%82%D0%B5%D1%80%D0%BC%D0%B5%D0%B4%D0%B8%D0%B0%C2%BB&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4926,6 +5472,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "50 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Ярош Коренное и локальное знание и эстетика: к межпоколенческой эстетике природы",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%AF%D1%80%D0%BE%D1%88+%D0%9A%D0%BE%D1%80%D0%B5%D0%BD%D0%BD%D0%BE%D0%B5+%D0%B8+%D0%BB%D0%BE%D0%BA%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D0%B5+%D0%B7%D0%BD%D0%B0%D0%BD%D0%B8%D0%B5+%D0%B8+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0%3A+%D0%BA+%D0%BC%D0%B5%D0%B6%D0%BF%D0%BE%D0%BA%D0%BE%D0%BB%D0%B5%D0%BD%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B9+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B5+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D1%8B&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -4982,6 +5535,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "1 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Трактински Эстетика и кажущаяся удобность: эмпирическая оценка культурных и методологических вопросов",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A2%D1%80%D0%B0%D0%BA%D1%82%D0%B8%D0%BD%D1%81%D0%BA%D0%B8+%D0%AD%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0+%D0%B8+%D0%BA%D0%B0%D0%B6%D1%83%D1%89%D0%B0%D1%8F%D1%81%D1%8F+%D1%83%D0%B4%D0%BE%D0%B1%D0%BD%D0%BE%D1%81%D1%82%D1%8C%3A+%D1%8D%D0%BC%D0%BF%D0%B8%D1%80%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F+%D0%BE%D1%86%D0%B5%D0%BD%D0%BA%D0%B0+%D0%BA%D1%83%D0%BB%D1%8C%D1%82%D1%83%D1%80%D0%BD%D1%8B%D1%85+%D0%B8+%D0%BC%D0%B5%D1%82%D0%BE%D0%B4%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D1%85+%D0%B2%D0%BE%D0%BF%D1%80%D0%BE%D1%81%D0%BE%D0%B2&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -5067,6 +5627,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "11 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Трактински Красивое — значит удобное",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A2%D1%80%D0%B0%D0%BA%D1%82%D0%B8%D0%BD%D1%81%D0%BA%D0%B8+%D0%9A%D1%80%D0%B0%D1%81%D0%B8%D0%B2%D0%BE%D0%B5+%E2%80%94+%D0%B7%D0%BD%D0%B0%D1%87%D0%B8%D1%82+%D1%83%D0%B4%D0%BE%D0%B1%D0%BD%D0%BE%D0%B5&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -5145,6 +5712,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "4 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Джерни Семиотика уюта и исчезающая ночь",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%94%D0%B6%D0%B5%D1%80%D0%BD%D0%B8+%D0%A1%D0%B5%D0%BC%D0%B8%D0%BE%D1%82%D0%B8%D0%BA%D0%B0+%D1%83%D1%8E%D1%82%D0%B0+%D0%B8+%D0%B8%D1%81%D1%87%D0%B5%D0%B7%D0%B0%D1%8E%D1%89%D0%B0%D1%8F+%D0%BD%D0%BE%D1%87%D1%8C&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -5201,6 +5775,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "1874 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Ингарден Литературное произведение искусства",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%98%D0%BD%D0%B3%D0%B0%D1%80%D0%B4%D0%B5%D0%BD+%D0%9B%D0%B8%D1%82%D0%B5%D1%80%D0%B0%D1%82%D1%83%D1%80%D0%BD%D0%BE%D0%B5+%D0%BF%D1%80%D0%BE%D0%B8%D0%B7%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%B8%D0%B5+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%B0&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -5257,6 +5838,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "201 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Хепберн Современная эстетика и пренебрежение природной красотой",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A5%D0%B5%D0%BF%D0%B1%D0%B5%D1%80%D0%BD+%D0%A1%D0%BE%D0%B2%D1%80%D0%B5%D0%BC%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D0%BA%D0%B0+%D0%B8+%D0%BF%D1%80%D0%B5%D0%BD%D0%B5%D0%B1%D1%80%D0%B5%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D0%BD%D0%BE%D0%B9+%D0%BA%D1%80%D0%B0%D1%81%D0%BE%D1%82%D0%BE%D0%B9&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -5313,6 +5901,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "48 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Хепберн Очеловеченная природа: природа, которую уважают",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A5%D0%B5%D0%BF%D0%B1%D0%B5%D1%80%D0%BD+%D0%9E%D1%87%D0%B5%D0%BB%D0%BE%D0%B2%D0%B5%D1%87%D0%B5%D0%BD%D0%BD%D0%B0%D1%8F+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D0%B0%3A+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D0%B0%2C+%D0%BA%D0%BE%D1%82%D0%BE%D1%80%D1%83%D1%8E+%D1%83%D0%B2%D0%B0%D0%B6%D0%B0%D1%8E%D1%82&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -5390,6 +5985,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "8 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Линтотт Связь эстетической оценки и императива сохранения",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9B%D0%B8%D0%BD%D1%82%D0%BE%D1%82%D1%82+%D0%A1%D0%B2%D1%8F%D0%B7%D1%8C+%D1%8D%D1%81%D1%82%D0%B5%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B9+%D0%BE%D1%86%D0%B5%D0%BD%D0%BA%D0%B8+%D0%B8+%D0%B8%D0%BC%D0%BF%D0%B5%D1%80%D0%B0%D1%82%D0%B8%D0%B2%D0%B0+%D1%81%D0%BE%D1%85%D1%80%D0%B0%D0%BD%D0%B5%D0%BD%D0%B8%D1%8F&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -5446,6 +6048,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "9 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Платт Взяться за классическое искусство: переосмысление гаптики греко-римской визуальной культуры",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9F%D0%BB%D0%B0%D1%82%D1%82+%D0%92%D0%B7%D1%8F%D1%82%D1%8C%D1%81%D1%8F+%D0%B7%D0%B0+%D0%BA%D0%BB%D0%B0%D1%81%D1%81%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%BE%D0%B5+%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE%3A+%D0%BF%D0%B5%D1%80%D0%B5%D0%BE%D1%81%D0%BC%D1%8B%D1%81%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5+%D0%B3%D0%B0%D0%BF%D1%82%D0%B8%D0%BA%D0%B8+%D0%B3%D1%80%D0%B5%D0%BA%D0%BE-%D1%80%D0%B8%D0%BC%D1%81%D0%BA%D0%BE%D0%B9+%D0%B2%D0%B8%D0%B7%D1%83%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D0%B9+%D0%BA%D1%83%D0%BB%D1%8C%D1%82%D1%83%D1%80%D1%8B&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -5502,6 +6111,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "262 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Папанек Дизайн для реального мира: человеческая экология и социальные изменения",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9F%D0%B0%D0%BF%D0%B0%D0%BD%D0%B5%D0%BA+%D0%94%D0%B8%D0%B7%D0%B0%D0%B9%D0%BD+%D0%B4%D0%BB%D1%8F+%D1%80%D0%B5%D0%B0%D0%BB%D1%8C%D0%BD%D0%BE%D0%B3%D0%BE+%D0%BC%D0%B8%D1%80%D0%B0%3A+%D1%87%D0%B5%D0%BB%D0%BE%D0%B2%D0%B5%D1%87%D0%B5%D1%81%D0%BA%D0%B0%D1%8F+%D1%8D%D0%BA%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D1%8F+%D0%B8+%D1%81%D0%BE%D1%86%D0%B8%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5+%D0%B8%D0%B7%D0%BC%D0%B5%D0%BD%D0%B5%D0%BD%D0%B8%D1%8F&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -5567,6 +6183,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "32 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Кронон Проблема дикой природы, или возвращение к неправильной природе",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%9A%D1%80%D0%BE%D0%BD%D0%BE%D0%BD+%D0%9F%D1%80%D0%BE%D0%B1%D0%BB%D0%B5%D0%BC%D0%B0+%D0%B4%D0%B8%D0%BA%D0%BE%D0%B9+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D1%8B%2C+%D0%B8%D0%BB%D0%B8+%D0%B2%D0%BE%D0%B7%D0%B2%D1%80%D0%B0%D1%89%D0%B5%D0%BD%D0%B8%D0%B5+%D0%BA+%D0%BD%D0%B5%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D1%8C%D0%BD%D0%BE%D0%B9+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D0%B5&srlimit=5&format=json",
+          "http": 200,
+          "result": "0 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     },
@@ -5637,6 +6260,13 @@
           "url": "https://search.rsl.ru/ru/search",
           "http": 200,
           "result": "842 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
+        },
+        {
+          "service": "Russian Wikisource search API",
+          "query": "Сайто Восприятие природы на ее собственных условиях",
+          "url": "https://ru.wikisource.org/w/api.php?action=query&list=search&srsearch=%D0%A1%D0%B0%D0%B9%D1%82%D0%BE+%D0%92%D0%BE%D1%81%D0%BF%D1%80%D0%B8%D1%8F%D1%82%D0%B8%D0%B5+%D0%BF%D1%80%D0%B8%D1%80%D0%BE%D0%B4%D1%8B+%D0%BD%D0%B0+%D0%B5%D0%B5+%D1%81%D0%BE%D0%B1%D1%81%D1%82%D0%B2%D0%B5%D0%BD%D0%BD%D1%8B%D1%85+%D1%83%D1%81%D0%BB%D0%BE%D0%B2%D0%B8%D1%8F%D1%85&srlimit=5&format=json",
+          "http": 200,
+          "result": "37 full-text hits, first five saved in operator search output; spellings and translation titles remain to be examined, hits are not proof of an edition, zero is not proof of absence."
         }
       ]
     }
@@ -5926,6 +6556,12 @@
       "service": "Russian State Library public catalog",
       "queries": "88 title/author queries, recorded per work",
       "outcome": "All returned HTTP 200. Result counts are often broad; top-five catalog descriptions retained in empty-rsl-search.json. Catalog hits do not establish access, translation rights or absence."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "Russian Wikisource full-text search API",
+      "queries": "88 author-and-Russian-title queries, recorded per work",
+      "outcome": "All 88 returned HTTP 200; counts and first five results are retained in empty-wikisource-ru.json. Results are broad, and an exact-looking Nietzsche/Rachinsky result is a candidate. A later attempt to parse that page returned HTTP 403. Neither a hit nor a zero establishes a translation or its absence."
     }
   ]
 }
