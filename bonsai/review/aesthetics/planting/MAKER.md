@@ -323,3 +323,15 @@ the kind, value and source URL. A translation cut can instead use
 `--address-kind section --address-value 'III.2'` in place of `--page`.
 Keep the whole sentences, source bytes, page or screen image and independent
 reading even where the edition supplies a section rather than a page number.
+
+## Interface languages of a new work
+
+For each of ru, en, es, de and zh-Hans other than the original, search the
+lawful source routes named by the operator. Add each available translation as
+an independently sourced language witness before finishing the maker gate.
+A missing-language entry is reserved for an actual search: it records a reason,
+the book's edition and lawful locator, and `tried` entries with the site, URL
+and outcome of each required search. An unsearched language is not absent.
+The maker prepares source and image evidence; the separate second reader reviews
+each witness. The packet acceptance binds those reviewed language files.
+Existing accepted packets and continuations retain gaps as `owes`.

@@ -342,6 +342,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label),local(witness?.short),language==='ru'&&isPreReform(text)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
       }
+      if(profile==='aesthetics'&&resolveLocale(locale())!==work.original&&!available.includes(resolveLocale(locale())))figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
       const tools=el('div','ps-fragment-tools');
       const other=alternate&&available.includes(alternate)?(showing.includes(alternate)?primary.filter(language=>available.includes(language)):[alternate]):null;
       if(other&&(other.length||profile==='antiquity'&&showing.includes(alternate))&&other.join()!==showing.join()){
