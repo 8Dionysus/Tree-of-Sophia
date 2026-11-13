@@ -13937,34 +13937,24 @@
   }
  },
  "richard-shusterman": {
-  "item": null,
+  "item": "Q749505",
   "label": {
-   "ru": "Ричард Шустерман",
-   "en": "Richard Shusterman"
+   "en": "Richard Shusterman",
+   "ru": "Ричард Шустерман"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Richard Shusterman"
-   },
-   {
-    "kind": "work",
-    "query": "Ars Erotica: Sex and Somaesthetics in the Classical Arts of Love"
-   },
-   {
-    "kind": "work",
-    "query": "Thinking Through the Body, Educating for the Humanities: A Plea for Somaesthetics"
-   },
-   {
-    "kind": "work",
-    "query": "Somaesthetics: A Disciplinary Proposal"
+    "time": "+1949-12-03T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-12",
+  "identity_reference": {
+   "source": "https://api.crossref.org/works/10.1017/9780511791888",
+   "person_url": "https://en.wikipedia.org/wiki/Richard_Shusterman",
+   "basis": "Cambridge metadata names the author of Ars Erotica; the author biography lists the same book and resolves to Wikidata Q749505."
+  },
   "relation_search": {
    "complete": true,
    "titles": [
