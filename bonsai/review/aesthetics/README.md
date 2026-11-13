@@ -202,4 +202,4 @@ explicitly; an unresolved name is not a Wikidata identification. A rate limit
 stops the search and retains completed entries. Resume with the same command;
 `--retry-unresolved` also revisits names for which the earlier bounded search
 found no link. `--fetch-queue-batch` checks exact author and work labels in
-Wikidata SPARQL before admitting any unique P50-linked identity. A known birth without a death is not treated as a closed life.
+Wikidata SPARQL before admitting any unique P50-linked identity. `--fetch-queue-dates` separately admits a unique exact-name match only when both register lifetime years agree with Wikidata. A known birth without a death is not treated as a closed life.

@@ -748,6 +748,18 @@ OWES=[]      # what an accepted packet owes to a rule younger than its acceptanc
 # Search evidence stays with a locator, never treated as a licence to quote.
 LOCATOR_SEARCHES={'internet-archive','hathitrust','google-books','wikisource','gutenberg','gutenberg-ca','gutenberg-au','gutenberg-de','zeno','neb','rgb','prl','gallica','bdh','cervantes','mdz','ddb','polona','delpher','ctext','gretil','doab','oapen','openalex','unpaywall','crossref','philarchive','universities','author','publisher','institutes'}
 
+ADDRESS_KINDS=('section','chapter','paragraph','folio','leaf','verse','manuscript')
+def valid_address(address):
+    return isinstance(address,dict) and address.get('kind') in ADDRESS_KINDS and isinstance(address.get('value'),str) and bool(address['value'].strip()) and lawful_url(address.get('url'))
+
+def cmd_address(args):
+    path=packet(args.packet);places=part(path,'places.json');place=(places.get('places') or {}).get(args.loc)
+    if not place:die('no such place in this packet')
+    address={'kind':args.kind,'value':args.value,'url':args.url}
+    if not valid_address(address):die('address needs a kind, a value and a lawful source URL')
+    original=original_of(places);place['address']=address;place.setdefault('links',{})[original]=args.url
+    save(os.path.join(path,'places.json'),places);print(f'{args.loc}: structured source address recorded')
+
 def cmd_locator(args):
     path=packet(args.packet);places=part(path,'places.json');ev=evidence(path)
     if not lawful_url(args.url):die('the book locator must be a lawful https URL')
@@ -902,7 +914,8 @@ def gate(path,second=False,offline=False):
     corrections=places.get('corrections') or []
     for loc,place in locs.items():
         at=f'place {loc}';text=(place.get('texts') or {}).get(original)
-        if loc!=loc.strip() or not re.search(r'\S p\d+(-\d+)?[a-z]?$',loc):add(f'{at}: a place is named by its division and the printed page it opens on, as «II p16a», «Letter XV p164», «§28 p112»')
+        if loc!=loc.strip() or not loc or (not re.search(r'\S p\d+(-\d+)?[a-z]?$',loc) and not valid_address(place.get('address'))):add(f'{at}: give a division and printed page, or a structured source address')
+        if place.get('address') is not None and not valid_address(place['address']):add(f'{at}: structured address needs kind, value and lawful URL')
         for lang in('ru','en'):
             if re.search(r'(pp\.|сс\.)\s*\d+\s*$',str((place.get('label') or {}).get(lang,''))) and not re.search(r'\d\s*[–-]\s*\d+\s*$',str(place['label'][lang])):add(f'{at}: label.{lang} names one page: «p. 226», «с. 226»')
         if held and loc in w['fragments']['places'].get(work,{}) and place!=w['fragments']['places'][work][loc]:add(f'{at}: the bonsai already holds a place of this name')
@@ -1355,9 +1368,31 @@ def cmd_witness_cut(args):
         run=modern
     image=next((item for item in data['images'] if item['file']==args.image and item['by']=='maker'),None)
     if not image:die('fetch the page image as maker first')
-    data['places'][args.loc]={'text':run,'source':args.source,'page':args.page,'url':image['url'],'image_sha256':image['sha256'],'alignment':args.alignment,**({'lines':args.lines} if args.lines else {}),**({'justification':args.justification} if args.justification else {})}
+    address={'kind':args.address_kind,'value':args.address_value,'url':image['url']} if args.address_kind or args.address_value else None
+    if address and not valid_address(address):die('structured address needs kind, value and the source URL')
+    if not args.page and not address:die('give a printed page or an exact structured source address')
+    page=args.page or f"{address['kind']} {address['value']}"
+    data['places'][args.loc]={'text':run,'source':args.source,'page':page,'url':image['url'],'image_sha256':image['sha256'],'alignment':args.alignment,**({'address':address} if address else {}),**({'lines':args.lines} if args.lines else {}),**({'justification':args.justification} if args.justification else {})}
     data['review']={} # the old second reading no longer describes this witness
     save(witness_file(path,args.language),data);print(run)
+
+def cmd_witness_correct(args):
+    path=packet(args.packet);data=witness_data(path,args.language)
+    place=(data.get('places') or {}).get(args.loc) or die('no such place in this witness')
+    old=getattr(args,'from')
+    if not old or not args.to or old==args.to:die('the correction must change a nonempty run into a nonempty run; include context for a deletion')
+    if place.get('text','').count(old)!=1:die('the original run must occur exactly once in the place')
+    if len(args.reason.strip())<30:die('explain the page reading in a full sentence')
+    image=next((item for item in data.get('images',[]) if item.get('by')=='maker' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
+    if not image:die('the maker page image for this place is required')
+    try:raw=Path(witness_cache(path,args.language,image['file'])).read_bytes()
+    except (OSError,KeyError):die('the maker page image is missing')
+    if hashlib.sha256(raw).hexdigest()!=place['image_sha256']:die('the maker page image has changed')
+    offset=place['text'].index(old)
+    place['text']=place['text'][:offset]+args.to+place['text'][offset+len(old):]
+    place.setdefault('corrections',[]).append({'from':old,'to':args.to,'offset':offset,'reason':args.reason,'url':place['url'],'page':place['page'],'image_sha256':place['image_sha256']})
+    data['review']={};save(witness_file(path,args.language),data)
+    print(f'{args.loc}: correction recorded; compare on the page and obtain a new second reading')
 
 def cmd_witness_review(args):
     path=packet(args.packet);data=witness_data(path,args.language)
@@ -1428,9 +1463,18 @@ def witness_problems(path,lang,data,second=False,offline=False):
         if len(str(place.get('alignment','')))<20:add(f'{loc}: explain the alignment to the original')
         source=sources.get(place.get('source'))
         if not source or not lawful_url(source.get('url','')):add(f'{loc}: no lawful source');continue
-        if not place.get('page') or not lawful_url(place.get('url','')):add(f'{loc}: page and lawful page URL are required')
+        if not place.get('page') or not lawful_url(place.get('url','')):add(f'{loc}: page or exact address and lawful URL are required')
+        if place.get('address') is not None and (not valid_address(place['address']) or place['address'].get('url')!=place.get('url')):add(f'{loc}: structured address must name the same lawful source')
         image=next((item for item in data.get('images') or [] if item.get('by')=='maker' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
         if not image:add(f'{loc}: maker page image is missing')
+        back=text
+        for correction in reversed(place.get('corrections') or []):
+            old,new=correction.get('from'),correction.get('to')
+            if not isinstance(old,str) or not old or not isinstance(new,str) or not new or old==new or len(str(correction.get('reason','')))<30 or correction.get('url')!=place.get('url') or correction.get('page')!=place.get('page') or correction.get('image_sha256')!=place.get('image_sha256'):
+                add(f'{loc}: correction needs both readings, a reason and the same page image');continue
+            offset=correction.get('offset')
+            if type(offset) is not int or offset<0 or back[offset:offset+len(new)]!=new:add(f'{loc}: correction offset no longer identifies the corrected run');continue
+            back=back[:offset]+old+back[offset+len(new):]
         if not offline:
             for record in (source,image):
                 if not record:continue
@@ -1438,7 +1482,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
                     raw=Path(witness_cache(path,lang,record['file'])).read_bytes()
                     if hashlib.sha256(raw).hexdigest()!=record.get('sha256'):add(f"{loc}: {record['file']} changed")
                     elif record is source:
-                        problem=in_transcription(text,modern_russian(plain(raw,record['file'])) if lang=='ru' else plain(raw,record['file']))
+                        problem=in_transcription(back,modern_russian(plain(raw,record['file'])) if lang=='ru' else plain(raw,record['file']))
                         if problem:add(f'{loc}: {problem}')
                 except (OSError,KeyError):add(f'{loc}: local source or image is missing')
         if quote:
@@ -1487,8 +1531,9 @@ def main():
     sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));
     sub('witness-fetch',cmd_witness_fetch,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}))
     sub('witness-image',cmd_witness_image,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}),(('--by',),{'choices':['maker','second'],'default':'maker'}))
-    sub('witness-cut',cmd_witness_cut,P,(('language',),{}),(('source',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--page',),{'required':True}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
-    sub('witness-cut-candidate',cmd_witness_cut_candidate,P,(('language',),{}),(('source',),{}),(('--loc',),{'required':True}),(('--page',),{'required':True}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}));
+    sub('witness-cut',cmd_witness_cut,P,(('language',),{}),(('source',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
+    sub('witness-cut-candidate',cmd_witness_cut_candidate,P,(('language',),{}),(('source',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}));
+    sub('witness-correct',cmd_witness_correct,P,(('language',),{}),(('loc',),{}),(('from',),{}),(('to',),{}),(('reason',),{}));
     sub('witness-review',cmd_witness_review,P,(('language',),{}),(('loc',),{}),(('--reader',),{'required':True}),(('--alignment',),{'required':True}),(('--model',),{'default':'gpt-6.1-terra'}))
     sub('witness-gate',cmd_witness_gate,P,(('language',),{}),(('--second',),{'action':'store_true'}),(('--offline',),{'action':'store_true'}),(('--accept',),{'action':'store_true'}))
     sub('queue',cmd_queue);sub('open',cmd_open,(('work',),{}));sub('task',cmd_task,P);sub('status',cmd_status);sub('ready',cmd_ready)
@@ -1500,6 +1545,7 @@ def main():
     sub('person',cmd_person,P,(('role',),{'choices':list(ROLES)}),(('qid',),{'nargs':'?'}),(('--name',),{}),(('--ru',),{}),(('--died',),{'type':int}),(('--source',),{}),(('--wartime',),{'choices':['yes','no']}),(('--wartime-source',),{}),(('--rehabilitated',),{'type':int}),(('--rehabilitation-source',),{}),(('--remove',),{'action':'store_true','help':'take this hand out of the record again (another edition was chosen)'}));sub('printed',cmd_printed,P,(('year',),{'type':int}))
     sub('rights',cmd_rights,P,(('--jurisdiction',),{'choices':JURISDICTIONS}),(('--basis',),{'choices':sorted(BASES)}),(('--law',),{}));sub('why',cmd_why,P,(('file',),{}),(('reason',),{}));sub('stamp',cmd_stamp,P,(('role',),{'choices':['maker','second']}),(('model',),{}),(('effort',),{}))
     sub('cut',cmd_cut,P,(('file',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--lang',),{}),(('--nth',),{'type':int}),(('--drop',),{'action':'append','help':'a regular expression of what the transcriber added inside the run (a figure mark, a page mark); may be given more than once'}))
+    sub('address',cmd_address,P,(('loc',),{}),(('kind',),{'choices':ADDRESS_KINDS}),(('value',),{}),(('url',),{}));
     sub('locator',cmd_locator,P,(('loc',),{}),(('url',),{}),(('--ru',),{'required':True}),(('--en',),{'required':True}),(('--reference',),{'required':True}),(('--searches',),{'required':True}),(('--maker-read',),{'required':True}));
     sub('page',cmd_page,P,(('loc',),{}),(('n',),{'type':int}),(('url',),{}),(('--file',),{}),(('--by',),{'choices':['maker','second'],'default':'maker'}));
     sub('quotation',cmd_quotation,P,(('loc',),{}),(('source',),{}),(('page',),{}),(('lines',),{}),(('sha256',),{}),(('--justification',),{}));

@@ -151,6 +151,13 @@ class TranslationWitnessTest(unittest.TestCase):
                   'review':{'reader':'reader','model':'gpt-6.1-terra','date':'2026-11-12','places':{'p':{'reads':'as the packet','image_sha256':digest,'alignment':'This sentence matches the complete original.'}}}}
             with patch.object(kit,'CACHE',str(cache)), patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                source=b'A whole sentence;';(folder/'text.txt').write_bytes(source)
+                data['sources'][0]['sha256']=hashlib.sha256(source).hexdigest()
+                data['places']['p']['corrections']=[{'from':';','to':'.','offset':len('A whole sentence'),'reason':'The printed page ends this sentence with a full stop.','url':'https://example.org/page','page':'1','image_sha256':digest}]
+                self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                data['places']['p']['corrections'][0]['image_sha256']='f'*64
+                self.assertTrue(any('correction needs' in item for item in kit.witness_problems(str(path),'en',data,second=True)))
+                data['places']['p']['corrections'][0]['image_sha256']=digest
                 data['review']['reader']='maker'
                 self.assertTrue(any('different second reader' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
                 data['review']['reader']='reader';(folder/'text.txt').write_bytes(b'Other words.')
@@ -248,7 +255,7 @@ class ExtensionPlantingTest(unittest.TestCase):
             loc=next(iter(base['places']))
             rights={country:{'basis':'public-domain','law':'Public domain according to the applicable law.'} for country in kit.JURISDICTIONS}
             translated={'language':'ru','witness':{'edition':'Test edition','attribution':'Test author','url':'https://example.org','rights':rights},
-                        'places':{loc:{'text':'Русское предложение.','url':'https://example.org/page','page':'1'}}}
+                        'places':{loc:{'text':'Русское предложение.','url':'https://example.org/page','page':'1','corrections':[{'from':'Прежнее','to':'Русское','reason':'The source page reads the corrected form.'}]}}}
             raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'ru.json').write_bytes(raw)
             (witness_dir/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
             (witness_dir/'ru.json').write_bytes(raw+b' ')
@@ -259,6 +266,7 @@ class ExtensionPlantingTest(unittest.TestCase):
             subprocess.run(command,check=True,capture_output=True,text=True)
             projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
             self.assertEqual(projected['places'][work][loc]['texts']['ru'],'Русское предложение.')
+            self.assertEqual(projected['provenance']['translation_packets'][work]['ru']['corrections'][0]['loc'],loc)
             self.assertFalse(any(item['language']=='ru' for item in projected['works'][work].get('unsearched',[])))
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
             (witness_dir/'ru.json.accepted').unlink()
@@ -321,3 +329,34 @@ class LivingAuthorChronologyTest(unittest.TestCase):
             self.assertEqual(life['dating']['kind'],'unknown-date')
             self.assertIn('born',life['dating']['source_wording']['text'])
             self.assertIn('no death year recorded',life['dating']['source_wording']['text'])
+
+class TranslationCorrectionTest(unittest.TestCase):
+    def test_correction_preserves_page_binding_and_invalidates_review(self):
+        import argparse
+        import hashlib
+        import json
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
+            folder=Path(tmp)/'cache/work/witnesses/en';folder.mkdir(parents=True)
+            raw=b'page image';(folder/'page.jpg').write_bytes(raw);digest=hashlib.sha256(raw).hexdigest()
+            data={'language':'en','images':[{'file':'page.jpg','url':'https://example.org/page','by':'maker','sha256':digest}],
+                  'places':{'p':{'text':'A sentence;','page':'391','url':'https://example.org/page','image_sha256':digest}},
+                  'review':{'reader':'old-reader'}}
+            file=path/'witnesses/en.json';file.write_text(json.dumps(data))
+            args=argparse.Namespace(packet=str(path),language='en',loc='p',to='.',reason='The image ends this sentence with a full stop.',**{'from':';'})
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_witness_correct(args)
+            result=json.loads(file.read_text());self.assertEqual(result['places']['p']['text'],'A sentence.')
+            self.assertEqual(result['places']['p']['corrections'][0]['from'],';')
+            self.assertEqual(result['places']['p']['corrections'][0]['offset'],len('A sentence'))
+            self.assertEqual(result['places']['p']['corrections'][0]['image_sha256'],digest)
+            self.assertEqual(result['review'],{})
+
+class StructuredAddressTest(unittest.TestCase):
+    def test_section_identifies_a_lawful_unpaginated_source(self):
+        address={'kind':'section','value':'III.2','url':'https://example.org/chapter#section-2'}
+        self.assertTrue(kit.valid_address(address))
+        self.assertFalse(kit.valid_address({**address,'value':''}))
+        self.assertFalse(kit.valid_address({**address,'url':'https://libgen.rs/book'}))
+        self.assertFalse(kit.valid_address({**address,'kind':'guess'}))

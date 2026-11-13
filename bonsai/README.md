@@ -184,7 +184,10 @@ licence of the digital copy, a short quotation of a protected work under the
 quotation right, or the locator alone where no exact text can be shown
 lawfully. The rights record names a separate `{basis, law}` for each jurisdiction (`russia`, `usa`, `eu`) and the reasoning. Older witnesses carry a shared `basis` and jurisdictional statements. With no jurisdiction signal the reader shows text only when all three bases permit text. A place may link its own page in a witness
 (`links`, by language) or a page where a work cited by locator alone can be
-found (`url`), and a link says what it opens (`opens`: the whole work, the
+found (`url`); an unpaginated source can identify its exact section, chapter,
+paragraph, folio, leaf, verse or manuscript under `address` (original) or
+`addresses` (by translation language). The address carries its kind, value
+and the same source URL. A link says what it opens (`opens`: the whole work, the
 page a quotation is taken from, or where the book can be found). A place may
 take a language from another witness of the work (`witness`, by language), as
 where the usual translation lacks the book the place is in; a work names the languages it has no witness in and why

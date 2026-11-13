@@ -308,3 +308,18 @@ For a work already in `fragments.json` that predates the line and has no
 packet, run `K witness-parent WORK` first. It creates a witness-only parent;
 it does not manufacture a reading or an acceptance. Open and review the
 language in that parent with the same witness commands above.
+
+When the scanned page differs from the transcription, first cut the unmodified
+source run, fetch and read the maker's page image, then use
+`K witness-correct . en 'LOC' 'FROM' 'TO' 'What the page reads and where.'`.
+The witness retains the original and corrected readings, the reason and the
+page-image digest. The correction clears the prior review; the second reader
+must read the corrected place on the same page before acceptance. Give context
+around a deletion so both sides of the correction are nonempty and unique.
+
+A source with no printed pagination can identify its exact place structurally:
+`K address . 'LOC' section 'III.2' https://example.org/work#section-2` records
+the kind, value and source URL. A translation cut can instead use
+`--address-kind section --address-value 'III.2'` in place of `--page`.
+Keep the whole sentences, source bytes, page or screen image and independent
+reading even where the edition supplies a section rather than a page number.

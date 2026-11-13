@@ -54,6 +54,57 @@ const saveLives=()=>{
   writeFileSync(temporary,`${JSON.stringify(Object.fromEntries(Object.keys(lives).sort().map(key=>[key,lives[key]])),null,1)}\n`);
   renameSync(temporary,LIVES);
 };
+// A second evidence route identifies a unique exact name when both lifetime
+// endpoints also agree with the register. A single name or date is insufficient.
+if(args.has('--fetch-queue-dates')){
+  const entries=[];
+  for(const [id,agent] of agents){
+    if(lives[id]?.item||!agent.name?.en)continue;
+    const match=(agent.dates??[]).map(value=>/^\s*(\d{4})\s*[–-]\s*(\d{4})\s*$/.exec(value)).find(Boolean);
+    if(match)entries.push({id,name:agent.name.en,born:Number(match[1]),died:Number(match[2])});
+  }
+  const hits=new Map();let complete=true;
+  for(let start=0;start<entries.length;start+=20){
+    const batch=entries.slice(start,start+20),values=batch.map(item=>`(${JSON.stringify(item.name)}@en ${item.born} ${item.died})`).join(' ');
+    const query=`SELECT DISTINCT ?name ?birthYear ?deathYear ?person WHERE { VALUES (?name ?birthYear ?deathYear) { ${values} } ?person rdfs:label ?name; wdt:P31 wd:Q5; wdt:P569 ?born; wdt:P570 ?died. FILTER(YEAR(?born)=?birthYear && YEAR(?died)=?deathYear) }`;
+    try{
+      const response=await fetch('https://query.wikidata.org/sparql',{method:'POST',body:new URLSearchParams({query,format:'json'}),headers:{'User-Agent':AGENT,'Accept':'application/sparql-results+json','Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(45000)});
+      if(!response.ok)throw new Error(`SPARQL ${response.status}`);
+      for(const row of (await response.json()).results.bindings){
+        const qid=row.person.value.split('/').at(-1);
+        for(const item of batch.filter(item=>item.name===row.name.value&&item.born===Number(row.birthYear.value)&&item.died===Number(row.deathYear.value))){
+          if(!hits.has(item.id))hits.set(item.id,new Set());hits.get(item.id).add(qid);
+        }
+      }
+    }catch(error){console.error(`date batch stopped: ${error}`);complete=false;break;}
+    await new Promise(resolve=>setTimeout(resolve,1000));
+  }
+  if(complete){
+    const unique=entries.filter(item=>hits.get(item.id)?.size===1).map(item=>({...item,qid:[...hits.get(item.id)][0]}));
+    for(let start=0;start<unique.length;start+=25){
+      const batch=unique.slice(start,start+25),url=new URL('https://www.wikidata.org/w/api.php');
+      for(const [key,value] of Object.entries({action:'wbgetentities',ids:batch.map(item=>item.qid).join('|'),props:'labels|claims',format:'json'}))url.searchParams.set(key,value);
+      try{
+        const response=await fetch(url,{headers:{'User-Agent':AGENT},signal:AbortSignal.timeout(30000)});if(!response.ok)throw new Error(`Wikidata ${response.status}`);
+        const entities=(await response.json()).entities??{};
+        for(const item of batch){
+          const entity=entities[item.qid];if(!entity||entity.missing!==undefined)continue;
+          const times=property=>{
+            const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
+            return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+          };
+          const born=times('P569'),died=times('P570');
+          const hasYear=(values,year)=>values.some(value=>Number(/^([+-]\d+)-/.exec(value.time)?.[1])===year&&value.precision>=9);
+          if(!hasYear(born,item.born)||!hasYear(died,item.died))continue;
+          lives[item.id]={item:item.qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born,died,fetched:new Date().toISOString().slice(0,10),identity_register:{born:item.born,died:item.died}};
+        }
+        saveLives();
+      }catch(error){console.error(`date entity batch stopped: ${error}`);complete=false;break;}
+      await new Promise(resolve=>setTimeout(resolve,1000));
+    }
+  }
+  console.log(`queue dates: ${entries.filter(item=>lives[item.id]?.item).length}/${entries.length} identified, complete=${complete}`);
+}
 // Batch the same exact work/author relationship against Wikidata's graph. A
 // unique matching P50 identity is still required before any life is admitted.
 if(args.has('--fetch-queue-batch')){
