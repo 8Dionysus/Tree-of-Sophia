@@ -241,6 +241,11 @@ The same source-bound scope may cover the whole original where a translation
 joins unusually many source sentences into one. Its optional
 `maxSourceSentences` (4–6) lets the alignment mechanism consider those group
 shapes; it does not select a passage or assess the resulting correspondence.
+For a reviewed `handoverUnitIds` entry, `completePreviousUnitIds` may also
+request the beginning of a translation sentence when its continuation is
+paired separately across a reference boundary. It retains the existing
+unit IDs and offsets and applies only when the preceding unit ends mid-sentence
+and the following one begins with its continuation.
 When review finds an alignment unreliable across a witness, the stand may set
 `withheld: true` on a scope bound to both exact revisions and the entire
 original. It records the reason and leaves the witness in the corpus, but
