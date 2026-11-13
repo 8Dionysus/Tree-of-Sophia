@@ -109,6 +109,25 @@ class RussianSpellingTest(unittest.TestCase):
         self.assertEqual(kit.modern_russian('История и свет.'), 'История и свет.')
 
 
+class RussianExtensionTest(unittest.TestCase):
+    def test_extension_normalizes_without_editing_parent(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp)/'work';path=parent/'extensions'/'first';path.mkdir(parents=True)
+            cache=Path(tmp)/'cache';folder=cache/'work'/'extensions'/'first';folder.mkdir(parents=True)
+            (folder/'source.txt').write_text('Бѣлый свѣтъ.',encoding='utf8')
+            (path/'places.json').write_text(json.dumps({'work':'work','places':{}}))
+            (path/'evidence.json').write_text(json.dumps({'sources':[{'file':'source','text':'source.txt','role':'transcription'}],'places':{}}))
+            parent_witness={'edition':'Existing Russian edition','rights':{'reasoning':'original record'}}
+            world={'fragments':{'works':{'work':{'original':'ru','witnesses':{'ru':parent_witness}}}}}
+            args=argparse.Namespace(packet=str(path),file='source',open='Бѣлый',close='свѣтъ.',nth=None,drop=None,lang=None,loc='p1')
+            with patch.object(kit,'CACHE',str(cache)),patch.object(kit,'world',return_value=world):kit.cmd_cut(args)
+            place=json.loads((path/'places.json').read_text())['places']['p1']
+            self.assertEqual(place['texts']['ru'],'Белый свет.')
+            self.assertEqual(place['normalization']['ru']['source_text'],'Бѣлый свѣтъ.')
+            self.assertEqual(parent_witness['rights']['reasoning'],'original record')
+
 class QuotationEvidenceTest(unittest.TestCase):
     def test_second_reader_must_read_same_image(self):
         digest='a'*64

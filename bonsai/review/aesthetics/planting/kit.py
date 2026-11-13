@@ -445,7 +445,7 @@ def transcription(path,ev,name=None):
         return next(source for source in ev['sources'] if source['file']==name),page_text(open(cache(path,name),encoding='utf-8',errors='replace').read())
     sources=[source for source in ev['sources'] if source['role']=='transcription' and (name is None or name in(source['file'],source.get('text')))]
     if not sources:die('no fetched transcription'+(f' named {name}' if name else ''))
-    return sources[0],open(cache(path,sources[0]['text']),encoding='utf-8').read()
+    return sources[0],Path(cache(path,sources[0]['text'])).read_text(encoding='utf-8')
 
 def cmd_cut(args):
     path=packet(args.packet);ev=evidence(path)
@@ -463,19 +463,24 @@ def cmd_cut(args):
     if not close:die('the closing words are not found after the opening words')
     run=text[start:close.end()]
     for pattern in args.drop or []:run=re.sub(pattern,' ',run)
-    run=re.sub(r' +([,;:.!?])',r'\1',squeeze(run)) if args.drop else squeeze(run);places=part(path,'places.json');original=places.get('entry',{}).get('original') or world()['fragments']['works'].get(places['work'],{}).get('original')
+    run=re.sub(r' +([,;:.!?])',r'\1',squeeze(run)) if args.drop else squeeze(run);places=part(path,'places.json');original=(places.get('entry') or {}).get('original') or world()['fragments']['works'].get(places['work'],{}).get('original')
     lang=args.lang or original
     if not lang:die('places.json names no original language yet (entry.original)')
+    normalization=None
     if lang=='ru':
         modern=modern_russian(run)
         if modern!=run:
-            witness=((places.get('entry') or {}).get('witnesses') or {}).get(lang)
-            if witness is None:die('Russian modernization requires an original witness in this packet')
+            witness=((places.get('entry') or {}).get('witnesses') or {}).get(lang) or ((world()['fragments']['works'].get(places['work']) or {}).get('witnesses') or {}).get(lang)
+            if witness is None:die('Russian modernization requires the original witness')
             note='Russian spelling modernized using the 1918 reform rules; ѵ rendered as и; wording unchanged.'
-            rights=witness.setdefault('rights',{});reason=rights.get('reasoning','')
-            if note not in reason:rights['reasoning']=(reason+' '+note).strip()
+            normalization={'source_text':run,'rule':note}
+            if places.get('entry'):
+                rights=witness.setdefault('rights',{});reason=rights.get('reasoning','')
+                if note not in reason:rights['reasoning']=(reason+' '+note).strip()
             run=modern
     place=places['places'].setdefault(args.loc,{'label':{'ru':'','en':''},'texts':{},'links':{},'refs':[]});place['texts'][lang]=run
+    if normalization:place.setdefault('normalization',{})[lang]=normalization
+    elif place.get('normalization'):place['normalization'].pop(lang,None)
     save(os.path.join(path,'places.json'),places);entry=ev['places'].setdefault(args.loc,{});entry['transcription']=source['file'];entry.pop('dropped',None);entry.pop('from_scan',None)
     if source['role']=='scan-ocr':entry['from_scan']=True;print('cut from the scan’s own OCR: there is no second text behind this place, so it is read whole on the page image (image N --loc, correct, judge … whole)')
     if args.drop:entry['dropped']=args.drop
