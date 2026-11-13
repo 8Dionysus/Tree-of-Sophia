@@ -133,7 +133,8 @@ def cmd_queue(args):
         rows.append({'work':work,'wave':wave(w,work),'status':status,'year':t['year'],'readings':len(t['readings']),'primary':sum(r['basis']=='primary' for r in t['readings']),
                      'links':len(t['links']),'areas':sorted({area for r in t['readings'] for area in r['areas']})})
     first=lambda row:sum(area in('AE01','AE02') for area in row['areas'])
-    rows.sort(key=lambda row:(row['wave']!='free-all',-first(row),-row['readings'],row['work']))
+    order={'free-all':0,'free-some':1,'quotation':2,'locator-only':3}
+    rows.sort(key=lambda row:(order[row['wave']],-first(row),-row['readings'],row['work']))
     save(os.path.join(HERE,'queue.json'),{'made':'kit.py queue','rule':'Rights waves are leads from the register and sourced lives, not admission: the gate checks the actual edition and every hand. Status records held, unread, corpus and planted work separately.','works':rows})
     count={}
     for row in rows:count.setdefault(row['wave'],[0,0]);count[row['wave']][0]+=1;count[row['wave']][1]+=row['readings']
