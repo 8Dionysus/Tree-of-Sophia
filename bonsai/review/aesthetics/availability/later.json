@@ -679,6 +679,12 @@
           "scan": "https://archive.org/details/theprinciplesofa00parkuoft",
           "metadata": "https://archive.org/metadata/theprinciplesofa00parkuoft",
           "status": "candidate"
+        },
+        {
+          "edition": "The principles of æsthetics, Boston and New York: Silver, Burdett and Company, [c1920], 374 pp.",
+          "catalogue": "https://catalog.hathitrust.org/Record/008700567",
+          "scan": "https://babel.hathitrust.org/cgi/pt?id=nyp.33433081904454",
+          "status": "full view NYPL scan, Hathi marks Public Domain Google-digitized; personally viewed p84 and p204, remaining sentences and independent alignment to review"
         }
       ],
       "transcription_candidates": [
@@ -737,6 +743,12 @@
           "source": "Internet Archive page images",
           "result": "Inspected pp83–85, 88, 92, 97 and 204; locate whole sentence boundaries and conduct independent semantic review before use",
           "url": "https://archive.org/details/principlesofaest00parkiala"
+        },
+        {
+          "source": "HathiTrust browser",
+          "query": "The Principles of Aesthetics Parker",
+          "result": "1920 NYPL full view; chapter V starts p80 and chapter IX p188. Personally viewed pp84 and 204; target passages and translations not fully reviewed.",
+          "url": "https://babel.hathitrust.org/cgi/pt?id=nyp.33433081904454&seq=214"
         }
       ],
       "remaining": "Search other required catalogues and actual translations for ru, es, de and zh-Hans; verify named hands, places and rights. No conclusion of absence has been made.",
@@ -820,9 +832,15 @@
       ],
       "original_candidates": [
         {
+          "edition": "Сборники по теории поэтического языка II, Petrograd: Z. Sokolinsky, 1917, article pp3–14",
+          "catalogue": "https://search.rsl.ru/ru/record/01008012773",
+          "scan": "https://viewer.rsl.ru/ru/rsl01008823097?page=4&rotate=0&theme=black&inversion=off",
+          "status": "RSL labels volume open access; personally inspected title, contents, pp3 and 6–9; selected sentences, alignment with 1919 and lawful republication remain to review"
+        },
+        {
           "edition": "Поэтика. Сборники по теории поэтического языка I–II, Petrograd, 1919, pp101–114",
           "scan": "https://archive.org/details/i-ii-1919",
-          "status": "pp103–105 personally inspected; scan provenance and lawful availability for protected jurisdictions require verification; first 1917 printing is separate and not yet found"
+          "status": "pp103–105 personally inspected; scan provenance and lawful availability for protected jurisdictions require verification; compare with 1917 first printing"
         }
       ],
       "original_places": [
@@ -880,9 +898,20 @@
           "source": "НЭБ, РГБ, Google Books",
           "result": "403, script shell or 429; incomplete searches",
           "url": "https://rusneb.ru/"
+        },
+        {
+          "source": "RSL browser",
+          "query": "Сборники по теории поэтического языка",
+          "result": "1917 issue II open-view in RSL; pp6–9 personally inspected, target on pp7–8, precise sentence and 1919 collation pending",
+          "url": "https://viewer.rsl.ru/ru/rsl01008823097?page=4&rotate=0&theme=black&inversion=off"
+        },
+        {
+          "source": "HathiTrust browser",
+          "result": "1965 Russian Formalist Criticism, translated Lee T. Lemon and Marion J. Reis, search-only; target pages not viewed",
+          "url": "https://catalog.hathitrust.org/Record/001010607"
         }
       ],
-      "remaining": "Find and verify 1917 printing and legal sources of each passage, exact translations and their participants; complete required search. No conclusion of absence has been made."
+      "remaining": "Collate 1917 first printing with 1919 for exact passages, verify translations, participants and republication rights; complete required searches. No conclusion of absence has been made."
     },
     {
       "work": "aaron-smuts.the-paradox-of-suspense",
