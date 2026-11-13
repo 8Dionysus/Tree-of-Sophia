@@ -137,7 +137,7 @@ class TranslationWitnessTest(unittest.TestCase):
             import json
             for person in people:
                 qid=person['qid']; filename=f'wikidata-{qid}.json'
-                entity={'entities':{qid:{'claims':{'P570':[{'mainsnak':{'datavalue':{'value':{'time':'+1800-01-01T00:00:00Z'}}}}]}}}}
+                entity={'entities':{qid:{'labels':{'en':{'value':person['name']['en']}},'claims':{'P570':[{'mainsnak':{'datavalue':{'value':{'time':'+1800-01-01T00:00:00Z','precision':11}}}}]}}}}
                 raw=json.dumps(entity).encode();(folder/filename).write_bytes(raw)
                 person['evidence']={'file':filename,'sha256':hashlib.sha256(raw).hexdigest(),'url':f'https://www.wikidata.org/wiki/Special:EntityData/{qid}.json'}
             reference=b'<html><body>Translator (1800)</body></html>'; (folder/'translator.html').write_bytes(reference)
@@ -360,3 +360,11 @@ class StructuredAddressTest(unittest.TestCase):
         self.assertFalse(kit.valid_address({**address,'value':''}))
         self.assertFalse(kit.valid_address({**address,'url':'https://libgen.rs/book'}))
         self.assertFalse(kit.valid_address({**address,'kind':'guess'}))
+
+class WikidataDatePrecisionTest(unittest.TestCase):
+    def test_decade_and_conflicting_years_do_not_establish_a_cutoff(self):
+        def claim(year,precision=11,rank='normal'):
+            return {'rank':rank,'mainsnak':{'datavalue':{'value':{'time':f'+{year}-01-01T00:00:00Z','precision':precision}}}}
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950,8)]}},'P570'))
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951)]}},'P570'))
+        self.assertEqual(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951,11,'preferred')]}},'P570'),1951)
