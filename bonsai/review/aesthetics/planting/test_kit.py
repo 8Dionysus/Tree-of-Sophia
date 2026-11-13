@@ -450,8 +450,8 @@ class CatalogueIdentityTest(unittest.TestCase):
             (target/'bonsai/lib').symlink_to(root/'bonsai/lib',target_is_directory=True)
             (review/'planting/packets').mkdir(parents=True)
             shutil.copy2(original/'chronology.mjs',review/'chronology.mjs')
-            agents=[{'id':'karl','name':{'en':'Karl Rosenkranz','ru':'Карл Розенкранц'}},{'id':'other','name':{'en':'Different Person','ru':'Другой'}}]
-            works=[{'id':'karl.book','agents':['karl'],'title':{'original':'Book'}},{'id':'other.book','agents':['other'],'title':{'original':'Other Book'}}]
+            agents=[{'id':'karl','name':{'en':'Karl Rosenkranz','ru':'Карл Розенкранц'}},{'id':'other','name':{'en':'Different Person','ru':'Другой'}},{'id':'dates','name':{'en':'Dated Author','ru':'Автор'}},{'id':'uncertain','name':{'en':'Uncertain Author','ru':'Автор'}}]
+            works=[{'id':'karl.book','agents':['karl'],'title':{'original':'Book'}},{'id':'other.book','agents':['other'],'title':{'original':'Other Book'}},{'id':'dates.book','agents':['dates'],'title':{'original':'Dated Book'}},{'id':'uncertain.book','agents':['uncertain'],'title':{'original':'Uncertain Book'}}]
             for name,value in [('agents',agents),('works',works),('sources',[]),('lives',{})]:(layer/(name+'.json')).write_text(json.dumps(value,ensure_ascii=False))
             home=target/'bonsai/aesthetics';home.mkdir();(home/'library.json').write_text('{"agents":{},"works":{}}')
             script="""
@@ -461,10 +461,13 @@ globalThis.fetch=async input=>{
  const url=new URL(String(input));let data;
  if(url.pathname==='/search.json'){
    const name=url.searchParams.get('author'),title=url.searchParams.get('title');
-   data={docs:[{key:'/works/OL123W',title,author_name:[name],author_key:['OL123A']}]};
+   data={docs:[{key:'/works/OL123W',title,author_name:[name],author_key:[name==='Dated Author'?'OL456A':name==='Uncertain Author'?'OL789A':'OL123A']}]};
  }else if(url.pathname==='/authors/OL123A.json')data={name:'Karl Rosenkranz',remote_ids:{viaf:'12345'}};
- else if(url.hostname==='query.wikidata.org')data={results:{bindings:[{person:{value:'http://www.wikidata.org/entity/Q62315'}}]}};
+ else if(url.pathname==='/authors/OL456A.json')data={name:'Dated Author',birth_date:'1900',death_date:'1980'};
+ else if(url.pathname==='/authors/OL789A.json')data={name:'Uncertain Author',birth_date:'circa 1900',death_date:'1980'};
+ else if(url.hostname==='query.wikidata.org')data={results:{bindings:[{person:{value:'http://www.wikidata.org/entity/'+(url.searchParams.get('query').includes('P214')?'Q62315':'Q77')}}]}};
  else if(url.pathname.includes('Special:EntityData/Q62315'))data={entities:{Q62315:{labels:{en:{value:'Karl Rosenkranz'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q5'}}}}],P569:[{mainsnak:{datavalue:{value:{time:'+1805-01-01T00:00:00Z',precision:9}}}}],P570:[{mainsnak:{datavalue:{value:{time:'+1879-01-01T00:00:00Z',precision:9}}}}]}}}};
+ else if(url.pathname.includes('Special:EntityData/Q77'))data={entities:{Q77:{labels:{en:{value:'Dated Author'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q5'}}}}],P569:[{mainsnak:{datavalue:{value:{time:'+1900-01-01T00:00:00Z',precision:9}}}}],P570:[{mainsnak:{datavalue:{value:{time:'+1980-01-01T00:00:00Z',precision:9}}}}]}}}};
  else throw new Error('unexpected URL '+url);
  return new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
 };
@@ -476,6 +479,8 @@ await import(pathToFileURL(process.argv[3]??'%MODULE%').href);
             self.assertEqual(lives['karl']['identity_catalogue']['work'],'/works/OL123W')
             self.assertEqual(lives['karl']['identity_catalogue']['authority'],['P214','12345'])
             self.assertIsNone(lives['other']['item']);self.assertEqual(lives['other']['status'],'unresolved')
+            self.assertEqual(lives['dates']['item'],'Q77');self.assertEqual(lives['dates']['identity_catalogue']['matched_years'],{'born':1900,'died':1980})
+            self.assertIsNone(lives['uncertain']['item']);self.assertEqual(lives['uncertain']['status'],'unresolved')
 
 class NewWorkLanguageIntegrationTest(unittest.TestCase):
     def test_new_work_needs_each_language_and_second_readings(self):

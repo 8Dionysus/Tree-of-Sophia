@@ -207,6 +207,6 @@ Wikidata SPARQL before admitting any unique P50-linked identity. `--fetch-queue-
 `--fetch-queue-relations` persists an exact-label/P50 search per author so a
 rate limit leaves completed searches intact. `--fetch-queue-catalogue` follows
 an exact work and author through Open Library's author record to its linked
-Wikidata identity, checking the labels and human identity before admitting it.
+Wikidata identity, checking the labels and human identity before admitting it. Where the catalogue has no identifier bridge, it requires a unique Wikidata human matching both catalogued life endpoints.
 Both retain a bounded search as unresolved when no unique identity is found;
 neither turns an unresolved search into a claim of absence.
