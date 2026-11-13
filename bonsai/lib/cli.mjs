@@ -29,6 +29,7 @@ import {readFileSync,writeFileSync,readdirSync,existsSync,mkdirSync} from 'node:
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {loadCore} from './core.mjs';
+import {aestheticsReviewIssues,readAestheticsReview} from './aesthetics-review.mjs';
 import {exportPhilosophy} from './export.mjs';
 import {dirname,join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
@@ -49,6 +50,10 @@ if(command==='check'){
   let failed=false;
   for(const id of names.length?names:bonsaiIds(root)){
     const result=checkBonsai(root,id);
+    if(id==='aesthetics'){
+      try{result.problems.push(...aestheticsReviewIssues(readAestheticsReview(root)).map(issue=>`review layer: ${issue}`));}
+      catch(error){result.problems.push(`review layer: ${error.message}`);}
+    }
     const counts=result.packet?`${result.packet.claims.length} claims, ${result.packet.records.length} records, ${result.packet.identities.length} identities`:'no export';
     console.log(`${id}: ${result.problems.length?'FAILED':'ok'} · ${counts}${result.checkedIdentities?'':' · Tree identities not checked out'}${result.layers==='absent'?' · layers not fetched, their manifest checked':''}${result.corpus==='absent'?' · corpus not fetched, its places unchecked':''}`);
     for(const problem of result.problems)console.log(`  problem: ${problem}`);
