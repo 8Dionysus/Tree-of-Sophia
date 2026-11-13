@@ -925,11 +925,12 @@
       ],
       "rights_assessment": {
         "status": "preliminary; verify edition hands and legal basis before admission",
-        "usa": "1920 publication; Gutenberg labels its work public domain in the USA",
+        "usa": "US 1920 title/copyright page identifies Silver, Burdett. Under the then maximum term of 75 years for renewed pre-1923 US works, expired no later than end of 1995; renewal record remains unverified and expiration may have been earlier.",
         "eu": "author died 1949; other textual contributors remain to be verified",
         "russia": "author died 1949; other textual contributors and applicable term remain to be verified",
-        "spain": "Pending: Spanish LPI transitional provision 4 directs works of authors who died before 7 December 1987 to the 1879 Act; determine term and any comparison-of-terms or nationality rules for this US author, not simply the general EU 70-year term.",
-        "spain_evidence": "https://www.boe.es/buscar/act.php?id=BOE-A-1996-8930"
+        "spain": "Spanish LPI transitional provision 4 and art.199(4), and EU Directive 2006/116/EC art.7(1), require determining country of origin, non-EU authorship and applicable treaties; possible comparison to US term, not yet a final individual conclusion.",
+        "spain_evidence": "https://www.boe.es/buscar/act.php?id=BOE-A-1996-8930",
+        "eu_directive": "https://eur-lex.europa.eu/eli/dir/2006/116/oj"
       },
       "requested_places": [
         "C:A-I040: chapter V contrast",
@@ -988,6 +989,11 @@
           "source": "Internet Archive advancedsearch, expanded translation variants",
           "url": "https://archive.org/advancedsearch.php",
           "result": "Exact Russian, Spanish, German and Chinese title/author variant queries and English author/title constrained by Russian or Spanish metadata returned 0; metadata searches only and not evidence of absence."
+        },
+        {
+          "source": "RSL browser, exact full Russian name",
+          "url": "https://search.rsl.ru/ru/search#q=%22%D0%94%D0%B5%20%D0%92%D0%B8%D1%82%D1%82%20%D0%9F%D0%B0%D1%80%D0%BA%D0%B5%D1%80%22",
+          "result": "One indexed 2013 musicology dissertation quotes a different sentence attributed to Parker; not a discovered translation of this book. Broad Parker/aesthetics query returned 5,373 mostly unrelated matches; does not establish absence."
         }
       ],
       "remaining": "Search mandatory catalogs and actual translations for ru, es, de and zh-Hans, verify rights and independent semantic review. C:A-I041 rapid plot claim is not established by pp.83–84; no absence inferred.",
