@@ -175,7 +175,65 @@
         "AE01",
         "AE10"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Richard Payne Knight",
+          "role": "author",
+          "birth": "1750 or 1751, sources differ",
+          "death": 1824,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q833886",
+            "https://data.bnf.fr/ark:/12148/cb13573265r",
+            "https://archive.org/metadata/analyticalinquir00knig"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "An analytical inquiry into the principles of taste, London: Luke Hansard for T. Payne and J. White, 1806",
+          "scan": "https://archive.org/details/analyticalinquir00knig",
+          "metadata": "https://archive.org/metadata/analyticalinquir00knig",
+          "pages": "II §17 pp148–149, image n171–n172",
+          "status": "packet accepted by old gate; edition number and scan attribution require review"
+        }
+      ],
+      "requested_places": [
+        "II §17 pp148–149, sentence concerning pittoresco"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; verify historical text, scan and each other contribution separately",
+        "usa": "1806 publication before 1931",
+        "eu": "author died 1824",
+        "russia": "author died 1824",
+        "mexico": "transition rules and foreign edition require independent review"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive advancedsearch",
+          "query": "title:(\"analytical inquiry\") AND creator:(knight)",
+          "result": "1806 and 1808 English editions; global full-text endpoint attempted but not established",
+          "url": "https://archive.org/advancedsearch.php?q=title%3A%28%22analytical+inquiry%22%29+AND+creator%3A%28knight%29&output=json"
+        },
+        {
+          "source": "BnF SRU",
+          "query": "Richard Payne Knight",
+          "result": "44 catalogue records; 1808 and 1999 English editions identified; target translations not established",
+          "url": "https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&query=bib.anywhere%20all%20%22Richard%20Payne%20Knight%22&maximumRecords=50"
+        },
+        {
+          "source": "Open Library",
+          "result": "English editions; specific multilingual search variants yielded no relevant records",
+          "url": "https://openlibrary.org/search.json?q=Analytical%20inquiry%20principles%20taste&limit=25"
+        },
+        {
+          "source": "Google Books, Hathi, Gallica, NЭБ, BDH, OAPEN",
+          "result": "403/429 or unavailable; these searches remain incomplete",
+          "url": "https://catalog.hathitrust.org/"
+        }
+      ],
+      "remaining": "Find and verify translators, matching passages and lawful witnesses in ru/es/de/zh-Hans; complete required catalogue and full-text searches. No conclusion of absence has been made."
     },
     {
       "work": "benedetto-croce.estetica-come-scienza-dell-espressione",
@@ -1577,7 +1635,122 @@
       "areas": [
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "de",
+      "people": [
+        {
+          "name": "Heinrich Wölfflin",
+          "role": "author",
+          "birth": 1864,
+          "death": 1945,
+          "evidence": [
+            "https://openlibrary.org/authors/OL116205A.json"
+          ],
+          "verification": "verify national authority identity"
+        },
+        {
+          "name": "Adrian Frankovsky",
+          "role": "Russian translator, 1930 candidate",
+          "birth": 1888,
+          "death": 1942,
+          "evidence": [
+            "https://ru.wikipedia.org/wiki/Франковский,_Адриан_Антонович"
+          ],
+          "verification": "secondary account; verify title page and authority"
+        },
+        {
+          "name": "Mary Donald Hottinger",
+          "role": "English translator",
+          "birth": 1893,
+          "death": 1978,
+          "evidence": [
+            "https://en.wikipedia.org/wiki/Mary_Hottinger",
+            "https://archive.org/metadata/princarth00wlff"
+          ],
+          "verification": "verify identity on title page"
+        },
+        {
+          "name": "José Moreno Villa",
+          "role": "Spanish translator, 1924 candidate",
+          "birth": 1887,
+          "death": 1955,
+          "evidence": [
+            "https://es.wikipedia.org/wiki/José_Moreno_Villa"
+          ],
+          "verification": "verify title and authority"
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Bruckmann, 1915, first edition",
+          "catalogue": "https://openlibrary.org/books/OL52927149M",
+          "scan": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1915",
+          "status": "catalogue and OA metadata; server delivered challenge instead of scan"
+        },
+        {
+          "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Hugo Bruckmann, 1917, second edition",
+          "scan": "https://archive.org/details/kunstgeschichtli00wluoft",
+          "ocr": "https://archive.org/download/kunstgeschichtli00wluoft/kunstgeschichtli00wluoft_djvu.txt",
+          "page": "p57, IA leaf 73, image n72",
+          "status": "image personally inspected: p57 contains the colour and arrangement passage; correspondence to 1943 still requires review",
+          "page_image": "https://archive.org/download/kunstgeschichtli00wluoft/page/n72_w1400.jpg"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "Principles of Art History, M. D. Hottinger, 1932; Dover reprint 1950",
+          "scan": "https://archive.org/details/princarth00wlff",
+          "page": "p53, IA leaf 71, image n70",
+          "status": "image personally inspected: p53 contains corresponding passage; short-quotation rights, exact boundaries and independent alignment require review",
+          "page_image": "https://archive.org/download/princarth00wlff/page/n70_w1400.jpg"
+        },
+        {
+          "language": "ru",
+          "edition": "Основные понятия истории искусств, translation attributed Adrian Frankovsky, Academia, 1930",
+          "catalogue": "https://ru.wikipedia.org/wiki/Франковский,_Адриан_Антонович",
+          "status": "secondary bibliography; target page and lawful source unverified"
+        },
+        {
+          "language": "es",
+          "edition": "Conceptos fundamentales en la Historia del Arte, translation attributed José Moreno Villa, 1924",
+          "catalogue": "https://es.wikipedia.org/wiki/José_Moreno_Villa",
+          "status": "secondary bibliography; title page and target lawful source unverified"
+        }
+      ],
+      "requested_places": [
+        "C:A-I086 1943 p58, isolated colour versus relationships and movement"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; verify national transitional provisions, editions and participants before admission",
+        "usa": "1915/1917 original printed before 1931; English translation 1932 renewal and restoration not researched",
+        "eu": "author died 1945; Hottinger died 1978, translation requires separate term; Spanish transitional rules require examination",
+        "russia": "author died 1945; independent contributions and special term questions remain",
+        "mexico": "life-plus-100 and transitional provisions require case-specific review"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive metadata and OCR",
+          "result": "1917 German scan and 1950 English reprint identified; target passage located in OCR, images not yet checked",
+          "url": "https://archive.org/details/kunstgeschichtli00wluoft"
+        },
+        {
+          "source": "Hathi bibliographic API",
+          "result": "1921 German copies tagged pdus and full view in catalogue; Spanish 1945 copy search-only",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/oclc/1021790.json"
+        },
+        {
+          "source": "Open Library",
+          "result": "1915 original and Spanish 1945 edition catalogued; publication and translator still require title pages",
+          "url": "https://openlibrary.org/works/OL19679702W/editions.json"
+        },
+        {
+          "source": "Gallica, Google Books, Hathi full text, NЭБ",
+          "result": "403, 429 or unavailable; search is incomplete",
+          "url": "https://catalog.hathitrust.org/"
+        }
+      ],
+      "remaining": "View and compare 1915/1917/1943 source pages; identify lawful target pages and contributors of all translation witnesses; search remaining required catalogues. No conclusion of absence has been made."
     },
     {
       "work": "hermann-schmitz.emotions-outside-the-box-the-new-phenomenology",
