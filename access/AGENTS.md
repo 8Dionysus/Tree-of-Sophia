@@ -5,7 +5,7 @@ This card applies to the installable access product under `access/`.
 ## Role
 
 `access/` owns portable, read-only delivery of Tree of Sophia projections:
-the native Rust query core, its thin imported SDK bridge, installed CLI, local
+the native Rust query core, installed CLI, local
 HTTP/MCP service, web application, WebMCP action contract, standalone
 profiles, and native software/data builders.
 
@@ -16,11 +16,9 @@ serves the stand pages and assets; the retired atlas API is not its origin.
 
 - `rust/crates/tos-query/` owns query planning, normalization, presentation,
   search and exploration semantics. `rust/crates/tos-access/` owns source-read,
-  managed-release, transport and installed-product integration. The Python
-  `src/tos_access/core.py` surface is a thin imported SDK bridge to the
-  installed native product; query, HTTP and source-reading engines reside in
-  native crates. Installed CLI, HTTP, MCP and browser actions route to the
-  native owner.
+  managed-release, transport and installed-product integration. Query, HTTP
+  and source-reading engines reside in native crates. Installed CLI, HTTP, MCP
+  and browser actions route to the native owner.
 - `contracts/` and `profiles/` own the portable consumer-facing ABI.
 - `packaging/` contains explicit data-generation/validation tools only; the
   native software archive owner assembles software subjects.

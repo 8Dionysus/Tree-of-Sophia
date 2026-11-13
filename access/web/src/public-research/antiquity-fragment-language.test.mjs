@@ -37,6 +37,12 @@ describe('Antiquity fragment language',()=>{
       expect(all(figure).filter(node=>node.tagName==='blockquote').map(node=>node.lang)).toEqual(['grc']);
       all(figure).find(node=>node.textContent==='fragmentTranslation').click();
       expect(all(figure).filter(node=>node.tagName==='blockquote')).toHaveLength(0);
+      const german=createFragments({profile:'antiquity',locale:()=> 'de',t:key=>key});
+      const germanFigure=german.fragment({w:'outlines',loc:'I.8'});
+      for(let i=0;i<100&&germanFigure.attributes['aria-busy'];i++)await new Promise(resolve=>setTimeout(resolve,5));
+      const germanQuotes=all(germanFigure).filter(node=>node.tagName==='blockquote');
+      expect(germanQuotes.map(node=>node.lang)).toEqual(['de']);
+      expect(all(germanQuotes[0]).map(node=>node.textContent).join(' ')).toContain('skeptische Vermögen');
     }finally{globalThis.document=prior;}
   });
 });
