@@ -54,6 +54,116 @@ const saveLives=()=>{
   writeFileSync(temporary,`${JSON.stringify(Object.fromEntries(Object.keys(lives).sort().map(key=>[key,lives[key]])),null,1)}\n`);
   renameSync(temporary,LIVES);
 };
+// Open Library can bridge a catalogued work and author to the author's
+// explicitly linked Wikidata item. Validate all three identities before use.
+if(args.has('--fetch-queue-catalogue')){
+  const byAuthor=new Map();
+  for(const work of layer('works'))for(const id of work.agents??[]){
+    if(!byAuthor.has(id))byAuthor.set(id,[]);byAuthor.get(id).push(work);
+  }
+  const fold=value=>String(value??'').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const request=async url=>{
+    await pause(1200);
+    const response=await fetch(url,{headers:{'User-Agent':AGENT},signal:AbortSignal.timeout(30000)});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  };
+  let completed=0,identified=0;
+  for(const [id,works] of byAuthor){
+    if(lives[id]?.item||(lives[id]?.catalogue_search?.complete&&lives[id].catalogue_search.version==='authority-v2'))continue;
+    const agent=agents.get(id),name=agent?.name?.en;
+    const titles=[...new Set(works.flatMap(work=>[work.title?.original,work.title?.en]).filter(Boolean))].slice(0,3);
+    if(!name||!titles.length)continue;
+    try{
+      const choices=new Map();
+      for(const title of titles){
+        const url=new URL('https://openlibrary.org/search.json');
+        for(const [key,value] of Object.entries({title,author:name,fields:'key,title,author_name,author_key',limit:'5'}))url.searchParams.set(key,value);
+        const found=await request(url);
+        for(const work of found.docs??[]){
+          if(!/^\/works\/OL[1-9]\d*W$/.test(work.key??'')||fold(work.title)!==fold(title)||!(work.author_name??[]).some(value=>fold(value)===fold(name)))continue;
+          for(const author of work.author_key??[]){
+            if(!/^OL[1-9]\d*A$/.test(author))continue;
+            const record=await request(`https://openlibrary.org/authors/${author}.json`);
+            const names=[record.name,record.personal_name,...(record.alternate_names??[])].filter(Boolean).map(fold);
+            if(!names.includes(fold(name)))continue;
+            let qid=record.remote_ids?.wikidata;
+            // National authority identifiers can bridge records that lack a direct Wikidata link.
+            const authority=record.remote_ids?.viaf?['P214',record.remote_ids.viaf]:record.remote_ids?.lc_naf?['P244',record.remote_ids.lc_naf]:null;
+            if(!/^Q[1-9]\d*$/.test(qid??'')&&authority){
+              const query=`SELECT DISTINCT ?person WHERE { ?person wdt:${authority[0]} ${JSON.stringify(String(authority[1]))}. } LIMIT 3`;
+              const source=new URL('https://query.wikidata.org/sparql');source.searchParams.set('query',query);source.searchParams.set('format','json');
+              const answer=await request(source),ids=[...new Set((answer.results?.bindings??[]).map(row=>row.person.value.split('/').at(-1)))];
+              if(ids.length===1)qid=ids[0];
+            }
+            if(!/^Q[1-9]\d*$/.test(qid??''))continue;
+            const entity=(await request(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`)).entities?.[qid];
+            if(!entity)continue;
+            const labels=[...Object.values(entity.labels??{}).map(value=>value.value),...Object.values(entity.aliases??{}).flatMap(items=>items.map(value=>value.value))].filter(Boolean).map(fold);
+            const human=(entity.claims?.P31??[]).some(claim=>claim.mainsnak?.datavalue?.value?.id==='Q5');
+            if(!human||!labels.includes(fold(name)))continue;
+            choices.set(qid,{entity,author,work:work.key,title,authority});
+          }
+        }
+      }
+      const catalogue_search={complete:true,version:'authority-v2',titles,source:'https://openlibrary.org/',checked:new Date().toISOString().slice(0,10)};
+      if(choices.size===1){
+        const [qid,record]=[...choices][0],entity=record.entity;
+        const times=property=>{
+          const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
+          return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+        };
+        lives[id]={item:qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_catalogue:{author:record.author,author_url:`https://openlibrary.org/authors/${record.author}`,work:record.work,work_url:`https://openlibrary.org${record.work}`,title:record.title,...(record.authority?{authority:record.authority}: {})},catalogue_search};
+        identified++;console.log(`${id}: ${qid}, Open Library ${record.author} ${record.work}`);
+      }else lives[id]={...(lives[id]??{item:null,label:agent?.name??{},born:[],died:[]}),status:'unresolved',reason:choices.size?'multiple catalogued identities':'no unique catalogued identity in the listed works',catalogue_search};
+      completed++;saveLives();
+    }catch(error){console.error(`catalogue search stopped at ${id}: ${error}`);break;}
+  }
+  console.log(`queue catalogue: ${completed} searched, ${identified} identified`);
+}
+
+// Persist each author's exact-label/P50 search independently, so rate limits
+// stop the operation without losing completed searches or inventing identities.
+if(args.has('--fetch-queue-relations')){
+  const byAuthor=new Map();
+  for(const work of layer('works'))for(const id of work.agents??[]){
+    if(!byAuthor.has(id))byAuthor.set(id,[]);byAuthor.get(id).push(work);
+  }
+  let completed=0,identified=0;
+  for(const [id,works] of byAuthor){
+    if(lives[id]?.item||lives[id]?.relation_search?.complete)continue;
+    const name=agents.get(id)?.name?.en;
+    const titles=[...new Set(works.flatMap(work=>[work.title?.en,work.title?.original,work.title?.ru]).filter(Boolean))].slice(0,12);
+    if(!name||!titles.length)continue;
+    const values=titles.flatMap(title=>['en','de','fr','es','it','la','ru'].map(language=>`(${JSON.stringify(name)}@en ${JSON.stringify(title)}@${language})`)).join(' ');
+    const query=`SELECT DISTINCT ?person ?work WHERE { VALUES (?name ?title) { ${values} } ?work (rdfs:label|skos:altLabel) ?title; wdt:P50 ?person. ?person (rdfs:label|skos:altLabel) ?name. }`;
+    try{
+      const response=await fetch('https://query.wikidata.org/sparql',{method:'POST',body:new URLSearchParams({query,format:'json'}),headers:{'User-Agent':AGENT,'Accept':'application/sparql-results+json','Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(45000)});
+      if(!response.ok)throw new Error(`SPARQL ${response.status}`);
+      const choices=new Map();
+      for(const row of (await response.json()).results.bindings){
+        const qid=row.person.value.split('/').at(-1),work=row.work.value.split('/').at(-1);
+        if(/^Q[1-9]\d*$/.test(qid)&&/^Q[1-9]\d*$/.test(work))choices.set(qid,work);
+      }
+      const relation_search={complete:true,titles,source:'https://query.wikidata.org/',checked:new Date().toISOString().slice(0,10)};
+      if(choices.size===1){
+        const [qid,work]=[...choices][0],source=await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`,{headers:{'User-Agent':AGENT},signal:AbortSignal.timeout(30000)});
+        if(!source.ok)throw new Error(`Wikidata ${source.status}`);
+        const entity=(await source.json()).entities[qid];
+        const times=property=>{
+          const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
+          return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+        };
+        lives[id]={item:qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_work:work,relation_search};
+        identified++;console.log(`${id}: ${qid}, evidenced by ${work}`);
+      }else lives[id]={...(lives[id]??{item:null,label:agents.get(id)?.name??{},born:[],died:[]}),status:'unresolved',reason:choices.size?'multiple exact work-author identities':'no exact match among the listed titles',relation_search};
+      completed++;saveLives();
+    }catch(error){console.error(`queue relation search stopped at ${id}: ${error}`);break;}
+    await new Promise(resolve=>setTimeout(resolve,1500));
+  }
+  console.log(`queue relations: ${completed} searched, ${identified} identified`);
+}
 // A second evidence route identifies a unique exact name when both lifetime
 // endpoints also agree with the register. A single name or date is insufficient.
 if(args.has('--fetch-queue-dates')){
@@ -64,9 +174,9 @@ if(args.has('--fetch-queue-dates')){
     if(match)entries.push({id,name:agent.name.en,born:Number(match[1]),died:Number(match[2])});
   }
   const hits=new Map();let complete=true;
-  for(let start=0;start<entries.length;start+=20){
-    const batch=entries.slice(start,start+20),values=batch.map(item=>`(${JSON.stringify(item.name)}@en ${item.born} ${item.died})`).join(' ');
-    const query=`SELECT DISTINCT ?name ?birthYear ?deathYear ?person WHERE { VALUES (?name ?birthYear ?deathYear) { ${values} } ?person rdfs:label ?name; wdt:P31 wd:Q5; wdt:P569 ?born; wdt:P570 ?died. FILTER(YEAR(?born)=?birthYear && YEAR(?died)=?deathYear) }`;
+  for(let start=0;start<entries.length;start+=5){
+    const batch=entries.slice(start,start+5),values=batch.map(item=>`(${JSON.stringify(item.name)}@en ${item.born} ${item.died})`).join(' ');
+    const query=`SELECT DISTINCT ?name ?birthYear ?deathYear ?person WHERE { VALUES (?name ?birthYear ?deathYear) { ${values} } ?person (rdfs:label|skos:altLabel) ?name; wdt:P31 wd:Q5; wdt:P569 ?born; wdt:P570 ?died. FILTER(YEAR(?born)=?birthYear && YEAR(?died)=?deathYear) }`;
     try{
       const response=await fetch('https://query.wikidata.org/sparql',{method:'POST',body:new URLSearchParams({query,format:'json'}),headers:{'User-Agent':AGENT,'Accept':'application/sparql-results+json','Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(45000)});
       if(!response.ok)throw new Error(`SPARQL ${response.status}`);
@@ -111,18 +221,21 @@ if(args.has('--fetch-queue-batch')){
   const pairs=[],owners=new Map(),hits=new Map(),pending=new Set();
   for(const work of layer('works'))for(const id of work.agents??[]){
     if(lives[id]?.item)continue;
-    const name=agents.get(id)?.name?.en,title=work.title?.en??work.title?.original;
-    if(!name||!title)continue;
-    const key=JSON.stringify([name,title]);
-    if(!owners.has(key)){owners.set(key,[]);pairs.push([name,title]);}
-    owners.get(key).push(id);pending.add(id);
+    const name=agents.get(id)?.name?.en,titles=[...new Set([work.title?.en,work.title?.original,work.title?.ru].filter(Boolean))];
+    if(!name||!titles.length)continue;
+    for(const title of titles){
+      const key=JSON.stringify([name,title]);
+      if(!owners.has(key)){owners.set(key,[]);pairs.push([name,title]);}
+      owners.get(key).push(id);
+    }
+    pending.add(id);
     if(!lives[id])lives[id]={item:null,label:agents.get(id)?.name??{},born:[],died:[],status:'unsearched'};
   }
   saveLives();
   let complete=true;
   for(let start=0;start<pairs.length;start+=15){
     const batch=pairs.slice(start,start+15),values=batch.flatMap(([name,title])=>['en','de','fr','es','it','la','ru'].map(language=>`(${JSON.stringify(name)}@en ${JSON.stringify(title)}@${language})`)).join(' ');
-    const query=`SELECT DISTINCT ?name ?title ?person ?work WHERE { VALUES (?name ?title) { ${values} } ?work rdfs:label ?title; wdt:P50 ?person. ?person rdfs:label ?name. }`;
+    const query=`SELECT DISTINCT ?name ?title ?person ?work WHERE { VALUES (?name ?title) { ${values} } ?work (rdfs:label|skos:altLabel) ?title; wdt:P50 ?person. ?person (rdfs:label|skos:altLabel) ?name. }`;
     const body=new URLSearchParams({query,format:'json'});
     try{
       const response=await fetch('https://query.wikidata.org/sparql',{method:'POST',body,headers:{'User-Agent':AGENT,'Accept':'application/sparql-results+json','Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(45000)});
