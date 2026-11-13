@@ -1446,6 +1446,14 @@
           "evidence": [
             "https://book.douban.com/subject/36363233/"
           ]
+        },
+        {
+          "name": "Jesús Fernández",
+          "role": "Spanish translator, Nivola 1999 edition",
+          "dates_status": "not established",
+          "evidence": [
+            "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991057789609708606&context=L&vid=34BNE_INST:CATALOGO"
+          ]
         }
       ],
       "original_candidates": [
@@ -1480,6 +1488,12 @@
           "edition": "一个数学家的辩白, trans. 凌复华, 云南人民出版社, 2023",
           "catalogue": "https://book.douban.com/subject/36363233/",
           "status": "catalogue candidate; matching pages and rights unverified"
+        },
+        {
+          "language": "es",
+          "edition": "Apología de un matemático, trans. Jesús Fernández, Nivola, 1999, ISBN 84-930719-0-0",
+          "catalogue": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991057789609708606&context=L&vid=34BNE_INST:CATALOGO",
+          "status": "BNE physical copy; exact passage, rights and comparison to other translations unverified"
         }
       ],
       "requested_places": [
@@ -1508,6 +1522,11 @@
           "source": "Hathi bibliographic API",
           "result": "1940 copy is search-only, not full view",
           "url": "https://catalog.hathitrust.org/api/volumes/brief/oclc/880626.json"
+        },
+        {
+          "source": "Biblioteca Nacional de España catalog, viewed in browser",
+          "result": "Nivola 1999 identifies Jesús Fernández as translator and 136 pages; physical copy. Capitán Swing 2019 EPUB is restricted to BNE and conservation centres; its record does not identify a translator. No target pages examined.",
+          "url": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991061098969208606&context=L&vid=34BNE_INST:CATALOGO"
         }
       ],
       "remaining": "Obtain exact lawful pages in each language, verify all contributors, legal rights and complete required searches. No conclusion of absence has been made."
