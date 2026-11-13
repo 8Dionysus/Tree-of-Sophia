@@ -2,33 +2,55 @@
   "status": "research-candidate; incomplete; not admitted; independent review and rights assessment pending",
   "work": "alexander-gottlieb-baumgarten.aesthetica",
   "language": "en",
-  "edition_candidate": "Christoph Menke, “The Dialectic of Aesthetics”, in Aesthetic Experience, eds. Richard Shusterman and Adele Tomlin (Routledge, 2010), p. 60, quoting Aesthetica §1.",
-  "transcription": "https://books.google.com/books?id=SpZ-AgAAQBAJ&pg=PA60",
+  "edition_candidate": "Frauke Berndt, Facing Poetry: Alexander Gottlieb Baumgarten’s Theory of Literature (De Gruyter, 2020), Aesthetica translations by Maya Maskarinec and Alexandre Roberts, pp. 10, 43.",
+  "transcription": "https://archive.org/download/oapen-20.500.12657-46687/9783110624519.pdf",
   "persons": [
     {
       "name": "Alexander Gottlieb Baumgarten",
       "died": 1762
     },
     {
-      "name": "Christoph Menke",
+      "name": "Maya Maskarinec",
       "died": null,
-      "role": "chapter author; translator attribution not established",
-      "source": "https://books.google.com/books?id=SpZ-AgAAQBAJ&pg=PA60"
+      "role": "translator of Aesthetica quotations",
+      "source": "https://doi.org/10.1515/9783110624519"
+    },
+    {
+      "name": "Alexandre Roberts",
+      "died": null,
+      "role": "translator of Aesthetica quotations",
+      "source": "https://doi.org/10.1515/9783110624519"
+    },
+    {
+      "name": "Frauke Berndt",
+      "died": null,
+      "role": "editorial selection and author",
+      "source": "https://doi.org/10.1515/9783110624519"
     }
   ],
-  "rights": "Modern scholarly translation; possible short quotation subject to attribution, jurisdiction, purpose and extent review. Google Books indicates publisher-authorized preview.",
-  "method": "Maker read printed image of p. 60. The chapter quotes one complete sentence from §1; identify its translator and independently check alignment.",
+  "rights": "Book states CC BY-NC-ND 4.0; determine how this applies to individual translated quotations, commercial usage, and modifications. Short quotation, where legally justified, is a separate possible basis; do not assume licence covers all uses.",
+  "method": "Maker read OA book PDF p. 43 image and p. 10 extraction. Both translations credited in title and book p. 6. First place needs visual verification; second reader and rights remain pending.",
   "places": {
     "§1 p1": {
-      "text": "Aesthetics (as theory of the free arts, as doctrine of inferior knowledge, as art of beautiful thought and as art of thought analogous to reason) is the science of sensuous knowledge.",
-      "printed_pages": "60",
+      "text": "AESTHETICS (the theory of the liberal arts, inferior gnoseology, the art of thinking beautifully, the art of the analogon of reason) is the science of sensate cognition",
+      "printed_pages": "10",
       "scan_images": [
-        "https://books.google.com/books?id=SpZ-AgAAQBAJ&pg=PA60"
+        "https://archive.org/download/oapen-20.500.12657-46687/9783110624519.pdf#page=21"
       ],
-      "verification": "maker compared authorized page image; translator identity, independent reading and rights pending"
+      "verification": "maker checked extracted text; visual page and independent verification pending"
+    },
+    "§13 p5": {
+      "text": "Our aesthetics (§ 1), just like logic, her older sister by birth, consists of (I) a THEORETICAL first part that is instructive and general, teaching (1) about matters and potential thoughts HEURISTICALLY (chapter 1), (2) about lucid organization, METHODOLOGY (chapter 2), and (3) about the signs of what is thought and organized beautifully, SEMIOTICS (chapter 3); and (II) a PRACTICAL second part that is applied and particular.",
+      "printed_pages": "43",
+      "scan_images": [
+        "https://archive.org/download/oapen-20.500.12657-46687/9783110624519.pdf#page=54"
+      ],
+      "verification": "maker inspected PDF page; independent reader and rights assessment pending"
     }
   },
   "research_notes": {
-    "remaining": "§13 p5 and §14 p6 still need a full corresponding translation or documented exhaustive search; search remains partial."
-  }
+    "§14 p6": "Berndt quotes this place in separate pieces on pp. 88 and 89, separated by authorial commentary. The second original sentence crosses these separate quotations; do not assemble as a continuous verified sentence without a lawful exact source and alignment resolution.",
+    "earlier_candidate": "An alternative §1 translation is quoted by Christoph Menke in Aesthetic Experience (Routledge, 2010), p.60; translator identity remains unverified."
+  },
+  "transcription_snapshot_sha256": "79881ebd015d0ba3234649f9b5b4ea4b42af923a5124bb9f2f2c9ad8b56fb79e"
 }
