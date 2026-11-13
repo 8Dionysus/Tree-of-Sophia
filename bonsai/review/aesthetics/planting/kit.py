@@ -77,7 +77,7 @@ def world(but=None):
     field['conceptions']=[record for record in field['conceptions'] if record['reading']['reader']!=but];field['links']=[record for record in field['links'] if record['reading']['reader']!=but]
     grown={key for record in field['conceptions'] for key in record['grew_from']}|{key for record in field['links'] for key in record['grew_from']}
     return {'field':field,'fragments':fragments,'works':{work['id']:work for work in layer('works')},'agents':{agent['id']:agent for agent in layer('agents')},
-            'concepts':{concept['key']:concept for concept in concepts},'canon':canon,'titles':titles,'readings':layer('readings'),'links':layer('links'),
+            'lives':layer('lives'),'concepts':{concept['key']:concept for concept in concepts},'canon':canon,'titles':titles,'readings':layer('readings'),'links':layer('links'),
             'areas':{area['id'] for area in load(os.path.join(REVIEW,'inputs','areas.json'))['areas']},'grown':grown}
 
 def task(w,work):
@@ -97,23 +97,28 @@ def task(w,work):
             'conceptions_planted':[record['id'] for record in w['field']['conceptions'] if record['work']==work]}
 
 def wave(w,work):
-    known=w['works'][work]
-    if work in w['fragments']['works']:return 'planted'
-    packet_path=os.path.join(PACKETS,work)
-    candidate=part(packet_path,'places.json') or {};entry=candidate.get('entry') or {}
+    """Prioritize leads by rights; the edition and all its hands are decided by the gate."""
+    known=w['works'][work];packet_path=os.path.join(PACKETS,work)
+    candidate=part(packet_path,'places.json') or {};entry=candidate.get('entry') or w['fragments']['works'].get(work) or {}
     witness=(entry.get('witnesses') or {}).get(entry.get('original')) or {};rights=witness.get('rights') or {}
     bases=[(rights.get(country) or {}).get('basis') if isinstance(rights.get(country),dict) else None for country in JURISDICTIONS]
     if all(basis in BASES for basis in bases):
         if all(basis=='locator-only' for basis in bases):return 'locator-only'
         free=sum(basis in ('public-domain','public-domain+licence') for basis in bases)
         return 'free-all' if free==3 else 'free-some' if free else 'quotation'
-    if any(record['work']==work and not record['formula']['cite'][0].get('loc') for record in w['field']['conceptions']):return 'corpus'
     people=[]
     for agent in known['agents']:
-        dates=w['agents'][agent].get('dates') or []
-        match=re.search(r'[–-]\s*(\d{4})\s*$',dates[0]) if dates else None
-        if not match:return 'quotation'
-        people.append({'died':int(match.group(1))})
+        life=(w.get('lives') or {}).get(agent) or {};dates=life.get('died') or []
+        years=[]
+        if life.get('item') and dates and all(type(item.get('precision')) is int and item['precision']>=9 for item in dates):
+            for item in dates:
+                match=re.match(r'([+-]\d+)-',str(item.get('time','')))
+                if match:years.append(int(match.group(1)))
+        if not years and not life.get('item'):
+            notes=w['agents'][agent].get('dates') or []
+            match=re.fullmatch(r'\s*\d{4}\s*[–-]\s*(\d{4})\s*',notes[0]) if notes else None
+            if match:years.append(int(match.group(1)))
+        people.append({'died':max(years) if years else None})
     rights=public_domain_by_dates(people,known.get('year'))
     return 'free-all' if all(rights.values()) else 'free-some' if any(rights.values()) else 'quotation'
 
@@ -123,11 +128,13 @@ def cmd_queue(args):
         t=task(w,work)
         if not t['readings']:continue
         unread=all(r['basis']=='bibliography' for r in t['readings'])      # a catalogue stands behind every waiting reading: the work itself is still to be read
-        rows.append({'work':work,'wave':'held' if work in hold else 'unread' if unread else wave(w,work),'year':t['year'],'readings':len(t['readings']),'primary':sum(r['basis']=='primary' for r in t['readings']),
+        corpus=any(record['work']==work and not record['formula']['cite'][0].get('loc') for record in w['field']['conceptions'])
+        status='held' if work in hold else 'unread' if unread else 'planted' if work in w['fragments']['works'] else 'corpus' if corpus else 'waiting'
+        rows.append({'work':work,'wave':wave(w,work),'status':status,'year':t['year'],'readings':len(t['readings']),'primary':sum(r['basis']=='primary' for r in t['readings']),
                      'links':len(t['links']),'areas':sorted({area for r in t['readings'] for area in r['areas']})})
     first=lambda row:sum(area in('AE01','AE02') for area in row['areas'])
     rows.sort(key=lambda row:(row['wave']!='free-all',-first(row),-row['readings'],row['work']))
-    save(os.path.join(HERE,'queue.json'),{'made':'kit.py queue','rule':'Candidates from the register: all jurisdictions, some jurisdictions, or quotation. The gate decides from the edition and every hand; unknown dates are not a public-domain finding.','works':rows})
+    save(os.path.join(HERE,'queue.json'),{'made':'kit.py queue','rule':'Rights waves are leads from the register and sourced lives, not admission: the gate checks the actual edition and every hand. Status records held, unread, corpus and planted work separately.','works':rows})
     count={}
     for row in rows:count.setdefault(row['wave'],[0,0]);count[row['wave']][0]+=1;count[row['wave']][1]+=row['readings']
     print('queue.json: '+'; '.join(f'{name}: {works} works, {readings} readings' for name,(works,readings) in count.items()))

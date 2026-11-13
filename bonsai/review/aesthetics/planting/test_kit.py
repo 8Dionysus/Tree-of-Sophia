@@ -377,3 +377,19 @@ class PageImageTest(unittest.TestCase):
     def test_html_or_empty_response_is_not_page_evidence(self):
         self.assertFalse(kit.valid_page_image(b'<html>Access denied</html>'))
         self.assertFalse(kit.valid_page_image(b''))
+
+class QueueRightsWaveTest(unittest.TestCase):
+    def test_partial_public_domain_and_unknown_dates_remain_distinct(self):
+        w={'works':{'work':{'agents':['author'],'year':1928}},'agents':{'author':{'dates':[]}},
+           'fragments':{'works':{}},'field':{'conceptions':[]},
+           'lives':{'author':{'item':'Q1','died':[{'time':'+1995-01-01T00:00:00Z','precision':11}]}}}
+        self.assertEqual(kit.wave(w,'work'),'free-some')
+        w['lives']['author']['died']=[]
+        self.assertEqual(kit.wave(w,'work'),'free-some')
+        w['works']['work']['year']=None
+        self.assertEqual(kit.wave(w,'work'),'quotation')
+        w['works']['work']['year']=1900
+        w['lives']['author']['died']=[{'time':'+1900-01-01T00:00:00Z','precision':11}]
+        self.assertEqual(kit.wave(w,'work'),'free-all')
+        w['lives']['author']['died']=[{'time':'+1900-01-01T00:00:00Z','precision':8}]
+        self.assertEqual(kit.wave(w,'work'),'free-some')

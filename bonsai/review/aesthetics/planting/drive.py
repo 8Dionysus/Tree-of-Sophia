@@ -155,7 +155,7 @@ def roomy():
 def line(args):
     if not 1<=args.max<=3:raise SystemExit('--max must be between 1 and 3')
     kit('queue');queue=json.load(open(os.path.join(HERE,'queue.json')))['works']
-    works=args.works.split(',') if args.works else [row['work'] for row in queue if row['wave']==args.wave]
+    works=args.works.split(',') if args.works else [row['work'] for row in queue if row['wave']==args.wave and row.get('status','waiting')=='waiting']
     works=[work for work in works if args.retake or (not have(work,'accepted.json') and not have(work,'blocked.json'))][:args.count or None]
     code,text=kit('ready')                                      # no reader starts in a checkout that cannot plant: each would spend its turns and stop at the same wall
     if code:
