@@ -257,8 +257,16 @@ export function alignCorpus(cited,works,read,scopes=[]){
     const invalidStart=start!==undefined&&(!firstTarget||start?.unitId!==firstTarget.id||!Number.isInteger(start?.offset)||start.offset<1||start.offset>=chars(firstTarget.text).length);
     const handovers=scope.handoverUnitIds;
     const invalidHandovers=handovers!==undefined&&(!Array.isArray(handovers)||!handovers.length||new Set(handovers).size!==handovers.length||handovers.some(id=>{const i=original?.units.findIndex(unit=>unit.id===id)??-1;return typeof id!=='string'||i<=first||i>last;}));
-    const invalidWithheld=scope.withheld!==undefined&&(scope.withheld!==true||first!==0||last!==original?.units.length-1||typeof scope.basis!=='string'||!scope.basis.trim()||scope.maxSourceSentences!==undefined||start!==undefined||handovers!==undefined);
-    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))||invalidStart||invalidHandovers||invalidWithheld||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
+    const locals=scope.localReferencePairs;
+    const invalidLocals=locals!==undefined&&(!Array.isArray(locals)||!locals.length||start!==undefined||new Set(locals.map(pair=>pair?.originalUnitId)).size!==locals.length||new Set(locals.map(pair=>pair?.translationUnitId)).size!==locals.length||locals.some(pair=>{
+      const i=original?.units.findIndex(unit=>unit.id===pair?.originalUnitId)??-1,from=original?.units[i],j=translation?.units.findIndex(unit=>unit.id===pair?.translationUnitId)??-1,to=translation?.units[j],next=translation?.units[j+1];
+      const a=numbers(from?.reference),b=numbers(to?.reference);
+      const continuation=pair?.includeFollowingContinuation;
+      const invalidContinuation=continuation!==undefined&&(continuation!==true||!to||!next||!unfinished(chars(to.text).slice(0,textEnd(to.text)).join(''))||!continues(next.text)||!sentencesOf([{index:0,raw:chars(next.text).slice(0,textEnd(next.text)).join('')}],translation.language).length);
+      return i<first||i>last||!to||!a.length||!b.length||a.at(-1)!==b.at(-1)||invalidContinuation;
+    }));
+    const invalidWithheld=scope.withheld!==undefined&&(scope.withheld!==true||first!==0||last!==original?.units.length-1||typeof scope.basis!=='string'||!scope.basis.trim()||scope.maxSourceSentences!==undefined||start!==undefined||handovers!==undefined||locals!==undefined);
+    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))||invalidStart||invalidHandovers||invalidLocals||invalidWithheld||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
     seenScopes.add(key);
   }
   const out={schema:CORPUS_ALIGNMENT_SCHEMA,mechanism:'bonsai/lib/corpus-align.mjs',review:'unreviewed',works:{},units:{},receipt:{}};
@@ -287,8 +295,22 @@ export function alignCorpus(cited,works,read,scopes=[]){
       const start=scope?.translationStart;
       const target=start?{...version,units:version.units.map(unit=>unit.id===start.unitId?{...unit,text:chars(unit.text).slice(start.offset).join('')}:unit)}:version;
       const {entries,receipt}=alignVersion(source,target,units,{maxSourceSentences:scope?.maxSourceSentences??3,handoverUnitIds:scope?.handoverUnitIds??[]});
+      // Some editions label the same numbered place differently. For explicitly
+      // reviewed, revision-bound units, align both complete units independently;
+      // the sentence aligner still selects all text and original offsets remain intact.
+      const localReceipts=[];
+      for(const pair of scope?.localReferencePairs??[]){
+        const from=source.units.find(unit=>unit.id===pair.originalUnitId),index=target.units.findIndex(unit=>unit.id===pair.translationUnitId),to=target.units[index],localTargets=[to];
+        if(pair.includeFollowingContinuation){
+          const next=target.units[index+1],head=sentencesOf([{index:0,raw:chars(next.text).slice(0,textEnd(next.text)).join('')}],target.language)[0];
+          localTargets.push({...next,text:chars(next.text).slice(0,head.id[2]).join('')});
+        }
+        const local=alignVersion({...source,units:[{...from,reference:to.reference}]},{...target,units:localTargets},new Set([from.id]),{maxSourceSentences:scope?.maxSourceSentences??3});
+        if(units.has(from.id)){if(local.entries[from.id])entries[from.id]=local.entries[from.id];else delete entries[from.id];}
+        localReceipts.push({...pair,...local.receipt});
+      }
       if(start)for(const entry of Object.values(entries))for(const [,targets] of entry.pairs)for(const span of targets)if(entry.u[span[0]]===start.unitId){span[1]+=start.offset;span[2]+=start.offset;}
-      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source,...(scope.maxSourceSentences!==undefined?{maxSourceSentences:scope.maxSourceSentences}:{}),...(start?{translationStart:start}:{}),...(scope.handoverUnitIds?{handoverUnitIds:scope.handoverUnitIds}:{})};
+      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source,...(scope.maxSourceSentences!==undefined?{maxSourceSentences:scope.maxSourceSentences}:{}),...(start?{translationStart:start}:{}),...(scope.handoverUnitIds?{handoverUnitIds:scope.handoverUnitIds}:{}),...(localReceipts.length?{localReferenceAlignments:localReceipts}:{})};
       translations.push({...meta(version),coverage:receipt.coverage,...(mixedNotes(version)>2?{notesInText:true}:{})});
       out.receipt[`${key}:${version.id}`]=receipt;
       for(const [unit,entry] of Object.entries(entries))(out.units[unit]??={w:key,t:{}}).t[version.id]=entry;

@@ -94,6 +94,48 @@ describe('the corpus alignment of the stands',()=>{
     expect(result.receipt['a:e'].sourceScope.translationStart).toEqual(scope.translationStart);
     for(const translationStart of [{unitId:'other',offset:10},{unitId:'t',offset:100},{unitId:'t',offset:0}])expect(()=>alignCorpus(cited,works,read,[{...scope,translationStart}])).toThrow(/invalid or stale translation scope/);
   });
+  it('aligns explicitly matched whole reference units without changing the original or other units',()=>{
+    const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s1',reference:'Book 7 · 515',text:'λόγος.'},{id:'s2',reference:'Book 7 · 516',text:'ἄνω.'}]};
+    const translation={id:'r',language:'ru',revision:'r-rev',units:[{id:'t1',reference:'515',text:'Слово.'},{id:'t2',reference:'516',text:'Выше.'}]};
+    const read=()=>({id:'work',versions:[original,translation]}),cited=new Map([['a',{original:'g',units:new Set(['s1','s2'])}]]),works={a:'work'};
+    const scope={work:'a',translationVersionId:'r',translationRevision:'r-rev',originalVersionId:'g',originalRevision:'g-rev',firstUnitId:'s1',lastUnitId:'s2',source:'https://example.test/book',basis:'Same numbered place.',localReferencePairs:[{originalUnitId:'s2',translationUnitId:'t2'}]};
+    const baseline=alignCorpus(cited,works,read),result=alignCorpus(cited,works,read,[scope]);
+    expect(result.units.s1).toEqual(baseline.units.s1);
+    expect(result.units.s2.t.r.u).toEqual(['t2']);
+    expect(result.units.s2.t.r.pairs[0][1]).toEqual([[0,0,5]]);
+    expect(original.units[1]).toEqual({id:'s2',reference:'Book 7 · 516',text:'ἄνω.'});
+    expect(result.receipt['a:r'].sourceScope.localReferenceAlignments[0]).toMatchObject({...scope.localReferencePairs[0],how:'reference'});
+    for(const pair of [{originalUnitId:'s2',translationUnitId:'t1'},{originalUnitId:'missing',translationUnitId:'t2'},{originalUnitId:'s2',translationUnitId:'missing'}])expect(()=>alignCorpus(cited,works,read,[{...scope,localReferencePairs:[pair]}])).toThrow(/invalid or stale translation scope/);
+    expect(()=>alignCorpus(cited,works,read,[{...scope,originalRevision:'stale'}])).toThrow(/invalid or stale translation scope/);
+  });
+  it.skipIf(!corpusFetched)('matches the Russian Republic citation about habituation to its original',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),work=read(module.works.republic.documentId);
+    const unit='tos.text-unit.sid-3dfba184a7244e53b1e30e372445e2f3',version=work.versions.find(v=>v.id==='retained-republic-ru-karpov1863-wikisource'),entry=module.units[unit].t[version.id];
+    const text=entry.pairs.filter(([spans])=>spans.some(([a,b])=>a<390&&335<b)).flatMap(([,targets])=>targets).map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+    expect(text).toContain('Понадобилась бы, думаю, привычка');
+    expect(text).not.toContain('Вдруг-то, конечно, не могли бы');
+    expect(module.works.republic.original.versionId).toBe('retained-republic-grc2-5f9f8ad62cdb');
+  });
+  it('keeps a scoped reference sentence that continues into the next translation unit',()=>{
+    const original={id:'g',language:'grc',revision:'g',units:[{id:'s',reference:'Book 1 · 434',text:'λόγος.'}]};
+    const translation={id:'r',language:'ru',revision:'r',units:[{id:'t1',reference:'434',text:'Первая часть'},{id:'t2',reference:'435',text:' продолжение. Другой текст.'}]};
+    const read=()=>({id:'work',versions:[original,translation]}),works={a:'work'},cited=new Map([['a',{original:'g',units:new Set(['s'])}]]);
+    const scope={work:'a',translationVersionId:'r',translationRevision:'r',originalVersionId:'g',originalRevision:'g',firstUnitId:'s',lastUnitId:'s',source:'https://example.test/book',basis:'The sentence crosses the reference.',localReferencePairs:[{originalUnitId:'s',translationUnitId:'t1',includeFollowingContinuation:true}]};
+    const entry=alignCorpus(cited,works,read,[scope]).units.s.t.r;
+    expect(entry.u).toEqual(['t1','t2']);
+    const text=entry.pairs[0][1].map(([i,a,b])=>Array.from(translation.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+    expect(text).toBe('Первая часть продолжение.');
+    expect(()=>alignCorpus(cited,works,()=>({id:'work',versions:[original,{...translation,units:[{...translation.units[0],text:'Готово.'},translation.units[1]]}]}),[scope])).toThrow(/invalid or stale translation scope/);
+    expect(()=>alignCorpus(cited,works,()=>({id:'work',versions:[original,{...translation,units:[translation.units[0]]}]}),[scope])).toThrow(/invalid or stale translation scope/);
+  });
+  it.skipIf(!corpusFetched)('matches the Russian Republic transition from city to individual across the page break',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),work=read(module.works.republic.documentId);
+    const unit='tos.text-unit.sid-30964fd34db4458c914156b4c619690a',version=work.versions.find(v=>v.id==='retained-republic-ru-karpov1863-wikisource'),entry=module.units[unit].t[version.id];
+    const text=entry.pairs.filter(([spans])=>spans.some(([a,b])=>a<1933&&1853<b)).flatMap(([,targets])=>targets).map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+    expect(text).toContain('перенесем на одного');
+    expect(text).toContain('станем испытывать город.');
+    expect(text).not.toContain('мы и устрояли его');
+  });
   it.skipIf(!corpusFetched)('aligns the Isagoge introduction with Owen rather than its table of contents',()=>{
     const module=json('bonsai/antiquity/alignment.json'),work=read(module.works.isagoge.documentId);
     const unit='tos.text-unit.sid-9c2f653ab2ef4d44bc4ae0e5218598b2',version=work.versions.find(v=>v.id==='retained-isagoge-en-owen1853-wikisource'),entry=module.units[unit].t[version.id];
