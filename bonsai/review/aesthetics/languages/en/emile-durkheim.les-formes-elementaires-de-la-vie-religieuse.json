@@ -1,0 +1,41 @@
+{
+  "status": "research-candidate; short-quotation review required outside US; not admitted",
+  "work": "emile-durkheim.les-formes-elementaires-de-la-vie-religieuse",
+  "language": "en",
+  "edition_candidate": "The Elementary Forms of the Religious Life, translated Joseph Ward Swain, London: George Allen & Unwin, 1915. Gutenberg transcription lists a later impression; these specific sentences were compared with the 1915 page images.",
+  "transcription": "https://www.gutenberg.org/ebooks/41360.txt.utf-8",
+  "transcription_sha256": "187a7bef23497646a6a68bf11b4dd40e52fa7aba1eb90405d91243505dd5691d",
+  "scan": "https://archive.org/details/elementaryformso00durk",
+  "persons": [
+    {
+      "name": "Émile Durkheim",
+      "died": 1917
+    },
+    {
+      "name": "Joseph Ward Swain",
+      "died": 1971,
+      "source": "https://www.wikidata.org/wiki/Q18910535"
+    }
+  ],
+  "rights": "Candidate US public domain due to 1915 edition; translator died 1971, translation is not presumed public domain under life-plus-70 in EU or Russia. Two short sentences are candidates for quotation with attribution in research, subject to jurisdiction-specific review and line gate.",
+  "method": "Two whole sentences cut from Gutenberg by boundary strings, whitespace normalized; maker compared against 1915 scan pages. Independent review pending.",
+  "places": {
+    "I.1 p56a": {
+      "text": "Sacred things are those which the interdictions protect and isolate; profane things, those to which these interdictions are applied and which must remain at a distance from the first.",
+      "printed_pages": "40–41",
+      "scan_images": [
+        "https://archive.org/download/elementaryformso00durk/page/n55/mode/1up",
+        "https://archive.org/download/elementaryformso00durk/page/n56/mode/1up"
+      ],
+      "verification": "maker compared 1915 scan image to Gutenberg; independent review and scoped rights gate pending"
+    },
+    "I.1 p56b": {
+      "text": "Finally, rites are the rules of conduct which prescribe how a man should comport himself in the presence of these sacred objects.",
+      "printed_pages": "41",
+      "scan_images": [
+        "https://archive.org/download/elementaryformso00durk/page/n56/mode/1up"
+      ],
+      "verification": "maker compared 1915 scan image to Gutenberg; independent review and scoped rights gate pending"
+    }
+  }
+}

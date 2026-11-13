@@ -1,0 +1,50 @@
+{
+  "status": "research-candidate; not admitted; independent review and rights unresolved",
+  "work": "thomas-aquinas.summa-theologiae",
+  "language": "en",
+  "edition_candidate": "The Summa Theologica, first part, volume 2, English Dominican Province translation, 1921 printing, London: Burns, Oates & Washbourne; New Advent identifies second revised edition as 1920; confirm exact edition and translators.",
+  "transcription": "https://www.newadvent.org/summa/1039.htm",
+  "transcription_sha256": "b3adc3946020122442dcd51d88301efade255bdbdd33dbcde6b4c32d876f9a38",
+  "scan": "https://archive.org/details/summatheologicao02thom",
+  "persons": [
+    {
+      "name": "Thomas Aquinas",
+      "died": 1274
+    },
+    {
+      "name": "Fathers of the English Dominican Province",
+      "died": null,
+      "note": "Collective attribution; identify actual translators and their dates"
+    }
+  ],
+  "rights": "Unresolved until contributors and edition are identified and rights checked in each jurisdiction.",
+  "method": "Text derived from New Advent, whitespace normalized, online quotation marks replaced by plain text matching printed italics; color corrected to colour from scanned page. Maker checked both passages against page image; independent review needed.",
+  "places": {
+    "I q39 a8 p318a": {
+      "text": "For beauty includes three conditions, integrity or perfection, since those things which are impaired are by the very fact ugly; due proportion or harmony; and lastly, brightness or clarity, whence things are called beautiful which have a bright colour.",
+      "printed_pages": "147",
+      "scan_images": [
+        "https://archive.org/download/summatheologicao02thom/page/n160/mode/1up"
+      ],
+      "corrections": [
+        {
+          "from": "color",
+          "to": "colour",
+          "reason": "printed page 147"
+        },
+        {
+          "from": "quoted terms",
+          "to": "plain words",
+          "reason": "printed italics, not quotation marks; emphasis dropped"
+        }
+      ]
+    },
+    "I q39 a8 p318b": {
+      "text": "Hence we see that an image is said to be beautiful, if it perfectly represents even an ugly thing.",
+      "printed_pages": "147",
+      "scan_images": [
+        "https://archive.org/download/summatheologicao02thom/page/n160/mode/1up"
+      ]
+    }
+  }
+}
