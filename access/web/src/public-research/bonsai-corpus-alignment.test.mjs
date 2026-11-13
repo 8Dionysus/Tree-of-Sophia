@@ -64,6 +64,24 @@ describe('the corpus alignment of the stands',()=>{
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],maxSourceSentences:7}]})).toContain('maxSourceSentences');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],translationStart:{unitId:'t',offset:-1}}]})).toContain('translationStart');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],handoverUnitIds:['u','u']}]})).toContain('handoverUnitIds');
+    expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],withheld:'yes'}]})).toContain('withheld');
+  });
+  it('withholds only an explicitly bound unreliable translation from cards',()=>{
+    const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s',reference:'§1',text:'λόγος.'}]};
+    const spanish={id:'es',language:'es',revision:'es-rev',units:[{id:'t',reference:'§1',text:'Palabra.'}]};
+    const english={id:'en',language:'en',revision:'en-rev',units:[{id:'u',reference:'§1',text:'Word.'}]};
+    const read=()=>({id:'work',versions:[original,spanish,english]}),cited=new Map([['a',{original:'g',units:new Set(['s'])}]]),works={a:'work'};
+    const scope={work:'a',translationVersionId:'es',translationRevision:'es-rev',originalVersionId:'g',originalRevision:'g-rev',firstUnitId:'s',lastUnitId:'s',source:'https://example.test/book',basis:'The automatic alignment is unreliable.',withheld:true};
+    const result=alignCorpus(cited,works,read,[scope]);
+    expect(result.units.s.t.es).toBeUndefined();
+    expect(result.units.s.t.en).toBeDefined();
+    expect(result.works.a.translations.map(v=>v.versionId)).toContain('es');
+    expect(result.receipt['a:es']).toMatchObject({how:'withheld',sourceScope:{withheld:true,basis:scope.basis}});
+    expect(()=>alignCorpus(cited,works,read,[{...scope,translationRevision:'stale'}])).toThrow(/invalid or stale translation scope/);
+    expect(()=>alignCorpus(cited,works,read,[{...scope,withheld:false}])).toThrow(/invalid or stale translation scope/);
+    expect(()=>alignCorpus(cited,works,read,[{...scope,maxSourceSentences:4}])).toThrow(/invalid or stale translation scope/);
+    const alternate={...original,id:'another-original'};
+    expect(()=>alignCorpus(new Map([['a',{original:alternate.id,units:new Set(['s'])}]]),works,()=>({id:'work',versions:[original,alternate,spanish,english]}),[scope])).toThrow(/invalid or stale translation scope/);
   });
   it('skips declared translation front matter while retaining original unit offsets',()=>{
     const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s',reference:'§1',text:'λόγος.'}]};
