@@ -428,7 +428,7 @@ mod tests {
     #[test]
     fn duplicate_paths_cannot_hide_work_or_bypass_input_budgets() {
         let mut paths = vec!["access/web/main.ts".to_owned(); 5000];
-        paths.push("access/deploy/cloudflare-worker/src/index.ts".into());
+        paths.push("access/deploy/cloudflare-worker/src/public-research-entry.ts".into());
         let result = select(paths, false).unwrap();
         assert_eq!(result.changed_paths.len(), 2);
         assert_eq!(
@@ -497,7 +497,7 @@ mod tests {
             .collect::<Vec<_>>();
         paths.extend([
             "rust/crates/tos-reader/src/main.rs".into(),
-            "access/deploy/cloudflare-worker/src/index.ts".into(),
+            "access/deploy/cloudflare-worker/src/public-research-entry.ts".into(),
             "access/web/src/main.ts".into(),
         ]);
         let result = select(paths.clone(), false).unwrap();
@@ -609,7 +609,7 @@ mod tests {
                 true,
             ),
             (
-                vec!["access/deploy/cloudflare-worker/src/index.ts"],
+                vec!["access/deploy/cloudflare-worker/src/public-research-entry.ts"],
                 "none",
                 true,
                 false,

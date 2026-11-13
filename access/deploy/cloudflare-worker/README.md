@@ -1,171 +1,20 @@
-# Cloudflare Worker deployment
+# Public research Worker
 
-This package owns the repository's Cloudflare delivery route for Tree of
-Sophia. The Worker serves the browser application and bounded, read-only
-projection queries over D1. The Rust native product owns public data
-generation, offline SQLite import, and the selected local verifier. Cloudflare
-credentials, production publication, ToS meaning, review, rights and canon have
-their own owners.
+The public site uses `wrangler.public-research.jsonc` and serves the home,
+Zarathustra and Antiquity stands and the `/__research/` assets. Unmatched
+paths, including the retired atlas API, receive the site's 404 page. The
+Worker has no D1, R2 or secret bindings.
 
-The public route is configured in [`wrangler.jsonc`](wrangler.jsonc). Verify the
-current remote deployment and dashboard build settings independently.
-The Worker can serve the browser and projections without an always-on origin
-machine. The older [Tunnel profile](../cloudflare-tunnel/README.md) is for local
-preview or recovery.
+Build the site with `npm run build:public-research` from this directory. Run
+`npm run typecheck` and `npm test` for the Worker and shared contracts. The
+shared tests use the matching generated `tos-web-rules` WASM; prepare it as
+specified in [RELEASING](../../../docs/RELEASING.md). Inspect a local upload
+with `npm run deploy:public-research:plan`. Deployment follows that release
+route and is a separate operator action.
 
-## Select the operation
-
-From this directory, the maintained package commands are:
-
-| Command | Effect |
-| --- | --- |
-| `npm ci` | Install the pinned Worker dependencies |
-| `npm run ci:web` | Install the web client dependencies |
-| `npm run build:ci` | Install web dependencies, build web assets and generate D1 data |
-| `npm run check` | Build, regenerate Wrangler types, typecheck and run Worker tests |
-| `npm run load:local` | Import generated data into local D1 |
-| `npm run verify:local` | Run the native verifier with an explicit owner selection |
-| `npm run check:local` | Run local build/check/import and the selected native verifier |
-| `npm run deploy:edge:plan` | Compare revision and show the remote deployment plan without mutation |
-| `npm run build:public-research` | Build only the public research spaces into its isolated static-asset directory |
-| `npm run deploy:public-research:plan` | Build and validate the separate asset-only Worker with Wrangler dry-run; no publication |
-| `npm run load:remote` | Import the generated full read model to remote D1 |
-| `npm run deploy:edge` | Run revision-aware import/deploy flow |
-
-Node handles package scripts, HTTP transport and Wrangler process invocation.
-The package does not install or run Python. `npm run build:data` invokes the
-installed native `tos build-data`; set `TOS_ACCESS_BIN` when that executable is
-outside `PATH`. The import helper also uses the installed native
-`edge-sql-stream` and `edge-import-local` commands; it does not invoke Cargo.
-Stop a local Worker before the local full bootstrap.
-
-The build reads only the allowlisted ToS projections, registries, and review
-packet declared by the source tree. Those authored and derived sources remain
-with ToS; the generated read model is a disposable delivery carrier. For
-source identity, transfer and admission, follow the
-[source-witness owner route](../../../ToS/source-witnesses/README.md).
-
-## Native source-text gateway
-
-`POST /api/source-text/search` is optional. It forwards to a separately
-selected native PostgreSQL source-text consumer only when the operator configures
-an explicit HTTPS origin, an outbound Cloudflare Access service token, and the
-inbound Access issuer and application audience. The Worker validates the
-caller's Access JWT against the issuer JWKS. It does not forward the caller
-token, use the outbound token as caller authentication, or read source text
-from D1.
-
-Bind the inbound audience and Access Allow policy to the principal set approved
-for the native private-delivery scope. Keep the origin on a distinct TLS
-hostname behind a policy that accepts the Worker service token. The capability
-packet reports configuration with `runtime_readiness: not-probed`; it does not
-probe origin health, choose the native consumer, or grant source rights. See the
-[gateway contract](../../contracts/source-text-gateway.v1.md) for exact
-bindings and request limits.
-
-The Worker shares one 65-second deadline across JWT/JWKS validation, request
-body reading, native response headers and body. Preflight time reduces the
-remaining native-query time; the native 60-second cap is not added on top.
-
-## Production flow
-
-The public research spaces have a separate, asset-only Worker configured by
-[`wrangler.public-research.jsonc`](wrangler.public-research.jsonc). Its routes
-cover the apex and `www` with `/*` so the root also works with query strings.
-The handler owns `/`, `/zarathustra*`, `/antiquity*` and `/__research/*`;
-`www` research paths redirect to the apex. Other requests pass unchanged to
-the existing access Worker on its Custom Domain via `fetch(request)`.
-Vite writes its `/__research/`-based bundle to `dist-public-research`, and the
-Worker removes that prefix only for the asset binding. Missing corpus JSON
-or chunks stay a 404. This Worker has no D1, R2, analytics or secret bindings.
-The source for this routing constraint is the
-[Cloudflare route matching and Custom Domain guide](https://developers.cloudflare.com/workers/configuration/routing/routes/).
-
-Build with `npm run build:public-research`; validate the local upload package
-with `npm run deploy:public-research:plan`. After the source passes the normal
-review, CI and merge route, deploy this Worker independently with
-`wrangler deploy --config wrangler.public-research.jsonc` from this directory.
-This command does not run the D1 importer or alter the existing access Worker.
-Record the published version ID. To roll back, select that Worker version
-with `wrangler rollback VERSION_ID --name tree-of-sophia-public-research` or
-the Cloudflare Deployments panel; its path routes remain scoped to this Worker.
-Version rollback does not restore route patterns. Before rolling back to a
-version predating the root proxy, restore that version's narrow route patterns
-as well; its handler cannot forward the existing access APIs under `/*`.
-Verify the two HTML routes, chunk/WASM and corpus JSON paths, unknown-JSON 404,
-and `www` redirect after deployment. Keep the previous Worker and its routes
-in place during rollback; D1 state is untouched.
-
-Configure Cloudflare Workers Builds for the intended branch and this package's
-directory, using `npm run build:ci` as the build command and
-`npm run deploy:edge` as the deployment command. These settings live in the
-Cloudflare dashboard; this repository cannot prove their current remote value.
-
-The deploy script compares the generated `data_revision` with D1 metadata. An
-unchanged revision skips the row import; a changed source, row, capability,
-catalog or read-model schema imports the generated model before Worker/static
-asset deployment. Use `npm run deploy:edge:plan` to inspect the planned action
-without import or deployment. `npm run load:remote` is the explicit full-import
-recovery route.
-
-Local and remote publication are separate. `npm run load:local` uses local D1;
-the full bootstrap uses the native one-transaction SQLite importer when a known
-local store is selected. Remote imports use Wrangler and require the appropriate
-credentials and publication authority. Chunked imports use a positive
-`TOS_D1_SQL_STREAM_MAX_SECONDS` whole-operation limit. The selected consumer
-checks the source descriptor and pathname around reads; temporary owned files
-are removed after a confirmed child close. If child close cannot be observed,
-the helper reports the unreaped PID and retains the exact scratch directory.
-
-The generated D1 model is distinct from the native-current read model. A D1
-migration is not applied by an HTTP request. Apply
-[`0001-exploration.sql`](migrations/0001-exploration.sql) before serving the
-knowledge routes that depend on its publication clock and indexes. Readers
-bracket their bounded work with revision/epoch checks and fail closed on a
-changed or malformed publication. The [native semantics guide](../../shared/NATIVE_SEMANTICS.md)
-owns current endpoint behavior, carrier compatibility and response limits.
-
-## Local validation and acceptance
-
-`npm run check` validates the declared Worker build, types and bounded fixtures.
-It does not import corpus data, deploy the Worker, or establish semantic
-acceptance. `npm run check:local` additionally imports generated data locally
-and invokes the selected native verifier. That verifier needs caller-supplied
-profile, exact Worker/native paths, pinned request inputs, resource bounds and
-one monotonic deadline; neither `npm run check` nor a Cloudflare workflow
-invents that owner selection. The exact fixture provenance route is
-[`test/fixtures/python-oracles/README.md`](test/fixtures/python-oracles/README.md).
-
-Green local checks, CI or a successful Workers Build are separate evidence.
-Public acceptance requires external checks of the apex health response, HTML
-and static assets, representative corpus and philosophy queries, and the `www`
-redirect. Semantic acceptance follows its source-owner review.
-
-## Resumable exploration storage
-
-`POST /api/knowledge/explore` resumes a bounded BFS frontier in disposable D1
-checkpoints. `GET /api/knowledge/explore/capabilities` reports migration and
-metadata availability, not full-row validation. The contract route returns
-the shared request/result schemas and target-specific limits. The additive
-`0001-exploration.sql` migration installs checkpoint tables, a publication
-clock and adjacency indexes; deployment applies it on full, delta and
-unchanged-data paths.
-
-Each page has at most 24 adjacency queries and 512 graph work units. The store
-has a 15-minute fixed TTL, at most 128 records and 32 MiB total, and a 1 MiB
-per-state/replay response cap; oversized requests refuse before checkpoint
-admission. Cursors are Worker-publication specific
-and cannot be transferred to local native or HTTP consumers. Expired or evicted
-state requires starting from focus again. Checkpoint rows are query state, not
-source history or a saved user workspace; eviction never deletes knowledge
-rows. The [exploration decision](../../../docs/decisions/TOS-D-0047-shared-d1-exploration-checkpoints.md)
-records the rationale.
-
-The same publication guard protects bounded knowledge reads. It rejects an
-epoch or revision change while a query runs, including a change away and back
-to the same digest. This guard does not establish completeness of a damaged
-index. Exact query semantics, current execution versions and response limits
-are maintained in [`NATIVE_SEMANTICS.md`](../../shared/NATIVE_SEMANTICS.md).
+The old access Worker and its D1 database are retired from this codebase. The
+operator owns D1 export, custom-domain transfer, and cloud removal after code
+merge. The current route configuration is unchanged by that retirement.
 
 ## Native offline prepared-pair capture
 
@@ -253,13 +102,4 @@ are explanatory and must be replaced:
 
 Output parents must remain exclusively owned through capture. A failed or
 incomplete capture is not publication evidence; the caller separately admits
-runtime memory and storage. Remote publication is a separate authorized step.
-
-## Web Analytics
-
-`wrangler.jsonc` declares the public domains and `WEB_ANALYTICS_TOKEN` binding.
-The Worker inserts the configured beacon into successful production HTML only;
-local/off-domain previews do not. HTML is private/no-store because beacon
-presence varies by geography, while static assets retain their declared cache
-policy. Verify beacon load and delivery against the deployed site after a
-production change; repository configuration alone is not live analytics proof.
+runtime memory and storage. This capture supports historical D1 tooling, which is pending separate retirement.

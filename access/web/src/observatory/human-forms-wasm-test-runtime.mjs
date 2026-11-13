@@ -57,14 +57,10 @@ installClientPacketRules(runtime);
 
 import {installWebMcpRules} from '../webmcp.ts';
 installWebMcpRules(runtime);
-import {installWorkerClassicRules} from "../../../deploy/cloudflare-worker/src/worker-classic.ts";
-installWorkerClassicRules(runtime);
 
 import {installNativePythonRuntime} from '../../../shared/native-semantics.ts';
 installNativePythonRuntime(runtime);
 
-import {installSourceNavigationRules} from "../../../deploy/cloudflare-worker/src/source-navigation-rules.ts";
-installSourceNavigationRules(runtime);
 
 import {installConstructorReadingRules} from '../../constructor/reading-rules-rust.mjs';
 installConstructorReadingRules(runtime);
