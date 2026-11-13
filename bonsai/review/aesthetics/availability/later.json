@@ -1056,7 +1056,67 @@
       "areas": [
         "AE03"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "de",
+      "people": [
+        {
+          "name": "Karl Rosenkranz",
+          "role": "author",
+          "birth": 1805,
+          "death": 1879,
+          "evidence": [
+            "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991012121989708606&context=L&vid=34BNE_INST:CATALOGO"
+          ]
+        },
+        {
+          "name": "Miguel Salmerón",
+          "role": "Spanish editor and translator, 2015",
+          "dates_status": "not established",
+          "evidence": [
+            "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991012121989708606&context=L&vid=34BNE_INST:CATALOGO"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Ästhetik des Häßlichen, Königsberg: Gebrüder Bornträger, 1853",
+          "transcription": "https://www.textgridrep.de/browse/4bn1h.0",
+          "scan": "https://archive.org/details/aesthetikdeshass00rose",
+          "status": "TextGrid transcription successfully fetched by kit; page alignment and independent review in progress."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Estética de lo feo, ed. and trans. Miguel Salmerón, Sevilla: Athenaica, 2015; ebook ISBN 9788416230600",
+          "catalogue": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991012121989708606&context=L&vid=34BNE_INST:CATALOGO",
+          "status": "BNE ebook restricted to BNE and conservation centres; relevant pages and rights not checked."
+        },
+        {
+          "language": "en",
+          "edition": "Aesthetics of Ugliness, Bloomsbury, 2015, ISBN 9781472568878",
+          "catalogue": "https://openlibrary.org/works/OL36034117W/editions.json",
+          "status": "catalogue lists Andrei Pop and Mechtild Widrich; roles, target pages and rights need direct verification."
+        }
+      ],
+      "searches": [
+        {
+          "source": "TextGrid and Internet Archive",
+          "result": "German 1853 transcription now fetchable; scan available, transcription and pages require collation.",
+          "url": "https://www.textgridrep.de/browse/4bn1h.0"
+        },
+        {
+          "source": "BNE catalog viewed in application",
+          "result": "Spanish 2015 names Miguel Salmerón editor and translator, digital access restricted to library and conservation centres.",
+          "url": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991012121989708606&context=L&vid=34BNE_INST:CATALOGO"
+        },
+        {
+          "source": "Open Library title searches",
+          "result": "English 2015 Bloomsbury and Spanish 2015 Athenaica edition leads; Russian and Chinese queries returned zero results, not a conclusion of absence.",
+          "url": "https://openlibrary.org/works/OL36034117W/editions.json"
+        }
+      ],
+      "remaining": "Finish independent packet reading and page collation; research Russian, English, Spanish and Chinese target passages, translator identities and jurisdictional rights, and complete required searches."
     },
     {
       "work": "kendall-l-walton.fearing-fictions",
