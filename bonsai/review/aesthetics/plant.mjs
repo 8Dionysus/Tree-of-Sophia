@@ -45,7 +45,7 @@ const fragments=existsSync(join(home,'fragments.json'))?json(join(home,'fragment
  *  reads one more packet as if it were accepted, so that a reader can try the planting before anyone accepts it. */
 const packetsDir=join(here,'planting','packets'),tried=process.argv.includes('--packet')?process.argv[process.argv.indexOf('--packet')+1]:null;
 const packets=(existsSync(packetsDir)?readdirSync(packetsDir,{withFileTypes:true}).filter(entry=>entry.isDirectory()).map(entry=>entry.name).sort():[])
-  .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried||(fragments.works[name]&&(()=>{const dir=join(packetsDir,name,'witnesses');return existsSync(dir)&&readdirSync(dir).some(file=>file.endsWith('.json.accepted'));})()));
+  .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried||(fragments.works[name]&&!(fragments.provenance.packets??[]).includes(name)&&(()=>{const dir=join(packetsDir,name,'witnesses');return existsSync(dir)&&readdirSync(dir).some(file=>file.endsWith('.json.accepted'));})()));
 const seconds=[],whole=[];
 // Remove the previous translation projection before rebuilding it from reviewed packets.
 for(const [name,languages] of Object.entries(fragments.provenance.translation_packets??{})){
