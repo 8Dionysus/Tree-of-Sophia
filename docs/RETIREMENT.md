@@ -6,9 +6,9 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Source store V1
 
-`tos-source-store/src/manifest.rs`, `capture_import.rs` and `CorpusReader` write or read `tos_corpus_snapshot_v1`; `tos-reader` selects V1 by default and admission can migrate it to V2. Two tracked JSON snapshot fixtures carry the V1 marker. Inspect configured store roots, revision manifests and backups for selected and retained snapshots and installed `tos-reader` consumers.
+`tos-reader` reads V2 only. `tos_corpus_snapshot_v1` lives on in three roles: it is the genesis artifact of every V2 rootset (`native_v2/roots.rs`, `source_admission_segment_v2.rs`); `CorpusReader` serves current source cuts, navigation prepare and the streamed PostgreSQL bootstrap (`source_current_cut.rs`, `source_navigation_model_prepare_cli.rs`, `source_pg_bootstrap_streamed_cli.rs`); and admission migrates V1 captures through `capture_import.rs` and `source_admission_spooled_candidate.rs`. The data of the retained V1 copies is archived in `/abyss/Backups/archive/project-copies/tos-retired-20261112/source-store-v1/`.
 
-**Removal condition:** Every retained V1 revision required by policy has a verified V2 mapping preserving membership, bytes, identity, rights and history; old and new revisions restore and read, pointers and supported clients have switched, and no retained obligation requires the V1 reader. **Package:** Source-store migration and later V1 reader retirement; retain an old software/data pair when historical verification requires it.
+**Removal condition:** A V2 source-cut provider serves members, identities, dependencies, retirements and history to the cut, navigation and bootstrap consumers with the same limits, fixity and fence; V2 revisions keep their genesis identity. Then the standalone V1 reader, capture import and migration leave under the tag `retired/source-store-v1`. **Package:** V2 source-cut provider, then V1 reader retirement.
 
 ## Source store V2 and physical revisions
 
