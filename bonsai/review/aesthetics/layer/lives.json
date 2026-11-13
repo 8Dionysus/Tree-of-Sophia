@@ -486,16 +486,29 @@
   }
  },
  "aldo-leopold": {
-  "item": null,
+  "item": "Q971382",
   "label": {
-   "ru": "Олдо Леопольд",
-   "en": "Aldo Leopold"
+   "en": "Aldo Leopold",
+   "ru": "Альдо Леопольд"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1887-01-11T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1948-04-21T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-12",
+  "identity_reference": {
+   "source": "https://www.audubon.org/magazine/archives-aldo-leopolds-conservation-esthetic",
+   "person_url": "https://en.wikipedia.org/wiki/Aldo_Leopold",
+   "basis": "The original magazine attributes the 1938 essay and the later A Sand County Almanac to this author; the linked biography identifies Wikidata Q971382."
+  },
   "catalogue_search": {
    "complete": true,
    "version": "authority-v3",
