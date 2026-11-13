@@ -2567,7 +2567,60 @@
       "areas": [
         "AE26"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "nl",
+      "people": [
+        {
+          "name": "Johan Huizinga",
+          "role": "author",
+          "birth": 1872,
+          "death": 1945,
+          "evidence": [
+            "https://www.dbnl.org/titels/titel.php?id=huiz003homo03"
+          ]
+        },
+        {
+          "name": "Eugenio Imaz",
+          "role": "Spanish translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.alianzaeditorial.es/primer_capitulo/homo-ludens.pdf"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Homo ludens, first published 1938; DBNL Verzamelde werken 1950",
+          "url": "https://www.dbnl.org/tekst/huiz003verz06_01/huiz003verz06_01_0003.php",
+          "status": "Institutional transcription read: pp.35, 37–39, 41 cover free activity, play space, rules and definition; DBNL notes edition may be copyrighted. Exact first-edition pagination and reproduction rights need separate review."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Homo ludens, translated Eugenio Imaz, Alianza publisher sample",
+          "url": "https://www.alianzaeditorial.es/primer_capitulo/homo-ludens.pdf",
+          "status": "Personally read sample PDF p.20 / printed p.24, first paragraph on play as free activity; preview ends before other requested passage. Translation rights and translator dates to verify."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "游戏的人, Beijing University Press, 2014, ISBN 9787301249109, 傅存良",
+          "url": "https://book.douban.com/subject/26059062/",
+          "status": "Catalog candidate, text, role, rights and exact places not verified."
+        }
+      ],
+      "requested_places": [
+        "C:B-I020: DBNL 1950 pp.35 and 41; Spanish sample PDF p.20 / printed p.24 partially aligns",
+        "C:B-I022: DBNL 1950 pp.37–39"
+      ],
+      "searches": [
+        {
+          "source": "DBNL and Alianza publisher sample",
+          "url": "https://www.alianzaeditorial.es/primer_capitulo/homo-ludens.pdf",
+          "result": "Dutch primary places and partial Spanish text available. Internet Archive item labelled 1950 has OCR identifying 1955/1964 printings, requiring physical scan and translation identity verification."
+        }
+      ],
+      "remaining": "Verify first printing and exact aligned translations en/ru/es/de/zh-Hans, contributor dates, lawful copies and rights in each jurisdiction; complete required searches. No absence inferred."
     },
     {
       "work": "john-r-searle.the-logical-status-of-fictional-discourse",
