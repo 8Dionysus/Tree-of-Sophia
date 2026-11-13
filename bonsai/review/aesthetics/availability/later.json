@@ -521,17 +521,20 @@
         {
           "name": "Zhu Guangqian",
           "role": "Chinese translator via Ainslie English edition",
-          "dates_status": "not established",
           "evidence": [
-            "https://catalog.hathitrust.org/Record/003028979"
-          ]
+            "https://catalog.hathitrust.org/Record/003028979",
+            "https://www.wikidata.org/wiki/Q8071109"
+          ],
+          "birth": 1897,
+          "death": 1986
         }
       ],
       "original_candidates": [
         {
           "edition": "Estetica come scienza dell’espressione e linguistica generale, Milano: R. Sandron, 1902",
           "catalogue": "https://catalog.hathitrust.org/Record/008700744",
-          "status": "NYPL scan search-only; precise pages and first edition image not yet inspected"
+          "status": "NYPL scan available via Google Books in current region; first edition p.3 personally visually inspected and states images versus concepts.",
+          "google_books": "https://books.google.com.mx/books?id=K9M-AAAAYAAJ&pg=PA3"
         },
         {
           "edition": "Estetica, Laterza, 1908",
@@ -588,9 +591,14 @@
           "source": "Internet Archive",
           "result": "1908 Italian, 1909 English, 1905 German and 1912 Spanish candidates; OCR page references pending image verification",
           "url": "https://archive.org/details/esteticacomesci00crocgoog"
+        },
+        {
+          "source": "Google Books and independent Spanish/Italian scan comparison",
+          "url": "https://books.google.com.mx/books?id=K9M-AAAAYAAJ&pg=PA3",
+          "result": "Personally read first edition 1902 p.3: the opening distinguishes image-making from concept-making. Independent scan comparison reports the 1912 Spanish first paragraph omits the image contrast; verify edition and exact wording before accepting parallel alignment."
         }
       ],
-      "remaining": "Review all target passages and sentence alignment, edition and translation participants, lawful access and applicable rights; continue required searches. No conclusion of absence has been made."
+      "remaining": "Review all target passages and sentence alignment, particularly Spanish opening discrepancy; verify contributors, lawful access and rights, complete required searches. No absence inferred."
     },
     {
       "work": "maurice-merleau-ponty.phenomenologie-de-la-perception",
