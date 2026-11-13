@@ -66,6 +66,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-10-hogarth.json"
   },
   {
+   "id": "codex-2026-11-12-republic",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Plato, Republic X 598a–c, in the Greek text of the public corpus, beside the registers' readings.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-republic.json"
+  },
+  {
    "id": "terra-2026-11-10-aesthetica",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -11098,6 +11105,58 @@
    "admission": "map",
    "grew_from": [
     "A:E015"
+   ]
+  },
+  {
+   "id": "plato.republic:painting-and-appearance",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-artistic-image",
+    "mimesis",
+    "artistic-truth",
+    "illusion"
+   ],
+   "areas": [
+    "area-knowledge-and-truth",
+    "area-image-and-mimesis"
+   ],
+   "work": "plato.republic",
+   "agents": [
+    "plato"
+   ],
+   "voice": {
+    "ru": "Сократ и Главкон",
+    "en": "Socrates and Glaucon"
+   },
+   "locus": "X 598a–c",
+   "formula": {
+    "cite": [
+     {
+      "w": "plato.republic",
+      "u": [
+       "tos.text-unit.sid-bd3f5197305342d58b56f9caa69f0eb4",
+       "tos.text-unit.sid-bd3f5197305342d58b56f9caa69f0eb4"
+      ],
+      "s": 530,
+      "e": 659
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Сократ спрашивает, подражает ли живопись сущему или являющемуся; Главкон отвечает, что она подражает представлению.",
+    "en": "Socrates asks whether painting imitates reality or appearance; Glaucon answers that it imitates appearance."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-republic",
+    "verdict": "revise",
+    "note": "The register readings also discuss the painter’s knowledge and the distance of imitation from truth; this quotation establishes the question of appearance and the answer, while those further claims require the following passage."
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:A-I008",
+    "C:A-I009",
+    "B:D-I033"
    ]
   },
   {
