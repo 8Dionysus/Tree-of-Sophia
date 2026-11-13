@@ -60,7 +60,7 @@ impl CatalogInputs {
     }
     pub(crate) fn binding_with_owned_state(
         &self,
-        state: Option<&crate::d1_public_capture::CreationState<'_>>,
+        state: Option<&crate::public_capture::CreationState<'_>>,
     ) -> Result<String> {
         self.validate()?;
         if let Some(state) = state {

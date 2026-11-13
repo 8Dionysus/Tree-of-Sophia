@@ -18,13 +18,13 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Legacy knowledge search
 
-`tos-query/src/knowledge_legacy_search.rs` scans selected carriers; `tos-access/src/core_legacy_query_executor.rs`, `knowledge.rs` and the Worker D1 `knowledgeSearchD1` serve callers. The compiler and D1 publication routes produce its input carriers. Tracked legacy-search carrier counts are not established; JSON marker counts alone cannot identify those carriers. Inspect installed CLI, HTTP, MCP and web clients, selected stores and D1 deployments and offsets.
+`tos-query/src/knowledge_legacy_search.rs` scans selected carriers; `tos-access/src/core_legacy_query_executor.rs` and `knowledge.rs` serve callers. The former Worker D1 reader and publication route are retired under [retired/d1-publication](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/d1-publication). Tracked legacy-search carrier counts are not established; JSON marker counts alone cannot identify those carriers. Inspect installed CLI, HTTP, MCP and web clients, selected stores and D1 deployments and offsets.
 
 **Removal condition:** Every supported consumer and publication uses a replacement with accepted normalization, ranking, ordering, offsets, rights and error behavior, or an explicitly versioned and accepted change; outstanding continuations expire or migrate and rollback works. **Package:** Search consumer cutover and legacy executor retirement.
 
 ## Indexed search V2
 
-`tos-query/src/search_v2.rs` defines typed requests, vocabulary and cursor behavior; `tos-access/src/prepared_local.rs` and `indexed_cursor.rs` serve indexed readers, while the Worker calls `knowledgeSearchD1Indexed`. Prepared/D1 publishers supply indexed data. Three tracked JSON contract files mention `tos_knowledge_search_indexed_v2`. Inspect deployed capabilities, D1 and local publications, clients and unexpired cursors.
+`tos-query/src/search_v2.rs` defines typed requests, vocabulary and cursor behavior; `tos-access/src/prepared_local.rs` and `indexed_cursor.rs` serve indexed readers. The former Worker D1 reader and publication route are retired under [retired/d1-publication](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/d1-publication). Three tracked JSON contract files mention `tos_knowledge_search_indexed_v2`. Inspect deployed capabilities, D1 and local publications, clients and unexpired cursors.
 
 **Removal condition:** A selected API implements accepted indexed semantics and rights, all clients and publications switch, and old cursor lifetimes expire or are migrated with tested continuation and rollback. **Package:** Offline export and consumer cutover; retain reusable V2 semantics in the chosen owner.
 
@@ -36,9 +36,11 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Prepared local search publication
 
-`tos-compiler/src/local_prepared.rs`, `local_prepared_search.rs` and `d1.rs` publish prepared SQLite/D1 data; `tos-access/src/prepared_local.rs` and the Worker consume it. `tos_local_prepared_read_model_v1` occurs in two tracked JSON files, including one frozen fixture; actual publication counts are unknown. Inspect configured local publication roots, SQLite metadata and D1 deployment bindings.
+`tos-compiler/src/local_prepared.rs` and `local_prepared_search.rs` publish prepared SQLite data, consumed by `tos-access/src/prepared_local.rs`. `tos_local_prepared_read_model_v1` occurs in two tracked JSON files, including one frozen fixture; actual publication counts are unknown. Inspect configured local publication roots and SQLite metadata.
 
-**Removal condition:** Every selected local and D1 publication is rebuilt from the chosen export, verified for source revision, rights, search parity and restore, and every supported reader switches. **Package:** Offline export and prepared-publication retirement. Preserve the separate public D1 and private source-access boundaries.
+The D1 publisher and its offline capture are retired from the checkout; their last software revision is tagged [retired/d1-publication](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/d1-publication). The operator owns the D1 export and cloud retirement after merge. Archive and restore verification are separate operator evidence.
+
+**Removal condition:** Every selected local publication is rebuilt from the chosen export, verified for source revision, rights, search parity and restore, and every supported reader switches. **Package:** Offline export and prepared-publication retirement.
 
 ## Source-text search
 

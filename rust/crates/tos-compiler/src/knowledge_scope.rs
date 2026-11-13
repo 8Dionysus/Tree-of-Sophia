@@ -4,8 +4,8 @@
 
 use crate::{
     Error, QueryVocabulary, Result,
-    d1_public_capture::CreationState,
     knowledge_stage::{KnowledgeStage, WritePhase},
+    public_capture::CreationState,
 };
 use rusqlite::{Connection, params};
 use tos_foundation::Digest256Hasher;

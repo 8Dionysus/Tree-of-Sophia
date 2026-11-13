@@ -5,11 +5,11 @@
 
 use crate::{
     Error, QueryVocabulary, Result, SourceBinding,
-    d1_public_capture::{CreationState, CreationStateHold, PublicCapture, PublicCaptureLimits},
     knowledge_repository::RepositoryRootInput,
     knowledge_stage::{
         ExactInputReceipt, InputCollectionReceipt, InputRow, KnowledgeStage, StageOwner,
     },
+    public_capture::{CreationState, CreationStateHold, PublicCapture, PublicCaptureLimits},
 };
 use rusqlite::{Connection, params};
 use serde_json::{Value, json};
@@ -114,10 +114,10 @@ impl PublicRepositoryRoot {
         software.update(b"tos-native-captured-repository-projection-v1");
         for raw in [
             include_bytes!("native_snapshot.rs").as_slice(),
-            include_bytes!("d1_public_graph.rs").as_slice(),
-            include_bytes!("d1_public_capture.rs").as_slice(),
-            include_bytes!("d1_public_header.rs").as_slice(),
-            include_bytes!("d1_public_semantics.rs").as_slice(),
+            include_bytes!("public_graph.rs").as_slice(),
+            include_bytes!("public_capture.rs").as_slice(),
+            include_bytes!("public_header.rs").as_slice(),
+            include_bytes!("public_semantics.rs").as_slice(),
         ] {
             software.update(&(raw.len() as u64).to_be_bytes());
             software.update(raw);
@@ -867,37 +867,6 @@ pub(crate) fn exact_prepared_receipt(
     source_revision: &str,
 ) -> Result<ExactInputReceipt> {
     let (collections, membership, corpus_root) = captured_input_roots(capture, vocabulary)?;
-    Ok(ExactInputReceipt {
-        binding: SourceBinding {
-            owner_profile: "tos-public-projection-snapshot-v1".into(),
-            source_cut: format!("public-projection:{source_revision}"),
-            through_commit_seq: 0,
-            membership_root: membership,
-            index_generation: "public-d1-v9".into(),
-            route_map_version: "public-d1-v9".into(),
-            reader_abi: "public-d1-v9".into(),
-            projection_root_sha256: corpus_root.to_hex(),
-            complete: true,
-        },
-        collections,
-    })
-}
-
-pub(crate) fn exact_receipt_owned(
-    capture: &PublicCapture,
-    vocabulary: &QueryVocabulary,
-    source_revision: &str,
-    state: &CreationState<'_>,
-) -> Result<ExactInputReceipt> {
-    let (collections, membership, corpus_root) =
-        captured_input_roots_owned(capture, vocabulary, state)?;
-    state.retain(
-        "tos-public-projection-snapshot-v1".len()
-            + "public-projection:".len()
-            + source_revision.len()
-            + 3 * "public-d1-v9".len()
-            + 64,
-    )?;
     Ok(ExactInputReceipt {
         binding: SourceBinding {
             owner_profile: "tos-public-projection-snapshot-v1".into(),

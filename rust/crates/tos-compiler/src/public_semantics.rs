@@ -4,11 +4,11 @@
 
 use crate::{
     Error, KnowledgeRegistry, Result,
-    d1_public_capture::{
+    knowledge_stage::{KnowledgePayloadLayout, KnowledgeStage, WritePhase},
+    public_capture::{
         CreationState, CreationStateHold, MAX_ROW_BYTES, PublicCapture, json as strict_json,
     },
-    d1_public_header::{HeaderCounts, SemanticGap, ValidatedGraphSemantics},
-    knowledge_stage::{KnowledgePayloadLayout, KnowledgeStage, WritePhase},
+    public_header::{HeaderCounts, SemanticGap, ValidatedGraphSemantics},
 };
 use rusqlite::{OptionalExtension, Row, Statement, params, types::ValueRef};
 use serde::Serialize;
@@ -2905,15 +2905,13 @@ pub(crate) fn fixture_final_semantics(
     catalog_limits: crate::catalog::CatalogLimits,
     fused: bool,
 ) -> (ValidatedGraphSemantics, u64) {
-    use crate::d1_public_capture::{
-        PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureRole,
-    };
     use crate::knowledge_inherited_views::{
         CompleteRelationSeal, InheritedViewLimits, prepare_global_inherited_views,
     };
     use crate::knowledge_native_finalize::{
         NativeFinalizeLimits, finalize_native_graph_rows_with_observer,
     };
+    use crate::public_capture::{PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureRole};
     use std::{
         sync::{Arc, atomic::AtomicBool},
         time::{Duration, Instant},

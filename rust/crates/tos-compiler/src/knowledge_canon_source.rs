@@ -405,7 +405,7 @@ pub(crate) fn csv_records_with_owned_state<F>(
     l: CanonSourceLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     mut emit: F,
 ) -> Result<()>
 where
@@ -525,7 +525,7 @@ fn csv_records_with_spans_owned<F>(
     l: CsvReadLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
     mut emit: F,
 ) -> Result<()>
 where
