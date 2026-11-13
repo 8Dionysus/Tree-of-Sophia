@@ -4,6 +4,14 @@ This inventory records removal gates under [TOS-D-0069](decisions/TOS-D-0069-rus
 
 For each package, inventory installed versions, deployments, selected publications, backups and all consumers with the operator. Inspect service arguments and configuration without exposing credentials; inspect store manifests, SQLite metadata, D1 publication metadata and PostgreSQL version/profile and consumer metadata through authorized read-only access. Record counts, retention policy and the exact selected revisions. Exercise old and replacement software/data pairs, restoration, rollback, authorization and rights; retain exact bytes, IDs, references and historical locators. Establish target-capacity and recovery evidence before a large cutover or final legacy retirement. Each gate below adds to these shared conditions. Unknown external counts remain open until this inventory is complete.
 
+## Legacy atlas web
+
+The retired atlas web source is retained at the locally prepared tag
+[`retired/atlas-web`](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/atlas-web)
+(commit `b0903fc7bffac2b445a4459a8a309cadbf6adcfb`). The tag must be published
+with the retirement. The live public research site and native HTTP/MCP API
+remain separate; D1 export, domain transfer and cloud removal are operator steps.
+
 ## Source store V1
 
 `tos-reader` reads V2 only. `tos_corpus_snapshot_v1` lives on in three roles: it is the genesis artifact of every V2 rootset (`native_v2/roots.rs`, `source_admission_segment_v2.rs`); `CorpusReader` serves current source cuts, navigation prepare and the streamed PostgreSQL bootstrap (`source_current_cut.rs`, `source_navigation_model_prepare_cli.rs`, `source_pg_bootstrap_streamed_cli.rs`); and admission migrates V1 captures through `capture_import.rs` and `source_admission_spooled_candidate.rs`. The data of the retained V1 copies is archived in `/abyss/Backups/archive/project-copies/tos-retired-20261112/source-store-v1/`.

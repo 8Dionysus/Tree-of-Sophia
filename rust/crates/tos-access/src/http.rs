@@ -492,35 +492,6 @@ fn handle_get_with_probe<'hold, E: crate::common::ScopedAccessExecutor<'hold> + 
             profile,
         );
     }
-    if path == "/" || path.starts_with("/static/") {
-        let Some(site) = site else {
-            return ScopedHttpResponse::error_for_method(
-                503,
-                "installed software site unavailable",
-                method,
-            );
-        };
-        let result = if path == "/" {
-            site.shell(executor, profile, abort_probe)
-                .map(|(packet, nonce)| (packet, "text/html; charset=utf-8", Some(nonce)))
-        } else {
-            percent_decode(&path[8..], false).and_then(|relative| {
-                site.asset(&relative, abort_probe)
-                    .map(|packet| (packet, crate::site::mime(&relative), None))
-            })
-        };
-        return match result {
-            Ok((packet, content_type, csp_nonce)) => ScopedHttpResponse {
-                status: 200,
-                body: packet.body,
-                head_only: method == "HEAD",
-                fence: Some(packet.fence),
-                content_type,
-                csp_nonce,
-            },
-            Err(error) => packet_response(Err(error), method, profile),
-        };
-    }
     if path == "/api/zarathustra/word-analysis" {
         let packet = crate::reading::public_word_analysis_capability(profile.max_response_bytes);
         return match packet {

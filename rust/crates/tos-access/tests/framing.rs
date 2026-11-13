@@ -1799,23 +1799,6 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
             .as_str(),
         Some("embedded:access/contracts")
     );
-    let program_web = Path::new(env!("CARGO_BIN_EXE_tos-access"))
-        .parent()
-        .unwrap()
-        .join("web_dist");
-    if let Some(path) = check("web-assets").object_get("path").unwrap().as_str() {
-        assert_eq!(
-            Path::new(path),
-            program_web,
-            "data-root software markers cannot supply executable code"
-        );
-    } else {
-        assert_eq!(
-            report_exit,
-            Some(1),
-            "missing installed web companion is a required failure"
-        );
-    }
     assert!(
         !checks
             .iter()

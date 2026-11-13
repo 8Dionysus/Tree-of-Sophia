@@ -604,8 +604,13 @@ fn software_stage_cli_authenticates_then_binds_synthetic_products() {
     let web = producer.join("access/web/dist");
     let generated = producer.join("access/deploy/cloudflare-worker/generated");
     for (path, bytes) in [
-        (web.join("assets/tos-graph.js"), b"graph-js".as_slice()),
-        (web.join("assets/tos-graph.css"), b"graph-css".as_slice()),
+        (web.join("home/index.html"), b"home".as_slice()),
+        (
+            web.join("zarathustra/index.html"),
+            b"zarathustra".as_slice(),
+        ),
+        (web.join("antiquity/index.html"), b"antiquity".as_slice()),
+        (web.join("not-found/index.html"), b"not-found".as_slice()),
         (generated.join("tos_web_rules.js"), b"rules-js".as_slice()),
         (
             generated.join("tos_web_rules_bg.wasm"),
@@ -732,13 +737,18 @@ fn software_stage_cli_authenticates_then_binds_synthetic_products() {
         format!("{}\n", consumer_images.display())
     );
     for (relative, bytes) in [
+        ("access/web/dist/home/index.html", b"home".as_slice()),
         (
-            "access/web/dist/assets/tos-graph.js",
-            b"graph-js".as_slice(),
+            "access/web/dist/zarathustra/index.html",
+            b"zarathustra".as_slice(),
         ),
         (
-            "access/web/dist/assets/tos-graph.css",
-            b"graph-css".as_slice(),
+            "access/web/dist/antiquity/index.html",
+            b"antiquity".as_slice(),
+        ),
+        (
+            "access/web/dist/not-found/index.html",
+            b"not-found".as_slice(),
         ),
         (
             "access/deploy/cloudflare-worker/generated/tos_web_rules.js",
