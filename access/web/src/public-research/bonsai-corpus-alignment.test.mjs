@@ -101,6 +101,16 @@ describe('the corpus alignment of the stands',()=>{
     expect(text).toContain('Since it is necessary, Chrysaorius');
     expect(text).not.toContain('Contents');
   });
+  it.skipIf(!corpusFetched)('selects the English Apology passage about one mina',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),work=module.works.apology;
+    const unit='tos.text-unit.sid-7d03459578bd4415ba5b16362b4422cb',entry=module.units[unit].t;
+    const selected=work.translations.find(version=>version.language==='en'&&entry[version.versionId]);
+    expect(selected.versionId).toBe('retained-apology-eng2-09ae91e79022');
+    const version=read(work.documentId).versions.find(item=>item.id===selected.versionId),pair=entry[selected.versionId];
+    const text=pair.pairs.filter(([source])=>source.some(([start,end])=>start<790&&716<end)).flatMap(([,targets])=>targets).map(([index,start,end])=>Array.from(version.units.find(item=>item.id===pair.u[index]).text).slice(start,end).join('')).join(' ');
+    expect(text).toContain('a mina of silver');
+    expect(text).not.toContain('thirty minas');
+  });
   it.skipIf(!corpusFetched)('finds Russian Plato sentences retained in the preceding translated reference',()=>{
     const module=json('bonsai/antiquity/alignment.json'),scopes=json('bonsai/antiquity/translation-scopes.json').scopes;
     for(const [key,start,end,expected] of [['theaetetus',6,294,'Нет, так-то устно'],['sophist',6,298,'Что же такое теперь'],['philebus',76,222,'Ведь если и то и это'],['timaeus',6,181,'Бог устроил из видимого одно животное']]){

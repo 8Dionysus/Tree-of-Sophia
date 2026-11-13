@@ -3,7 +3,7 @@
 use std::rc::Rc;
 use tos_foundation::{
     FoundationErrorCode, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
-    emit_python_compact_json, parse_json,
+    emit_ordered_compact_json_v1, parse_json,
 };
 use tos_query::exploration_plan::{
     ExplorationInput, ExplorationNeed, ExplorationOutput, ExplorationPlan, ExplorationReply,
@@ -315,7 +315,7 @@ impl ExplorationSession {
                 ("limit", number(*limit as u64)),
             ]),
         };
-        emit_python_compact_json(&value, metadata_limits(self.budget)?)
+        emit_ordered_compact_json_v1(&value, metadata_limits(self.budget)?)
             .map(Some)
             .map_err(|reason| writer_error(reason, "exploration read metadata emission failed"))
     }
@@ -406,7 +406,7 @@ impl ExplorationSession {
             .take()
             .ok_or_else(|| corrupt("exploration page incomplete or consumed"))?;
         set_exploration_cursor(&mut output.packet, cursor)?;
-        emit_python_compact_json(
+        emit_ordered_compact_json_v1(
             &output.packet,
             JsonLimits {
                 max_bytes: self.budget.exploration.read.max_response_bytes,
