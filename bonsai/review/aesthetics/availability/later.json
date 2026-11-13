@@ -783,7 +783,29 @@
         "AE08",
         "AE12"
       ],
-      "status": "research-pending"
+      "status": "research-pending",
+      "search_attempts": [
+        {
+          "source": "Crossref title search",
+          "query": "The Paradox of Suspense",
+          "url": "https://api.crossref.org/works?query.title=The+Paradox+of+Suspense&rows=4",
+          "http_status": 200,
+          "candidate_doi": "10.1016/s0304-422x(98)00014-x",
+          "candidate_title": "The paradox of suspense",
+          "candidate_authors": [
+            "Juan A. Prieto-Pablos"
+          ],
+          "candidate_date": {
+            "date-parts": [
+              [
+                1998,
+                11
+              ]
+            ]
+          },
+          "result": "rejected: identical title belongs to Juan A. Prieto-Pablos (1998), not the register author or year"
+        }
+      ]
     },
     {
       "work": "berys-gaut.the-ethical-criticism-of-art",
@@ -802,7 +824,16 @@
       "areas": [
         "AE18"
       ],
-      "status": "research-pending"
+      "status": "research-pending",
+      "search_attempts": [
+        {
+          "source": "Crossref title search",
+          "query": "Art in the Advancement of Understanding",
+          "url": "https://api.crossref.org/works?query.title=Art+in+the+Advancement+of+Understanding&rows=4",
+          "http_status": 200,
+          "result": "no sufficiently strong title match in first four records; not proof of absence"
+        }
+      ]
     },
     {
       "work": "david-lewis.truth-in-fiction",
@@ -924,7 +955,29 @@
         "AE08",
         "AE20"
       ],
-      "status": "research-pending"
+      "status": "research-pending",
+      "search_attempts": [
+        {
+          "source": "Crossref title search",
+          "query": "The Paradox of Suspense",
+          "url": "https://api.crossref.org/works?query.title=The+Paradox+of+Suspense&rows=4",
+          "http_status": 200,
+          "candidate_doi": "10.1016/s0304-422x(98)00014-x",
+          "candidate_title": "The paradox of suspense",
+          "candidate_authors": [
+            "Juan A. Prieto-Pablos"
+          ],
+          "candidate_date": {
+            "date-parts": [
+              [
+                1998,
+                11
+              ]
+            ]
+          },
+          "result": "rejected: identical title belongs to Juan A. Prieto-Pablos (1998), not the register author or year"
+        }
+      ]
     },
     {
       "work": "richard-shusterman.thinking-through-the-body-educating",
@@ -2141,7 +2194,81 @@
       "areas": [
         "AE32"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "search_attempts": [
+        {
+          "source": "Crossref title search",
+          "query": "Reading Literary Fiction and Theory of Mind: Three Preregistered Replications and Extensions of Kidd and Castano (2013)",
+          "url": "https://api.crossref.org/works?query.title=Reading+Literary+Fiction+and+Theory+of+Mind%3A+Three+Preregistered+Replications+and+Extensions+of+Kidd+and+Castano+%282013%29&rows=4",
+          "http_status": 200,
+          "candidate_doi": "10.1177/1948550618775410",
+          "candidate_title": "Reading Literary Fiction and Theory of Mind: Three Preregistered Replications and Extensions of Kidd and Castano (2013)",
+          "candidate_authors": [
+            "David Kidd",
+            "Emanuele Castano"
+          ],
+          "candidate_date": {
+            "date-parts": [
+              [
+                2018,
+                6,
+                20
+              ]
+            ]
+          },
+          "result": "title match only; author, year and edition must match before treating DOI as identity"
+        }
+      ],
+      "doi": "10.1177/1948550618775410",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "David Kidd",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1177/1948550618775410"
+          ]
+        },
+        {
+          "name": "Emanuele Castano",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1177/1948550618775410"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "title": "Reading Literary Fiction and Theory of Mind: Three Preregistered Replications and Extensions of Kidd and Castano (2013)",
+          "url": "https://doi.org/10.1177/1948550618775410",
+          "status": "2018 title and authors matched to register; actual source, places and licence need verification"
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary",
+        "crossref_license": [
+          {
+            "start": {
+              "date-parts": [
+                [
+                  2018,
+                  6,
+                  20
+                ]
+              ],
+              "date-time": "2018-06-20T00:00:00Z",
+              "timestamp": 1529452800000
+            },
+            "content-version": "tdm",
+            "delay-in-days": 0,
+            "URL": "https://journals.sagepub.com/page/policies/text-and-data-mining-license"
+          }
+        ],
+        "caution": "TDM permission is not a general public reuse licence; seek lawful copies and publisher terms"
+      },
+      "remaining": "Verify original places, lawful publication, translations and rights; complete catalogue searches. No conclusion of absence has been made."
     },
     {
       "work": "david-comer-kidd.reading-literary-fiction-improves-theory-of-mind",
@@ -3566,7 +3693,14 @@
           "result": "Publisher identifies CC BY 4.0, 2015; attribution and exact article-specific places need review."
         }
       ],
-      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made."
+      "remaining": "Verify full texts and exact cited places, translation witnesses and their contributors, applicable licences and all remaining required catalogues. No conclusion of absence has been made.",
+      "requested_places": [
+        {
+          "reading": "B:B-I011",
+          "url": "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2015.00343/full",
+          "status": "publisher HTML personally read: opening names tripartite hierarchy, being moved described more common and less pronounced than aesthetic awe; exact sentence boundary and independent reading pending"
+        }
+      ]
     },
     {
       "work": "vladimir-nabokov.nikolai-gogol",
