@@ -2,7 +2,7 @@
 //! Only requested identities are retained while selected graph collections stream.
 use crate::{
     Error, PublicCaptureLimits, Result,
-    d1_public_capture::{CreationState, PublicCapture, compact, json, source_digest},
+    public_capture::{CreationState, PublicCapture, compact, json, source_digest},
     safe_open,
 };
 use serde_json::{Value, json as value};
@@ -914,7 +914,7 @@ fn build_checked(
     staging: &Path,
     limits: PublicCaptureLimits,
     deadline: Instant,
-    selected: Option<&crate::d1_public_capture::PublicCaptureInputPaths>,
+    selected: Option<&crate::public_capture::PublicCaptureInputPaths>,
     cancelled: std::sync::Arc<AtomicBool>,
 ) -> Result<BuiltEvidence> {
     build_checked_with_state(
@@ -927,7 +927,7 @@ fn build_checked_with_state(
     limits: PublicCaptureLimits,
     deadline: Instant,
     owner_deadline: Instant,
-    selected: Option<&crate::d1_public_capture::PublicCaptureInputPaths>,
+    selected: Option<&crate::public_capture::PublicCaptureInputPaths>,
     cancelled: Arc<AtomicBool>,
     state: Option<&CreationState<'_>>,
 ) -> Result<BuiltEvidence> {
@@ -1779,7 +1779,7 @@ pub(crate) fn check_completed_owned(
 /// route references retain their root-relative owner semantics.
 pub fn check_isolated_selected(
     root: &Path,
-    selected: &crate::d1_public_capture::PublicCaptureInputPaths,
+    selected: &crate::public_capture::PublicCaptureInputPaths,
     staging: &Path,
     limits: PublicCaptureLimits,
     deadline: Instant,

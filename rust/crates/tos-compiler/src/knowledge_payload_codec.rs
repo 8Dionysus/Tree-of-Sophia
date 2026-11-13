@@ -1,7 +1,7 @@
 //! Matched CarrierOnce logical payload codec. All owners are borrowed from the
 //! same admitted creation operation; callbacks retain decoded/encoded custody.
 //! This module does not activate a Stage mode or manufacture a model ABI.
-use crate::{Error, Result, d1_public_capture::CreationState};
+use crate::{Error, Result, public_capture::CreationState};
 use serde::{Serialize, Serializer, ser::SerializeMap};
 use serde_json::Value;
 use tos_foundation::{Digest256, JsonLimits};
@@ -426,7 +426,7 @@ fn equal_owned(
         .and_then(|n| n.checked_add(4 * std::mem::size_of::<Option<(&String, &Value)>>()))
         .and_then(|n| {
             n.checked_add(std::mem::size_of::<
-                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                crate::public_capture::CreationStateHold<'_, '_>,
             >())
         })
         .and_then(|n| n.checked_add(std::mem::size_of::<Result<bool>>()))

@@ -128,7 +128,7 @@ impl<'a> PhilosophyNormalizer<'a> {
         vocabulary: &QueryVocabulary,
         descriptor_bytes: &[u8],
         limits: PhilosophyMaterializeLimits,
-        state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+        state: Option<&'a crate::public_capture::CreationState<'a>>,
     ) -> Result<Self> {
         limits.validate()?;
         vocabulary.verify_authored_bytes(descriptor_bytes)?;

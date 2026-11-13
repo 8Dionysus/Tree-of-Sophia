@@ -4149,33 +4149,6 @@ impl PublicCapture {
         )
     }
 
-    /// Full public-site capture from the maintained public input route, under
-    /// the original dedicated process heap, state, work and VM owners.
-    #[cfg(feature = "source-tools")]
-    pub(crate) fn create_public_with_owned_budget(
-        root: &Path,
-        staging: &Path,
-        limits: PublicCaptureLimits,
-        deadline: Instant,
-        cancelled: Arc<std::sync::atomic::AtomicBool>,
-        budget: RuntimeCaptureOwnedBudget<'_>,
-        usage: &mut RuntimeCaptureCreationUsage,
-    ) -> Result<Self> {
-        Self::create_selected_with_owned_budget(
-            root,
-            None,
-            false,
-            RuntimeCaptureProfile::Whole,
-            staging,
-            limits,
-            deadline,
-            cancelled,
-            budget,
-            usage,
-            &[],
-        )
-    }
-
     /// Runtime full-root capture under the original dedicated native process.
     /// A source-only producer also hands off its exact completed product set.
     /// Those bytes remain retained inputs even when the graph compiler does
@@ -5573,10 +5546,10 @@ impl PublicCapture {
         // The maintained SQL owner closes all statements/connections before
         // returning. Only this exact operation may establish the successor.
         match state {
-            Some(state) => crate::d1_public_graph::prepare_family_rows_owned_unsealed(
-                self, limits, &held, state,
-            )?,
-            None => crate::d1_public_graph::prepare_family_rows_unsealed(self, limits, &held)?,
+            Some(state) => {
+                crate::public_graph::prepare_family_rows_owned_unsealed(self, limits, &held, state)?
+            }
+            None => crate::public_graph::prepare_family_rows_unsealed(self, limits, &held)?,
         };
         check_capture_active(Some(self.cancelled.as_ref()), deadline)?;
         held.sync_all()?;
@@ -6377,214 +6350,6 @@ impl PublicCapture {
             .ok_or(Error::Invalid("public D1 source digest absent"))
     }
 
-    pub(crate) fn source_labels(&self) -> Vec<&str> {
-        self.sources
-            .iter()
-            .filter(|source| source.digest.is_some())
-            .map(|source| source.label.as_str())
-            .collect()
-    }
-
-    pub(crate) fn public_ledger_labels(&self) -> Vec<&str> {
-        self.sources
-            .iter()
-            .filter(|source| {
-                source.digest.is_some()
-                    && source
-                        .label
-                        .starts_with("ToS/source-witnesses/access-requests/public-ledger/")
-                    && source.label.ends_with(".access-request.json")
-            })
-            .map(|source| source.label.as_str())
-            .collect()
-    }
-
-    pub(crate) fn manifest_input_binding(&self, max_bytes: usize) -> Result<serde_json::Value> {
-        #[derive(serde::Serialize)]
-        struct Entry<'a> {
-            path: &'a str,
-            size_bytes: Option<u64>,
-            sha256: Option<String>,
-        }
-        struct Count {
-            len: usize,
-            max: usize,
-            exceeded: bool,
-        }
-        impl Write for Count {
-            fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
-                let Some(next) = self.len.checked_add(bytes.len()).filter(|n| *n <= self.max)
-                else {
-                    self.exceeded = true;
-                    return Err(io::Error::other("public D1 manifest input binding bytes"));
-                };
-                self.len = next;
-                Ok(bytes.len())
-            }
-            fn flush(&mut self) -> io::Result<()> {
-                Ok(())
-            }
-        }
-        self.check_custody()?;
-        if max_bytes == 0 || max_bytes > MAX_HEADER_BYTES {
-            return Err(Error::Budget("public D1 manifest input binding bytes"));
-        }
-        const PREFIX: &[u8] = b"{\"sources\":[";
-        let pointer_bytes = self
-            .sources
-            .len()
-            .checked_mul(std::mem::size_of::<&SourceFile>())
-            .ok_or(Error::Budget("public D1 manifest input state"))?;
-        if PREFIX
-            .len()
-            .checked_add(self.sources.len().saturating_mul(4))
-            .is_none_or(|minimum| minimum > max_bytes)
-        {
-            return Err(Error::Budget("public D1 manifest input binding bytes"));
-        }
-        self.charge_work(pointer_bytes as u64)?;
-        let mut sources = self.sources.iter().collect::<Vec<_>>();
-        sources.sort_by(|a, b| a.label.cmp(&b.label));
-        if sources
-            .windows(2)
-            .any(|pair| pair[0].label == pair[1].label)
-        {
-            return Err(Error::Invalid("public D1 duplicate input label"));
-        }
-        let mut count = Count {
-            len: PREFIX.len(),
-            max: max_bytes,
-            exceeded: false,
-        };
-        let mut ledger = Digest256Hasher::new();
-        ledger.update(b"tos-public-ledger-membership-v1\0");
-        let mut ledger_count = 0u64;
-        for (index, source) in sources.iter().enumerate() {
-            self.charge_work(source.label.len() as u64 + 64)?;
-            if source.digest.is_some()
-                && source
-                    .label
-                    .starts_with("ToS/source-witnesses/access-requests/public-ledger/")
-                && source.label.ends_with(".access-request.json")
-            {
-                ledger.update(&(source.label.len() as u64).to_be_bytes());
-                ledger.update(source.label.as_bytes());
-                ledger_count = ledger_count
-                    .checked_add(1)
-                    .ok_or(Error::Budget("public D1 ledger membership count"))?;
-            }
-            if index != 0 {
-                count
-                    .write_all(b",")
-                    .map_err(|_| Error::Budget("public D1 manifest input binding bytes"))?;
-            }
-            let entry = Entry {
-                path: &source.label,
-                size_bytes: source.digest.map(|_| source.len),
-                sha256: source.digest.map(|digest| digest.to_hex()),
-            };
-            serde_json::to_writer(&mut count, &entry).map_err(|e| {
-                if count.exceeded {
-                    Error::Budget("public D1 manifest input binding bytes")
-                } else {
-                    Error::Source(e.to_string())
-                }
-            })?;
-        }
-        let db = self.read_db()?;
-        let mut stmt =
-            db.prepare("SELECT path,sha256,size_bytes FROM capture_sources ORDER BY path")?;
-        let mut rows = stmt.query([])?;
-        let mut parts = Digest256Hasher::new();
-        parts.update(b"tos-public-part-closure-v1\0");
-        let mut part_count = 0u64;
-        while let Some(row) = rows.next()? {
-            let absolute: String = row.get(0)?;
-            let sha: Vec<u8> = row.get(1)?;
-            let size: i64 = row.get(2)?;
-            let label = Path::new(&absolute)
-                .strip_prefix(&self.root)
-                .ok()
-                .and_then(Path::to_str)
-                .filter(|path| !path.is_empty())
-                .ok_or(Error::Invalid("public D1 part logical path"))?;
-            if sha.len() != 32 || size < 0 {
-                return Err(Error::Invalid("public D1 part binding row"));
-            }
-            self.charge_work(label.len() as u64 + sha.len() as u64 + 16)?;
-            parts.update(&(label.len() as u64).to_be_bytes());
-            parts.update(label.as_bytes());
-            parts.update(&(size as u64).to_be_bytes());
-            parts.update(&sha);
-            part_count = part_count
-                .checked_add(1)
-                .ok_or(Error::Budget("public D1 part binding count"))?;
-        }
-        let suffix = serde_json::json!({
-            "schema":"tos_public_input_binding_v1",
-            "public_ledger":{"count":ledger_count,"paths_sha256":ledger.finalize().to_hex()},
-            "partitioned":self.partitioned,
-            "partition_parts":{"count":part_count,"root_sha256":parts.finalize().to_hex()},
-        });
-        let suffix = serde_json::to_vec(&suffix).map_err(|e| Error::Source(e.to_string()))?;
-        for piece in [
-            b"],".as_slice(),
-            &suffix[1..suffix.len() - 1],
-            b"}".as_slice(),
-        ] {
-            count
-                .write_all(piece)
-                .map_err(|_| Error::Budget("public D1 manifest input binding bytes"))?;
-        }
-        // One exact count admits the raw bytes, bounded parsed Value state and
-        // both serialization passes before any growing buffer is allocated.
-        let resident = (count.len as u64)
-            .checked_mul(4)
-            .and_then(|n| n.checked_add((sources.len() as u64).checked_mul(512)?))
-            .ok_or(Error::Budget("public D1 manifest input state"))?;
-        self.charge_work(resident)?;
-        let mut raw = Vec::with_capacity(count.len);
-        raw.extend_from_slice(PREFIX);
-        for (index, source) in sources.iter().enumerate() {
-            if index != 0 {
-                raw.push(b',');
-            }
-            let entry = Entry {
-                path: &source.label,
-                size_bytes: source.digest.map(|_| source.len),
-                sha256: source.digest.map(|digest| digest.to_hex()),
-            };
-            serde_json::to_writer(&mut raw, &entry).map_err(|e| Error::Source(e.to_string()))?;
-        }
-        raw.extend_from_slice(b"],");
-        raw.extend_from_slice(&suffix[1..suffix.len() - 1]);
-        raw.push(b'}');
-        if raw.len() != count.len {
-            return Err(Error::Invalid("public D1 manifest input serialized size"));
-        }
-        serde_json::from_slice(&raw).map_err(|e| Error::Source(e.to_string()))
-    }
-
-    /// Bind the complete allowlisted public snapshot by stable logical labels.
-    /// These digests were measured on capture and are independently rechecked
-    /// before completion; transient private paths never enter the revision.
-    pub(crate) fn update_revision_sources(&self, hash: &mut Digest256Hasher) -> Result<()> {
-        self.check_custody()?;
-        for source in &self.sources {
-            self.charge_work(source.label.len() as u64 + 41)?;
-            hash.update(&(source.label.len() as u64).to_be_bytes());
-            hash.update(source.label.as_bytes());
-            hash.update(&source.len.to_be_bytes());
-            if let Some(digest) = source.digest {
-                hash.update(&[1]);
-                hash.update(digest.as_bytes());
-            } else {
-                hash.update(&[0]);
-            }
-        }
-        Ok(())
-    }
-
     pub fn partitioned(&self) -> bool {
         self.partitioned
     }
@@ -7218,7 +6983,7 @@ mod construction_phase_tests {
             // The real dedicated initializer owns process-global SQLite state.
             // Isolate it so this test does not change the rest of the suite.
             let output = std::process::Command::new(std::env::current_exe().unwrap())
-                .args(["--exact", "d1_public_capture::construction_phase_tests::construction_peak_transfers_only_live_value_state", "--nocapture"])
+                .args(["--exact", "public_capture::construction_phase_tests::construction_peak_transfers_only_live_value_state", "--nocapture"])
                 .env(CHILD, "1").output().unwrap();
             assert!(
                 output.status.success(),
@@ -7621,7 +7386,7 @@ mod capture_work_budget_tests {
             let output = std::process::Command::new(std::env::current_exe().unwrap())
                 .args([
                     "--exact",
-                    "d1_public_capture::capture_work_budget_tests::creation_charge_work_keeps_live_owner_check_and_phase_snapshot",
+                    "public_capture::capture_work_budget_tests::creation_charge_work_keeps_live_owner_check_and_phase_snapshot",
                     "--nocapture",
                 ])
                 .env(CHILD, "1")

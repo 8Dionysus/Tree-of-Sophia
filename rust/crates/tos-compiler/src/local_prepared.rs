@@ -105,10 +105,10 @@ pub struct PreparedChange {
 }
 
 pub(crate) fn parse(raw: &str, cap: usize) -> Result<JsonValue> {
-    crate::d1_public_capture::json(raw.as_bytes(), cap)
+    crate::public_capture::json(raw.as_bytes(), cap)
 }
 pub(crate) fn compact(value: &JsonValue, cap: usize) -> Result<String> {
-    String::from_utf8(crate::d1_public_capture::compact(value, cap)?)
+    String::from_utf8(crate::public_capture::compact(value, cap)?)
         .map_err(|_| Error::Invalid("prepared JSON UTF-8"))
 }
 fn text(value: &str) -> JsonValue {

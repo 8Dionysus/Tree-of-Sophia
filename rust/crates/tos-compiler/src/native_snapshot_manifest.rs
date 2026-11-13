@@ -52,20 +52,20 @@ const EXECUTING_IMAGE_LOGICAL_PATH: &str = "tos-command/current-executable";
 // not a reproducible-source or full dependency-closure claim.
 const EMBEDDED_PRODUCER_INPUTS: [(&str, &[u8]); 22] = [
     (
-        "rust/crates/tos-compiler/src/d1_public_capture.rs",
-        include_bytes!("d1_public_capture.rs"),
+        "rust/crates/tos-compiler/src/public_capture.rs",
+        include_bytes!("public_capture.rs"),
     ),
     (
-        "rust/crates/tos-compiler/src/d1_public_graph.rs",
-        include_bytes!("d1_public_graph.rs"),
+        "rust/crates/tos-compiler/src/public_graph.rs",
+        include_bytes!("public_graph.rs"),
     ),
     (
-        "rust/crates/tos-compiler/src/d1_public_header.rs",
-        include_bytes!("d1_public_header.rs"),
+        "rust/crates/tos-compiler/src/public_header.rs",
+        include_bytes!("public_header.rs"),
     ),
     (
-        "rust/crates/tos-compiler/src/d1_public_semantics.rs",
-        include_bytes!("d1_public_semantics.rs"),
+        "rust/crates/tos-compiler/src/public_semantics.rs",
+        include_bytes!("public_semantics.rs"),
     ),
     (
         "rust/crates/tos-compiler/src/knowledge_corpus_source.rs",
@@ -794,7 +794,7 @@ const SELECTED_MANIFEST_MAX_BYTES: usize = 2 * 1024 * 1024;
 pub fn portable_native_snapshot_limits(
     max_build_seconds: u64,
 ) -> Result<crate::native_snapshot::NativeSnapshotLimits> {
-    let mut base = crate::portable_public_d1_limits(max_build_seconds)?;
+    let mut base = crate::portable_public_limits(max_build_seconds)?;
     base.capture.max_input_bytes = base.capture.max_input_bytes.min(MAX_CAPTURE_CLOSURE_BYTES);
     base.capture.max_staging_bytes = base
         .capture
@@ -1091,7 +1091,7 @@ impl NativeSourceOnlySnapshotCensus {
                     "native captured source collides with reserved profile binding",
                 ));
             }
-            let runtime = crate::d1_public_capture::runtime_companions()
+            let runtime = crate::public_capture::runtime_companions()
                 .find(|(selected, _)| *selected == path.as_str())
                 .map(|(_, raw)| raw);
             let generated = native_runtime_projection_path(&path);
@@ -1372,7 +1372,7 @@ impl NativeSelectedSnapshotCensus {
             }
         }
         let mut expected = self.members.clone();
-        for (path, raw) in crate::d1_public_capture::runtime_companions() {
+        for (path, raw) in crate::public_capture::runtime_companions() {
             let current = HistoricalMember {
                 sha256: Digest256::of_bytes(raw).to_hex(),
                 size_bytes: raw.len() as u64,
@@ -2686,7 +2686,7 @@ pub fn verify_previous_native_data_snapshot(
     // Runtime companions are embedded in the current producer image. Their
     // member hashes must bind to those exact bytes before they can authorize
     // decoding the cached selection packet.
-    for (path, raw) in crate::d1_public_capture::runtime_companions() {
+    for (path, raw) in crate::public_capture::runtime_companions() {
         let member = members
             .get(&format!("data/{path}"))
             .ok_or(Error::Invalid("native cache runtime companion absent"))?;
@@ -3231,7 +3231,7 @@ mod selected_snapshot_tests {
             fs::create_dir_all(path.parent().unwrap()).unwrap();
             fs::write(path, raw).unwrap();
         }
-        for (relative, raw) in crate::d1_public_capture::runtime_companions() {
+        for (relative, raw) in crate::public_capture::runtime_companions() {
             let path = root.join(relative);
             fs::create_dir_all(path.parent().unwrap()).unwrap();
             fs::write(path, raw).unwrap();

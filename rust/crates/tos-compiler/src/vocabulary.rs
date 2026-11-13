@@ -112,7 +112,7 @@ fn strings(v: &Value, key: &str, cap: usize) -> Result<Vec<String>> {
 }
 
 struct VocabularySchema<'a, 'b> {
-    state: Option<&'a crate::d1_public_capture::CreationState<'b>>,
+    state: Option<&'a crate::public_capture::CreationState<'b>>,
 }
 impl VocabularySchema<'_, '_> {
     fn lookup<'a>(&self, value: &'a Value, name: &str) -> Result<Option<&'a Value>> {
@@ -178,7 +178,7 @@ impl VocabularySchema<'_, '_> {
 }
 
 fn reserve_slots<T>(
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
     count: usize,
 ) -> Result<()> {
     if let Some(state) = state {
@@ -192,7 +192,7 @@ fn reserve_slots<T>(
 }
 fn clone_string(
     value: &str,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<String> {
     if let Some(state) = state {
         state.retain(value.len())?;
@@ -203,7 +203,7 @@ fn clone_string(
 fn string_with_state(
     v: &Value,
     key: &str,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<String> {
     if state.is_none() {
         return string(v, key);
@@ -219,7 +219,7 @@ fn strings_with_state(
     v: &Value,
     key: &str,
     cap: usize,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<Vec<String>> {
     if state.is_none() {
         return strings(v, key, cap);
@@ -246,7 +246,7 @@ fn strings_with_state(
 }
 fn clone_policy(
     value: &Value,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<Value> {
     match state {
         Some(state) => state.clone_value(value),
@@ -257,7 +257,7 @@ fn clone_policy(
 fn equal_text(
     left: &str,
     right: &str,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<bool> {
     state.charge_work(
         left.len()
@@ -269,7 +269,7 @@ fn equal_text(
 fn equal_texts(
     left: &[String],
     right: &[String],
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<bool> {
     state.active()?;
     if left.len() != right.len() {
@@ -286,7 +286,7 @@ fn equal_policy(
     left: &Value,
     right: &Value,
     depth: usize,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<bool> {
     state.charge_work(2 * std::mem::size_of::<Value>())?;
     if depth > 64 {
@@ -346,7 +346,7 @@ fn equal_policy(
 fn vocabulary_equal(
     left: &QueryVocabulary,
     right: &QueryVocabulary,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<bool> {
     let _frames = state.hold(
         65 * (2 * std::mem::size_of::<&Value>()
@@ -440,13 +440,13 @@ enum VocabularySet<'state, 'budget, T: VocabularyKey> {
     Compatible(BTreeSet<T>),
     Owned {
         values: Vec<T>,
-        state: &'state crate::d1_public_capture::CreationState<'budget>,
+        state: &'state crate::public_capture::CreationState<'budget>,
     },
 }
 impl<'state, 'budget, T: VocabularyKey> VocabularySet<'state, 'budget, T> {
     fn new(
         capacity: usize,
-        state: Option<&'state crate::d1_public_capture::CreationState<'budget>>,
+        state: Option<&'state crate::public_capture::CreationState<'budget>>,
     ) -> Result<Self> {
         match state {
             None => Ok(Self::Compatible(BTreeSet::new())),
@@ -462,7 +462,7 @@ impl<'state, 'budget, T: VocabularyKey> VocabularySet<'state, 'budget, T> {
     fn position(
         values: &[T],
         key: &T,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<std::result::Result<usize, usize>> {
         let mut left = 0;
         let mut right = values.len();
@@ -599,7 +599,7 @@ impl QueryVocabulary {
     pub(crate) fn verify_authored_bytes_with_owned_state(
         &self,
         authored_bytes: &[u8],
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<()> {
         state.active()?;
         state.charge_work(authored_bytes.len())?;
@@ -650,7 +650,7 @@ impl QueryVocabulary {
     pub(crate) fn parse_with_owned_state(
         authored_bytes: &[u8],
         supported_adapters: &[&str],
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<Self> {
         if authored_bytes.is_empty()
             || authored_bytes.len() > MAX_DESCRIPTOR_BYTES
@@ -669,7 +669,7 @@ impl QueryVocabulary {
         authored_bytes: &[u8],
         supported_adapters: &[&str],
         doc: &Value,
-        state: Option<&crate::d1_public_capture::CreationState<'_>>,
+        state: Option<&crate::public_capture::CreationState<'_>>,
     ) -> Result<Self> {
         let _frame = state
             .map(|state| {

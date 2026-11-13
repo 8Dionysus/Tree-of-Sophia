@@ -4,20 +4,20 @@ use crate::{
     Error, ExpectedSourceScope, FullKnowledgeLimits, KnowledgeSelectedExpectation,
     NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeProducerLimits, QueryVocabulary, Result,
     SourceBinding,
-    d1_public_capture::{CreationState, PublicCapture, PublicCaptureLimits},
-    d1_public_graph::{
+    knowledge_source_navigation_prepare::NavigationHeaderClaim,
+    knowledge_stage::{ExactInputReceipt, KnowledgeStage, StageIsolation, StageLimits, WritePhase},
+    public_capture::{CreationState, PublicCapture, PublicCaptureLimits},
+    public_graph::{
         PublicRepositoryRoot, PublicStageOwner, captured_input_roots, captured_input_roots_owned,
         ingest_family_rows, ingest_family_rows_owned, prepare_family_rows,
         prepare_family_rows_owned,
     },
-    d1_public_header::build_native_snapshot_header,
-    d1_public_lens_specs::{saved_lenses, saved_lenses_owned},
-    d1_public_semantics::{
+    public_header::build_native_snapshot_header,
+    public_lens_specs::{saved_lenses, saved_lenses_owned},
+    public_semantics::{
         validate_native_snapshot_semantics, validate_public_current_registries,
         validate_public_current_registries_owned,
     },
-    knowledge_source_navigation_prepare::NavigationHeaderClaim,
-    knowledge_stage::{ExactInputReceipt, KnowledgeStage, StageIsolation, StageLimits, WritePhase},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -2048,7 +2048,7 @@ fn strict_snapshot_value_owned(
     remaining_visits: &mut usize,
     cancelled: &AtomicBool,
     deadline: Instant,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<serde_json::Value> {
     let Some(state) = state else {
         return strict_snapshot_value(raw, max_bytes, json, remaining_visits, cancelled, deadline);
@@ -2078,7 +2078,7 @@ fn foundation_snapshot_value_owned(
     remaining_visits: &mut usize,
     cancelled: &AtomicBool,
     deadline: Instant,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<JsonValue> {
     let Some(state) = state else {
         return foundation_snapshot_value(
@@ -2119,7 +2119,7 @@ fn staged_rows(
     remaining_visits: &mut usize,
     deadline: Instant,
     cancelled: &AtomicBool,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<Vec<serde_json::Value>> {
     if !matches!(table, "knowledge_nodes" | "knowledge_relations") {
         return Err(Error::Invalid("native whole snapshot row table"));
@@ -4538,7 +4538,7 @@ fn build_native_snapshot_from_capture_inner(
         Some(state) => saved_lenses_owned(capture, state)?,
         None => saved_lenses(capture)?,
     };
-    let normalization_binding = crate::d1_public_build::processor_binding(
+    let normalization_binding = crate::public_build::processor_binding(
         &repository,
         &registry,
         &descriptor,
@@ -4576,7 +4576,7 @@ fn build_native_snapshot_from_capture_inner(
         let mut ceiling = None;
         let outcome = (|| {
             let (semantics, producer) =
-                crate::d1_public_semantics::validate_native_snapshot_semantics_with_rows(
+                crate::public_semantics::validate_native_snapshot_semantics_with_rows(
                     &mut stage,
                     capture,
                     &registry,
@@ -4584,7 +4584,7 @@ fn build_native_snapshot_from_capture_inner(
                     &relation,
                     Some(&mut reduction),
                     |stage, visitor| {
-                        let mut observer = crate::d1_public_semantics::FinalSemanticRows {
+                        let mut observer = crate::public_semantics::FinalSemanticRows {
                             visitor,
                             catalog_limits: limits.full.catalog,
                             catalog_ceiling: &mut ceiling,

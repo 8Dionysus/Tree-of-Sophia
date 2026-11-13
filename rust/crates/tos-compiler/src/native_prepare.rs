@@ -3,22 +3,22 @@
 use crate::{
     Error, NATIVE_KNOWLEDGE_ADAPTER_PROFILES, NativeFamilyInputs, NavigationHeaderClaim,
     QueryVocabulary, Result,
-    d1_public_build::portable_public_d1_limits,
-    d1_public_capture::{PublicCapture, compact, json},
-    d1_public_graph::{
-        PublicRepositoryRoot, PublicStageOwner, exact_prepared_receipt, ingest_family_rows,
-        prepare_family_rows,
-    },
-    d1_public_header::build_public_header,
-    d1_public_knowledge::portabilize_public_stage,
-    d1_public_lens_specs::saved_lenses,
-    d1_public_semantics::{validate_public_current_registries, validate_public_semantics},
     knowledge_stage::{KnowledgeStage, WritePhase},
     local_prepared::{self, BootstrapSearch, PreparedRows, PublicationLimits},
     local_prepared_bulk::BulkBootstrapLimits,
     prepared_catalog_index::CatalogMaintenanceLimits,
     prepared_catalog_semantics::{CatalogInputs, SourceOrderProfile},
     prepared_semantic_index::{SemanticMaintenanceLimits, SemanticRows},
+    public_build::portable_public_limits,
+    public_capture::{PublicCapture, compact, json},
+    public_graph::{
+        PublicRepositoryRoot, PublicStageOwner, exact_prepared_receipt, ingest_family_rows,
+        prepare_family_rows,
+    },
+    public_header::build_public_header,
+    public_lens_specs::saved_lenses,
+    public_semantics::{validate_public_current_registries, validate_public_semantics},
+    public_stage::portabilize_public_stage,
 };
 use serde_json::{Value, json as packet};
 use std::{
@@ -57,7 +57,7 @@ pub struct SourceBootstrapLimits {
     pub max_temp_bytes: u64,
 }
 impl SourceBootstrapLimits {
-    fn apply(self, limits: &mut crate::d1_public_build::PublicD1BuildLimits) -> Result<()> {
+    fn apply(self, limits: &mut crate::public_build::PublicBuildLimits) -> Result<()> {
         if self.max_input_bytes == 0
             || self.max_capture_bytes < 65536
             || self.max_stage_bytes < 65536
@@ -76,8 +76,7 @@ impl SourceBootstrapLimits {
         Ok(())
     }
 }
-// Native prepare alone binds normalization to the actual executing ELF. The
-// D1 publisher's accepted processor identity and public receipt are unchanged.
+// Native prepare binds normalization to the actual executing ELF.
 // Match the selected CI software-image envelope; this bounds one streaming
 // identity read, not source, staging, publication, or allocated image memory.
 const MAX_EXECUTING_IMAGE_BYTES: u64 = 1024 * 1024 * 1024;
@@ -249,7 +248,7 @@ fn value(packet: &Value, cap: usize) -> Result<JsonValue> {
 // catalog renderer still consumes serde values, with the same metadata cap.
 fn portable_serde(packet: &mut Value, root: &str, cap: usize) -> Result<()> {
     let mut owner = value(packet, cap)?;
-    crate::d1_public_rows::portable(&mut owner, root);
+    crate::public_rows::portable(&mut owner, root);
     *packet = value_to_serde(&owner, cap)?;
     Ok(())
 }
@@ -283,11 +282,8 @@ impl StageRows<'_, '_> {
                                 .checked_mul(4)
                                 .ok_or(Error::Budget("prepare row copy work"))?,
                         )?;
-                        let value = crate::d1_public_capture::foundation_scoped(
-                            raw,
-                            self.cap,
-                            Some(state),
-                        )?;
+                        let value =
+                            crate::public_capture::foundation_scoped(raw, self.cap, Some(state))?;
                         sink(&value)
                     },
                 )?;
@@ -356,7 +352,7 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
     let deadline = Instant::now()
         .checked_add(Duration::from_secs(max_seconds))
         .ok_or(Error::Budget("prepare deadline arithmetic"))?;
-    let mut limits = portable_public_d1_limits(max_seconds)?;
+    let mut limits = portable_public_limits(max_seconds)?;
     if let Some(profile) = source_limits {
         profile.apply(&mut limits)?;
     }
@@ -526,7 +522,7 @@ pub fn prepare(request: PrepareRequest<'_>) -> Result<Value> {
         source_order_profile: SourceOrderProfile::OwnerSequence,
     };
     // The maintained exact contributor renderer owns prepared catalog semantics;
-    // public D1's emitter/manifest authority is never invoked.
+    // Publication and admission remain separate owner operations.
     let mut catalog = stage.with_connection(WritePhase::Catalog, |db| {
         let entity_value: Value =
             serde_json::from_slice(&entity).map_err(|e| Error::Source(e.to_string()))?;

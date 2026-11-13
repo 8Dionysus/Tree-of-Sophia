@@ -1,11 +1,11 @@
 //! Source-bound repository topology. Paths select ownership routes only;
 //! source IDs and source array ordinals are supplied by their owner.
 
-use crate::d1_public_capture::{CreationState, CreationStateHold};
 use crate::knowledge_base::{BaseNodeOverrides, KnowledgeBaseNormalizer};
 use crate::knowledge_global_titles::CompleteBaseNodes;
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::{KnowledgeStage, NodeRow, RelationRow, WritePhase};
+use crate::public_capture::{CreationState, CreationStateHold};
 use crate::{Error, QueryVocabulary, Result};
 use rusqlite::{OptionalExtension, params};
 use serde_json::{Value, json};

@@ -10,13 +10,6 @@ pub mod concept_search;
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub mod coverage;
 pub mod doctor;
-#[cfg(target_os = "linux")]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub mod edge_local_verify;
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub mod edge_offline_capture;
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub mod edge_sql;
 pub mod exploration_checkpoints;
 pub mod exploration_contracts;
 pub mod knowledge;
@@ -39,8 +32,6 @@ mod private_stage_invocation;
 pub mod private_stage_run;
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub mod public_corpus_build_command;
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub mod public_d1_build;
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub mod public_packet_compare;

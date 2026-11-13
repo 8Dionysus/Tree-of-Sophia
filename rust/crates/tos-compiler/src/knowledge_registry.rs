@@ -1,7 +1,7 @@
 //! Bounded, exact semantic crosswalk selected from authored registries.
 //! Registry lookup does not assess a source row or admit a graph publication.
 
-use crate::{Error, Result, d1_public_capture::CreationState};
+use crate::{Error, Result, public_capture::CreationState};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, parse_json};

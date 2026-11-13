@@ -2,7 +2,7 @@
 //! This module supplies no model or source authority. Callers authenticate the
 //! format and verify logical length/digest before delivering decoded contents.
 use crate::knowledge_byte_dictionary::VerifiedDictionary;
-use crate::{Error, Result, d1_public_capture::CreationState};
+use crate::{Error, Result, public_capture::CreationState};
 use flate2::{Compress, Compression, FlushCompress, Status};
 use miniz_oxide::inflate::{
     TINFLStatus,

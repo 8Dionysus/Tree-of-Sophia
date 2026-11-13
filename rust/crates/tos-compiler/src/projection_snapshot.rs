@@ -1,5 +1,5 @@
-//! Bounded reader/differ for retained private projection snapshots used by
-//! offline D1 navigation capture. It proves only exact retained bytes and a
+//! Bounded reader/differ for retained partitioned projection snapshots used by
+//! the access diagnostics. It proves only exact retained bytes and a
 //! complete mechanical diff; selected-root currentness, source admission,
 //! rights and publication remain with the source owner.
 
@@ -23,7 +23,7 @@ const MAX_PART_BYTES: usize = 8 * 1024 * 1024;
 const MAX_KEY_BYTES: usize = 4096;
 
 #[derive(Clone, Copy, Debug)]
-pub struct D1ProjectionLimits {
+pub struct ProjectionLimits {
     pub max_opened_parts: u64,
     pub max_read_bytes: u64,
     /// Independent physical bytes accepted from compressed/stored parts.
@@ -37,7 +37,7 @@ pub struct D1ProjectionLimits {
     pub max_output_bytes: u64,
 }
 
-impl Default for D1ProjectionLimits {
+impl Default for ProjectionLimits {
     fn default() -> Self {
         Self {
             max_opened_parts: 256,
@@ -53,19 +53,19 @@ impl Default for D1ProjectionLimits {
 }
 
 #[derive(Clone, Debug)]
-pub struct D1ProjectionSnapshot {
+pub struct ProjectionSnapshot {
     root_bytes: Vec<u8>,
     namespace_path: PathBuf,
     snapshot_sha256: String,
 }
 
-impl D1ProjectionSnapshot {
+impl ProjectionSnapshot {
     /// Construct a retained immutable projection view. `namespace_path` is
     /// the original projection-root filename; only its sibling `.parts`
     /// namespace is read. The root file itself need not still exist.
     pub fn new(root_bytes: Vec<u8>, namespace_path: PathBuf) -> Result<Self> {
         if root_bytes.is_empty() || root_bytes.len() > MAX_ROOT_BYTES {
-            return Err(Error::Budget("D1 projection root bytes"));
+            return Err(Error::Budget("projection root bytes"));
         }
         if !namespace_path.is_absolute()
             || namespace_path.file_name().is_none()
@@ -73,7 +73,7 @@ impl D1ProjectionSnapshot {
                 .components()
                 .any(|part| !matches!(part, Component::RootDir | Component::Normal(_)))
         {
-            return Err(Error::Invalid("D1 projection namespace path"));
+            return Err(Error::Invalid("projection namespace path"));
         }
         let snapshot_sha256 = Digest256::of_bytes(&root_bytes).to_hex();
         let value = strict_json(&root_bytes, MAX_ROOT_BYTES)?;
@@ -101,7 +101,7 @@ impl D1ProjectionSnapshot {
         let root = strict_json(&self.root_bytes, MAX_ROOT_BYTES)?;
         root.get("header")
             .cloned()
-            .ok_or(Error::Invalid("D1 projection header"))
+            .ok_or(Error::Invalid("projection header"))
     }
 
     /// Read one full declared collection in partition-key order. Every part,
@@ -111,8 +111,8 @@ impl D1ProjectionSnapshot {
     pub fn read_collection(
         &self,
         name: &str,
-        limits: D1ProjectionLimits,
-    ) -> Result<D1ProjectionCollection> {
+        limits: ProjectionLimits,
+    ) -> Result<ProjectionCollection> {
         validate_limits(limits)?;
         let root = strict_json(&self.root_bytes, MAX_ROOT_BYTES)?;
         let mut reader = SnapshotReader::new(self, root)?;
@@ -121,11 +121,11 @@ impl D1ProjectionSnapshot {
             .get("collections")
             .and_then(Value::as_object)
             .and_then(|collections| collections.get(name))
-            .ok_or(Error::Invalid("D1 projection collection absent"))?;
+            .ok_or(Error::Invalid("projection collection absent"))?;
         let key_field = spec
             .get("key_field")
             .cloned()
-            .ok_or(Error::Invalid("D1 projection key field"))?;
+            .ok_or(Error::Invalid("projection key field"))?;
         let mut rows = BTreeMap::new();
         let mut work = Work::new(limits);
         // A requested full read has separate row and key limits; both remain
@@ -136,22 +136,22 @@ impl D1ProjectionSnapshot {
         let descriptor = spec
             .get("root")
             .cloned()
-            .ok_or(Error::Invalid("D1 projection collection root"))?;
+            .ok_or(Error::Invalid("projection collection root"))?;
         reader.visit_rows(name, &descriptor, "", &mut work, &mut |key, value| {
             retained_bytes = add(
                 retained_bytes,
                 add(key.len() as u64, canonical_json(value)?.len() as u64)?,
             )?;
             if retained_bytes > limits.max_output_bytes {
-                return Err(Error::Budget("D1 projection output budget"));
+                return Err(Error::Budget("projection output budget"));
             }
             if rows.insert(key.to_owned(), value.clone()).is_some() {
-                return Err(Error::Invalid("duplicate D1 projection collection key"));
+                return Err(Error::Invalid("duplicate projection collection key"));
             }
             Ok(())
         })?;
         work.output_bytes(retained_bytes)?;
-        Ok(D1ProjectionCollection {
+        Ok(ProjectionCollection {
             name: name.to_owned(),
             key_field,
             rows,
@@ -167,8 +167,8 @@ impl D1ProjectionSnapshot {
         &self,
         after: &Self,
         name: &str,
-        limits: D1ProjectionLimits,
-    ) -> Result<D1ProjectionDiff> {
+        limits: ProjectionLimits,
+    ) -> Result<ProjectionDiff> {
         validate_limits(limits)?;
         let before_root = strict_json(&self.root_bytes, MAX_ROOT_BYTES)?;
         let after_root = strict_json(&after.root_bytes, MAX_ROOT_BYTES)?;
@@ -204,7 +204,7 @@ impl D1ProjectionSnapshot {
             canonical_json(&after_header)?.len() as u64,
         )?;
         work.output_bytes(add(header_bytes, name.len() as u64 + 128)?)?;
-        Ok(D1ProjectionDiff {
+        Ok(ProjectionDiff {
             collection: name.to_owned(),
             before_sha256: self.snapshot_sha256.clone(),
             after_sha256: after.snapshot_sha256.clone(),
@@ -217,33 +217,33 @@ impl D1ProjectionSnapshot {
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct D1ProjectionCollection {
+pub struct ProjectionCollection {
     pub name: String,
     pub key_field: Value,
     pub rows: BTreeMap<String, Value>,
-    pub accounting: D1ProjectionAccounting,
+    pub accounting: ProjectionAccounting,
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct D1ProjectionChange {
+pub struct ProjectionChange {
     pub key: String,
     pub before: Option<Value>,
     pub after: Option<Value>,
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct D1ProjectionDiff {
+pub struct ProjectionDiff {
     pub collection: String,
     pub before_sha256: String,
     pub after_sha256: String,
     pub before_header: Value,
     pub after_header: Value,
-    pub changes: Vec<D1ProjectionChange>,
-    pub accounting: D1ProjectionAccounting,
+    pub changes: Vec<ProjectionChange>,
+    pub accounting: ProjectionAccounting,
 }
 
 #[derive(Clone, Copy, Debug, Default, Serialize)]
-pub struct D1ProjectionAccounting {
+pub struct ProjectionAccounting {
     pub opened_parts: u64,
     pub stored_bytes: u64,
     pub decoded_bytes: u64,
@@ -254,19 +254,19 @@ pub struct D1ProjectionAccounting {
 
 #[derive(Clone, Copy)]
 struct Work {
-    limits: D1ProjectionLimits,
-    used: D1ProjectionAccounting,
+    limits: ProjectionLimits,
+    used: ProjectionAccounting,
 }
 
 impl Work {
-    fn new(limits: D1ProjectionLimits) -> Self {
+    fn new(limits: ProjectionLimits) -> Self {
         Self {
             limits,
-            used: D1ProjectionAccounting::default(),
+            used: ProjectionAccounting::default(),
         }
     }
     fn reserve(&mut self, parts: u64, stored: u64, decoded: u64, keys: u64) -> Result<()> {
-        let next = D1ProjectionAccounting {
+        let next = ProjectionAccounting {
             opened_parts: add(self.used.opened_parts, parts)?,
             stored_bytes: add(self.used.stored_bytes, stored)?,
             decoded_bytes: add(self.used.decoded_bytes, decoded)?,
@@ -280,7 +280,7 @@ impl Work {
             || add(next.stored_bytes, next.decoded_bytes)? > self.limits.max_read_bytes
             || next.keys > self.limits.max_keys
         {
-            return Err(Error::Budget("D1 projection read budget"));
+            return Err(Error::Budget("projection read budget"));
         }
         self.used = next;
         Ok(())
@@ -288,18 +288,18 @@ impl Work {
     fn change(&mut self) -> Result<()> {
         self.used.changes = add(self.used.changes, 1)?;
         if self.used.changes > self.limits.max_changes {
-            return Err(Error::Budget("D1 projection change budget"));
+            return Err(Error::Budget("projection change budget"));
         }
         Ok(())
     }
     fn output_bytes(&mut self, amount: u64) -> Result<()> {
         self.used.output_bytes = add(self.used.output_bytes, amount)?;
         if self.used.output_bytes > self.limits.max_output_bytes {
-            return Err(Error::Budget("D1 projection output budget"));
+            return Err(Error::Budget("projection output budget"));
         }
         Ok(())
     }
-    fn accounting(self) -> D1ProjectionAccounting {
+    fn accounting(self) -> ProjectionAccounting {
         self.used
     }
 }
@@ -311,7 +311,7 @@ struct SnapshotReader {
 }
 
 impl SnapshotReader {
-    fn new(snapshot: &D1ProjectionSnapshot, root: Value) -> Result<Self> {
+    fn new(snapshot: &ProjectionSnapshot, root: Value) -> Result<Self> {
         validate_manifest(&root, &snapshot.namespace_path)?;
         Ok(Self {
             manifest: root,
@@ -322,7 +322,7 @@ impl SnapshotReader {
     fn descriptor(&self, value: &Value, prefix: &str) -> Result<()> {
         let object = value
             .as_object()
-            .ok_or(Error::Invalid("D1 projection part descriptor"))?;
+            .ok_or(Error::Invalid("projection part descriptor"))?;
         exact_keys(
             object,
             &[
@@ -335,7 +335,7 @@ impl SnapshotReader {
                 "decoded_sha256",
                 "count",
             ],
-            "D1 projection part descriptor fields",
+            "projection part descriptor fields",
         )?;
         let kind = string(value, "kind")?;
         let selected_prefix = string(value, "prefix")?;
@@ -350,7 +350,7 @@ impl SnapshotReader {
             || !valid_sha256(digest)
             || !valid_sha256(decoded_digest)
         {
-            return Err(Error::Invalid("D1 projection part identity"));
+            return Err(Error::Invalid("projection part identity"));
         }
         let bound = if kind == "data" {
             MAX_PART_BYTES
@@ -361,7 +361,7 @@ impl SnapshotReader {
         let decoded = uint(value, "decoded_bytes")?;
         let _count = uint(value, "count")?;
         if decoded > bound as u64 || stored > (bound as u64).saturating_add(65_536) {
-            return Err(Error::Budget("D1 projection part descriptor bounds"));
+            return Err(Error::Budget("projection part descriptor bounds"));
         }
         let suffix = if kind == "data" {
             ".jsonl.gz"
@@ -373,10 +373,10 @@ impl SnapshotReader {
             .file_stem()
             .and_then(|name| name.to_str())
             .filter(|name| !name.is_empty())
-            .ok_or(Error::Invalid("D1 projection namespace stem"))?;
+            .ok_or(Error::Invalid("projection namespace stem"))?;
         let expected = format!("{stem}.parts/{}/{digest}{suffix}", &digest[..2]);
         if string(value, "path")? != expected {
-            return Err(Error::Invalid("D1 projection content namespace"));
+            return Err(Error::Invalid("projection content namespace"));
         }
         Ok(())
     }
@@ -393,24 +393,24 @@ impl SnapshotReader {
         let index = strict_json(&raw, MAX_INDEX_BYTES)?;
         let object = index
             .as_object()
-            .ok_or(Error::Invalid("D1 projection index object"))?;
+            .ok_or(Error::Invalid("projection index object"))?;
         exact_keys(
             object,
             &["schema_version", "prefix", "count", "children"],
-            "D1 projection index fields",
+            "projection index fields",
         )?;
         if string(&index, "schema_version")? != INDEX_SCHEMA
             || string(&index, "prefix")? != prefix
             || uint(&index, "count")? != uint(descriptor, "count")?
             || prefix.len() >= 64
         {
-            return Err(Error::Invalid("D1 projection index identity"));
+            return Err(Error::Invalid("projection index identity"));
         }
         let children = index
             .get("children")
             .and_then(Value::as_object)
             .filter(|children| !children.is_empty())
-            .ok_or(Error::Invalid("D1 projection index children"))?;
+            .ok_or(Error::Invalid("projection index children"))?;
         let mut result = BTreeMap::new();
         let mut total = 0u64;
         for (digit, child) in children {
@@ -419,7 +419,7 @@ impl SnapshotReader {
                     .bytes()
                     .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
             {
-                return Err(Error::Invalid("D1 projection index branch"));
+                return Err(Error::Invalid("projection index branch"));
             }
             let child_prefix = format!("{prefix}{digit}");
             self.descriptor(child, &child_prefix)?;
@@ -427,7 +427,7 @@ impl SnapshotReader {
             result.insert(digit.clone(), child.clone());
         }
         if total != uint(descriptor, "count")? {
-            return Err(Error::Invalid("D1 projection index count"));
+            return Err(Error::Invalid("projection index count"));
         }
         Ok(result)
     }
@@ -439,7 +439,7 @@ impl SnapshotReader {
         let _keep_dir = directory;
         let _keep_parts = parts_directory;
         let file = tos_fd_open::open_regular_at(&shard_dir, Path::new(&leaf))
-            .map_err(|_| Error::Invalid("unsafe D1 projection part path"))?;
+            .map_err(|_| Error::Invalid("unsafe projection part path"))?;
         let declared = uint(descriptor, "size_bytes")?;
         work.reserve(
             1,
@@ -448,23 +448,23 @@ impl SnapshotReader {
             0,
         )?;
         if file.metadata()?.len() != declared {
-            return Err(Error::Invalid("D1 projection stored part size"));
+            return Err(Error::Invalid("projection stored part size"));
         }
-        let cap = usize::try_from(declared)
-            .map_err(|_| Error::Budget("D1 projection stored part size"))?;
+        let cap =
+            usize::try_from(declared).map_err(|_| Error::Budget("projection stored part size"))?;
         let mut stored = Vec::with_capacity(cap.min(1024 * 1024));
         file.take(declared.saturating_add(1))
             .read_to_end(&mut stored)?;
         if stored.len() as u64 != declared
             || Digest256::of_bytes(&stored).to_hex() != string(descriptor, "sha256")?
         {
-            return Err(Error::Invalid("D1 projection stored part digest"));
+            return Err(Error::Invalid("projection stored part digest"));
         }
         let decoded = if string(descriptor, "kind")? == "index" {
             if declared != uint(descriptor, "decoded_bytes")?
                 || string(descriptor, "sha256")? != string(descriptor, "decoded_sha256")?
             {
-                return Err(Error::Invalid("D1 projection index encoding"));
+                return Err(Error::Invalid("projection index encoding"));
             }
             stored
         } else {
@@ -473,7 +473,7 @@ impl SnapshotReader {
         if decoded.len() as u64 != uint(descriptor, "decoded_bytes")?
             || Digest256::of_bytes(&decoded).to_hex() != string(descriptor, "decoded_sha256")?
         {
-            return Err(Error::Invalid("D1 projection decoded part digest"));
+            return Err(Error::Invalid("projection decoded part digest"));
         }
         Ok(decoded)
     }
@@ -485,30 +485,30 @@ impl SnapshotReader {
             || !matches!(parts[1], Component::Normal(_))
             || !matches!(parts[2], Component::Normal(_))
         {
-            return Err(Error::Invalid("D1 projection part path components"));
+            return Err(Error::Invalid("projection part path components"));
         }
         let parent_path = self
             .namespace_path
             .parent()
-            .ok_or(Error::Invalid("D1 projection parent"))?;
+            .ok_or(Error::Invalid("projection parent"))?;
         let directory = tos_fd_open::open_absolute_directory(parent_path)
-            .map_err(|_| Error::Invalid("unsafe D1 projection parent"))?;
+            .map_err(|_| Error::Invalid("unsafe projection parent"))?;
         let first = parts[0]
             .as_os_str()
             .to_str()
-            .ok_or(Error::Invalid("D1 projection part directory"))?;
+            .ok_or(Error::Invalid("projection part directory"))?;
         let parts_directory = tos_fd_open::open_directory_at(&directory, Path::new(first))
-            .map_err(|_| Error::Invalid("unsafe D1 projection parts directory"))?;
+            .map_err(|_| Error::Invalid("unsafe projection parts directory"))?;
         let shard = parts[1]
             .as_os_str()
             .to_str()
-            .ok_or(Error::Invalid("D1 projection shard"))?;
+            .ok_or(Error::Invalid("projection shard"))?;
         let shard_dir = tos_fd_open::open_directory_at(&parts_directory, Path::new(shard))
-            .map_err(|_| Error::Invalid("unsafe D1 projection shard"))?;
+            .map_err(|_| Error::Invalid("unsafe projection shard"))?;
         let leaf = parts[2]
             .as_os_str()
             .to_str()
-            .ok_or(Error::Invalid("D1 projection part leaf"))?
+            .ok_or(Error::Invalid("projection part leaf"))?
             .to_owned();
         Ok((directory, parts_directory, shard_dir, leaf))
     }
@@ -536,34 +536,34 @@ impl SnapshotReader {
         let collection = collection_spec(&self.manifest, name)?;
         let key_field = collection
             .get("key_field")
-            .ok_or(Error::Invalid("D1 projection key field"))?;
+            .ok_or(Error::Invalid("projection key field"))?;
         let mut count = 0u64;
         let mut previous = None::<String>;
         if !raw.is_empty() && !raw.ends_with(b"\n") {
-            return Err(Error::Invalid("D1 projection row newline framing"));
+            return Err(Error::Invalid("projection row newline framing"));
         }
         let mut lines = raw.split_inclusive(|byte| *byte == b'\n').peekable();
         while let Some(framed) = lines.next() {
             let line = framed.strip_suffix(b"\n").unwrap_or(framed);
             if line.is_empty() {
-                return Err(Error::Invalid("D1 projection empty row framing"));
+                return Err(Error::Invalid("projection empty row framing"));
             }
             let (value, encoded) = strict_json_with_canonical_record(line, MAX_PART_BYTES)?;
             let object = value
                 .as_object()
-                .ok_or(Error::Invalid("D1 projection row object"))?;
-            exact_keys(object, &["key", "value"], "D1 projection row fields")?;
+                .ok_or(Error::Invalid("projection row object"))?;
+            exact_keys(object, &["key", "value"], "projection row fields")?;
             let key = value
                 .get("key")
                 .and_then(Value::as_str)
                 .filter(|key| !key.is_empty() && key.len() <= MAX_KEY_BYTES)
-                .ok_or(Error::Invalid("D1 projection row key"))?;
+                .ok_or(Error::Invalid("projection row key"))?;
             if previous.as_deref().is_some_and(|prior| prior >= key)
                 || !Digest256::of_bytes(key.as_bytes())
                     .to_hex()
                     .starts_with(prefix)
             {
-                return Err(Error::Invalid("D1 projection row ordering/placement"));
+                return Err(Error::Invalid("projection row ordering/placement"));
             }
             verify_record_key(
                 key_field,
@@ -572,14 +572,14 @@ impl SnapshotReader {
                 uint(&collection["root"], "count")?,
             )?;
             if encoded.as_slice() != framed {
-                return Err(Error::Invalid("D1 projection canonical row bytes"));
+                return Err(Error::Invalid("projection canonical row bytes"));
             }
             previous = Some(key.to_owned());
             count = add(count, 1)?;
             sink(key, &value["value"])?;
         }
         if count != expected_count {
-            return Err(Error::Invalid("D1 projection data row count"));
+            return Err(Error::Invalid("projection data row count"));
         }
         Ok(())
     }
@@ -593,7 +593,7 @@ fn walk_diff(
     after: &Value,
     prefix: &str,
     work: &mut Work,
-    changes: &mut Vec<D1ProjectionChange>,
+    changes: &mut Vec<ProjectionChange>,
 ) -> Result<()> {
     walk_subtree_diff(
         left,
@@ -621,7 +621,7 @@ fn walk_subtree_diff(
     after: &Subtree,
     prefix: &str,
     work: &mut Work,
-    changes: &mut Vec<D1ProjectionChange>,
+    changes: &mut Vec<ProjectionChange>,
 ) -> Result<()> {
     if let (Subtree::Descriptor(a), Subtree::Descriptor(b)) = (before, after) {
         left.descriptor(a, prefix)?;
@@ -680,7 +680,7 @@ fn walk_subtree_diff(
         }
         work.change()?;
         work.output_bytes(change_output_bytes(&key, a, b)?)?;
-        changes.push(D1ProjectionChange {
+        changes.push(ProjectionChange {
             key,
             before: a.cloned(),
             after: b.cloned(),
@@ -713,16 +713,16 @@ fn branches(
         let digit = digest
             .as_bytes()
             .get(prefix.len()..prefix.len() + 1)
-            .ok_or(Error::Invalid("D1 projection key hash depth"))?;
+            .ok_or(Error::Invalid("projection key hash depth"))?;
         let digit =
-            std::str::from_utf8(digit).map_err(|_| Error::Invalid("D1 projection key hash"))?;
+            std::str::from_utf8(digit).map_err(|_| Error::Invalid("projection key hash"))?;
         match result.entry(digit.to_owned()) {
             std::collections::btree_map::Entry::Vacant(entry) => {
                 entry.insert(Subtree::Rows(BTreeMap::from([(key, value)])));
             }
             std::collections::btree_map::Entry::Occupied(mut entry) => {
                 let Subtree::Rows(rows) = entry.get_mut() else {
-                    return Err(Error::Invalid("D1 projection expanded branch type"));
+                    return Err(Error::Invalid("projection expanded branch type"));
                 };
                 rows.insert(key, value);
             }
@@ -737,7 +737,7 @@ fn collect_subtree_changes(
     subtree: &Subtree,
     prefix: &str,
     work: &mut Work,
-    changes: &mut Vec<D1ProjectionChange>,
+    changes: &mut Vec<ProjectionChange>,
     insert_side: bool,
 ) -> Result<()> {
     let rows = read_subtree_rows(reader, name, subtree, prefix, work)?;
@@ -749,7 +749,7 @@ fn collect_subtree_changes(
             (Some(&value), None)
         };
         work.output_bytes(change_output_bytes(&key, before, after)?)?;
-        changes.push(D1ProjectionChange {
+        changes.push(ProjectionChange {
             key,
             before: before.cloned(),
             after: after.cloned(),
@@ -792,7 +792,7 @@ fn change_output_bytes(key: &str, before: Option<&Value>, after: Option<&Value>)
 fn validate_manifest(root: &Value, namespace_path: &Path) -> Result<()> {
     let object = root
         .as_object()
-        .ok_or(Error::Invalid("D1 projection manifest"))?;
+        .ok_or(Error::Invalid("projection manifest"))?;
     exact_keys(
         object,
         &[
@@ -802,7 +802,7 @@ fn validate_manifest(root: &Value, namespace_path: &Path) -> Result<()> {
             "limits",
             "collections",
         ],
-        "D1 projection manifest fields",
+        "projection manifest fields",
     )?;
     if string(root, "schema_version")? != ROOT_SCHEMA
         || string(root, "logical_schema")?.is_empty()
@@ -812,25 +812,25 @@ fn validate_manifest(root: &Value, namespace_path: &Path) -> Result<()> {
             != json!({"root_bytes":MAX_ROOT_BYTES,"index_bytes":MAX_INDEX_BYTES,
             "part_bytes":MAX_PART_BYTES,"key_bytes":MAX_KEY_BYTES})
     {
-        return Err(Error::Invalid("D1 projection manifest profile"));
+        return Err(Error::Invalid("projection manifest profile"));
     }
     let collections = root
         .get("collections")
         .and_then(Value::as_object)
         .filter(|collections| !collections.is_empty())
-        .ok_or(Error::Invalid("D1 projection collections"))?;
+        .ok_or(Error::Invalid("projection collections"))?;
     let mut skeleton = root["header"].clone();
     for (name, spec) in collections {
         if !valid_collection_name(name) {
-            return Err(Error::Invalid("D1 projection collection name"));
+            return Err(Error::Invalid("projection collection name"));
         }
         let fields = spec
             .as_object()
-            .ok_or(Error::Invalid("D1 projection collection spec"))?;
+            .ok_or(Error::Invalid("projection collection spec"))?;
         exact_keys(
             fields,
             &["key_field", "order_fields", "root"],
-            "D1 projection collection fields",
+            "projection collection fields",
         )?;
         validate_key_field(&spec["key_field"])?;
         if spec["order_fields"].as_array().is_none_or(|order| {
@@ -838,13 +838,13 @@ fn validate_manifest(root: &Value, namespace_path: &Path) -> Result<()> {
                 .iter()
                 .any(|field| field.as_str().is_none_or(str::is_empty))
         }) {
-            return Err(Error::Invalid("D1 projection order fields"));
+            return Err(Error::Invalid("projection order fields"));
         }
         set_collection(&mut skeleton, name)?;
         if spec["key_field"] == json!([])
             && !spec["order_fields"].as_array().is_some_and(Vec::is_empty)
         {
-            return Err(Error::Invalid("D1 projection positional order fields"));
+            return Err(Error::Invalid("projection positional order fields"));
         }
         let reader = SnapshotReader {
             manifest: root.clone(),
@@ -879,19 +879,19 @@ fn collection_spec<'a>(root: &'a Value, name: &str) -> Result<&'a Value> {
     root.get("collections")
         .and_then(Value::as_object)
         .and_then(|collections| collections.get(name))
-        .ok_or(Error::Invalid("D1 projection collection absent"))
+        .ok_or(Error::Invalid("projection collection absent"))
 }
 
 fn descriptor_identity(value: &Value) -> Result<Vec<u8>> {
     let mut clone = value.clone();
     clone
         .as_object_mut()
-        .ok_or(Error::Invalid("D1 projection descriptor"))?
+        .ok_or(Error::Invalid("projection descriptor"))?
         .remove("path");
     canonical_json(&clone)
 }
 
-fn validate_limits(limits: D1ProjectionLimits) -> Result<()> {
+fn validate_limits(limits: ProjectionLimits) -> Result<()> {
     // Zero is a meaningful caller limit: empty selections may still fit,
     // while the first charge to that resource refuses before reading or
     // retaining the over-budget projection item.
@@ -903,24 +903,24 @@ fn set_collection(header: &mut Value, name: &str) -> Result<()> {
     let parts = name.split('/').collect::<Vec<_>>();
     let (last, parents) = parts
         .split_last()
-        .ok_or(Error::Invalid("D1 projection collection path"))?;
+        .ok_or(Error::Invalid("projection collection path"))?;
     let mut current = header;
     for part in parents {
         let object = current
             .as_object_mut()
-            .ok_or(Error::Invalid("D1 projection header collection overlap"))?;
+            .ok_or(Error::Invalid("projection header collection overlap"))?;
         current = object
             .entry((*part).to_owned())
             .or_insert_with(|| Value::Object(Map::new()));
         if !current.is_object() {
-            return Err(Error::Invalid("D1 projection header collection overlap"));
+            return Err(Error::Invalid("projection header collection overlap"));
         }
     }
     let object = current
         .as_object_mut()
-        .ok_or(Error::Invalid("D1 projection header collection overlap"))?;
+        .ok_or(Error::Invalid("projection header collection overlap"))?;
     if object.contains_key(*last) {
-        return Err(Error::Invalid("D1 projection header collection overlap"));
+        return Err(Error::Invalid("projection header collection overlap"));
     }
     object.insert((*last).to_owned(), Value::Null);
     Ok(())
@@ -935,7 +935,7 @@ fn validate_key_field(value: &Value) -> Result<()> {
                 .all(|field| field.as_str().is_some_and(|name| !name.is_empty()))
         });
     if !valid {
-        return Err(Error::Invalid("D1 projection key field"));
+        return Err(Error::Invalid("projection key field"));
     }
     Ok(())
 }
@@ -946,7 +946,7 @@ fn verify_record_key(key_field: &Value, key: &str, value: &Value, total: u64) ->
     }
     if let Some(field) = key_field.as_str() {
         if value.get(field).and_then(Value::as_str) != Some(key) {
-            return Err(Error::Invalid("D1 projection row identity"));
+            return Err(Error::Invalid("projection row identity"));
         }
         return Ok(());
     }
@@ -959,7 +959,7 @@ fn verify_record_key(key_field: &Value, key: &str, value: &Value, total: u64) ->
                     .ok()
                     .is_none_or(|position| position >= total)
             {
-                return Err(Error::Invalid("D1 projection positional row identity"));
+                return Err(Error::Invalid("projection positional row identity"));
             }
             return Ok(());
         }
@@ -968,17 +968,17 @@ fn verify_record_key(key_field: &Value, key: &str, value: &Value, total: u64) ->
             .map(|field| {
                 let field = field
                     .as_str()
-                    .ok_or(Error::Invalid("D1 projection composite key"))?;
+                    .ok_or(Error::Invalid("projection composite key"))?;
                 value
                     .get(field)
                     .and_then(Value::as_str)
-                    .ok_or(Error::Invalid("D1 projection composite key value"))
+                    .ok_or(Error::Invalid("projection composite key value"))
             })
             .collect::<Result<Vec<_>>>()?;
         let encoded = serde_json::to_string(&parts)
-            .map_err(|_| Error::Invalid("D1 projection composite key framing"))?;
+            .map_err(|_| Error::Invalid("projection composite key framing"))?;
         if encoded != key {
-            return Err(Error::Invalid("D1 projection composite row identity"));
+            return Err(Error::Invalid("projection composite row identity"));
         }
     }
     Ok(())
@@ -986,19 +986,19 @@ fn verify_record_key(key_field: &Value, key: &str, value: &Value, total: u64) ->
 
 #[cfg(test)]
 fn canonical_record(value: &Value) -> Result<Vec<u8>> {
-    let raw = serde_json::to_vec(value).map_err(|_| Error::Invalid("D1 projection row JSON"))?;
+    let raw = serde_json::to_vec(value).map_err(|_| Error::Invalid("projection row JSON"))?;
     let limits = tos_foundation::JsonLimits::new(MAX_PART_BYTES, 128, 1_000_000, 4300)
-        .map_err(|_| Error::Budget("D1 projection JSON limits"))?;
+        .map_err(|_| Error::Budget("projection JSON limits"))?;
     tos_foundation::canonical_raw_bytes_v1(
         &raw,
         tos_foundation::CanonicalProfile::CorpusSnapshotV1,
         limits,
     )
-    .map_err(|_| Error::Invalid("D1 projection row JSON"))
+    .map_err(|_| Error::Invalid("projection row JSON"))
 }
 
 fn canonical_json(value: &Value) -> Result<Vec<u8>> {
-    serde_json::to_vec(value).map_err(|_| Error::Invalid("D1 projection JSON framing"))
+    serde_json::to_vec(value).map_err(|_| Error::Invalid("projection JSON framing"))
 }
 
 fn strict_json_document(
@@ -1006,20 +1006,20 @@ fn strict_json_document(
     cap: usize,
 ) -> Result<(tos_foundation::JsonDocument, tos_foundation::JsonLimits)> {
     if raw.len() > cap {
-        return Err(Error::Budget("D1 projection JSON bytes"));
+        return Err(Error::Budget("projection JSON bytes"));
     }
     let limits = tos_foundation::JsonLimits::new(cap, 128, 1_000_000, 4300)
-        .map_err(|_| Error::Budget("D1 projection JSON limits"))?;
+        .map_err(|_| Error::Budget("projection JSON limits"))?;
     let document =
         tos_foundation::parse_json(raw, tos_foundation::JsonMode::PublishedStrict, limits)
-            .map_err(|_| Error::Invalid("D1 projection strict JSON"))?;
+            .map_err(|_| Error::Invalid("projection strict JSON"))?;
     Ok((document, limits))
 }
 
 fn strict_json(raw: &[u8], cap: usize) -> Result<Value> {
     let (document, _limits) = strict_json_document(raw, cap)?;
     drop(document);
-    serde_json::from_slice(raw).map_err(|_| Error::Invalid("D1 projection JSON"))
+    serde_json::from_slice(raw).map_err(|_| Error::Invalid("projection JSON"))
 }
 
 fn strict_json_with_canonical_record(raw: &[u8], cap: usize) -> Result<(Value, Vec<u8>)> {
@@ -1032,16 +1032,16 @@ fn strict_json_with_canonical_record(raw: &[u8], cap: usize) -> Result<(Value, V
         tos_foundation::CanonicalProfile::CorpusSnapshotV1,
         limits,
     )
-    .map_err(|_| Error::Invalid("D1 projection canonical row bytes"))?;
+    .map_err(|_| Error::Invalid("projection canonical row bytes"))?;
     drop(document);
-    let value = serde_json::from_slice(raw).map_err(|_| Error::Invalid("D1 projection JSON"))?;
+    let value = serde_json::from_slice(raw).map_err(|_| Error::Invalid("projection JSON"))?;
     Ok((value, canonical))
 }
 
 fn decode_gzip(stored: &[u8], expected: u64) -> Result<Vec<u8>> {
-    let cap = usize::try_from(expected).map_err(|_| Error::Budget("D1 projection decoded size"))?;
+    let cap = usize::try_from(expected).map_err(|_| Error::Budget("projection decoded size"))?;
     if cap > MAX_PART_BYTES {
-        return Err(Error::Budget("D1 projection decoded part size"));
+        return Err(Error::Budget("projection decoded part size"));
     }
     let cursor = Cursor::new(stored);
     let buffered = BufReader::new(cursor);
@@ -1051,16 +1051,16 @@ fn decode_gzip(stored: &[u8], expected: u64) -> Result<Vec<u8>> {
         .by_ref()
         .take(expected.saturating_add(1))
         .read_to_end(&mut decoded)
-        .map_err(|_| Error::Invalid("D1 projection gzip"))?;
+        .map_err(|_| Error::Invalid("projection gzip"))?;
     if decoded.len() as u64 != expected {
-        return Err(Error::Invalid("D1 projection gzip length"));
+        return Err(Error::Invalid("projection gzip length"));
     }
     let mut inner = decoder.into_inner();
     let position = inner
         .stream_position()
-        .map_err(|_| Error::Invalid("D1 projection gzip position"))?;
+        .map_err(|_| Error::Invalid("projection gzip position"))?;
     if position != stored.len() as u64 {
-        return Err(Error::Invalid("D1 projection gzip trailing bytes"));
+        return Err(Error::Invalid("projection gzip trailing bytes"));
     }
     Ok(decoded)
 }
@@ -1076,14 +1076,14 @@ fn string<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
     value
         .get(key)
         .and_then(Value::as_str)
-        .ok_or(Error::Invalid("D1 projection string field"))
+        .ok_or(Error::Invalid("projection string field"))
 }
 
 fn uint(value: &Value, key: &str) -> Result<u64> {
     value
         .get(key)
         .and_then(Value::as_u64)
-        .ok_or(Error::Invalid("D1 projection unsigned field"))
+        .ok_or(Error::Invalid("projection unsigned field"))
 }
 
 fn valid_collection_name(value: &str) -> bool {
@@ -1101,8 +1101,7 @@ fn valid_sha256(value: &str) -> bool {
 }
 
 fn add(a: u64, b: u64) -> Result<u64> {
-    a.checked_add(b)
-        .ok_or(Error::Budget("D1 projection counters"))
+    a.checked_add(b).ok_or(Error::Budget("projection counters"))
 }
 
 #[cfg(test)]
@@ -1111,7 +1110,7 @@ mod tests {
     use flate2::{Compression, write::GzEncoder};
     use std::io::Write;
 
-    fn snapshot(directory: &Path, name: &str, rows: &[Value]) -> D1ProjectionSnapshot {
+    fn snapshot(directory: &Path, name: &str, rows: &[Value]) -> ProjectionSnapshot {
         let mut sorted = rows
             .iter()
             .map(|row| (row["id"].as_str().unwrap().to_owned(), row.clone()))
@@ -1140,7 +1139,7 @@ mod tests {
         stored: &[u8],
         decoded: &[u8],
         count: usize,
-    ) -> D1ProjectionSnapshot {
+    ) -> ProjectionSnapshot {
         let logical_schema = "tos_source_navigation_v1";
         let manifest = json!({
             "schema_version": ROOT_SCHEMA,
@@ -1163,7 +1162,7 @@ mod tests {
         let root_bytes = serde_json::to_vec(&manifest).unwrap();
         let path = Path::new(name);
         let root_path = directory.join(path.file_name().unwrap());
-        D1ProjectionSnapshot::new(root_bytes, root_path).unwrap()
+        ProjectionSnapshot::new(root_bytes, root_path).unwrap()
     }
 
     fn row(id: &str, label: &str) -> Value {
@@ -1175,22 +1174,22 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let snapshot = snapshot(
             directory.path(),
-            "/tmp/tos-d1-projection-fixture/nodes.json",
+            "/tmp/tos-projection-fixture/nodes.json",
             &[row("a", "one"), row("b", "two")],
         );
         let collection = snapshot
-            .read_collection("nodes", D1ProjectionLimits::default())
+            .read_collection("nodes", ProjectionLimits::default())
             .unwrap();
         assert_eq!(collection.rows.get("a"), Some(&row("a", "one")));
         assert_eq!(collection.accounting.keys, 2);
 
-        let mut small = D1ProjectionLimits::default();
+        let mut small = ProjectionLimits::default();
         small.max_rows = 1;
         assert!(matches!(
             snapshot.read_collection("nodes", small),
             Err(Error::Budget(_))
         ));
-        let mut small = D1ProjectionLimits::default();
+        let mut small = ProjectionLimits::default();
         small.max_output_bytes = 1;
         assert!(matches!(
             snapshot.read_collection("nodes", small),
@@ -1226,17 +1225,17 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let snapshot = snapshot(
             directory.path(),
-            "/tmp/tos-d1-projection-fixture/same.json",
+            "/tmp/tos-projection-fixture/same.json",
             &[row("a", "one")],
         );
         let diff = snapshot
-            .diff_collection(&snapshot, "nodes", D1ProjectionLimits::default())
+            .diff_collection(&snapshot, "nodes", ProjectionLimits::default())
             .unwrap();
         assert!(diff.changes.is_empty());
         let headers = canonical_json(&diff.before_header).unwrap().len() as u64
             + canonical_json(&diff.after_header).unwrap().len() as u64;
         assert_eq!(diff.accounting.output_bytes, headers + 133);
-        let mut caps = D1ProjectionLimits::default();
+        let mut caps = ProjectionLimits::default();
         caps.max_output_bytes = 133;
         assert!(matches!(
             snapshot.diff_collection(&snapshot, "nodes", caps),
@@ -1248,16 +1247,16 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let before = snapshot(
             directory.path(),
-            "/tmp/tos-d1-projection-fixture/before.json",
+            "/tmp/tos-projection-fixture/before.json",
             &[row("a", "one"), row("b", "two")],
         );
         let after = snapshot(
             directory.path(),
-            "/tmp/tos-d1-projection-fixture/after.json",
+            "/tmp/tos-projection-fixture/after.json",
             &[row("a", "changed"), row("c", "three")],
         );
         let diff = before
-            .diff_collection(&after, "nodes", D1ProjectionLimits::default())
+            .diff_collection(&after, "nodes", ProjectionLimits::default())
             .unwrap();
         assert_eq!(diff.changes.len(), 3);
         assert!(
@@ -1278,13 +1277,13 @@ mod tests {
 
         let mut changed_profile: Value = serde_json::from_slice(before.root_bytes()).unwrap();
         changed_profile["collections"]["nodes"]["order_fields"] = json!(["ordinal"]);
-        let changed_profile = D1ProjectionSnapshot::new(
+        let changed_profile = ProjectionSnapshot::new(
             serde_json::to_vec(&changed_profile).unwrap(),
             before.namespace_path.clone(),
         )
         .unwrap();
         assert!(matches!(
-            before.diff_collection(&changed_profile, "nodes", D1ProjectionLimits::default()),
+            before.diff_collection(&changed_profile, "nodes", ProjectionLimits::default()),
             Err(Error::PreparedUnsupported(_))
         ));
     }
