@@ -59,8 +59,8 @@ pub(super) fn encode(
     let limits = JsonLimits::new(CAP, 128, 200000, 4300).map_err(|e| e.to_string())?;
     let doc = tos_foundation::parse_json(&raw, JsonMode::PublishedStrict, limits)
         .map_err(|e| e.to_string())?;
-    let compact =
-        tos_foundation::emit_python_compact_json(doc.root(), limits).map_err(|e| e.to_string())?;
+    let compact = tos_foundation::emit_ordered_compact_json_v1(doc.root(), limits)
+        .map_err(|e| e.to_string())?;
     if !pretty {
         return Ok(compact);
     }
