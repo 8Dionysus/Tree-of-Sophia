@@ -5006,7 +5006,69 @@
       "areas": [
         "AE13"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Thomas J. Palmeri",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1073/pnas.022049399"
+          ]
+        },
+        {
+          "name": "Randolph Blake",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1073/pnas.022049399"
+          ]
+        },
+        {
+          "name": "René Marois",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1073/pnas.022049399"
+          ]
+        },
+        {
+          "name": "Marci A. Flanery",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1073/pnas.022049399"
+          ]
+        },
+        {
+          "name": "William Whetsell",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1073/pnas.022049399"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "PNAS 99(6), pp.4127–4131, 2002",
+          "doi": "10.1073/pnas.022049399",
+          "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC122659/",
+          "status": "Europe PMC provides abstract and PMCID; full manuscript access and figure page referenced by register remain to be personally checked. Europe PMC isOpenAccess=N and Crossref lists no licence; no open reuse licence inferred."
+        }
+      ],
+      "requested_places": [
+        "B:A-I019: Experiment 1, word-colour consistency and visual-search results; exact sentences and version pagination to inspect"
+      ],
+      "searches": [
+        {
+          "source": "Crossref and Europe PMC",
+          "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:10.1073/pnas.022049399&format=json&resultType=core",
+          "result": "Abstract describes one adult male with consistent word/grapheme colours and a visual search comparison. Study population is one case and should not be generalized. Europe PMC gives no open licence; subsequent NCBI BioC request returned HTTP 429."
+        }
+      ],
+      "remaining": "Read exact primary sections and Figure 1, identify version and pages, verify all contributor dates and territorial quote/reuse rights, and complete searches for translations in required languages; no absence inferred."
     },
     {
       "work": "tzvetan-todorov.the-origin-of-genres",
