@@ -42,7 +42,7 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Source-text search
 
-`tos-query/src/source_text_search.rs` defines query rules; `tos-command/src/durable_source_text_search.rs` reads the selected private PostgreSQL projection. Native CLI, HTTP and MCP consume it, and `access/deploy/cloudflare-worker/src/source-text-gateway.ts` can forward authenticated requests. Three tracked JSON contract files mention `tos_source_text_search_v1`. Inspect configured PostgreSQL consumers and gateway/client configuration without exposing secrets.
+`tos-query/src/source_text_search.rs` defines query rules; `tos-command/src/durable_source_text_search.rs` reads the selected private PostgreSQL projection. Native CLI, HTTP and MCP consume it. The former Worker source-text gateway is retired from the checkout. Three tracked JSON contract files mention `tos_source_text_search_v1`. Inspect configured PostgreSQL consumers and gateway/client configuration without exposing secrets.
 
 **Removal condition:** An accepted successor covers every selected field, rights decision, currentness fence, cursor and recovery behavior, and all consumers and outstanding continuations migrate. **Package:** Central search completion and a separately reviewed API cutover. This path is the current central foundation and is retained until its gate passes.
 

@@ -9,7 +9,8 @@ the native Rust query core, its thin imported SDK bridge, installed CLI, local
 HTTP/MCP service, web application, WebMCP action contract, standalone
 profiles, and native software/data builders.
 
-`ToS/` owns source meaning, review, canon and derived exports.
+`ToS/` owns source meaning, review, canon and derived exports. The public research Worker
+serves the stand pages and assets; the retired atlas API is not its origin.
 
 ## Boundary
 
