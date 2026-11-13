@@ -910,7 +910,13 @@ def language_coverage(path,entry,original,legacy_work=False,held=False,second=Fa
             if legacy_work and not os.path.isfile(marker):continue
             raw=Path(file).read_bytes()
             if os.path.isfile(marker) and load(marker).get('sha256')!=hashlib.sha256(raw).hexdigest():problems.append(f'{lang}: witness changed since acceptance');continue
-            problems.extend(f'{lang}: {issue}' for issue in witness_problems(path,lang,json.loads(raw),second=second,offline=offline))
+            data=json.loads(raw)
+            problems.extend(f'{lang}: {issue}' for issue in witness_problems(path,lang,data,second=second,offline=offline))
+            if not legacy_work:
+                places=(part(path,'places.json') or {}).get('places') or {}
+                for loc in sorted(set(places)-set(data.get('places') or {})):
+                    gaps=data.get('missing_places') or {}
+                    problems.extend(f'{lang} {loc}: {issue}' for issue in missing_language_problems(gaps.get(loc)))
         else:
             issues=missing_language_problems(missing_by_lang.get(lang))
             (debts if legacy_work else problems).extend(f'{lang}: {issue}' for issue in issues)
@@ -1432,6 +1438,16 @@ def cmd_licence_review(args):
     else:save(os.path.join(path,'review.json'),review)
     print('independent licence assessment recorded')
 
+def cmd_witness_missing(args):
+    path=packet(args.packet);data=witness_data(path,args.language)
+    original={**((world()['fragments'].get('places') or {}).get(work_of(path),{})),**((part(path,'places.json') or {}).get('places') or {})}
+    if args.loc not in original:die('no original place with that location')
+    if args.loc in (data.get('places') or {}):die('the witness already provides this place')
+    record=load(args.file);issues=missing_language_problems(record)
+    if issues:die('missing-place search is incomplete: '+'; '.join(issues))
+    data.setdefault('missing_places',{})[args.loc]=record;data['review']={}
+    save(witness_file(path,args.language),data);print(f'{args.loc}: searched language gap recorded; renew the second review')
+
 def cmd_witness_candidate(args):
     path=packet(args.packet);data=witness_data(path,args.language);raw=Path(args.file).read_bytes();candidate=json.loads(raw)
     if not isinstance(candidate,dict) or candidate.get('work')!=work_of(path):die('candidate names another work')
@@ -1537,6 +1553,7 @@ def cmd_witness_cut(args):
     if not args.page and not address:die('give a printed page or an exact structured source address')
     page=args.page or f"{address['kind']} {address['value']}"
     data['places'][args.loc]={'text':run,'source':args.source,'page':page,'url':image['url'],'image_sha256':image['sha256'],'alignment':args.alignment,**({'address':address} if address else {}),**({'lines':args.lines} if args.lines else {}),**({'justification':args.justification} if args.justification else {})}
+    (data.get('missing_places') or {}).pop(args.loc,None)
     data['review']={} # the old second reading no longer describes this witness
     save(witness_file(path,args.language),data);print(run)
 
@@ -1693,6 +1710,7 @@ def main():
     sub('witness-rights',cmd_witness_rights,P,(('language',),{}),(('jurisdiction',),{'choices':JURISDICTIONS}),(('basis',),{'choices':sorted(BASES)}),(('law',),{}));
     sub('licence',cmd_licence,P,(('source',),{}),(('url',),{}),(('explanation',),{}),(('--language',),{}));
     sub('licence-review',cmd_licence_review,P,(('assessment',),{}),(('--language',),{}));
+    sub('witness-missing',cmd_witness_missing,P,(('language',),{}),(('loc',),{}),(('file',),{}));
     sub('witness-candidate',cmd_witness_candidate,P,(('language',),{}),(('file',),{}));
     sub('witness-person',cmd_witness_person,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}));
     sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));

@@ -547,6 +547,28 @@ class InterfaceCoverageGateTest(unittest.TestCase):
             problems,debts=kit.language_coverage(path,entry,'en',legacy_work=True,held=True)
             self.assertEqual(problems,[]);self.assertFalse(any(item.startswith('ru:') for item in debts))
 
+class PartialWitnessCoverageTest(unittest.TestCase):
+    def test_new_work_accounts_for_every_missing_translated_place(self):
+        import json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp);(path/'witnesses').mkdir()
+            (path/'places.json').write_text(json.dumps({'places':{'p1':{},'p2':{}}}))
+            file=path/'witnesses/ru.json';witness={'language':'ru','places':{'p1':{}}}
+            file.write_text(json.dumps(witness))
+            entry={'absent':[]};gap={'reason':'No lawful text was found in the searched sources.',
+                'edition':'A named edition, publisher and year.','book_url':'https://example.org/book',
+                'tried':[{'site':site,'url':'https://example.org/search','outcome':'No usable text was found here.'} for site in kit.LOCATOR_SEARCHES]}
+            with patch.object(kit,'witness_problems',return_value=[]):
+                problems,_=kit.language_coverage(str(path),entry,'en')
+                self.assertIn('ru p2: no search record',problems)
+                witness['missing_places']={'p2':gap};file.write_text(json.dumps(witness))
+                problems,_=kit.language_coverage(str(path),entry,'en')
+                self.assertFalse(any(p.startswith('ru p2:') for p in problems))
+                witness.pop('missing_places');file.write_text(json.dumps(witness))
+                problems,_=kit.language_coverage(str(path),entry,'en',legacy_work=True)
+                self.assertFalse(any(p.startswith('ru p2:') for p in problems))
+
 class CoauthorIdentityTest(unittest.TestCase):
     def test_distinct_qids_cannot_be_collapsed_by_matching_names(self):
         a={'qid':'Q1','name':{'en':'Alex Smith'}}
@@ -665,8 +687,8 @@ class NewWorkLanguageIntegrationTest(unittest.TestCase):
                 data={'language':language,'witness':{'maker':'maker','edition':'A cited edition','attribution':'Author and translator','licence':'Public domain','url':'https://example.org/book','year':1900,'persons':[author,translator], 'rights':by_country,'normalization':'Modern Russian source and documented normalization.'},
                       'sources':[{'file':'text.txt','url':'https://example.org/text','sha256':'c'*64}],
                       'images':[{'file':'page.jpg','url':'https://example.org/page','sha256':'d'*64,'by':'maker'}, {'file':'second.jpg','url':'https://example.org/page','sha256':'d'*64,'by':'second'}],
-                      'places':{loc:{'text':'A whole sentence.','source':'text.txt','page':'1','url':'https://example.org/page','image_sha256':'d'*64,'alignment':'The sentence corresponds to the original place.'}},
-                      'review':{'reader':'second','model':'gpt-6.1-terra','date':'2026-11-12','places':{loc:{'reads':'as the packet','image_sha256':'d'*64,'alignment':'The sentence corresponds to the original place.'}}}}
+                      'places':{place:{'text':'A whole sentence.','source':'text.txt','page':'1','url':'https://example.org/page','image_sha256':'d'*64,'alignment':'The sentence corresponds to the original place.'} for place in places['places']},
+                      'review':{'reader':'second','model':'gpt-6.1-terra','date':'2026-11-12','places':{place:{'reads':'as the packet','image_sha256':'d'*64,'alignment':'The sentence corresponds to the original place.'} for place in places['places']}}}
                 (directory/(language+'.json')).write_text(json.dumps(data,ensure_ascii=False))
             kit.OWES.clear();problems,state=kit.gate(str(path),offline=True)
             self.assertEqual(problems,[]);self.assertEqual(state,'open')

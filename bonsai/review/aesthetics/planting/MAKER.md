@@ -351,3 +351,10 @@ then record `licence-review PACKET ASSESSMENT` (with `--language LANG` for a
 translation) under their existing second-reader identity. A conflicting or
 unspecified version remains unresolved until checked. The licence evidence
 checks do not replace source-page and semantic review.
+
+For a new work, every original place needs each interface-language witness or
+a documented search for that particular missing place. For a partial witness,
+`witness-missing PACKET LANG LOC SEARCH.json` records the same exhaustive
+search, edition and book locator required for a missing language; a later cut
+of that location replaces the gap. Accepted older works may still add a
+partial witness and retain their existing coverage debt.
