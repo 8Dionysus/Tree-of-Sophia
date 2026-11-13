@@ -3724,7 +3724,67 @@
       "areas": [
         "AE18"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "T. S. Eliot",
+          "role": "author",
+          "birth": 1888,
+          "death": 1965,
+          "evidence": [
+            "https://openlibrary.org/authors/OL116256A.json"
+          ]
+        },
+        {
+          "name": "Sara Rubinstein",
+          "role": "Spanish translator candidate in Selected Essays edition",
+          "dates_status": "not established",
+          "evidence": [
+            "https://openlibrary.org/books/OL6025284M.json"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "The Sacred Wood: Essays on Poetry and Criticism, London: Methuen, 1920, Hamlet and His Problems",
+          "scan": "https://archive.org/details/sacredwoodessays00eliorich/page/n115/mode/1up",
+          "page": "p92, image n115",
+          "transcription": "https://www.gutenberg.org/files/57795/57795-h/57795-h.htm#Page_92",
+          "status": "p92 scan personally inspected, objective correlative passage present; exact independent collation pending; 1919 first publication not established"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Los poetas metafísicos y otros ensayos sobre teatro y religión, Emecé 1944, Sara Rubinstein",
+          "catalogue": "https://openlibrary.org/books/OL6025284M.json",
+          "status": "candidate collection only; inclusion of target essay, pages and rights not established"
+        }
+      ],
+      "requested_places": [
+        "B:D-I061, The Sacred Wood p92, objective correlative"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; each translation and edition separately",
+        "usa": "1920 publication predates 1931",
+        "eu": "author died 1965; ordinary term through 2035, national rules and exceptions require verification",
+        "russia": "life-plus-70 and special provisions require case-specific assessment",
+        "mexico": "transition rules and lawful quotation require case-specific assessment"
+      },
+      "searches": [
+        {
+          "source": "Gutenberg and IA",
+          "result": "Methuen 1920 transcription and scan p92; first publication not established",
+          "url": "https://www.gutenberg.org/files/57795/57795-h/57795-h.htm#Page_92"
+        },
+        {
+          "source": "Open Library",
+          "result": "Spanish Selected Essays candidate, contents and target passage unverified",
+          "url": "https://openlibrary.org/books/OL6025284M.json"
+        }
+      ],
+      "remaining": "Determine first publication, exact passage alignment, translation witnesses and rights and complete mandatory searches. No conclusion of absence has been made."
     },
     {
       "work": "thomas-j-palmeri.the-perceptual-reality-of-synesthetic-colors",
@@ -3861,7 +3921,66 @@
       "areas": [
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "William Empson",
+          "role": "author",
+          "birth": 1906,
+          "death": 1984,
+          "evidence": [
+            "https://www.fondodeculturaeconomica.com/Ficha/9789681672669/F"
+          ]
+        },
+        {
+          "name": "Ricardo Martín Rubio Ruiz",
+          "role": "Spanish translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.fondodeculturaeconomica.com/Ficha/9789681672669/F"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Seven Types of Ambiguity, London: Chatto and Windus, 1930",
+          "scan": "https://archive.org/details/hseventypesofamb0000will",
+          "page": "p1 image n12; p2 n13; p3 n14",
+          "status": "personally inspected pages 1–3; sentence boundaries, classification of seven types and independent reading remain to review; edition title page still to verify visually"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Siete clases de ambigüedad, Mexico: Fondo de Cultura Económica, 2006, 456 pp., ISBN 9789681672669, translator Ricardo Martín Rubio Ruiz",
+          "catalogue": "https://www.fondodeculturaeconomica.com/Ficha/9789681672669/F",
+          "status": "publisher catalogue, not target page; underlying English edition and translator rights unverified"
+        }
+      ],
+      "requested_places": [
+        "C:A-I084, extended ambiguity and seven types"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; each edition and translation separately",
+        "usa": "1930 published original text may qualify as public domain, subject to checking exact publication and contributions",
+        "eu": "author died 1984; ordinary term through 2054; verify exceptions",
+        "russia": "author died 1984; copyright remains, verify quotation basis",
+        "mexico": "term and transition provisions and translation rights unverified"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive",
+          "result": "1930 English scan and OCR; personally viewed pp1–3; title and remaining passages require verification",
+          "url": "https://archive.org/details/hseventypesofamb0000will"
+        },
+        {
+          "source": "Fondo de Cultura Económica",
+          "result": "2006 Spanish translation candidate, target pages not viewed",
+          "url": "https://www.fondodeculturaeconomica.com/Ficha/9789681672669/F"
+        }
+      ],
+      "remaining": "Verify title, complete source loci, translations and their participants, lawful access and rights; complete mandatory searches. No conclusion of absence has been made."
     },
     {
       "work": "william-k-wimsatt.the-intentional-fallacy",
