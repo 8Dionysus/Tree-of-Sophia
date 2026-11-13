@@ -1,0 +1,87 @@
+{
+  "reader": {
+    "id": "codex-2026-11-12-poetics-remaining",
+    "model": "gpt-6",
+    "date": "2026-11-12",
+    "reads": "Aristotle, Poetics I and IV in the Greek public corpus, beside the registers’ readings."
+  },
+  "library": {
+    "agents": {
+      "aristotle": {
+        "tree": "tos.agent.aristotle"
+      }
+    },
+    "works": {
+      "aristotle.poetics": {
+        "title": {
+          "ru": "Поэтика",
+          "en": "Poetics"
+        },
+        "original": "grc",
+        "tree": "tos.work.retained-antiquity.poetics"
+      }
+    }
+  },
+  "conceptions": [
+    {
+      "id": "aristotle.poetics:imitation-and-learning",
+      "of": [
+        "A:C152"
+      ],
+      "areas": [
+        "AE22"
+      ],
+      "work": "aristotle.poetics",
+      "locus": "I, 1447a; IV, 1448b",
+      "formula": [
+        {
+          "unit": "Глава 1",
+          "from": "ἐποποιία δὴ καὶ",
+          "to": "καὶ μὴ τὸν αὐτὸν τρόπον."
+        },
+        {
+          "unit": "Глава 4",
+          "from": "διὰ γὰρ τοῦτο χαίρουσι",
+          "to": "διὰ τοιαύτην τινὰ ἄλλην αἰτίαν."
+        }
+      ],
+      "thesis": {
+        "ru": "Подражательные искусства различаются средствами, предметами и способом; удовольствие от изображений может возникать из узнавания, а при незнакомом предмете — из исполнения или цвета.",
+        "en": "Imitative arts differ in their means, objects and manner; pleasure in images can come from recognition, or, when their subject is unfamiliar, from execution or colour."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "C:A-I001"
+      ]
+    },
+    {
+      "id": "aristotle.poetics:rhythm-and-dance",
+      "of": [
+        "C:A-C004"
+      ],
+      "areas": [
+        "AE21"
+      ],
+      "work": "aristotle.poetics",
+      "locus": "I, 1447a",
+      "formula": [
+        {
+          "unit": "Глава 1",
+          "from": "ὥσπερ γὰρ καὶ χρώμασι",
+          "to": "καὶ ποιητὴν προσαγορευτέον."
+        }
+      ],
+      "thesis": {
+        "ru": "Танцоры подражают одним ритмом без гармонии: ритмические фигуры изображают характеры, состояния и действия.",
+        "en": "Dancers imitate by rhythm alone without harmony: their rhythmic figures represent characters, feelings and actions."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "C:A-I006"
+      ]
+    }
+  ],
+  "links": []
+}

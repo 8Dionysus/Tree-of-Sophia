@@ -101,6 +101,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-12-poetics-recognition.json"
   },
   {
+   "id": "codex-2026-11-12-poetics-remaining",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Aristotle, Poetics I and IV in the Greek public corpus, beside the registers’ readings.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-poetics-remaining.json"
+  },
+  {
    "id": "terra-2026-11-10-aesthetica",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -11770,6 +11777,97 @@
    "admission": "map",
    "grew_from": [
     "C:A-I002"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:imitation-and-learning",
+   "type": "tos.entity.conception",
+   "of": [
+    "mimesis"
+   ],
+   "areas": [
+    "area-image-and-mimesis"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "I, 1447a; IV, 1448b",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-73d6789e1e9c42ccae8e8c3b34bc75a1",
+       "tos.text-unit.sid-73d6789e1e9c42ccae8e8c3b34bc75a1"
+      ],
+      "s": 292,
+      "e": 568
+     },
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-45462b43ee0949b98f1c95cfd15ff4f7",
+       "tos.text-unit.sid-45462b43ee0949b98f1c95cfd15ff4f7"
+      ],
+      "s": 606,
+      "e": 870
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Подражательные искусства различаются средствами, предметами и способом; удовольствие от изображений может возникать из узнавания, а при незнакомом предмете — из исполнения или цвета.",
+    "en": "Imitative arts differ in their means, objects and manner; pleasure in images can come from recognition, or, when their subject is unfamiliar, from execution or colour."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-remaining",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:A-I001"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:rhythm-and-dance",
+   "type": "tos.entity.conception",
+   "of": [
+    "rhythm"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "I, 1447a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-73d6789e1e9c42ccae8e8c3b34bc75a1",
+       "tos.text-unit.sid-73d6789e1e9c42ccae8e8c3b34bc75a1"
+      ],
+      "s": 569,
+      "e": 2039
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Танцоры подражают одним ритмом без гармонии: ритмические фигуры изображают характеры, состояния и действия.",
+    "en": "Dancers imitate by rhythm alone without harmony: their rhythmic figures represent characters, feelings and actions."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-remaining",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:A-I006"
    ]
   },
   {
