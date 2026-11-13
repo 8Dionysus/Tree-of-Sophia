@@ -659,7 +659,6 @@ fn validate_software_contracts(meter: &mut Meter) -> Result<usize, String> {
 
 fn scan_source(meter: &mut Meter) -> Result<(), String> {
     const ROOTS: &[&str] = &[
-        "access/src/tos_access",
         "access/contracts",
         "access/profiles",
         "access/packaging",

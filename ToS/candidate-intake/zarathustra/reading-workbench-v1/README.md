@@ -127,7 +127,6 @@ regeneration and a new checked manifest, without silently accepting the output.
 
 Native contract tests live in `rust/crates/tos-compiler/src/research_reading_discourse.rs`,
 `research_reading_formulas.rs` and `research_reading_workbench.rs`, using the retained
-synthetic `reading-contracts.v1.json` fixture. Query-specific checks remain in
-`tests/test_zarathustra_reading_query_v1.py` and `access/tests/test_reading_access.py`.
-Full source checks run only where the private material is installed; public CI
-checks the software and synthetic contracts without installing private data.
+synthetic `reading-contracts.v1.json` fixture. Full source checks run only where
+the private material is installed; public CI checks the software and synthetic
+contracts without installing private data.

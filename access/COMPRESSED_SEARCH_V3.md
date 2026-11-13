@@ -4,8 +4,7 @@ Compressed search is a native Rust query mode for the explicitly selected
 `tos_local_prepared_read_model_v1` profile. It returns complete graph carriers
 under the `tos_knowledge_search_compressed_v3` packet contract. Rust owns
 selection binding, normalization, filtering, continuation, work/response bounds
-and body verification. The imported Python SDK only frames a native call; it
-does not ship a `SearchStore` or `PublishedSearchService`.
+and body verification.
 
 The Python search-store design formerly recorded in this file is retired. Its
 implementation details and synthetic storage measurements are not current
@@ -31,16 +30,14 @@ tos --prepared-read-model /absolute/selected.sqlite \
 
 - HTTP: `GET /api/knowledge/search?mode=compressed`
 - Native MCP: `tos_knowledge_search(..., mode="compressed")`
-- Imported SDK: `ToSAccessCore.knowledge_search_compressed(...)`
 
 Provide the same `query`, filters and returned `cursor` for each page. Offsets
 are not accepted. An empty page is not necessarily exhaustion; continue until
 `has_more` is false. Cursor validation binds the query, selected filters and
 publication. A stale binding or cursor requires a fresh search.
 
-Discover the selected engine through `knowledge_search_capabilities()`, CLI
-`tos knowledge search-capabilities`, HTTP `GET
-/api/knowledge/search/capabilities`, or native MCP
+Discover the selected engine through CLI `tos knowledge search-capabilities`,
+HTTP `GET /api/knowledge/search/capabilities`, or native MCP
 `tos_knowledge_search_capabilities`. Compatibility-mode availability describes
 engine selection only. Compressed availability checks the selected publication's
 search headers and required objects, not every corpus row.

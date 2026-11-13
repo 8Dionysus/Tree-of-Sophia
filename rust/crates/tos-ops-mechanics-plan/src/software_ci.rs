@@ -159,9 +159,10 @@ fn select_checked(
             // A stand's bonsai is read only by the browser build and its tests,
             // which also check the bonsai's export against the Tree's contracts.
             mode = mode.max(1);
-        } else if path.starts_with("access/src/") || path.starts_with("access/tests/") {
+        } else if path.starts_with("access/tests/fixtures/") {
+            // Native conformance and crate tests consume these retained fixtures.
             mode = mode.max(2);
-            worker = true;
+            rust = true;
         } else {
             (mode, worker, rust) = (3, true, true);
         }
@@ -596,16 +597,10 @@ mod tests {
                 false,
             ),
             (
-                vec!["access/src/tos_access/native_access_core.py"],
+                vec!["access/tests/fixtures/knowledge-contract/temporal-jenseits-date.json"],
                 "reader",
-                true,
                 false,
-            ),
-            (
-                vec!["access/tests/test_software_boundary.py"],
-                "reader",
                 true,
-                false,
             ),
             (
                 vec!["rust/crates/tos-access/src/software_archive.rs"],
