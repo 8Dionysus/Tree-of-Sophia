@@ -344,7 +344,7 @@
           "scan": "https://archive.org/details/analyticalinquir00knig",
           "metadata": "https://archive.org/metadata/analyticalinquir00knig",
           "pages": "II §17 pp148–149, image n171–n172",
-          "status": "packet accepted by old gate; edition number and scan attribution require review"
+          "status": "Hathi catalog identifies 1806 as third edition, OCLC 2049959; scan attribution Getty; sentence reading and independent review pending"
         }
       ],
       "requested_places": [
@@ -379,6 +379,18 @@
           "source": "Google Books, Hathi, Gallica, NЭБ, BDH, OAPEN",
           "result": "403/429 or unavailable; these searches remain incomplete",
           "url": "https://catalog.hathitrust.org/"
+        },
+        {
+          "source": "HathiTrust, browser",
+          "query": "Richard Payne Knight",
+          "result": "48 catalogue results; 1806 third edition OCLC 2049959, four full-view scans. Translated target passage not established.",
+          "url": "https://catalog.hathitrust.org/Record/000248593"
+        },
+        {
+          "source": "RSL, browser",
+          "query": "Пейн Найт",
+          "result": "Broad search returned 367 records; Voytenko dissertation discusses the picturesque, restricted to reading rooms; Sexual Symbolism is a different work.",
+          "url": "https://search.rsl.ru/ru/record/01002299677"
         }
       ],
       "remaining": "Find and verify translators, matching passages and lawful witnesses in ru/es/de/zh-Hans; complete required catalogue and full-text searches. No conclusion of absence has been made."
@@ -393,7 +405,99 @@
         "AE23",
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "it",
+      "people": [
+        {
+          "name": "Benedetto Croce",
+          "role": "author",
+          "birth": 1866,
+          "death": 1952,
+          "evidence": [
+            "https://catalog.hathitrust.org/Record/008700744"
+          ]
+        },
+        {
+          "name": "V. Yakovenko",
+          "role": "Russian translator from fourth Italian edition",
+          "dates_status": "identity and dates not established",
+          "evidence": [
+            "https://search.rsl.ru/ru/record/01008967880"
+          ]
+        },
+        {
+          "name": "Zhu Guangqian",
+          "role": "Chinese translator via Ainslie English edition",
+          "dates_status": "not established",
+          "evidence": [
+            "https://catalog.hathitrust.org/Record/003028979"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Estetica come scienza dell’espressione e linguistica generale, Milano: R. Sandron, 1902",
+          "catalogue": "https://catalog.hathitrust.org/Record/008700744",
+          "status": "NYPL scan search-only; precise pages and first edition image not yet inspected"
+        },
+        {
+          "edition": "Estetica, Laterza, 1908",
+          "scan": "https://archive.org/details/esteticacomesci00crocgoog",
+          "status": "later edition; OCR page candidates require visual verification and comparison with 1902"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "ru",
+          "edition": "Эстетика как наука о выражении и как общая лингвистика, V. Yakovenko, Moscow, Sabashnikov, 1920, part 1",
+          "catalogue": "https://search.rsl.ru/ru/record/01009040312",
+          "status": "RSL says full text at library or virtual reading rooms; passages and translator identity and rights unverified"
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "美学原理, Beijing, Wai guo wen xue chu ban she, 1983, Zhu Guangqian",
+          "catalogue": "https://catalog.hathitrust.org/Record/003028979",
+          "status": "catalogue says translation from Ainslie 1922 English edition; scan search-only, script and target pages unverified"
+        },
+        {
+          "language": "en",
+          "edition": "Aesthetic as Science of Expression and General Linguistic, Douglas Ainslie, 1909",
+          "scan": "https://archive.org/details/aestheticasscien00crocuoft",
+          "status": "candidate; target pages and rights need review"
+        },
+        {
+          "language": "de",
+          "edition": "Aesthetik als Wissenschaft des Ausdrucks und allgemeine Linguistik, Karl Federn, 1905",
+          "scan": "https://archive.org/details/aesthetikalswis02crocgoog",
+          "status": "candidate translated from second Italian edition; target pages and rights need review"
+        },
+        {
+          "language": "es",
+          "edition": "Estética, José Sánchez-Rojas, Madrid: Francisco Beltrán, 1912",
+          "scan": "https://archive.org/details/estetica-croce",
+          "status": "candidate; title date, target pages and rights need review"
+        }
+      ],
+      "searches": [
+        {
+          "source": "HathiTrust, browser",
+          "query": "Benedetto Croce estetica",
+          "result": "1902 first edition and Russian and Chinese editions catalogued; target scans search-only",
+          "url": "https://catalog.hathitrust.org/Search/Home?lookfor=Benedetto%20Croce%20estetica&type=all"
+        },
+        {
+          "source": "RSL, browser",
+          "query": "Кроче эстетика",
+          "result": "1920 part 1 and 2000 Yakovenko edition identified; full text in RSL or virtual reading rooms",
+          "url": "https://search.rsl.ru/ru/record/01009040312"
+        },
+        {
+          "source": "Internet Archive",
+          "result": "1908 Italian, 1909 English, 1905 German and 1912 Spanish candidates; OCR page references pending image verification",
+          "url": "https://archive.org/details/esteticacomesci00crocgoog"
+        }
+      ],
+      "remaining": "Review all target passages and sentence alignment, edition and translation participants, lawful access and applicable rights; continue required searches. No conclusion of absence has been made."
     },
     {
       "work": "maurice-merleau-ponty.phenomenologie-de-la-perception",
@@ -463,6 +567,11 @@
           "scan": "https://archive.org/details/art1914bell",
           "transcription": "https://www.gutenberg.org/ebooks/16917",
           "status": "scan pp8,16–17,22,42–43,63–64 personally inspected; exact sentence boundaries and transcription alignment require independent review"
+        },
+        {
+          "edition": "Art, New York: Frederick A. Stokes, catalogued [1913]",
+          "scan": "https://babel.hathitrust.org/cgi/pt?id=yale.39002028938760&seq=9",
+          "status": "Hathi full view and Public Domain; title and verso inspected, verso states Third Edition and gives no date; catalog date is not proof of first publication"
         }
       ],
       "original_places": [
