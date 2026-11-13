@@ -13,10 +13,10 @@ A distinct translation issue occurs at `tos.text-unit.sid-69836c088fe34bf2a6dfe3
 
 The two alignment errors and the translation discrepancy above were directly compared with the Greek. An inventory captured 92 unique single-unit citations with their current Russian and English pairs; this is not an assessment of every pair, a complete review of the translation, or a change to the public alignment. No witness or card text was altered in this review.
 
-## Scoped repair of VII.516
+## Scoped repair of IV.434 and VII.516
 
 The subsequently added `localReferencePairs` scope binds the exact original
-and Russian revisions above and names the complete 516 unit in each. The
+and Russian revisions above and names the complete 434 and 516 units in each. The
 Greek reference says `Книга 7 · 516` and the Russian one `516`; the unit
 identities, not the number alone, are retained in the scope and receipt. The
 normal sentence aligner is rerun on the two complete units. For the cited
@@ -27,7 +27,12 @@ that additional context is retained because it is part of the same sentence
 in the retained Russian witness. The automatic group also includes the preceding Greek
 answer, so it is not a claim of exact sentence-to-sentence boundaries for the
 entire 516 unit. The cited thought was compared directly with Greek and the
-retained Russian witness. No original or translation text is rewritten, and
-the original remains available through the card's switch. Other Republic
-citations, including the distinct IV.434 issue and the VI.509 witness
-discrepancy, are not resolved by this bounded change.
+retained Russian witness. At IV.434 the Russian unit ends mid-sentence; its
+continuation is the first sentence fragment of the adjacent 435 unit. The
+scoped alignment offers that fragment only when the current unit is unfinished
+and the following unit starts with a continuation. The resulting Russian
+sentence refers to applying the city's finding to the individual and continues
+with returning to the city if necessary; the latter is adjacent context in
+the same sentence. No original or translation text is rewritten, and the
+original remains available through the card's switch. The VI.509 witness
+discrepancy and other Republic citations are not resolved by this bounded change.

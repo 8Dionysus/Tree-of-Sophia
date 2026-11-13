@@ -116,6 +116,26 @@ describe('the corpus alignment of the stands',()=>{
     expect(text).not.toContain('Вдруг-то, конечно, не могли бы');
     expect(module.works.republic.original.versionId).toBe('retained-republic-grc2-5f9f8ad62cdb');
   });
+  it('keeps a scoped reference sentence that continues into the next translation unit',()=>{
+    const original={id:'g',language:'grc',revision:'g',units:[{id:'s',reference:'Book 1 · 434',text:'λόγος.'}]};
+    const translation={id:'r',language:'ru',revision:'r',units:[{id:'t1',reference:'434',text:'Первая часть'},{id:'t2',reference:'435',text:' продолжение. Другой текст.'}]};
+    const read=()=>({id:'work',versions:[original,translation]}),works={a:'work'},cited=new Map([['a',{original:'g',units:new Set(['s'])}]]);
+    const scope={work:'a',translationVersionId:'r',translationRevision:'r',originalVersionId:'g',originalRevision:'g',firstUnitId:'s',lastUnitId:'s',source:'https://example.test/book',basis:'The sentence crosses the reference.',localReferencePairs:[{originalUnitId:'s',translationUnitId:'t1',includeFollowingContinuation:true}]};
+    const entry=alignCorpus(cited,works,read,[scope]).units.s.t.r;
+    expect(entry.u).toEqual(['t1','t2']);
+    const text=entry.pairs[0][1].map(([i,a,b])=>Array.from(translation.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+    expect(text).toBe('Первая часть продолжение.');
+    expect(()=>alignCorpus(cited,works,()=>({id:'work',versions:[original,{...translation,units:[{...translation.units[0],text:'Готово.'},translation.units[1]]}]}),[scope])).toThrow(/invalid or stale translation scope/);
+    expect(()=>alignCorpus(cited,works,()=>({id:'work',versions:[original,{...translation,units:[translation.units[0]]}]}),[scope])).toThrow(/invalid or stale translation scope/);
+  });
+  it.skipIf(!corpusFetched)('matches the Russian Republic transition from city to individual across the page break',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),work=read(module.works.republic.documentId);
+    const unit='tos.text-unit.sid-30964fd34db4458c914156b4c619690a',version=work.versions.find(v=>v.id==='retained-republic-ru-karpov1863-wikisource'),entry=module.units[unit].t[version.id];
+    const text=entry.pairs.filter(([spans])=>spans.some(([a,b])=>a<1933&&1853<b)).flatMap(([,targets])=>targets).map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+    expect(text).toContain('перенесем на одного');
+    expect(text).toContain('станем испытывать город.');
+    expect(text).not.toContain('мы и устрояли его');
+  });
   it.skipIf(!corpusFetched)('aligns the Isagoge introduction with Owen rather than its table of contents',()=>{
     const module=json('bonsai/antiquity/alignment.json'),work=read(module.works.isagoge.documentId);
     const unit='tos.text-unit.sid-9c2f653ab2ef4d44bc4ae0e5218598b2',version=work.versions.find(v=>v.id==='retained-isagoge-en-owen1853-wikisource'),entry=module.units[unit].t[version.id];

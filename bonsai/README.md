@@ -222,7 +222,10 @@ When a specific original and translation unit name the same numbered place but
 their reference labels differ, a revision-bound translation scope can list
 `localReferencePairs`. Each listed pair is aligned independently using both
 complete units and the same sentence mechanism; only that original unit's
-mapping is replaced. The receipt records the pair and its local alignment
+mapping is replaced. A pair may also include the first sentence of the next
+translation unit when the current unit ends mid-sentence and the next starts
+with its continuation; the returned offsets still address the unchanged units.
+The receipt records the pair and its local alignment
 statistics separately. Shared numbers alone do not establish textual
 correspondence, and a sentence may include adjacent material: the candidate
 still needs source review. Original and translation texts and their offsets
