@@ -1,4 +1,4 @@
-import {test} from 'node:test';
+import {test} from 'vitest';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:http';
@@ -32,7 +32,7 @@ test('compares compressed CLI and HTTP packets on the selected prepared pair', a
     res.writeHead(200, {'content-type': 'application/json'}).end(JSON.stringify(response));
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const script = fileURLToPath(new URL('./verify_ui_backend.mjs', import.meta.url));
+  const script = fileURLToPath(new URL('../../packaging/verify_ui_backend.mjs', import.meta.url));
   const run = () => new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [script, '--native-executable', executable,
       '--prepared-read-model', model, '--prepared-binding', binding,
