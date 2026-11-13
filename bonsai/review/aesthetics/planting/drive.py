@@ -64,7 +64,7 @@ def codex(work,role,prompt,resume=None):
     if limit:LIMIT.set()
     return thread,limit
 
-MAKER="""You are the maker of the packet for the work {work} in the planting line of the Aesthetics bonsai. Your working directory is the packet. Read ../../AGENTS.md and ../../MAKER.md now and follow MAKER.md to its end. Stop only when `python3 ../../kit.py gate .` prints `gate: open`, or when you have written blocked.json as the card describes."""
+MAKER="""You are the maker of the packet for the work {work} in the planting line of the Aesthetics bonsai. Your working directory is the packet. Read ../../AGENTS.md and ../../MAKER.md now and follow MAKER.md to its end, including every interface language and source search. Stop only when `python3 ../../kit.py gate .` prints `gate: open`, or when you have written blocked.json as the card describes."""
 MAKER_ON="""You are the maker of the packet in this directory (../../AGENTS.md, ../../MAKER.md). The gate is still shut. These are its lines:
 
 {gate}
@@ -75,7 +75,7 @@ BLOCK="""You are a maker in the planting line of the Aesthetics bonsai; your wor
 
 Read ../../AGENTS.md and ../../MAKER.md, then test that block yourself: look for what it says is missing or failing. If the block does not hold, delete blocked.json and make the packet by MAKER.md to its end (`python3 ../../kit.py gate .` prints `gate: open`). If it holds, leave blocked.json and add under `tried` what you looked at."""
 RETAKE="""This packet has been through the line before. Under `left` in reading.json, an entry marked `disputed` holds a conception or a link that a second reader did not confirm, with the reader's note. Take each of them up again: read the note and the place in the original; where the work bears the reading in a narrower thesis, a longer cut or two conceptions, grow it again by MAKER.md and take the entry out of `left`; where it does not, leave the entry as it is. Leave what is already in the reading as it is unless the gate asks otherwise."""
-SECOND="""You are the second reader of the packet for the work {work} in the planting line of the Aesthetics bonsai. You did not make this packet. Your working directory is the packet. Read ../../AGENTS.md and ../../SECOND-READER.md now and follow SECOND-READER.md to its end. Stop only when `python3 ../../kit.py gate . --second` prints `gate: open`."""
+SECOND="""You are the second reader of the packet for the work {work} in the planting line of the Aesthetics bonsai. You did not make this packet. Your working directory is the packet. Read ../../AGENTS.md and ../../SECOND-READER.md now and follow SECOND-READER.md to its end, independently reviewing every prepared language witness. Stop only when `python3 ../../kit.py gate . --second` prints `gate: open`."""
 SECOND_ON="""You are the second reader of the packet in this directory (../../AGENTS.md, ../../SECOND-READER.md). The gate is still shut. These are its lines:
 
 {gate}

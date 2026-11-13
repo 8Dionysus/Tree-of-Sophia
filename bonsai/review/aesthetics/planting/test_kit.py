@@ -153,6 +153,9 @@ class TranslationWitnessTest(unittest.TestCase):
                   'review':{'reader':'reader','model':'gpt-6.1-terra','date':'2026-11-12','places':{'p':{'reads':'as the packet','image_sha256':digest,'alignment':'This sentence matches the complete original.'}}}}
             with patch.object(kit,'CACHE',str(cache)), patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                data['images'][1]['url']='https://example.org/other-page'
+                self.assertTrue(any('second reader page image' in item for item in kit.witness_problems(str(path),'en',data,second=True)))
+                data['images'][1]['url']='https://example.org/page'
                 source=b'A whole sentence;';(folder/'text.txt').write_bytes(source)
                 data['sources'][0]['sha256']=hashlib.sha256(source).hexdigest()
                 data['places']['p']['corrections']=[{'from':';','to':'.','offset':len('A whole sentence'),'reason':'The printed page ends this sentence with a full stop.','url':'https://example.org/page','page':'1','image_sha256':digest}]
@@ -393,3 +396,43 @@ class QueueRightsWaveTest(unittest.TestCase):
         self.assertEqual(kit.wave(w,'work'),'free-all')
         w['lives']['author']['died']=[{'time':'+1900-01-01T00:00:00Z','precision':8}]
         self.assertEqual(kit.wave(w,'work'),'free-some')
+
+class LanguageCoverageTest(unittest.TestCase):
+    def test_missing_language_needs_exhaustive_search_and_a_book_locator(self):
+        record={'reason':'No lawful text was found in the searched sources.',
+                'edition':'A named edition, publisher and year.','book_url':'https://example.org/book',
+                'tried':[{'site':site,'url':'https://example.org/search','outcome':'No usable text was found here.'} for site in kit.LOCATOR_SEARCHES]}
+        self.assertEqual(kit.missing_language_problems(record),[])
+        record['tried'].pop()
+        self.assertTrue(any('search outcomes' in issue for issue in kit.missing_language_problems(record)))
+        self.assertTrue(kit.missing_language_problems(None))
+
+    def test_explicit_basis_does_not_skip_second_gate(self):
+        import argparse
+        import tempfile
+        with tempfile.TemporaryDirectory() as path:
+            args=argparse.Namespace(packet=path,basis='Partial reading accepted',offline=False,by='test')
+            with patch.object(kit,'gate',return_value=(['missing second review'],'shut')) as gate:
+                with self.assertRaises(SystemExit):kit.cmd_accept(args)
+                self.assertTrue(gate.call_args.kwargs['second'])
+
+class InterfaceCoverageGateTest(unittest.TestCase):
+    def test_new_work_requires_evidence_and_old_work_records_debt(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as path:
+            problems,debts=kit.language_coverage(path,{'absent':[]},'en')
+            self.assertEqual(len(problems),4);self.assertEqual(debts,[])
+            self.assertTrue(any(item.startswith('zh-Hans:') for item in problems))
+            problems,debts=kit.language_coverage(path,{'absent':[]},'en',legacy_work=True)
+            self.assertEqual(problems,[]);self.assertEqual(len(debts),4)
+            entry={'absent':[],'witnesses':{'ru':{}}}
+            problems,debts=kit.language_coverage(path,entry,'en',legacy_work=True,held=True)
+            self.assertEqual(problems,[]);self.assertFalse(any(item.startswith('ru:') for item in debts))
+
+class CoauthorIdentityTest(unittest.TestCase):
+    def test_distinct_qids_cannot_be_collapsed_by_matching_names(self):
+        a={'qid':'Q1','name':{'en':'Alex Smith'}}
+        b={'qid':'Q2','name':{'en':'Alex Smith'}}
+        self.assertFalse(kit.same_participant(a,b))
+        self.assertTrue(kit.same_participant(a,{'name':{'en':'Alex Smith'}}))
+        self.assertFalse(kit.same_participant(a,{'name':{'en':'Alex Jones'}}))

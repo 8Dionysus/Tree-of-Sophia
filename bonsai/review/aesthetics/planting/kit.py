@@ -565,6 +565,16 @@ TRUSTED=('wikipedia.org','wikidata.org','d-nb.info','viaf.org','bnf.fr','plato.s
 def trusted(url):
     host=urllib.parse.urlparse(str(url)).netloc.lower();return str(url).startswith('https://') and any(host==name or host.endswith('.'+name) for name in TRUSTED)
 
+def same_participant(expected,actual):
+    if expected.get('qid') and actual.get('qid'):return expected['qid']==actual['qid']
+    left=expected.get('name') or {};right=actual.get('name') or {}
+    normalize=lambda value:unicodedata.normalize('NFKC',str(value)).casefold().strip()
+    return isinstance(left,dict) and isinstance(right,dict) and bool({normalize(value) for value in left.values() if value}&{normalize(value) for value in right.values() if value})
+
+def layer_authors(w,work):
+    return [{'role':'author','name':w['agents'][agent]['name'],**({'qid':w['lives'][agent]['item']} if (w.get('lives',{}).get(agent) or {}).get('item') else {})}
+            for agent in w.get('works',{}).get(work,{}).get('agents',[]) if agent in w.get('agents',{})]
+
 def entity_year(entity,property_):
     claims=[claim for claim in entity.get('claims',{}).get(property_,[]) if claim.get('rank')!='deprecated' and claim.get('mainsnak',{}).get('datavalue')]
     preferred=[claim for claim in claims if claim.get('rank')=='preferred']
@@ -788,14 +798,25 @@ def cmd_locator(args):
     save(os.path.join(path,'places.json'),places);save(os.path.join(path,'evidence.json'),ev)
     print(f'{args.loc}: locator and searches recorded')
 
+def missing_search_sites(searches):
+    valid={item.get('site') for item in searches if isinstance(item,dict) and lawful_url(item.get('url','')) and len(str(item.get('outcome','')))>=15}
+    return LOCATOR_SEARCHES-valid
+
+def missing_language_problems(record):
+    if not isinstance(record,dict):return ['no search record']
+    problems=[];missing=missing_search_sites(record.get('tried') or [])
+    if missing:problems.append('search outcomes missing for '+', '.join(sorted(missing)))
+    if len(str(record.get('reason','')).strip())<30:problems.append('a reason for the missing text is required')
+    if len(str(record.get('edition','')).strip())<15 or not lawful_url(record.get('book_url')):problems.append('edition and lawful book locator are required')
+    return problems
+
 def locator_problems(loc,place,ev):
     problems=[];proof=(ev.get('places',{}).get(loc) or {}).get('locator') or {}
     if not lawful_url(proof.get('url','')) or proof.get('url')!=place.get('url'):problems.append(f'{loc}: book locator URL is missing')
     if len(str(proof.get('reference','')))<8:problems.append(f'{loc}: edition and page reference are missing')
     if len(str(proof.get('maker_read','')))<30:problems.append(f'{loc}: maker must explain how the book was read')
     searches=proof.get('searches') or []
-    valid={item.get('site') for item in searches if isinstance(item,dict) and lawful_url(item.get('url','')) and len(str(item.get('outcome','')))>=15}
-    missing=LOCATOR_SEARCHES-valid
+    missing=missing_search_sites(searches)
     if missing:problems.append(f'{loc}: search outcomes missing for '+', '.join(sorted(missing)))
     return problems
 
@@ -863,6 +884,23 @@ def quotation_problems(loc,text,proof,ev,second=False,path=None,offline=False):
     if (len(text)>900 or count>3) and len(str(proof.get('justification',''))) < 30:problems.append(f'place {loc}: quotation exceeds 900 characters or three sentences and needs a justification')
     return problems
 
+def language_coverage(path,entry,original,legacy_work=False,held=False,second=False,offline=False):
+    problems=[];debts=[]
+    missing_by_lang={item.get('language'):item for item in entry.get('absent') or [] if isinstance(item,dict)}
+    for lang in ('ru','en','es','de','zh-Hans'):
+        if lang==original or (held and lang in (entry.get('witnesses') or {})):continue
+        file=witness_file(path,lang)
+        if os.path.isfile(file):
+            marker=file+'.accepted'
+            if legacy_work and not os.path.isfile(marker):continue
+            raw=Path(file).read_bytes()
+            if os.path.isfile(marker) and load(marker).get('sha256')!=hashlib.sha256(raw).hexdigest():problems.append(f'{lang}: witness changed since acceptance');continue
+            problems.extend(f'{lang}: {issue}' for issue in witness_problems(path,lang,json.loads(raw),second=second,offline=offline))
+        else:
+            issues=missing_language_problems(missing_by_lang.get(lang))
+            (debts if legacy_work else problems).extend(f'{lang}: {issue}' for issue in issues)
+    return problems,debts
+
 def gate(path,second=False,offline=False):
     problems=[];work=work_of(path);add=problems.append
     owe=OWES.append if part(path,'accepted.json') is not None else add
@@ -927,8 +965,10 @@ def gate(path,second=False,offline=False):
             if (person.get('died') is not None and type(person.get('died')) is not int) or not isinstance(person.get('name'),dict) or not(person.get('qid') or trusted(person.get('source'))):sound=False;add(f"evidence.persons {person.get('name')}: enter the person again with kit.py person ROLE QID")
             if person.get('wartime') is not None and (type(person['wartime']) is not bool or not trusted(person.get('wartime_source'))):sound=False;add('wartime status requires a trusted source')
             if person.get('rehabilitated') is not None and (type(person['rehabilitated']) is not int or not trusted(person.get('rehabilitation_source'))):sound=False;add('rehabilitation requires a year and a trusted source')
-        known={word for agent in w['works'][work]['agents'] for value in w['agents'][agent]['name'].values() for word in WORD.findall(value.casefold()) if len(word)>3}
-        if sound and persons and known and not any(person['role']=='author' and known&set(WORD.findall(' '.join(person['name'].values()).casefold())) for person in persons):add('evidence.persons: the author entered is not the author the layer names for this work')
+        if sound and persons:
+            for author in layer_authors(w,work):
+                if not any(person.get('role')=='author' and same_participant(author,person) for person in persons):
+                    owe(f"evidence.persons: the layer author {author['name'].get('en') or author['name'].get('ru')} is missing or needs identity reconciliation")
         if not isinstance(ev.get('published'),int):add('evidence.published wants the year of the printing used')
         elif ev['published']!=witness.get('year'):add('evidence.published and witness.year differ')
         if sound and persons:
@@ -939,6 +979,9 @@ def gate(path,second=False,offline=False):
                 for country in JURISDICTIONS:
                     item=rights.get(country) or {}
                     if isinstance(item,dict) and item.get('basis') in ('public-domain','public-domain+licence') and not dates[country]:add(f'witness.rights.{country}: public domain is not established by the recorded dates')
+    legacy_work=part(path,'accepted.json') is not None or bool(held) or bool(scope)
+    coverage,debts=language_coverage(path,entry,original,legacy_work,bool(held),second,offline)
+    problems.extend(coverage);OWES.extend(debts)
     # the places
     locs=places.get('places') or {}
     if not locs:add('places.json holds no place')
@@ -1095,7 +1138,7 @@ def gate(path,second=False,offline=False):
     directory=os.path.join(path,'witnesses')
     if os.path.isdir(directory):
         for name in sorted(os.listdir(directory)):
-            if not name.endswith('.json') or not os.path.isfile(os.path.join(directory,name+'.accepted')):continue
+            if not name.endswith('.json') or name[:-5] in ('ru','en','es','de','zh-Hans') or not os.path.isfile(os.path.join(directory,name+'.accepted')):continue
             file=os.path.join(directory,name);raw=open(file,'rb').read();receipt=load(file+'.accepted')
             if receipt.get('sha256')!=hashlib.sha256(raw).hexdigest():add(f'{name}: witness changed since acceptance');continue
             for problem in witness_problems(path,name[:-5],json.loads(raw),second=True,offline=offline):add(f'{name}: {problem}')
@@ -1189,10 +1232,19 @@ def cmd_settle(args):
     print(f"settled: {len(gone)} conceptions left the reading; {len(reading['conceptions'])} conceptions, {len(reading['links'])} links, {len(places['places'])} places stay")
 
 def cmd_accept(args):
-    path=packet(args.packet);problems,state=gate(path,second=not args.basis,offline=args.offline)
+    path=packet(args.packet);problems,state=gate(path,second=True,offline=args.offline)
     if problems:
         for problem in problems:print('- '+problem)
         die('the gate is shut: nothing is accepted')
+    # Bind every new witness only after the online second gate has passed.
+    directory=os.path.join(path,'witnesses')
+    if os.path.isdir(directory):
+        pending=[os.path.join(directory,name) for name in os.listdir(directory) if name.endswith('.json') and not os.path.isfile(os.path.join(directory,name+'.accepted'))]
+        if pending and args.offline:die('accepting a new witness requires the online second gate')
+        for file in pending:
+            data=load(file);issues=witness_problems(path,Path(file).stem,data,second=True,offline=False)
+            if issues:die('witness is not ready: '+'; '.join(issues))
+            save(file+'.accepted',{'sha256':hashlib.sha256(Path(file).read_bytes()).hexdigest(),'date':today()})
     review=part(path,'review.json');reading=part(path,'reading.json');ev=evidence(path)
     used={entry.get('transcription') for entry in ev['places'].values()};first=next((source['file'] for source in ev['sources'] if source['role']=='transcription'),None)
     ev['sources']=[source for source in ev['sources'] if source['role']!='transcription' or source['file'] in used or (None in used and source['file']==first)];save(os.path.join(path,'evidence.json'),ev)   # a place that names no transcription was cut from the first
@@ -1377,7 +1429,7 @@ def cmd_witness_image(args):
 
 def cmd_witness_cut(args):
     path=packet(args.packet);data=witness_data(path,args.language)
-    original=(world()['fragments'].get('places') or {}).get(work_of(path),{})
+    original={**((world()['fragments'].get('places') or {}).get(work_of(path),{})),**((part(path,'places.json') or {}).get('places') or {})}
     if args.loc not in original:die('the original place is not in the bonsai')
     source=next((item for item in data['sources'] if item['file']==args.source),None)
     if not source:die('fetch the source first')
@@ -1428,7 +1480,7 @@ def cmd_witness_review(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     if args.loc not in data['places']:die('no such place in this witness')
     place=data['places'][args.loc]
-    if not any(item['sha256']==place['image_sha256'] and item['by']=='second' for item in data['images']):die('fetch the same page image as second reader first')
+    if not any(item['sha256']==place['image_sha256'] and item['by']=='second' and item.get('url')==place.get('url') for item in data['images']):die('fetch the same page image from the same source as second reader first')
     review=data.setdefault('review',{})
     if review.get('reader') and review['reader']!=args.reader:die('a single second reader reviews this witness')
     review['reader']=args.reader;review['model']=args.model;review['date']=today();review.setdefault('places',{})[args.loc]={'reads':'as the packet','alignment':args.alignment,'image_sha256':place['image_sha256']}
@@ -1445,15 +1497,11 @@ def witness_problems(path,lang,data,second=False,offline=False):
     if not any(p.get('role')=='translator' for p in people):add('translator is missing')
     if not any(p.get('role')=='author' for p in people):add('author is missing')
     original_authors=[p for p in (evidence(path).get('persons') or []) if p.get('role')=='author']
-    if not original_authors:
-        w=world();known=w.get('works',{}).get(work_of(path)) or {};agents=w.get('agents',{})
-        original_authors=[{'role':'author','name':agents[agent]['name']} for agent in known.get('agents',[]) if agent in agents]
+    w=world()
+    for author in layer_authors(w,work_of(path)):
+        if not any(same_participant(author,person) for person in original_authors):original_authors.append(author)
     for author in original_authors:
-        def same(p):
-            if author.get('qid') and p.get('qid'):return author['qid']==p['qid']
-            left=author.get('name') or {};right=p.get('name') or {}
-            return isinstance(left,dict) and isinstance(right,dict) and bool({str(v).casefold() for v in left.values() if v}&{str(v).casefold() for v in right.values() if v})
-        if not any(p.get('role')=='author' and same(p) for p in people):add('every original author must also be recorded in the translation')
+        if not any(person.get('role')=='author' and same_participant(author,person) for person in people):add('every original author must also be recorded in the translation')
     if any((p.get('died') is not None and type(p.get('died')) is not int) or not p.get('source') or not str(p.get('source')).startswith('https://') for p in people):add('each hand needs a sourced date or an unknown death year')
     for person in people:
         if person.get('wartime') is not None and (type(person['wartime']) is not bool or not trusted(person.get('wartime_source'))):add('wartime status requires a trusted source')
@@ -1483,7 +1531,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
         if not isinstance(item,dict) or item.get('basis') not in BASES or len(str(item.get('law','')))<20:add(f'rights.{country} needs basis and law')
         elif item['basis'] in ('public-domain','public-domain+licence') and not dates[country]:add(f'rights.{country} is not established by dates')
     if lang=='ru' and len(str(witness.get('normalization','')))<20:add('Russian witness needs a normalization provenance statement')
-    original=(world()['fragments'].get('places') or {}).get(work_of(path),{})
+    original={**((world()['fragments'].get('places') or {}).get(work_of(path),{})),**((part(path,'places.json') or {}).get('places') or {})}
     if not places:add('no translated places')
     if places and any(((witness.get('rights') or {}).get(country) or {}).get('basis')=='locator-only' for country in JURISDICTIONS):add('translated text cannot be distributed while a jurisdiction permits a locator only')
     sources={item.get('file'):item for item in data.get('sources') or []}
@@ -1526,7 +1574,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
             review=data.get('review') or {};answer=(review.get('places') or {}).get(loc) or {}
             if not all(review.get(field) for field in ('reader','model','date')) or review.get('reader')==witness.get('maker'):add(f'{loc}: a different second reader with model and date is required')
             if answer.get('reads')!='as the packet' or answer.get('image_sha256')!=place.get('image_sha256') or len(str(answer.get('alignment','')))<20:add(f'{loc}: second reader must verify page and alignment')
-            second_image=next((item for item in data.get('images') or [] if item.get('by')=='second' and item.get('sha256')==place.get('image_sha256')),None)
+            second_image=next((item for item in data.get('images') or [] if item.get('by')=='second' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
             if not second_image:add(f'{loc}: second reader page image is missing')
             elif not offline:
                 try:
