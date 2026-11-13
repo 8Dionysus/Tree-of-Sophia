@@ -58,8 +58,12 @@ const saveLives=()=>{
 const timeRecord=claim=>{
   const value=claim.mainsnak.datavalue.value,qualification=claim.qualifiers?.P1480??[],qualifiers=qualification.map(item=>item.datavalue?.value?.id??null);
   const calendars=new Set(['Q38173183','Q26877143','Q26877139','Q27055388']);
-  const uncertain=qualifiers.some(id=>!calendars.has(id))||!!value.before||!!value.after||(qualification.length>0&&(value.precision===9||/-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T/.test(value.time)));
-  return {time:value.time,precision:value.precision,...(qualification.length?{qualifiers}:{}),...(uncertain?{approximate:true}:{}),...(value.before?{before:value.before}:{}),...(value.after?{after:value.after}:{})};
+  const bounds=Object.fromEntries([['earliest','P1319'],['latest','P1326']].flatMap(([name,prop])=>{
+    const entries=(claim.qualifiers?.[prop]??[]).map(item=>item.datavalue?.value).filter(item=>item?.time).map(item=>({time:item.time,precision:item.precision}));
+    return entries.length?[[name,entries]]:[];
+  }));
+  const uncertain=Object.keys(bounds).length>0||qualifiers.some(id=>!calendars.has(id))||!!value.before||!!value.after||(qualification.length>0&&(value.precision===9||/-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T/.test(value.time)));
+  return {time:value.time,precision:value.precision,...(qualification.length?{qualifiers}:{}),...(Object.keys(bounds).length?{bounds}:{}),...(uncertain?{approximate:true}:{}),...(value.before?{before:value.before}:{}),...(value.after?{after:value.after}:{})};
 };
 // Refresh the qualified date claims for already identified people in bounded batches.
 // The identity and its evidence remain unchanged; failures leave later batches untouched.
@@ -488,7 +492,8 @@ const dating=(more)=>({role:'historical-time',calendar:null,year_numbering:'astr
 const sources={},situations={},lifeOf={},workOf={};
 for(const [agent,entry] of Object.entries(library.agents)){
   const life=lives[agent];if(!life?.item)throw new Error(`${agent}: no verified Wikidata identity in layer/lives.json (resolve it before fetching)`);
-  const born=life.born.map(item=>yearOf(item.time)),died=life.died.map(item=>yearOf(item.time));
+  const years=entries=>entries.flatMap(item=>[item.time,...(item.bounds?.earliest??[]).map(bound=>bound.time),...(item.bounds?.latest??[]).map(bound=>bound.time)]).map(yearOf);
+  const born=years(life.born),died=years(life.died);
   const complete=born.length>0&&died.length>0;
   const exact=complete&&new Set(born).size===1&&new Set(died).size===1&&[...life.born,...life.died].every(item=>item.precision>=9&&!item.approximate);
   const id=`tos.biographical-phase.${agent}.lifetime`,source=`wikidata-${agent}`;

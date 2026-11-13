@@ -489,10 +489,13 @@ class LivingAuthorChronologyTest(unittest.TestCase):
             self.assertIn('born',life['dating']['source_wording']['text'])
             self.assertIn('no death year recorded',life['dating']['source_wording']['text'])
             lives['immanuel-kant']['died']=[{'time':'+1804-01-01T00:00:00Z','precision':9,'approximate':True,'qualifiers':['Q5727902']}]
+            lives['immanuel-kant']['born'][0]['bounds']={'earliest':[{'time':'+1723-01-01T00:00:00Z','precision':9}],'latest':[{'time':'+1725-01-01T00:00:00Z','precision':9}]}
+            lives['immanuel-kant']['born'][0]['approximate']=True
             (layer/'lives.json').write_text(json.dumps(lives,ensure_ascii=False))
             subprocess.run(['node',str(review/'chronology.mjs')],check=True,capture_output=True,text=True)
             result=json.loads((home/'chronology.json').read_text());life=result['situations'][result['lives']['immanuel-kant']]
             self.assertEqual(life['dating']['certainty'],'approximate')
+            self.assertEqual(life['dating']['interval']['start'],'1723')
             self.assertIn('approximately',life['dating']['source_wording']['text'])
 
 class TranslationCorrectionTest(unittest.TestCase):
@@ -537,6 +540,8 @@ class WikidataDatePrecisionTest(unittest.TestCase):
         self.assertIsNone(kit.entity_year({'claims':{'P570':[approximate]}},'P570'))
         interval=claim(1950);interval['mainsnak']['datavalue']['value']['after']=1
         self.assertIsNone(kit.entity_year({'claims':{'P570':[interval]}},'P570'))
+        bounded=claim(1950);bounded['qualifiers']={'P1319':[{'datavalue':{'value':{'time':'+1949-01-01T00:00:00Z'}}}]}
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[bounded]}},'P570'))
         calendar=claim(1910);calendar['qualifiers']={'P1480':[{'datavalue':{'value':{'id':'Q27055388'}}}]}
         self.assertEqual(kit.entity_year({'claims':{'P570':[calendar]}},'P570'),1910)
         calendar['mainsnak']['datavalue']['value']['time']='+1910-12-25T00:00:00Z'
