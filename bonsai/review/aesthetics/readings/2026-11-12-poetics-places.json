@@ -1,0 +1,207 @@
+{
+ "reader": {
+  "id": "codex-2026-11-12-poetics",
+  "model": "gpt-6",
+  "date": "2026-11-12",
+  "reads": "Aristotle, Poetics IV–VI and IX, in the Greek text of the public corpus, beside the registers' readings."
+ },
+ "library": {
+  "agents": {
+   "aristotle": {
+    "tree": "tos.agent.aristotle"
+   }
+  },
+  "works": {
+   "aristotle.poetics": {
+    "title": {
+     "ru": "Поэтика",
+     "en": "Poetics"
+    },
+    "original": "grc",
+    "tree": "tos.work.retained-antiquity.poetics"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "aristotle.poetics:pleasure-in-images",
+   "of": [
+    "A:C152",
+    "A:C034",
+    "A:C149",
+    "B:B-C001",
+    "B:D-C004",
+    "C:A-C011"
+   ],
+   "areas": [
+    "AE03",
+    "AE05",
+    "AE14",
+    "AE18",
+    "AE22"
+   ],
+   "work": "aristotle.poetics",
+   "locus": "4, 1448b",
+   "formula": [
+    {
+     "unit": "Глава 4",
+     "from": "σημεῖον δὲ τούτου",
+     "to": "θηρίων τε μορφὰς τῶν ἀτιμοτάτων καὶ νεκρῶν."
+    },
+    {
+     "unit": "Глава 4",
+     "from": "αἴτιον δὲ καὶ τούτου",
+     "to": "διὰ τοιαύτην τινὰ ἄλλην αἰτίαν."
+    }
+   ],
+   "thesis": {
+    "ru": "Точные изображения вещей, на которые неприятно смотреть, доставляют удовольствие: рассматривая изображения, люди учатся и узнают, что изображено.",
+    "en": "Accurate images of things painful to look at give pleasure: in looking at images people learn and recognise what each represents."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register also names aestheticisation of ugliness; the passage explains pleasure in images through learning and recognition, and gives unpleasant animals and corpses as examples.",
+   "from": [
+    "A:E008",
+    "B:B-I001",
+    "B:D-I001",
+    "C:A-I007"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:the-laughable",
+   "of": [
+    "A:C006",
+    "A:C003",
+    "A:C062"
+   ],
+   "areas": [
+    "AE03",
+    "AE06",
+    "AE07"
+   ],
+   "work": "aristotle.poetics",
+   "locus": "5, 1449a",
+   "formula": [
+    {
+     "unit": "Глава 5",
+     "from": "τὸ γὰρ γελοῖόν ἐστιν",
+     "to": "διεστραμμένον ἄνευ ὀδύνης."
+    }
+   ],
+   "thesis": {
+    "ru": "Смешное — ошибка и безобразие, которые не причиняют боли и вреда; пример тому — смешная маска.",
+    "en": "The laughable is an error and ugliness without pain or harm; a comic mask is an example."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E091"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:definition-of-tragedy",
+   "of": [
+    "A:C005",
+    "A:C152",
+    "A:C146",
+    "A:C147",
+    "A:C047"
+   ],
+   "areas": [
+    "AE05",
+    "AE14"
+   ],
+   "work": "aristotle.poetics",
+   "locus": "6, 1449b",
+   "formula": [
+    {
+     "unit": "Глава 6",
+     "from": "ἔστιν οὖν τραγῳδία",
+     "to": "τὴν τῶν τοιούτων παθημάτων κάθαρσιν."
+    }
+   ],
+   "thesis": {
+    "ru": "Трагедия изображает важное завершённое действие через действующих лиц и совершает через сострадание и страх очищение таких переживаний.",
+    "en": "Tragedy represents a serious complete action through acting persons and accomplishes through pity and fear the catharsis of such experiences."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E072",
+    "B:B-I016"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:poetry-and-the-possible",
+   "of": [
+    "A:C153",
+    "A:C152",
+    "B:D-C004",
+    "C:A-C015"
+   ],
+   "areas": [
+    "AE05",
+    "AE18",
+    "AE22"
+   ],
+   "work": "aristotle.poetics",
+   "locus": "9, 1451a–b",
+   "formula": [
+    {
+     "unit": "Глава 9",
+     "from": "φανερὸν δὲ ἐκ τῶν εἰρημένων",
+     "to": "ἡ δ’ ἱστορία τὰ καθ’ ἕκαστον λέγει."
+    }
+   ],
+   "thesis": {
+    "ru": "Поэт говорит о возможном по вероятности или необходимости; поэзия стремится к общему, а история говорит об отдельных событиях.",
+    "en": "The poet speaks of what is possible according to probability or necessity; poetry aims at the universal, while history speaks of particular events."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register names inevitability and artistic truth as concepts; this passage speaks of necessity as a condition of possibility and of the universal.",
+   "from": [
+    "A:E074",
+    "B:D-I003",
+    "C:A-I005"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "the-comic:includes-a-painless-kind-of:the-ugly",
+   "from_concept": "A:C006",
+   "to_concept": "A:C003",
+   "verb": {
+    "ru": "охватывает безболезненный вид",
+    "en": "includes a painless kind of"
+   },
+   "grounds": [
+    "aristotle.poetics:the-laughable"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R084"
+   ]
+  },
+  {
+   "id": "mask:exemplifies:the-comic",
+   "from_concept": "A:C062",
+   "to_concept": "A:C006",
+   "verb": {
+    "ru": "служит примером",
+    "en": "exemplifies"
+   },
+   "grounds": [
+    "aristotle.poetics:the-laughable"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R085"
+   ]
+  }
+ ]
+}
