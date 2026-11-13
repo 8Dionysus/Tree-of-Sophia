@@ -488,6 +488,12 @@ class LivingAuthorChronologyTest(unittest.TestCase):
             self.assertEqual(life['dating']['kind'],'unknown-date')
             self.assertIn('born',life['dating']['source_wording']['text'])
             self.assertIn('no death year recorded',life['dating']['source_wording']['text'])
+            lives['immanuel-kant']['died']=[{'time':'+1804-01-01T00:00:00Z','precision':9,'approximate':True,'qualifiers':['Q5727902']}]
+            (layer/'lives.json').write_text(json.dumps(lives,ensure_ascii=False))
+            subprocess.run(['node',str(review/'chronology.mjs')],check=True,capture_output=True,text=True)
+            result=json.loads((home/'chronology.json').read_text());life=result['situations'][result['lives']['immanuel-kant']]
+            self.assertEqual(life['dating']['certainty'],'approximate')
+            self.assertIn('approximately',life['dating']['source_wording']['text'])
 
 class TranslationCorrectionTest(unittest.TestCase):
     def test_correction_preserves_page_binding_and_invalidates_review(self):
@@ -531,6 +537,10 @@ class WikidataDatePrecisionTest(unittest.TestCase):
         self.assertIsNone(kit.entity_year({'claims':{'P570':[approximate]}},'P570'))
         interval=claim(1950);interval['mainsnak']['datavalue']['value']['after']=1
         self.assertIsNone(kit.entity_year({'claims':{'P570':[interval]}},'P570'))
+        calendar=claim(1910);calendar['qualifiers']={'P1480':[{'datavalue':{'value':{'id':'Q27055388'}}}]}
+        self.assertEqual(kit.entity_year({'claims':{'P570':[calendar]}},'P570'),1910)
+        calendar['mainsnak']['datavalue']['value']['time']='+1910-12-25T00:00:00Z'
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[calendar]}},'P570'))
         self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951)]}},'P570'))
         self.assertEqual(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951,11,'preferred')]}},'P570'),1951)
 
@@ -646,7 +656,7 @@ globalThis.fetch=async input=>{
  else if(url.pathname==='/authors/OL456A.json')data={name:'Dated Author',birth_date:'1900',death_date:'1980'};
  else if(url.pathname==='/authors/OL789A.json')data={name:'Uncertain Author',birth_date:'circa 1900',death_date:'1980'};
  else if(url.hostname==='query.wikidata.org')data={results:{bindings:[{person:{value:'http://www.wikidata.org/entity/'+(url.searchParams.get('query').includes('P214')?'Q62315':'Q77')}}]}};
- else if(url.pathname.includes('Special:EntityData/Q62315'))data={entities:{Q62315:{labels:{en:{value:'Karl Rosenkranz'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q5'}}}}],P569:[{mainsnak:{datavalue:{value:{time:'+1805-01-01T00:00:00Z',precision:9}}}}],P570:[{mainsnak:{datavalue:{value:{time:'+1879-01-01T00:00:00Z',precision:9}}}}]}}}};
+ else if(url.pathname.includes('Special:EntityData/Q62315'))data={entities:{Q62315:{labels:{en:{value:'Karl Rosenkranz'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q5'}}}}],P569:[{qualifiers:{P1480:[{datavalue:{value:{id:'Q5727902'}}}]},mainsnak:{datavalue:{value:{time:'+1805-01-01T00:00:00Z',precision:9}}}}],P570:[{mainsnak:{datavalue:{value:{time:'+1879-01-01T00:00:00Z',precision:9}}}}]}}}};
  else if(url.pathname.includes('Special:EntityData/Q77'))data={entities:{Q77:{labels:{en:{value:'Dated Author'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q5'}}}}],P569:[{mainsnak:{datavalue:{value:{time:'+1900-01-01T00:00:00Z',precision:9}}}}],P570:[{mainsnak:{datavalue:{value:{time:'+1980-01-01T00:00:00Z',precision:9}}}}]}}}};
  else throw new Error('unexpected URL '+url);
  return new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
@@ -656,6 +666,8 @@ await import(pathToFileURL(process.argv[3]??'%MODULE%').href);
 """.replace('%MODULE%',str(review/'chronology.mjs'))
             subprocess.run(['node','--input-type=module','-e',script],check=True,capture_output=True,text=True)
             lives=json.loads((layer/'lives.json').read_text());self.assertEqual(lives['karl']['item'],'Q62315')
+            self.assertTrue(lives['karl']['born'][0]['approximate'])
+            self.assertEqual(lives['karl']['born'][0]['qualifiers'],['Q5727902'])
             self.assertEqual(lives['karl']['identity_catalogue']['work'],'/works/OL123W')
             self.assertEqual(lives['karl']['identity_catalogue']['authority'],['P214','12345'])
             self.assertIsNone(lives['other']['item']);self.assertEqual(lives['other']['status'],'unresolved')

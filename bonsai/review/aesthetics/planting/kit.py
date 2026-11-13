@@ -110,7 +110,7 @@ def wave(w,work):
     for agent in known['agents']:
         life=(w.get('lives') or {}).get(agent) or {};dates=life.get('died') or []
         years=[]
-        if life.get('item') and dates and all(type(item.get('precision')) is int and item['precision']>=9 for item in dates):
+        if life.get('item') and dates and all(type(item.get('precision')) is int and item['precision']>=9 and not item.get('approximate') for item in dates):
             for item in dates:
                 match=re.match(r'([+-]\d+)-',str(item.get('time','')))
                 if match:years.append(int(match.group(1)))
@@ -595,9 +595,15 @@ def entity_year(entity,property_):
     preferred=[claim for claim in claims if claim.get('rank')=='preferred']
     chosen=preferred or claims
     values=[claim['mainsnak']['datavalue']['value'] for claim in chosen]
-    # A year with an approximation qualifier or an interval is not an exact cutoff.
-    if not values or any((claim.get('qualifiers') or {}).get('P1480') for claim in chosen):return None
-    if any(value.get('precision',0)<9 or value.get('before',0) or value.get('after',0) for value in values):return None
+    # Calendar annotations are not uncertainty, except near the year boundary.
+    calendars={'Q38173183','Q26877143','Q26877139','Q27055388'}
+    if not values:return None
+    for claim,value in zip(chosen,values):
+        qualifiers=(claim.get('qualifiers') or {}).get('P1480') or []
+        ids=[((item.get('datavalue') or {}).get('value') or {}).get('id') for item in qualifiers]
+        if any(qid not in calendars for qid in ids):return None
+        if qualifiers and re.search(r'-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T',value.get('time','')):return None
+        if value.get('precision',0)<9 or value.get('before',0) or value.get('after',0):return None
     years={int(value['time'][:5]) for value in values}
     return next(iter(years)) if len(years)==1 else None
 
