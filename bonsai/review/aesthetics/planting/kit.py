@@ -602,7 +602,7 @@ def entity_year(entity,property_):
         qualifiers=(claim.get('qualifiers') or {}).get('P1480') or []
         ids=[((item.get('datavalue') or {}).get('value') or {}).get('id') for item in qualifiers]
         if any(qid not in calendars for qid in ids):return None
-        if qualifiers and re.search(r'-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T',value.get('time','')):return None
+        if qualifiers and (value.get('precision',0)==9 or re.search(r'-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T',value.get('time',''))):return None
         if value.get('precision',0)<9 or value.get('before',0) or value.get('after',0):return None
     years={int(value['time'][:5]) for value in values}
     return next(iter(years)) if len(years)==1 else None
