@@ -245,9 +245,11 @@ npm run build
 npm run dev
 ```
 
-`npm run build` writes the four public pages to `dist/`; `npm run build:public-research`
-writes the same pages and assets to the public Worker output. Both use the
-`/__research/` asset base. Outputs are generated and remain outside Git.
+`npm run build` writes the four public pages to `dist/` without fetching or
+copying published layers; it is suitable for software validation.
+`npm run build:public-research` writes the pages and their published layers to
+the public Worker output. Both use the `/__research/` asset base. Outputs are
+generated and remain outside Git.
 The standalone validation route is documented in
 [`VALIDATION.md`](../../VALIDATION.md); browser checks, CI and deployment are
 separate evidence. The native `tos serve` exposes the API, not these pages.

@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   const publicResearch = mode === "public-research";
   return {
   base: "/__research/",
-  plugins: [siteLayers()],
+  plugins: publicResearch ? [siteLayers()] : [],
   css: { postcss: { plugins: [themePostcss()] } },
   server: {
     host: "127.0.0.1",
