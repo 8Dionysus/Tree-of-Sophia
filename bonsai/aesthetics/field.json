@@ -66,6 +66,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-10-hogarth.json"
   },
   {
+   "id": "codex-2026-11-12-poetics-more",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Aristotle, Poetics XIII–XIV in the Greek public corpus, beside the registers’ readings.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-poetics-error-plot.json"
+  },
+  {
    "id": "codex-2026-11-12-poetics-form",
    "model": "gpt-6",
    "date": "2026-11-12",
@@ -11119,6 +11126,106 @@
    "admission": "map",
    "grew_from": [
     "A:E015"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:tragic-error",
+   "type": "tos.entity.conception",
+   "of": [
+    "hamartia",
+    "the-tragic-hero",
+    "guilt",
+    "recognition"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "voice": {
+    "ru": "Аристотель",
+    "en": "Aristotle"
+   },
+   "locus": "XIII, 1453a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-fbe5206b6fc24373b4e115de9007a4b5",
+       "tos.text-unit.sid-fbe5206b6fc24373b4e115de9007a4b5"
+      ],
+      "s": 967,
+      "e": 1242
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Аристотель называет подходящим для трагедии человека между крайностями, который переходит к несчастью из-за некоторой ошибки, и приводит в пример Эдипа и Фиеста.",
+    "en": "Aristotle names as fitting for tragedy a person between the extremes who falls into misfortune through some error, and gives Oedipus and Thyestes as examples."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-more",
+    "verdict": "revise",
+    "note": "The passage names Oedipus as an example of the intermediate figure; the register also connects him to recognition in chapter XI, which this formula does not quote."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E077",
+    "A:E090"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:tragic-pleasure-and-plot",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-monstrous",
+    "the-tragic",
+    "pity",
+    "fear"
+   ],
+   "areas": [
+    "area-tragic",
+    "area-grotesque"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "voice": {
+    "ru": "Аристотель",
+    "en": "Aristotle"
+   },
+   "locus": "XIV, 1453b",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-2b49da6e8d084125ad2d15c3a78e3c10",
+       "tos.text-unit.sid-2b49da6e8d084125ad2d15c3a78e3c10"
+      ],
+      "s": 2,
+      "e": 716
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Страх и сострадание могут возникать из самого построения действия; поэт должен создавать через подражание свойственное трагедии удовольствие, а не просто показывать чудовищное.",
+    "en": "Fear and pity can arise from the construction of the action itself; through imitation the poet should produce the pleasure proper to tragedy, not merely display the monstrous."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-more",
+    "verdict": "confirmed",
+    "note": "The Russian corpus witness renders the listener as a reader and τὸ τερατῶδες as чудесное; the thesis follows the Greek, and those translation choices remain visible in the counterpart."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E079"
    ]
   },
   {
