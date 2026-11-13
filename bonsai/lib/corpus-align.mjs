@@ -257,7 +257,8 @@ export function alignCorpus(cited,works,read,scopes=[]){
     const invalidStart=start!==undefined&&(!firstTarget||start?.unitId!==firstTarget.id||!Number.isInteger(start?.offset)||start.offset<1||start.offset>=chars(firstTarget.text).length);
     const handovers=scope.handoverUnitIds;
     const invalidHandovers=handovers!==undefined&&(!Array.isArray(handovers)||!handovers.length||new Set(handovers).size!==handovers.length||handovers.some(id=>{const i=original?.units.findIndex(unit=>unit.id===id)??-1;return typeof id!=='string'||i<=first||i>last;}));
-    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))||invalidStart||invalidHandovers||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
+    const invalidWithheld=scope.withheld!==undefined&&(scope.withheld!==true||first!==0||last!==original?.units.length-1||typeof scope.basis!=='string'||!scope.basis.trim()||scope.maxSourceSentences!==undefined||start!==undefined||handovers!==undefined);
+    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))||invalidStart||invalidHandovers||invalidWithheld||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
     seenScopes.add(key);
   }
   const out={schema:CORPUS_ALIGNMENT_SCHEMA,mechanism:'bonsai/lib/corpus-align.mjs',review:'unreviewed',works:{},units:{},receipt:{}};
@@ -273,6 +274,13 @@ export function alignCorpus(cited,works,read,scopes=[]){
         const first=original.units.findIndex(unit=>unit.id===scope.firstUnitId),last=original.units.findIndex(unit=>unit.id===scope.lastUnitId);
         if(scope.originalVersionId!==original.id||scope.originalRevision!==original.revision||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${key}: invalid or stale translation scope for ${version.id}`);
         source={...original,units:original.units.slice(first,last+1)};
+      }
+      // A reviewed quality finding may withhold this version's alignment without removing its corpus witness.
+      // The binding above requires the complete original and exact revisions, so a later source change fails closed.
+      if(scope?.withheld){
+        translations.push({...meta(version),coverage:null});
+        out.receipt[`${key}:${version.id}`]={how:'withheld',sourceScope:{firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source,basis:scope.basis,withheld:true}};
+        continue;
       }
       // Ignore a declared front matter prefix only while aligning; all returned offsets still address
       // the unmodified, revision-bound corpus unit. Other annotations may remain within the text.
