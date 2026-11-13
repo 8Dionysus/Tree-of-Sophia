@@ -1291,7 +1291,6 @@ def cmd_status(args):
 
 def modern_russian(text):
     """Use the stand's existing reform rules, with the owner's explicit ѵ→и rule."""
-    if not re.search(r'[ѣѢіІѳѲѵѴ]|[бвгджзклмнпрстфхцчшщ]ъ\b',text,re.I):return text
     script="import {pathToFileURL} from 'node:url'; import {readFileSync} from 'node:fs'; const m=await import(pathToFileURL(process.argv[1])); process.stdout.write(m.modernRussian(readFileSync(0,'utf8').replaceAll('ѵ','и').replaceAll('Ѵ','И')));"
     module=os.path.join(ROOT,'access','web','src','public-research','orthography.mjs')
     run=subprocess.run(['node','--input-type=module','-e',script,module],input=text,text=True,capture_output=True)
