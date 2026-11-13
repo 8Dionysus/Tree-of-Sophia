@@ -113,16 +113,32 @@
   }
  },
  "abu-nasr-al-farabi": {
-  "item": null,
+  "item": "Q160460",
   "label": {
-   "ru": "Абу Наср аль-Фараби",
-   "en": "Abū Naṣr al-Fārābī"
+   "en": "Farabi",
+   "ru": "Аль-Фараби"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+0870-00-00T00:00:00Z",
+    "precision": 9,
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "died": [
+   {
+    "time": "+0951-01-01T00:00:00Z",
+    "precision": 9,
+    "qualifiers": [
+     "Q106419137"
+    ],
+    "approximate": true
+   }
+  ],
+  "fetched": "2026-11-12",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -148,6 +164,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Kitāb al-shi‘r",
+   "source": "https://plato.stanford.edu/entries/al-farabi-logic/",
+   "person_url": "https://www.wikidata.org/wiki/Q160460",
+   "basis": "Stanford Encyclopedia lists the named Kitāb al-shi‘r among the works of Abū Naṣr al-Fārābī, the philosopher identified by this Wikidata entry."
   }
  },
  "ad-j-j-m-vingerhoets": {

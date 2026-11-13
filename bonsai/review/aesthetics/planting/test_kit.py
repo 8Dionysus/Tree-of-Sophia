@@ -198,7 +198,7 @@ class TranslationWitnessTest(unittest.TestCase):
             with patch.object(kit,'CACHE',str(cache)), patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
                 place=data['places']['p'];place.pop('source')
-                place['transcription']={'kind':'human-page','reason':'The page image has no usable machine transcription of this passage.'}
+                place['transcription']={'kind':'human-page','reason':'The page image has no usable machine transcription of this passage.','original_text':'A whole sentence.'}
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
                 data['images'][1]['url']='https://example.org/other-page'
                 self.assertTrue(any('second reader page image' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
