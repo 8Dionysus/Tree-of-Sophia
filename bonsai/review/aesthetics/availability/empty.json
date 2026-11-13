@@ -255,6 +255,10 @@
         {
           "url": "https://archive.org/details/catalogofcopyrig3151lib/page/n837/mode/1up",
           "observation": "The US Catalog of Copyright Entries, Third Series, Part 1, Books and Pamphlets, January–June 1961, printed p. 820 (scan leaf n837), records Art as experience, John Dewey, original registration 23 March 1934 A71183 and renewal 14 April 1961 R274497 in the name of Roberta L. Dewey, widow. The scan image was visually checked; OCR alone did not determine the entry."
+        },
+        {
+          "url": "https://www.google.com.mx/books/edition/Art_as_Experience_by_John_Dewey/FCeEtAEACAAJ",
+          "observation": "In-app browser: Google Books identifies Minton, Balch and Company, 1934, English, 355 pages; the page says preview and search in this book are unavailable. A separate 2005 edition has a limited image preview; its requested passages and pagination are not yet verified."
         }
       ],
       "participants_incomplete": true,
@@ -331,6 +335,10 @@
         {
           "url": "https://mediarep.org/handle/doc/17045",
           "observation": "OpenAlex identifies a third-version PDF dated 1974 and labels it public-domain, with a Wikimedia file URL. Direct file request returned HTTP 403; editor, edition and jurisdictional rights remain unverified."
+        },
+        {
+          "url": "https://www.degruyterbrill.com/document/doi/10.1515/9783839437322-042/html",
+          "observation": "In-app browser: publisher presents a chapter in Anthologie Kulturpolitik, transcript Verlag, copyright 2019; first page text is visible, remaining content says authentication required. Parent book names editors Martin Tröndle and Claudia Steigerwald. The version of the essay, editors' dates, requested sections and CC license remain unverified; OpenAlex CC BY is not adopted as a conclusion."
         }
       ],
       "participants_incomplete": true,
@@ -929,6 +937,10 @@
         {
           "url": "https://archive.org/metadata/dli.ernet.5289",
           "observation": "Metadata identifies Clarendon Press, Oxford, 1938, with OCR and page images listed; accessibility, text participants and rights are not yet verified."
+        },
+        {
+          "url": "https://books.google.co.uk/books?id=SXpMC9416y4C",
+          "observation": "In-app browser: Google Books identifies reprint Oxford University Press, 1958, ISBN 9780195002096. Search finds pp. 128–130, but accessible text search reports the viewing limit for those pages; the graphical view briefly displayed p. 128 as an image. Popular excerpts identify pp. 139–140. Page text and requested pp. 109–110, 128–134, 139 and 144 remain to be individually checked."
         }
       ],
       "participants_incomplete": true,
@@ -1932,6 +1944,10 @@
         {
           "url": "https://escholarship.org/uc/item/4d79b4kf",
           "observation": "OpenAlex identifies this author and work as a repository thesis. Direct HTTP to item page returned 202 and to alternate PDF 403; access and licence need further verification. Browser request recorded separately."
+        },
+        {
+          "url": "https://escholarship.org/uc/item/4d79b4kf",
+          "observation": "In-app browser: UC Berkeley eScholarship identifies 2011 dissertation by Jonathan Yorke Bean and exposes a PDF download link. A click did not yield visible PDF content in the browser; pp. 109–110 and 295–305, and reuse terms, remain unverified."
         }
       ],
       "participants_incomplete": true,
@@ -2714,6 +2730,10 @@
         {
           "url": "https://api.crossref.org/works/10.62729/6a2ae4d48e9aa",
           "observation": "Crossref identifies Ariane Nomikos and 2024-07-28; no license field. Identity of its registered text with the full cited places remains to be checked."
+        },
+        {
+          "url": "https://contempaesthetics.org/2024/07/28/how-could-anybody-ever-feel-at-home-aesthetic-familiarity-epistemic-comfort-and-displacement/",
+          "observation": "In-app browser: the publisher displays the full article by Ariane Nomikos, Contemporary Aesthetics vol. 22, published 28 July 2024, including sections 2, 3 and 5. Footer states author retains copyright and permits copying and distribution for scholarly or educational purposes with full acknowledgement. Precise page coordinates and application of those terms to the stand require review; this is not a blanket open license claim."
         }
       ],
       "participants_incomplete": true,
@@ -3515,6 +3535,10 @@
         {
           "url": "https://www.williamcronon.net/writing/Cronon_Trouble_with_Wilderness_1995.htm",
           "observation": "Author-site address in the source register returned HTTP 406 in this session; this is not an absence claim."
+        },
+        {
+          "url": "https://www.williamcronon.net/writing/Cronon_Trouble_with_Wilderness_1995.htm",
+          "observation": "In-app browser: author site displays the text and identifies Uncommon Ground, W. W. Norton, 1995, pp. 69–90; its footer states copyright 1995 William Cronon and reprinted by permission of the publisher. The HTML has no observed internal printed-page markers, so exact mapping of the registered pp. 69–75 still needs the print edition."
         }
       ],
       "searches": [
@@ -3842,6 +3866,19 @@
         "1966 catalogofcopy19663202libr OCR: Bird-lore, Bird lore, Leopold, 374425"
       ],
       "outcome": "1965 B entries inspected on the page; no Bird-lore entry appears between Baby Talk and Big-Book. 1966 searches returned no exact OCR hit. Other records and article-level registrations remain open; this does not establish nonrenewal."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "ChatGPT in-app browser",
+      "queries": [
+        "Google Books Collingwood SXpMC9416y4C",
+        "Google Books Dewey FCeEtAEACAAJ and aAbqAGo5MwwC",
+        "eScholarship qt4d79b4kf",
+        "Contemporary Aesthetics Nomikos 2024",
+        "William Cronon author website 1995",
+        "De Gruyter Benjamin 10.1515/9783839437322-042"
+      ],
+      "outcome": "Opened each queued page; verified edition metadata and access limits, publisher/author text where displayed, and terms stated at the site. Requested exact passage page checks remain incomplete where the source provides no page mapping or preview is restricted."
     }
   ]
 }
