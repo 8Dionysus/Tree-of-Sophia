@@ -5147,7 +5147,69 @@
       "areas": [
         "AE13"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Simon Lacey",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1016/j.concog.2021.103137"
+          ]
+        },
+        {
+          "name": "Margaret Martinez",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1016/j.concog.2021.103137"
+          ]
+        },
+        {
+          "name": "Nicole Steiner",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1016/j.concog.2021.103137"
+          ]
+        },
+        {
+          "name": "Lynne C. Nygaard",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1016/j.concog.2021.103137"
+          ]
+        },
+        {
+          "name": "K. Sathian",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1016/j.concog.2021.103137"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Consciousness and Cognition 91, article 103137, 2021",
+          "doi": "10.1016/j.concog.2021.103137",
+          "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9296080/",
+          "status": "Europe PMC identifies a manuscript and abstract, with no open licence in its metadata; Crossref supplies TDM and policy terms, not a verified CC licence. Exact version and access conditions must be checked."
+        }
+      ],
+      "requested_places": [
+        "B:A-I020: abstract and Results 3.2 correlational analyses; exact sentence and page alignment pending"
+      ],
+      "searches": [
+        {
+          "source": "Europe PMC and Crossref",
+          "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:10.1016/j.concog.2021.103137&format=json&resultType=core",
+          "result": "Abstract reports strength and consistency uncorrelated in this study; personal verification of participants and exact Results 3.2 remains. Do not generalize to all forms of synesthesia or equate availability with licence."
+        }
+      ],
+      "remaining": "Inspect primary text and precise locators, author identities/dates, territorial rights and translations in required languages; complete mandatory searches without inferring absence."
     },
     {
       "work": "simon-may.the-power-of-cute",
