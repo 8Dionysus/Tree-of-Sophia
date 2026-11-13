@@ -110,7 +110,7 @@ def wave(w,work):
     for agent in known['agents']:
         life=(w.get('lives') or {}).get(agent) or {};dates=life.get('died') or []
         years=[]
-        if life.get('item') and dates and all(type(item.get('precision')) is int and item['precision']>=9 for item in dates):
+        if life.get('item') and dates and all(type(item.get('precision')) is int and item['precision']>=9 and not item.get('approximate') for item in dates):
             for item in dates:
                 match=re.match(r'([+-]\d+)-',str(item.get('time','')))
                 if match:years.append(int(match.group(1)))
@@ -595,9 +595,17 @@ def entity_year(entity,property_):
     preferred=[claim for claim in claims if claim.get('rank')=='preferred']
     chosen=preferred or claims
     values=[claim['mainsnak']['datavalue']['value'] for claim in chosen]
-    # A year with an approximation qualifier or an interval is not an exact cutoff.
-    if not values or any((claim.get('qualifiers') or {}).get('P1480') for claim in chosen):return None
-    if any(value.get('precision',0)<9 or value.get('before',0) or value.get('after',0) for value in values):return None
+    # Calendar annotations are not uncertainty, except near the year boundary.
+    calendars={'Q38173183','Q26877143','Q26877139','Q27055388'}
+    if not values:return None
+    for claim,value in zip(chosen,values):
+        all_qualifiers=claim.get('qualifiers') or {}
+        if any(all_qualifiers.get(prop) for prop in ('P1319','P1326')):return None
+        qualifiers=all_qualifiers.get('P1480') or []
+        ids=[((item.get('datavalue') or {}).get('value') or {}).get('id') for item in qualifiers]
+        if any(qid not in calendars for qid in ids):return None
+        if qualifiers and (value.get('precision',0)==9 or re.search(r'-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T',value.get('time',''))):return None
+        if value.get('precision',0)<9 or value.get('before',0) or value.get('after',0):return None
     years={int(value['time'][:5]) for value in values}
     return next(iter(years)) if len(years)==1 else None
 
@@ -1255,8 +1263,12 @@ def cmd_settle(args):
     for name,value in(('reading.json',reading),('places.json',places),('evidence.json',ev)):save(os.path.join(path,name),value)
     print(f"settled: {len(gone)} conceptions left the reading; {len(reading['conceptions'])} conceptions, {len(reading['links'])} links, {len(places['places'])} places stay")
 
-def witness_conflict(path,language):
-    """Do not sign a translation that the current projection cannot admit."""
+def same_witness(a,b):
+    """Same edition, participants and rights; each part may have a different maker."""
+    return {k:v for k,v in a.items() if k not in ('maker','participants')}=={k:v for k,v in b.items() if k not in ('maker','participants')}
+
+def witness_conflict(path,language,data):
+    """Only disjoint reviewed places of the same accepted edition may be combined."""
     work=work_of(path);current=Path(witness_file(path,language));directory=Path(path)
     parent=directory.parent.parent if directory.parent.name=='extensions' else directory
     candidates=[parent/'witnesses'/f'{language}.json']
@@ -1264,13 +1276,23 @@ def witness_conflict(path,language):
     if extensions.is_dir():
         candidates.extend(extension/'witnesses'/f'{language}.json' for extension in extensions.iterdir()
                           if extension.is_dir() and (extension/'accepted.json').is_file())
-    if any(file!=current and Path(str(file)+'.accepted').is_file() for file in candidates):
-        return f'{language}: an accepted witness already exists for this work; extend that witness after the shared-edition route lands'
+    known=[]
+    for file in candidates:
+        receipt=Path(str(file)+'.accepted')
+        if file==current or not receipt.is_file():continue
+        try:
+            raw=file.read_bytes();signed=load(receipt)
+            if signed.get('sha256')!=hashlib.sha256(raw).hexdigest():return f'{language}: existing witness changed since acceptance'
+            known.append(json.loads(raw))
+        except (OSError,ValueError,TypeError):return f'{language}: existing witness evidence is invalid'
+    for previous in known:
+        if not same_witness(previous.get('witness') or {},data.get('witness') or {}):return f'{language}: existing witness is a different edition or rights record'
+        if set(previous.get('places') or {}) & set(data.get('places') or {}):return f'{language}: an existing witness already covers one of these places'
     fragments=world()['fragments'];work_entry=(fragments.get('works') or {}).get(work) or {}
     if language in (work_entry.get('witnesses') or {}):
         record=(((fragments.get('provenance') or {}).get('translation_packets') or {}).get(work) or {}).get(language) or {}
-        if not str(record.get('record','')).endswith(f"/{packet_selector(path)}/witnesses/{language}.json"):
-            return f'{language}: an existing witness already occupies this language'
+        if not record or (not known and not str(record.get('record','')).endswith(f"/{packet_selector(path)}/witnesses/{language}.json")):
+            return f'{language}: an existing witness cannot be extended without its reviewed source packet'
     return None
 
 def cmd_accept(args):
@@ -1284,9 +1306,9 @@ def cmd_accept(args):
         pending=[os.path.join(directory,name) for name in os.listdir(directory) if name.endswith('.json') and not os.path.isfile(os.path.join(directory,name+'.accepted'))]
         if pending and args.offline:die('accepting a new witness requires the online second gate')
         for file in pending:
-            conflict=witness_conflict(path,Path(file).stem)
+            data=load(file);conflict=witness_conflict(path,Path(file).stem,data)
             if conflict:die(conflict)
-            data=load(file);issues=witness_problems(path,Path(file).stem,data,second=True,offline=False)
+            issues=witness_problems(path,Path(file).stem,data,second=True,offline=False)
             if issues:die('witness is not ready: '+'; '.join(issues))
         for file in pending:save(file+'.accepted',{'sha256':hashlib.sha256(Path(file).read_bytes()).hexdigest(),'date':today()})
     review=part(path,'review.json');reading=part(path,'reading.json');ev=evidence(path)
@@ -1581,6 +1603,31 @@ def cmd_witness_cut(args):
     data['review']={} # the old second reading no longer describes this witness
     save(witness_file(path,args.language),data);print(run)
 
+def cmd_witness_transcribe_page(args):
+    """Record a human reading of an image, without claiming a fetched transcription."""
+    path=packet(args.packet);data=witness_data(path,args.language)
+    original={**((world()['fragments'].get('places') or {}).get(work_of(path),{})),**((part(path,'places.json') or {}).get('places') or {})}
+    if args.loc not in original:die('the original place is not in the bonsai')
+    image=next((item for item in data['images'] if item['file']==args.image and item['by']=='maker'),None)
+    if not image:die('fetch the page image as maker first')
+    try:raw=Path(witness_cache(path,args.language,image['file'])).read_bytes()
+    except OSError:die('the maker page image is missing')
+    if hashlib.sha256(raw).hexdigest()!=image['sha256'] or not valid_page_image(raw):die('the maker page image changed or is invalid')
+    address={'kind':args.address_kind,'value':args.address_value,'url':image['url']} if args.address_kind or args.address_value else None
+    if address and not valid_address(address):die('structured address needs kind, value and the source URL')
+    if not args.page and not address:die('give a printed page or an exact structured source address')
+    if len(args.reason.strip())<40:die('explain why this page needs a human transcription')
+    run=squeeze(args.text);page_text=run
+    if not run:die('transcribe the page text')
+    if args.language=='ru':
+        modern=modern_russian(run,old_source=old_russian_source(run))
+        if modern!=run:data['witness']['normalization']='Russian spelling modernized from the page by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged.'
+        run=modern
+    page=args.page or f"{address['kind']} {address['value']}"
+    data['places'][args.loc]={'text':run,'transcription':{'kind':'human-page','reason':args.reason,'original_text':page_text},'page':page,'url':image['url'],'image_sha256':image['sha256'],'alignment':args.alignment,**({'address':address} if address else {}),**({'lines':args.lines} if args.lines else {}),**({'justification':args.justification} if args.justification else {})}
+    (data.get('missing_places') or {}).pop(args.loc,None)
+    data['review']={};save(witness_file(path,args.language),data);print(run)
+
 def cmd_witness_correct(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     place=(data.get('places') or {}).get(args.loc) or die('no such place in this witness')
@@ -1609,6 +1656,66 @@ def cmd_witness_review(args):
     review['reader']=args.reader;review['model']=args.model;review['date']=today();review.setdefault('places',{})[args.loc]={'reads':'as the packet','alignment':args.alignment,'image_sha256':place['image_sha256']}
     save(witness_file(path,args.language),data);print(f'{args.loc}: second reader recorded')
 
+def anonymous_digest(proof):
+    return hashlib.sha256(json.dumps(proof,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+
+def anonymous_problems(path,lang,data,second=False,offline=False):
+    """Review an anonymously published translation, not an unknown named person."""
+    witness=data.get('witness') or {};proof=witness.get('anonymous_translation');problems=[]
+    if not isinstance(proof,dict):return ['anonymous translation evidence must be an object']
+    if proof.get('edition')!=witness.get('edition'):problems.append('anonymous translation needs the same exact edition')
+    year=proof.get('first_publication_year');edition_year=witness.get('year')
+    if type(year) is not int or year<1 or type(edition_year) is not int or year>edition_year:problems.append('anonymous translation needs the first lawful publication year, no later than this edition')
+    for field in ('lawful_publication','identity_research','same_version'):
+        if len(str(proof.get(field,'')).strip())<60:problems.append(f'anonymous translation needs a detailed {field} assessment')
+    searches=proof.get('searches') or []
+    if not isinstance(searches,list):searches=[]
+    valid_searches=[item for item in searches if isinstance(item,dict) and lawful_url(item.get('url')) and len(str(item.get('outcome','')).strip())>=20]
+    if len({item['url'] for item in valid_searches})<3:problems.append('anonymous translation needs at least three documented identity searches')
+    references=proof.get('sources') or [];known=data.get('sources') or []
+    if not isinstance(references,list):references=[]
+    if len({item.get('url') for item in references if isinstance(item,dict) and lawful_url(item.get('url'))})<2:problems.append('anonymous translation needs two distinct fetched sources')
+    for ref in references:
+        if not isinstance(ref,dict) or not any(all(source.get(k)==ref.get(k) for k in ('file','url','sha256')) for source in known) or not re.fullmatch(r'[a-f0-9]{64}',str(ref.get('sha256',''))):
+            problems.append('anonymous translation source is not the recorded fetched source');continue
+        if not offline:
+            try:
+                raw=Path(witness_cache(path,lang,ref['file'])).read_bytes()
+                if hashlib.sha256(raw).hexdigest()!=ref['sha256']:problems.append('anonymous translation source changed')
+            except (OSError,KeyError,TypeError):problems.append('anonymous translation source is unavailable')
+    if second:
+        review=data.get('review') or {};check=review.get('anonymous') or {};reader=review.get('reader')
+        if not reader or reader==witness.get('maker') or check.get('reader')!=reader or check.get('sha256')!=anonymous_digest(proof) or len(str(check.get('assessment','')).strip())<60:
+            problems.append('anonymous translation needs an independent assessment of the same publication, version and identity search')
+    return problems
+
+def cmd_witness_anonymous(args):
+    path=packet(args.packet);data=witness_data(path,args.language);info=load(args.file)
+    if not isinstance(info,dict) or set(info)!={'first_publication_year','lawful_publication','identity_research','same_version','searches','sources'}:die('anonymous evidence needs the documented publication, identity research, version, searches and source filenames')
+    refs=[]
+    if not isinstance(info.get('sources'),list):die('anonymous sources must be filenames of fetched sources')
+    for filename in info['sources']:
+        source=next((entry for entry in data.get('sources') or [] if entry.get('file')==filename),None)
+        if not source:die(f'fetch anonymous-publication source {filename} first')
+        refs.append({key:source.get(key) for key in ('file','url','sha256')})
+    proof={**info,'sources':refs,'edition':data['witness'].get('edition')}
+    data['witness']['anonymous_translation']=proof;data['review']={}
+    issues=anonymous_problems(path,args.language,data,offline=False)
+    if issues:die('anonymous evidence is incomplete: '+'; '.join(issues))
+    save(witness_file(path,args.language),data);print('anonymous-publication evidence recorded; independent assessment required')
+
+def cmd_witness_anonymous_review(args):
+    path=packet(args.packet);data=witness_data(path,args.language);review=data.get('review') or {};reader=review.get('reader');proof=(data.get('witness') or {}).get('anonymous_translation')
+    if not proof or not reader or reader==(data.get('witness') or {}).get('maker'):die('record the anonymous evidence and a different second reader first')
+    if len(args.assessment.strip())<60:die('assess the edition, lawful publication and identity search in detail')
+    review['anonymous']={'reader':reader,'sha256':anonymous_digest(proof),'assessment':args.assessment};data['review']=review
+    save(witness_file(path,args.language),data);print('independent anonymous-publication assessment recorded')
+
+def cmd_witness_anonymous_clear(args):
+    path=packet(args.packet);data=witness_data(path,args.language)
+    if not (data.get('witness') or {}).pop('anonymous_translation',None):die('no anonymous-publication evidence is recorded')
+    data['review']={};save(witness_file(path,args.language),data);print('anonymous claim cleared; record the identified translator and renew review')
+
 def witness_problems(path,lang,data,second=False,offline=False):
     problems=[];add=problems.append;witness=data.get('witness') or {};places=data.get('places') or {}
     if data.get('language')!=lang:add('language differs from filename')
@@ -1617,7 +1724,12 @@ def witness_problems(path,lang,data,second=False,offline=False):
     if not lawful_url(witness.get('url','')):add('witness.url must be a lawful https URL')
     people=witness.get('persons') or []
     if not witness.get('maker'):add('witness.maker is missing')
-    if not any(p.get('role')=='translator' for p in people):add('translator is missing')
+    identified_translator=any(p.get('role')=='translator' for p in people)
+    anonymous=witness.get('anonymous_translation')
+    if not identified_translator and not anonymous:add('translator is missing')
+    if identified_translator and anonymous:add('clear the anonymous claim when the translator is identified')
+    anonymous_issues=anonymous_problems(path,lang,data,second,offline) if anonymous else []
+    problems.extend(anonymous_issues)
     if not any(p.get('role')=='author' for p in people):add('author is missing')
     original_authors=[p for p in (evidence(path).get('persons') or []) if p.get('role')=='author']
     w=world()
@@ -1650,6 +1762,12 @@ def witness_problems(path,lang,data,second=False,offline=False):
             except (OSError,KeyError,ValueError,TypeError):add(f'{qid or person.get("name")}: person evidence is missing or invalid')
     problems.extend(license_problems(witness,data.get('sources') or [],lambda name:witness_cache(path,lang,name),data.get('review') or {},witness.get('maker'),second,offline))
     dates=public_domain_by_dates(people,witness.get('year'))
+    if anonymous:
+        # The EU anonymous term applies to this translation; identified authors
+        # and editors retain their own death-based terms. Russia needs its own evidence.
+        first=anonymous.get('first_publication_year') if isinstance(anonymous,dict) else None
+        dates['eu']=dates['eu'] and not anonymous_issues and type(first) is int and first<=datetime.date.today().year-71
+        dates['russia']=False
     for country in JURISDICTIONS:
         item=(witness.get('rights') or {}).get(country) or {}
         if not isinstance(item,dict) or item.get('basis') not in BASES or len(str(item.get('law','')))<20:add(f'rights.{country} needs basis and law')
@@ -1665,8 +1783,12 @@ def witness_problems(path,lang,data,second=False,offline=False):
         quote=any(((witness.get('rights') or {}).get(country) or {}).get('basis')=='short-quotation' for country in JURISDICTIONS)
         for problem in sentences(text,limit=None if quote else LONGEST):add(f'{loc}: {problem}')
         if len(str(place.get('alignment','')))<20:add(f'{loc}: explain the alignment to the original')
-        source=sources.get(place.get('source'))
-        if not source or not lawful_url(source.get('url','')):add(f'{loc}: no lawful source');continue
+        source=sources.get(place.get('source'));transcription=place.get('transcription') or {}
+        if not isinstance(transcription,dict):add(f'{loc}: invalid transcription provenance');transcription={}
+        human=transcription.get('kind')=='human-page'
+        if human:
+            if place.get('source') or len(str(transcription.get('reason','')).strip())<40:add(f'{loc}: human page transcription needs its reason and no claimed downloaded transcription')
+        elif not source or not lawful_url(source.get('url','')):add(f'{loc}: no lawful source');continue
         if not place.get('page') or not lawful_url(place.get('url','')):add(f'{loc}: page or exact address and lawful URL are required')
         if place.get('address') is not None and (not valid_address(place['address']) or place['address'].get('url')!=place.get('url')):add(f'{loc}: structured address must name the same lawful source')
         image=next((item for item in data.get('images') or [] if item.get('by')=='maker' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
@@ -1679,6 +1801,10 @@ def witness_problems(path,lang,data,second=False,offline=False):
             offset=correction.get('offset')
             if type(offset) is not int or offset<0 or back[offset:offset+len(new)]!=new:add(f'{loc}: correction offset no longer identifies the corrected run');continue
             back=back[:offset]+old+back[offset+len(new):]
+        if human:
+            original_text=transcription.get('original_text')
+            if not isinstance(original_text,str) or not original_text.strip():add(f'{loc}: human page transcription needs the original page reading')
+            elif back!=(modern_russian(original_text,old_source=old_russian_source(original_text)) if lang=='ru' else original_text):add(f'{loc}: text differs from the recorded page transcription')
         if not offline:
             for record in (source,image):
                 if not record:continue
@@ -1711,7 +1837,7 @@ def cmd_witness_gate(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     problems=witness_problems(path,args.language,data,second=args.second,offline=args.offline)
     if args.accept and args.second and not args.offline:
-        conflict=witness_conflict(path,args.language)
+        conflict=witness_conflict(path,args.language,data)
         if conflict:problems.append(conflict)
     for problem in problems:print(problem)
     print('gate: '+('shut' if problems else 'open'))
@@ -1738,12 +1864,16 @@ def main():
     sub('licence',cmd_licence,P,(('source',),{}),(('url',),{}),(('explanation',),{}),(('--language',),{}));
     sub('licence-review',cmd_licence_review,P,(('assessment',),{}),(('--language',),{}));
     sub('witness-missing',cmd_witness_missing,P,(('language',),{}),(('loc',),{}),(('file',),{}));
+    sub('witness-anonymous',cmd_witness_anonymous,P,(('language',),{}),(('file',),{}));
+    sub('witness-anonymous-review',cmd_witness_anonymous_review,P,(('language',),{}),(('assessment',),{}));
+    sub('witness-anonymous-clear',cmd_witness_anonymous_clear,P,(('language',),{}));
     sub('witness-candidate',cmd_witness_candidate,P,(('language',),{}),(('file',),{}));
     sub('witness-person',cmd_witness_person,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}));
     sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));
     sub('witness-fetch',cmd_witness_fetch,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}))
     sub('witness-image',cmd_witness_image,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}),(('--by',),{'choices':['maker','second'],'default':'maker'}))
     sub('witness-cut',cmd_witness_cut,P,(('language',),{}),(('source',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
+    sub('witness-transcribe-page',cmd_witness_transcribe_page,P,(('language',),{}),(('--text',),{'required':True}),(('--reason',),{'required':True}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
     sub('witness-cut-candidate',cmd_witness_cut_candidate,P,(('language',),{}),(('source',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}));
     sub('witness-correct',cmd_witness_correct,P,(('language',),{}),(('loc',),{}),(('from',),{}),(('to',),{}),(('reason',),{}));
     sub('witness-review',cmd_witness_review,P,(('language',),{}),(('loc',),{}),(('--reader',),{'required':True}),(('--alignment',),{'required':True}),(('--model',),{'default':'gpt-6.1-terra'}))

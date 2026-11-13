@@ -51,8 +51,10 @@ it, and `K scan . ITEM` chooses the one that `K leaf`, `K image`, `K offset`
 and `K cut . ocr` work on (`K scan .` lists them). Each scan wants its own
 offset.
 
-Then fill `entry` in `places.json`: `original` (language code) and one witness
-under that code:
+Prepare a complete copy of the packet's current `places.json` outside the
+packet, add `entry`: `original` (language code) and one witness under that
+code, then use `K import . places FILE` to record it. Packet files are changed
+only through kit commands; retain existing cuts and page checks in the copy:
 
 ```json
 "witnesses": {"en": {
@@ -223,7 +225,8 @@ Every waiting reading and link ends in a `from` or under `left`:
 ```
 
 Fill `reader.reads` with one sentence saying what was read (the language, the
-edition, beside the registers' readings).
+edition, beside the registers' readings). Prepare the complete reading object
+outside the packet and record it with `K import . reading FILE`.
 
 ## 6. The gate
 
@@ -263,6 +266,19 @@ records `--justification` on `witness-cut`. The acceptance binds the exact file
 by SHA-256. Changes require a new independent reading and acceptance. Local
 source files and images stay in the kit cache outside Git. A partial witness
 leaves the other places without a translation.
+
+When no usable transcription contains the passage, open and read the maker's
+page image, then record the actual words as a human page transcription:
+
+```
+K witness-transcribe-page . es --loc '§1 p1' --page 'p. 86' --image page.jpg --text 'The actual complete sentences read on this page.' --reason 'The image-only source has no usable transcription of this passage.' --alignment 'How these sentences correspond to the original.'
+```
+
+Use the exact image URL for each page; another page source requires its own
+image. The packet identifies this as a human transcription, not a downloaded
+text. A different reader must open the same image and independently review the
+words and alignment with `witness-image --by second` and `witness-review`.
+Recording a check is a statement that the reader actually opened and read it.
 
 A prepared JSON object can be brought into a new, unaccepted packet with
 `K import . places FILE` or `K import . reading FILE`; the second reader can
@@ -358,3 +374,41 @@ a documented search for that particular missing place. For a partial witness,
 search, edition and book locator required for a missing language; a later cut
 of that location replaces the gap. Accepted older works may still add a
 partial witness and retain their existing coverage debt.
+
+An extension may add translated places to an already accepted language when
+its witness records the same edition, participants, rights and source metadata;
+the maker may differ. Each extension is independently reviewed and signed.
+An overlapping place or a different edition is refused before acceptance.
+
+### An anonymously published translation
+
+An unnamed translator is not necessarily an anonymously published translation.
+First fetch at least two sources with `witness-fetch` and research attribution
+across at least three distinct catalogues or sources. Prepare a JSON object:
+
+```json
+{
+  "first_publication_year": 1875,
+  "lawful_publication": "Evidence for the first lawful public availability of this translation.",
+  "identity_research": "Searches for disclosure of the translator's identity during the applicable period.",
+  "same_version": "Evidence that the first publication is the translation in this exact edition.",
+  "searches": [{"url": "https://example.org/catalogue", "outcome": "What was searched and what the catalogue established."}],
+  "sources": ["edition.html", "catalogue.html"]
+}
+```
+
+The example is a shape, not sufficient evidence: each explanation needs at
+least 60 characters, three distinct searches and two fetched sources are
+required. Record it with `witness-anonymous PACKET LANG evidence.json`, then
+have the second reader verify the edition, publication and identity research
+and run `witness-anonymous-review PACKET LANG ASSESSMENT` after their page
+review. The review binds to the exact evidence record. The identified original
+author and every identified editor still require their own sourced dates.
+
+For the EU, Directive 2006/116/EC Article 1(3) and Article 8 permit the
+anonymous-publication term only after the evidenced first lawful availability
+and subject to identity disclosure; the dynamic gate uses year − 71. Russia is
+not automatically classified public domain from this EU route: assess a
+separate lawful quotation or licence, or establish the translator's identity.
+If a translator is identified, use `witness-anonymous-clear PACKET LANG`,
+record the person and obtain a new independent review.

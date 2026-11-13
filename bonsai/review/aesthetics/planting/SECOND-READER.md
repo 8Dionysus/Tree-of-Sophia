@@ -2,7 +2,8 @@
 
 You read a packet another reader made. Your working directory is the packet.
 The card `AGENTS.md` two levels up holds the laws. `K` stands for
-`python3 ../../kit.py`. You write one file, `review.json`, and change no other.
+`python3 ../../kit.py`. Record your review through the kit; its image and
+witness commands also record the evidence of your independent reading.
 
 Your question for every conception and every link is one: **do these sentences
 say this?** The maker's notes and the registers' theses are no ground. The
@@ -58,7 +59,12 @@ correction that rests on the eye alone, read its line at the size of the scan
 height in percent) and say in `review.images` what the enlarged line reads. Choose places where a slip would
 matter: a correction, many differences, the sentence a thesis leans on.
 
-## 3. Write review.json
+## 3. Prepare and import the review
+
+Prepare this object outside the packet and record it with
+`K import . review FILE`. Change packet files only through kit commands. An
+image entry is a statement that you actually opened and read that page; merely
+fetching an image or importing the object does not establish a reading.
 
 ```json
 {"reader": {"id": "terra-2026-11-10-hume-standard-second", "model": "gpt-6.1-terra", "date": "2026-11-10",

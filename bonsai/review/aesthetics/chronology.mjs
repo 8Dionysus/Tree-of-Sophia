@@ -54,6 +54,44 @@ const saveLives=()=>{
   writeFileSync(temporary,`${JSON.stringify(Object.fromEntries(Object.keys(lives).sort().map(key=>[key,lives[key]])),null,1)}\n`);
   renameSync(temporary,LIVES);
 };
+// Keep Wikidata's circa/uncertainty qualifiers alongside the recorded year.
+const timeRecord=claim=>{
+  const value=claim.mainsnak.datavalue.value,qualification=claim.qualifiers?.P1480??[],qualifiers=qualification.map(item=>item.datavalue?.value?.id??null);
+  const calendars=new Set(['Q38173183','Q26877143','Q26877139','Q27055388']);
+  const bounds=Object.fromEntries([['earliest','P1319'],['latest','P1326']].flatMap(([name,prop])=>{
+    const entries=(claim.qualifiers?.[prop]??[]).map(item=>item.datavalue?.value).filter(item=>item?.time).map(item=>({time:item.time,precision:item.precision}));
+    return entries.length?[[name,entries]]:[];
+  }));
+  const bounded=['P1319','P1326'].some(prop=>(claim.qualifiers?.[prop]??[]).length>0);
+  const uncertain=bounded||qualifiers.some(id=>!calendars.has(id))||!!value.before||!!value.after||(qualification.length>0&&(value.precision===9||/-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T/.test(value.time)));
+  return {time:value.time,precision:value.precision,...(qualification.length?{qualifiers}:{}),...(Object.keys(bounds).length?{bounds}:{}),...(uncertain?{approximate:true}:{}),...(value.before?{before:value.before}:{}),...(value.after?{after:value.after}:{})};
+};
+// Refresh the qualified date claims for already identified people in bounded batches.
+// The identity and its evidence remain unchanged; failures leave later batches untouched.
+if(args.has('--refresh-qualifiers')){
+  const ids=[...new Set(Object.values(lives).map(life=>life.item).filter(item=>/^Q[1-9]\d*$/.test(item??'')))];
+  let count=0,qualified=0;
+  for(let start=0;start<ids.length;start+=25){
+    const batch=ids.slice(start,start+25),url=new URL('https://www.wikidata.org/w/api.php');
+    for(const [key,value] of Object.entries({action:'wbgetentities',ids:batch.join('|'),props:'claims',format:'json'}))url.searchParams.set(key,value);
+    try{
+      const response=await fetch(url,{headers:{'User-Agent':AGENT},signal:AbortSignal.timeout(30000)});if(!response.ok)throw new Error(`HTTP ${response.status}`);
+      const entities=(await response.json()).entities??{};
+      for(const life of Object.values(lives)){
+        if(!batch.includes(life.item))continue;
+        const entity=entities[life.item];if(!entity||entity.missing!==undefined)continue;
+        const times=property=>{const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');return (preferred.length?preferred:claims).map(timeRecord);};
+        life.born=times('P569');life.died=times('P570');life.fetched=new Date().toISOString().slice(0,10);
+        if([...life.born,...life.died].some(date=>date.approximate))qualified++;
+        count++;
+      }
+      saveLives();
+      await new Promise(resolve=>setTimeout(resolve,1200));
+    }catch(error){console.error(`qualifier refresh stopped at ${start}: ${error}`);break;}
+  }
+  console.log(`qualifier refresh: ${count} records, ${qualified} with uncertainty`);
+}
+
 // Crossref can bind an exact publication and author to an ORCID; a unique
 // Wikidata P496 match then supplies the life rather than guessing by name.
 if(args.has('--fetch-queue-orcid')){
@@ -99,7 +137,7 @@ if(args.has('--fetch-queue-orcid')){
         const [qid,record]=[...matches][0],entity=(await request(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`)).entities?.[qid];
         const labels=[...Object.values(entity?.labels??{}).map(value=>value.value),...Object.values(entity?.aliases??{}).flatMap(items=>items.map(value=>value.value))].map(fold);
         if(entity&&labels.includes(fold(name))){
-          const times=property=>{const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));};
+          const times=property=>{const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');return (preferred.length?preferred:claims).map(timeRecord);};
           lives[id]={item:qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_orcid:{...record,source:`https://doi.org/${record.doi}`},orcid_search:search};
           identified++;console.log(`${id}: ${qid}, ORCID ${record.orcid}, ${record.doi}`);
         }
@@ -177,7 +215,8 @@ if(args.has('--fetch-queue-catalogue')){
             if(matchedYears){
               const agrees=(property,year)=>{
                 const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
-                return (preferred.length?preferred:claims).some(claim=>claim.mainsnak.datavalue.value.precision>=9&&Number(/^([+-]\d+)-/.exec(claim.mainsnak.datavalue.value.time)?.[1])===year);
+                const selected=preferred.length?preferred:claims;
+                return selected.length>0&&selected.every(claim=>claim.mainsnak.datavalue.value.precision>=9&&!timeRecord(claim).approximate&&Number(/^([+-]\d+)-/.exec(claim.mainsnak.datavalue.value.time)?.[1])===year);
               };
               if(!agrees('P569',matchedYears.born)||!agrees('P570',matchedYears.died))continue;
             }
@@ -190,7 +229,7 @@ if(args.has('--fetch-queue-catalogue')){
         const [qid,record]=[...choices][0],entity=record.entity;
         const times=property=>{
           const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
-          return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+          return (preferred.length?preferred:claims).map(timeRecord);
         };
         lives[id]={item:qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_catalogue:{author:record.author,author_url:`https://openlibrary.org/authors/${record.author}`,work:record.work,work_url:`https://openlibrary.org${record.work}`,title:record.title,...(record.authority?{authority:record.authority}: {}),...(record.matchedYears?{matched_years:record.matchedYears}: {})},catalogue_search};
         identified++;console.log(`${id}: ${qid}, Open Library ${record.author} ${record.work}`);
@@ -231,7 +270,7 @@ if(args.has('--fetch-queue-relations')){
         const entity=(await source.json()).entities[qid];
         const times=property=>{
           const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
-          return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+          return (preferred.length?preferred:claims).map(timeRecord);
         };
         lives[id]={item:qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_work:work,relation_search};
         identified++;console.log(`${id}: ${qid}, evidenced by ${work}`);
@@ -279,10 +318,10 @@ if(args.has('--fetch-queue-dates')){
           const entity=entities[item.qid];if(!entity||entity.missing!==undefined)continue;
           const times=property=>{
             const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
-            return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+            return (preferred.length?preferred:claims).map(timeRecord);
           };
           const born=times('P569'),died=times('P570');
-          const hasYear=(values,year)=>values.some(value=>Number(/^([+-]\d+)-/.exec(value.time)?.[1])===year&&value.precision>=9);
+          const hasYear=(values,year)=>values.some(value=>Number(/^([+-]\d+)-/.exec(value.time)?.[1])===year&&value.precision>=9&&!value.approximate);
           if(!hasYear(born,item.born)||!hasYear(died,item.died))continue;
           lives[item.id]={item:item.qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born,died,fetched:new Date().toISOString().slice(0,10),identity_register:{born:item.born,died:item.died}};
         }
@@ -341,7 +380,7 @@ if(args.has('--fetch-queue-batch')){
           const entity=entities[item.qid];if(!entity||entity.missing!==undefined)continue;
           const times=property=>{
             const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
-            return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+            return (preferred.length?preferred:claims).map(timeRecord);
           };
           lives[item.id]={item:item.qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_work:item.work};
         }
@@ -410,7 +449,7 @@ if(args.has('--fetch-queue')){
       const person=await entity(found.person);
       const times=property=>{
         const claims=(person.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
-        return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+        return (preferred.length?preferred:claims).map(timeRecord);
       };
       lives[id]={item:found.person,label:{en:person.labels.en?.value??null,ru:person.labels.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_work:found.work};
       console.log(`${id}: ${found.person}, evidenced by ${found.work}`);
@@ -430,7 +469,7 @@ if(args.has('--fetch')){
     const entity=(await answer.json()).entities[item];
     const times=property=>{
       const claims=(entity.claims[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
-      return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+      return (preferred.length?preferred:claims).map(timeRecord);
     };
     lives[agent]={item,label:{en:entity.labels.en?.value??null,ru:entity.labels.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10)};
     await new Promise(resolve=>setTimeout(resolve,400));
@@ -454,12 +493,17 @@ const dating=(more)=>({role:'historical-time',calendar:null,year_numbering:'astr
 const sources={},situations={},lifeOf={},workOf={};
 for(const [agent,entry] of Object.entries(library.agents)){
   const life=lives[agent];if(!life?.item)throw new Error(`${agent}: no verified Wikidata identity in layer/lives.json (resolve it before fetching)`);
-  const born=life.born.map(item=>yearOf(item.time)),died=life.died.map(item=>yearOf(item.time));
+  const years=entries=>entries.flatMap(item=>{
+    const earliest=(item.bounds?.earliest??[]).map(bound=>bound.time),latest=(item.bounds?.latest??[]).map(bound=>bound.time);
+    return earliest.length&&latest.length?[...earliest,...latest]:[item.time,...earliest,...latest];
+  }).map(yearOf);
+  const born=years(life.born),died=years(life.died);
   const complete=born.length>0&&died.length>0;
-  const exact=complete&&new Set(born).size===1&&new Set(died).size===1&&[...life.born,...life.died].every(item=>item.precision>=9);
+  const exact=complete&&new Set(born).size===1&&new Set(died).size===1&&[...life.born,...life.died].every(item=>item.precision>=9&&!item.approximate);
   const id=`tos.biographical-phase.${agent}.lifetime`,source=`wikidata-${agent}`;
-  const wording=complete?between(born,died,'en'):born.length?`born ${spoken(born,'en')}; no death year recorded`:died.length?`death ${spoken(died,'en')}; no birth year recorded`:'no birth or death year recorded';
-  const russian=complete?between(born,died,'ru'):born.length?`год рождения ${spoken(born,'ru')}; год смерти не указан`:died.length?`год смерти ${spoken(died,'ru')}; год рождения не указан`:'годы рождения и смерти не указаны';
+  const uncertain=[...life.born,...life.died].some(item=>item.approximate);
+  const wording=(uncertain?'approximately ':'')+(complete?between(born,died,'en'):born.length?`born ${spoken(born,'en')}; no death year recorded`:died.length?`death ${spoken(died,'en')}; no birth year recorded`:'no birth or death year recorded');
+  const russian=(uncertain?'приблизительно ':'')+(complete?between(born,died,'ru'):born.length?`год рождения ${spoken(born,'ru')}; год смерти не указан`:died.length?`год смерти ${spoken(died,'ru')}; год рождения не указан`:'годы рождения и смерти не указаны');
   sources[source]={short:'Wikidata',title:`${life.label.en??entry.name.en} (${life.item})`,url:`https://www.wikidata.org/wiki/${life.item}`};
   const lifeDating=complete?{kind:'interval-assertion',...dating({certainty:exact?'exact':'approximate',interval:{start:lexeme(Math.min(...born)),end:lexeme(Math.max(...died))},source_wording:{text:wording,language:'en'}})}
     :{kind:'unknown-date',...dating({certainty:'unknown',source_wording:{text:wording,language:'en'}})};
