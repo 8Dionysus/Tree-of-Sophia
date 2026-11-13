@@ -30,7 +30,7 @@ files, so a packet stands on what the files give and never on a reader's say-so.
   kit.py accept PACKET --by ID [--basis TEXT]
   kit.py status
 """
-import argparse,bisect,datetime,difflib,gzip,hashlib,html.parser,json,math,os,re,subprocess,sys,time,unicodedata,urllib.parse,urllib.request
+import argparse,bisect,datetime,difflib,gzip,hashlib,html.parser,io,json,math,os,re,subprocess,sys,time,unicodedata,urllib.parse,urllib.request
 from pathlib import Path
 
 HERE=os.path.dirname(os.path.abspath(__file__));REVIEW=os.path.dirname(HERE);ROOT=os.path.abspath(os.path.join(REVIEW,'..','..','..'))
@@ -792,12 +792,26 @@ def locator_problems(loc,place,ev):
     if missing:problems.append(f'{loc}: search outcomes missing for '+', '.join(sorted(missing)))
     return problems
 
+def valid_page_image(raw):
+    try:
+        from PIL import Image
+        with Image.open(io.BytesIO(raw)) as image:
+            if image.format not in ('JPEG','PNG','WEBP'):return False
+            image.verify()
+        return True
+    except ImportError:
+        try:return subprocess.run(['identify','-'],input=raw,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=20).returncode==0
+        except (OSError,subprocess.TimeoutExpired):
+            return (raw.startswith(b'\x89PNG\r\n\x1a\n') and raw.endswith(b'IEND\xaeB`\x82')) or (raw.startswith(b'\xff\xd8\xff') and raw.endswith(b'\xff\xd9')) or (len(raw)>20 and raw.startswith(b'RIFF') and raw[8:12]==b'WEBP')
+    except Exception:return False
+
 def cmd_page(args):
     """Keep a page from a lawful non-Archive source without modifying its bytes."""
     path=packet(args.packet);ev=evidence(path)
     if not lawful_url(args.url):die('page source must be a lawful https URL')
     if args.loc not in (part(path,'places.json') or {}).get('places',{}):die('no such place in the packet')
     raw=open(args.file,'rb').read() if args.file else get(args.url)
+    if not valid_page_image(raw):die('the page source did not yield a readable image')
     name=f'external-n{args.n}-{args.by}.img'
     with open(cache(path,name),'wb') as file:file.write(raw)
     scan={'item':'external','ocr':False,'image_offset':0};ev['scans']=scans(ev);ev['scans']['external']=scan;ev['scan']=scan
@@ -834,7 +848,8 @@ def quotation_problems(loc,text,proof,ev,second=False,path=None,offline=False):
             image=next((image for image in ev.get('images',[]) if image.get('sha256')==digest and image.get('by','maker')==by),None)
             if image:
                 try:
-                    if hashlib.sha256(Path(cache(path,image['file'])).read_bytes()).hexdigest()!=digest:problems.append(f'place {loc}: {by} image changed')
+                    if (raw:=Path(cache(path,image['file'])).read_bytes()) and (hashlib.sha256(raw).hexdigest()!=digest or not valid_page_image(raw)):problems.append(f'place {loc}: {by} image changed or is invalid')
+                    elif not raw:problems.append(f'place {loc}: {by} image is empty')
                 except (OSError,KeyError):problems.append(f'place {loc}: {by} image is missing locally')
     # Sentence endings are an upper-bound aid. The printed page still decides the boundaries.
     count=len(re.findall(r'[.!?…]+(?:[”»’\"\')\]]+)?(?=\s|$)',text))
@@ -1345,6 +1360,7 @@ def cmd_witness_image(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     if not lawful_url(args.url):die('image must be from a lawful https URL')
     raw=open(args.file,'rb').read() if args.file else get(args.url)
+    if not valid_page_image(raw):die('the page source did not yield a readable image')
     name=args.name
     with open(witness_cache(path,args.language,name),'wb') as target:target.write(raw)
     image={'file':name,'url':args.url,'sha256':hashlib.sha256(raw).hexdigest(),'by':args.by}
@@ -1490,6 +1506,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
                 try:
                     raw=Path(witness_cache(path,lang,record['file'])).read_bytes()
                     if hashlib.sha256(raw).hexdigest()!=record.get('sha256'):add(f"{loc}: {record['file']} changed")
+                    elif record is image and not valid_page_image(raw):add(f'{loc}: maker page image is invalid')
                     elif record is source:
                         problem=in_transcription(back,modern_russian(plain(raw,record['file'])) if lang=='ru' else plain(raw,record['file']))
                         if problem:add(f'{loc}: {problem}')
@@ -1506,7 +1523,8 @@ def witness_problems(path,lang,data,second=False,offline=False):
             if not second_image:add(f'{loc}: second reader page image is missing')
             elif not offline:
                 try:
-                    if hashlib.sha256(Path(witness_cache(path,lang,second_image['file'])).read_bytes()).hexdigest()!=place.get('image_sha256'):add(f'{loc}: second reader image changed')
+                    second_raw=Path(witness_cache(path,lang,second_image['file'])).read_bytes()
+                    if hashlib.sha256(second_raw).hexdigest()!=place.get('image_sha256') or not valid_page_image(second_raw):add(f'{loc}: second reader image changed or is invalid')
                 except (OSError,KeyError):add(f'{loc}: second reader image is missing locally')
     return problems
 

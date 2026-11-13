@@ -129,7 +129,9 @@ class TranslationWitnessTest(unittest.TestCase):
             path=Path(tmp)/'work';path.mkdir()
             cache=Path(tmp)/'cache'; cache.mkdir()
             folder=cache/'work'/'witnesses'/'en';folder.mkdir(parents=True)
-            source=b'A whole sentence.';image=b'page image'
+            import base64
+            image=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+            source=b'A whole sentence.'
             (folder/'text.txt').write_bytes(source);(folder/'page.jpg').write_bytes(image);(folder/'second.jpg').write_bytes(image)
             digest=hashlib.sha256(image).hexdigest()
             people=[{'role':'author','name':{'en':'Author'},'qid':'Q1','died':1800,'source':'https://www.wikidata.org/wiki/Q1'},
@@ -340,7 +342,9 @@ class TranslationCorrectionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
             folder=Path(tmp)/'cache/work/witnesses/en';folder.mkdir(parents=True)
-            raw=b'page image';(folder/'page.jpg').write_bytes(raw);digest=hashlib.sha256(raw).hexdigest()
+            import base64
+            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+            (folder/'page.jpg').write_bytes(raw);digest=hashlib.sha256(raw).hexdigest()
             data={'language':'en','images':[{'file':'page.jpg','url':'https://example.org/page','by':'maker','sha256':digest}],
                   'places':{'p':{'text':'A sentence;','page':'391','url':'https://example.org/page','image_sha256':digest}},
                   'review':{'reader':'old-reader'}}
@@ -368,3 +372,8 @@ class WikidataDatePrecisionTest(unittest.TestCase):
         self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950,8)]}},'P570'))
         self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951)]}},'P570'))
         self.assertEqual(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951,11,'preferred')]}},'P570'),1951)
+
+class PageImageTest(unittest.TestCase):
+    def test_html_or_empty_response_is_not_page_evidence(self):
+        self.assertFalse(kit.valid_page_image(b'<html>Access denied</html>'))
+        self.assertFalse(kit.valid_page_image(b''))
