@@ -584,6 +584,43 @@ await import(pathToFileURL(process.argv[3]??'%MODULE%').href);
             self.assertEqual(lives['dates']['item'],'Q77');self.assertEqual(lives['dates']['identity_catalogue']['matched_years'],{'born':1900,'died':1980})
             self.assertIsNone(lives['uncertain']['item']);self.assertEqual(lives['uncertain']['status'],'unresolved')
 
+class OrcidIdentityTest(unittest.TestCase):
+    def test_exact_publication_author_and_unique_orcid_are_required(self):
+        import json, shutil, subprocess, tempfile
+        from pathlib import Path
+        root=Path(kit.ROOT);original=Path(kit.REVIEW)
+        with tempfile.TemporaryDirectory() as tmp:
+            target=Path(tmp);review=target/'bonsai/review/aesthetics';layer=review/'layer';layer.mkdir(parents=True)
+            (target/'bonsai/lib').symlink_to(root/'bonsai/lib',target_is_directory=True)
+            (review/'planting/packets').mkdir(parents=True);shutil.copy2(original/'chronology.mjs',review/'chronology.mjs')
+            agents=[{'id':'matched','name':{'en':'Ada Example'}},{'id':'wrong','name':{'en':'Wrong Name'}},{'id':'ambiguous','name':{'en':'Ambiguous Name'}}]
+            works=[{'id':a['id']+'.paper','agents':[a['id']],'title':{'original':a['id']+' article'}} for a in agents]
+            for name,value in [('agents',agents),('works',works),('sources',[]),('lives',{})]:(layer/(name+'.json')).write_text(json.dumps(value))
+            home=target/'bonsai/aesthetics';home.mkdir();(home/'library.json').write_text('{"agents":{},"works":{}}')
+            script="""
+import {pathToFileURL} from 'node:url';
+globalThis.setTimeout=fn=>{fn();return 0};
+globalThis.fetch=async input=>{
+ const url=new URL(String(input));let data;
+ if(url.hostname==='api.crossref.org'){
+   const title=url.searchParams.get('query.title');
+   const author=title.startsWith('matched')?{given:'Ada',family:'Example',ORCID:'https://orcid.org/0000-0001-2345-6789'}:title.startsWith('wrong')?{given:'Different',family:'Name',ORCID:'https://orcid.org/0000-0001-2345-6789'}:{given:'Ambiguous',family:'Name',ORCID:'https://orcid.org/0000-0001-2345-6789'};
+   const authors=title.startsWith('ambiguous')?[author,{...author,ORCID:'https://orcid.org/0000-0001-2345-679X'}]:[author];
+   data={message:{items:[{DOI:'10.1/test',title:[title],author:authors}]}};
+ }else if(url.hostname==='query.wikidata.org')data={results:{bindings:[{person:{value:'http://www.wikidata.org/entity/Q123'}}]}};
+ else if(url.pathname.includes('Special:EntityData/Q123'))data={entities:{Q123:{labels:{en:{value:'Ada Example'}},claims:{P569:[{mainsnak:{datavalue:{value:{time:'+1900-01-01T00:00:00Z',precision:9}}}}]}}}};
+ else throw new Error('unexpected URL '+url);
+ return new Response(JSON.stringify(data),{status:200});
+};
+process.argv=['node','chronology.mjs','--fetch-queue-orcid'];
+await import(pathToFileURL('%MODULE%').href);
+""".replace('%MODULE%',str(review/'chronology.mjs'))
+            subprocess.run(['node','--input-type=module','-e',script],check=True,capture_output=True,text=True)
+            lives=json.loads((layer/'lives.json').read_text())
+            self.assertEqual(lives['matched']['item'],'Q123')
+            self.assertEqual(lives['matched']['identity_orcid']['doi'],'10.1/test')
+            self.assertIsNone(lives['wrong']['item']);self.assertIsNone(lives['ambiguous']['item'])
+
 class NewWorkLanguageIntegrationTest(unittest.TestCase):
     def test_new_work_needs_each_language_and_second_readings(self):
         import copy
