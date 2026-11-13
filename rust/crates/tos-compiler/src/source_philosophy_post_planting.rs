@@ -28,10 +28,9 @@ const GRAPH_PROJECTION_REF: &str = "ToS/derived-exports/philosophy_graph_project
 const GRAPH_VIEWS_REF: &str = "ToS/derived-exports/philosophy_graph_views.min.json";
 const ATLAS_PROJECTION_REF: &str = "ToS/derived-exports/philosophy_atlas_projection.min.json";
 const BRANCH_SUMMARY_SUFFIX: &str = "graph-workbench/pre-canon-summary.json";
-const BRANCH_SUPPORT: [&str; 4] = [
+const BRANCH_SUPPORT: [&str; 3] = [
     "README.md",
     "branch.manifest.json",
-    "sources/source-anchor-backlog.jsonl",
     "graph-workbench/pre-canon-summary.json",
 ];
 const PROPOSED_NODES_REFS: [&str; 3] = [
