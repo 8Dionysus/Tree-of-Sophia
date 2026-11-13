@@ -3,8 +3,8 @@
 //! The whole caller holds host isolation and removes its disposable store.
 
 use super::{
-    directory, install_manifest, install_manifest_with_limit, manifest, members, object,
-    object_with_limit, verify_named_export_chain,
+    directory, install_manifest_with_limit, manifest, members, object_with_limit,
+    verify_named_export_chain,
 };
 use crate::source_admission_candidate::Candidate;
 use crate::source_command::{
@@ -1217,7 +1217,18 @@ pub(crate) fn capture_bounded_with_write_cap(
             return Err(Error::Unsupported("foundation capture object write budget"));
         }
         let digest = Digest256::of_bytes(&raw);
-        object(&objects, digest, &raw, uid, deadline, cancel)?;
+        // The read was admitted against this selected bound; stage the same
+        // bytes against that bound instead of the unrelated legacy 8 MiB cap.
+        object_with_limit(
+            &objects,
+            digest,
+            &raw,
+            uid,
+            usize::try_from(read_limits.max_selected_object_bytes.min(MAX_BYTES as u64))
+                .map_err(|_| Error::Unsupported("foundation authored staged byte range"))?,
+            deadline,
+            cancel,
+        )?;
         let relative = RelativePath::parse(&path)
             .map_err(|_| Error::Invalid("foundation authored relative path"))?;
         metadata.insert(
@@ -1252,7 +1263,15 @@ pub(crate) fn capture_bounded_with_write_cap(
         .ok_or(Error::Unsupported(
             "foundation capture manifest write budget",
         ))?;
-    install_manifest(&revisions, encoded.0, &encoded.1, uid, deadline, cancel)?;
+    install_manifest_with_limit(
+        &revisions,
+        encoded.0,
+        &encoded.1,
+        uid,
+        read_limits.max_manifest_bytes,
+        deadline,
+        cancel,
+    )?;
     verify_named_export_chain(
         isolated,
         ".foundation-source-cut",
@@ -1320,4 +1339,82 @@ pub(crate) fn capture_bounded_with_write_cap(
         cancel,
     )?;
     Ok(captured)
+}
+
+#[cfg(test)]
+mod authored_capture_tests {
+    use super::*;
+    use std::fs;
+    use std::time::Duration;
+
+    #[test]
+    fn authored_capture_stages_large_member_within_selected_limit() {
+        let source = tempfile::tempdir().unwrap();
+        let stage = tempfile::tempdir().unwrap();
+        fs::create_dir_all(source.path().join("ToS/source-witnesses")).unwrap();
+        let home = source.path().join("ToS/philosophy/atlas/dossiers");
+        fs::create_dir_all(&home).unwrap();
+        let bytes = vec![b'x'; 8_388_609];
+        fs::write(home.join("source-anchor-backlog.jsonl"), &bytes).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(60);
+        let cancelled = AtomicBool::new(false);
+        let isolated = IsolatedCreationRoot::create(stage.path(), deadline, &cancelled).unwrap();
+        let mut sources = RouteSources::new_until(source.path(), deadline).unwrap();
+        let read = ReadLimits {
+            max_manifest_bytes: 1_048_576,
+            max_manifest_entries: 64,
+            max_selected_object_bytes: 9_437_184,
+            json: JsonLimits::default(),
+        };
+        let cut = CutReadLimits {
+            max_revisions: 1,
+            max_members: 64,
+            max_total_bytes: 33_554_432,
+            max_member_bytes: 9_437_184,
+        };
+        let captured = capture_bounded_with_write_cap(
+            &mut sources,
+            &isolated,
+            Digest256::of_bytes(b"validator"),
+            read,
+            cut,
+            33_554_432,
+            16_777_216,
+            deadline,
+            &cancelled,
+        )
+        .unwrap();
+        let mut stream = captured
+            .cut()
+            .stream(captured.cut().current().revision())
+            .unwrap();
+        let member = stream.next_member(deadline, &cancelled).unwrap().unwrap();
+        assert_eq!(member.raw, bytes);
+        assert!(stream.next_member(deadline, &cancelled).unwrap().is_none());
+
+        let limited_stage = tempfile::tempdir().unwrap();
+        let limited =
+            IsolatedCreationRoot::create(limited_stage.path(), deadline, &cancelled).unwrap();
+        let mut limited_sources = RouteSources::new_until(source.path(), deadline).unwrap();
+        assert!(
+            capture_bounded_with_write_cap(
+                &mut limited_sources,
+                &limited,
+                Digest256::of_bytes(b"validator"),
+                ReadLimits {
+                    max_selected_object_bytes: 8_388_608,
+                    ..read
+                },
+                CutReadLimits {
+                    max_member_bytes: 8_388_608,
+                    ..cut
+                },
+                33_554_432,
+                16_777_216,
+                deadline,
+                &cancelled,
+            )
+            .is_err()
+        );
+    }
 }
