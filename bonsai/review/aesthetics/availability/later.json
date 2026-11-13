@@ -517,7 +517,75 @@
         "AE13",
         "AE15"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "fr",
+      "people": [
+        {
+          "name": "Maurice Merleau-Ponty",
+          "role": "author",
+          "birth": 1908,
+          "death": 1961,
+          "evidence": [
+            "https://catalogue.bnf.fr/ark:/12148/cb32442979d"
+          ]
+        },
+        {
+          "name": "Donald A. Landes",
+          "role": "English translator, 2012",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.routledge.com/Phenomenology-of-Perception/Merleau-Ponty-Landes/p/book/9780415834339"
+          ]
+        },
+        {
+          "name": "Rudolf Boehm",
+          "role": "German translator",
+          "birth": 1927,
+          "death": 2019,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q104255",
+            "https://openlibrary.org/works/OL37552074W"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Phénoménologie de la perception, Paris: Gallimard, 1945",
+          "catalogue": "https://catalogue.bnf.fr/ark:/12148/cb32442979d",
+          "status": "BnF record describes 1952 printing; lawful original passages not established."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "Phenomenology of Perception, trans. Donald A. Landes, Routledge, 2012",
+          "catalogue": "https://www.routledge.com/Phenomenology-of-Perception/Merleau-Ponty-Landes/p/book/9780415834339",
+          "status": "edition identified; lawful copies of relevant pages not established; PDF from register is a locator until hosting rights established."
+        },
+        {
+          "language": "de",
+          "edition": "Phänomenologie der Wahrnehmung, trans. Rudolf Boehm",
+          "catalogue": "https://openlibrary.org/works/OL37552074W",
+          "status": "bibliographic lead; lawful pages and applicable rights unverified."
+        }
+      ],
+      "requested_places": [
+        "B:A-I003",
+        "B:A-I026",
+        "B:A-I031",
+        "B:A-I028",
+        "B:A-I047",
+        "B:A-I040",
+        "B:A-I034"
+      ],
+      "searches": [
+        {
+          "source": "BnF, publisher Routledge, Open Library and Crossref",
+          "result": "Original and translations identified at catalogue level; Crossref DOI has no license field, which does not establish absence of a license.",
+          "url": "https://api.crossref.org/works/10.4324/9780203720714"
+        }
+      ],
+      "remaining": "Verify exact original and translated sentences in lawful witnesses, each contributor and applicable rights; complete mandatory searches. English PDF page numbers are not French page numbers."
     },
     {
       "work": "kendall-l-walton.categories-of-art",
@@ -1020,7 +1088,64 @@
         "AE18",
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "J. R. R. Tolkien",
+          "role": "author",
+          "birth": 1892,
+          "death": 1973,
+          "evidence": [
+            "https://www.planetadelibros.com/libro-arbol-y-hoja/386145"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "On Fairy-Stories, in Essays Presented to Charles Williams, Oxford University Press, 1947, pp.38–89",
+          "catalogue": "https://tolkiengateway.net/wiki/Essays_Presented_to_Charles_Williams",
+          "status": "first-publication lead; exact places and lawful page images still require verification; 1939 lecture differs from published essay."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Árbol y hoja, Minotauro, 2024, ISBN 9788445016862",
+          "catalogue": "https://www.planetadelibros.com/libro-arbol-y-hoja/386145",
+          "status": "Publisher confirms inclusion and lists various translators; its excerpt link currently returns 404; essay translator and pages unknown."
+        },
+        {
+          "language": "ru",
+          "edition": "multiple translations 1991–2006",
+          "catalogue": "https://fantlab.ru/work2253",
+          "status": "bibliographic leads only; particular witnesses, contributors, pages and rights not established."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "险境奇谈, 上海人民出版社, 2024",
+          "catalogue": "https://book.douban.com/subject/36810986/",
+          "status": "catalogue lead; translator of essay and pages not verified."
+        }
+      ],
+      "requested_places": [
+        "B:D-I046 Children, secondary belief",
+        "B:D-I045 Fantasy, §§65–66",
+        "B:D-I047 Recovery"
+      ],
+      "searches": [
+        {
+          "source": "Publisher Planeta and BNE/other sources still in progress",
+          "result": "Publisher identifies 2024 Spanish collection but PDF preview link returned 404 in browser; individual essay translator not named.",
+          "url": "https://www.planetadelibros.com/libro-arbol-y-hoja/386145"
+        },
+        {
+          "source": "Internet Archive and Open Library",
+          "result": "2014 edition candidate restricted; other copies and permissions require assessment.",
+          "url": "https://archive.org/details/tolkienonfairyst0000verl"
+        }
+      ],
+      "remaining": "Verify lawful copies and exact pages in every requested language, contributors, publication history and jurisdiction-specific rights; complete mandatory search."
     },
     {
       "work": "janet-h-murray.hamlet-on-the-holodeck",
