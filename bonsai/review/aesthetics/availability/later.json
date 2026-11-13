@@ -202,7 +202,90 @@
       "areas": [
         "AE15"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "de",
+      "people": [
+        {
+          "name": "Edmund Husserl",
+          "role": "author",
+          "birth": 1859,
+          "death": 1938,
+          "evidence": [
+            "https://husserl.net/texts/husserliana/6"
+          ]
+        },
+        {
+          "name": "Marly Biemel",
+          "role": "editor of 1952 volume",
+          "dates_status": "not established",
+          "evidence": [
+            "https://philosophie.uni-wuppertal.de/fileadmin/philosophie/PDFs_allg/Seminarmaterialien/Brudzinska/Pages_from_Hua_IV_-_Ideen_II_1-5-2.pdf"
+          ]
+        },
+        {
+          "name": "Richard Rojcewicz and André Schuwer",
+          "role": "English translators, 1989",
+          "dates_status": "not established",
+          "evidence": [
+            "https://hiw.kuleuven.be/hua/editionspublications/collected-works"
+          ]
+        },
+        {
+          "name": "Antonio Zirión",
+          "role": "Spanish translator, 1997",
+          "dates_status": "not established",
+          "evidence": [
+            "https://repositorio.pucp.edu.pe/items/313bd6a4-b8ba-4a11-a05e-1907ba2b66dd/full"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Ideen II: Phänomenologische Untersuchungen zur Konstitution, Husserliana IV, The Hague: Martinus Nijhoff, 1952, ed. Marly Biemel",
+          "catalogue": "https://husserl.net/texts/husserliana/6",
+          "contents": "https://philosophie.uni-wuppertal.de/fileadmin/philosophie/PDFs_allg/Seminarmaterialien/Brudzinska/Pages_from_Hua_IV_-_Ideen_II_1-5-2.pdf",
+          "status": "1952 first edition title and table of contents available; 1912 is manuscript origin, not publication. Required text pages not inspected."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "Ideas II, trans. Rojcewicz and Schuwer, 1989",
+          "catalogue": "https://hiw.kuleuven.be/hua/editionspublications/collected-works",
+          "status": "archive catalog identifies translators; relevant pages and rights not checked."
+        },
+        {
+          "language": "es",
+          "edition": "Ideas libro segundo, trans. Antonio Zirión, UNAM, 2005",
+          "catalogue": "https://openlibrary.org/books/OL26389710M",
+          "status": "catalogue; relevant pages and rights not checked."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "现象学的构成研究, trans. 李幼蒸, 2013",
+          "catalogue": "https://book.douban.com/subject/25750863/",
+          "status": "catalogue candidate; pages and rights not checked."
+        },
+        {
+          "language": "ru",
+          "edition": "Идеи к чистой феноменологии, книга 2, БФУ, 2025",
+          "catalogue": "https://bartleby.ru/philosophy/tproduct/504340146912-edmund-gusserl-idei-k-chistoi-fenomenolo",
+          "status": "catalogue candidate; translator and pages not established."
+        }
+      ],
+      "requested_places": [
+        "B:A-I025 §§18a–b, 36–42, 59–60a",
+        "B:A-I032 §§18a–b, 36–42",
+        "B:A-I035 §§59–60a; compare §41a as a candidate"
+      ],
+      "searches": [
+        {
+          "source": "Wuppertal university 1952 title and contents",
+          "result": "§18a p.55, §18b p.58, §41a orientation centre p.158, §59 p.253, §60a p.257; contents identifies section starts only, not the textual claims.",
+          "url": "https://philosophie.uni-wuppertal.de/fileadmin/philosophie/PDFs_allg/Seminarmaterialien/Brudzinska/Pages_from_Hua_IV_-_Ideen_II_1-5-2.pdf"
+        }
+      ],
+      "remaining": "Read exact places from lawful source, verify original and translation rights and contributors, search all required venues; first edition is 1952, not 1912."
     },
     {
       "work": "howard-phillips-lovecraft.supernatural-horror-in-literature",
@@ -1069,7 +1152,67 @@
         "AE16",
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Frank Sibley",
+          "role": "author",
+          "birth": 1923,
+          "death": 1996,
+          "evidence": [
+            "https://id.loc.gov/authorities/names/n00102040.html"
+          ]
+        },
+        {
+          "name": "Vygandas Aleksandravičius",
+          "role": "Lithuanian translator, 2001",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.15388/SocMintVei.2001.3-4.5901"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Aesthetic Concepts, The Philosophical Review 68(4), 1959, pp.421–450",
+          "doi": "10.2307/2182490",
+          "catalogue": "https://api.crossref.org/works/10.2307/2182490",
+          "status": "bibliographic record; exact lawful page copies and US notice/renewal not checked."
+        },
+        {
+          "edition": "Approach to Aesthetics, chapter 1, Oxford, 2001, pp.1–23",
+          "doi": "10.1093/0198238991.003.0001",
+          "catalogue": "https://api.crossref.org/works/10.1093/0198238991.003.0001",
+          "status": "reprint; Crossref lacks license field, Unpaywall index closed; this does not rule out legal reading or quotation."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "lt",
+          "edition": "Lithuanian translation, 2001, trans. Vygandas Aleksandravičius",
+          "catalogue": "https://journals.vu.lt/sociologija-mintis-ir-veiksmas/en/article/view/5901",
+          "status": "Some existing reading locators refer to Lithuanian translation rather than English original; edition alignment and rights remain unverified."
+        }
+      ],
+      "requested_places": [
+        "B:C-I022 pp.1–8",
+        "B:C-I018 pp.7–14",
+        "D:B-I121 publisher abstract"
+      ],
+      "searches": [
+        {
+          "source": "Crossref and Unpaywall",
+          "result": "DOIs of 1959 article and 2001 chapter are distinct; no Crossref license field and both indexed closed.",
+          "url": "https://api.crossref.org/works/10.2307/2182490"
+        },
+        {
+          "source": "Vilnius University journal metadata",
+          "result": "Previously used locators identify a Lithuanian translation; not the English original.",
+          "url": "https://api.crossref.org/works/10.15388/SocMintVei.2001.3-4.5901"
+        }
+      ],
+      "remaining": "Obtain lawful English source at target pages; align original/translation editions, check US renewal and locate other requested languages, complete searches."
     },
     {
       "work": "george-dickie.the-myth-of-the-aesthetic-attitude",
