@@ -2,9 +2,8 @@
 
 `access/` is ToS's standalone, source-read-only delivery product: native CLI,
 HTTP and MCP, the browser application, and WebMCP. Rust owns runtime query and
-transport behavior. The optional imported Python SDK calls the installed native
-product. Access reads explicitly selected published data and returns `source_ref`
-routes.
+transport behavior. Access reads explicitly selected published data and returns
+`source_ref` routes.
 
 ## Choose a route
 
@@ -127,7 +126,7 @@ The native adapters expose:
   bounded dossier with connected records, observed links, scoped rights,
   source refs and gaps.
 
-### Local reading and the imported SDK
+### Local reading
 
 Zarathustra concept and word-analysis tools use the selected native installation
 and local source root:
@@ -143,21 +142,7 @@ tool returns a candidate-only task; a selected provider refusal is not replaced
 by a Python implementation. Reading/search capability availability describes
 the selected local data, not source admission or publication.
 
-Imported Python callers may frame the same installed native operations:
-
-```python
-from tos_access import NativeAccessCore
-
-core = NativeAccessCore.discover(
-    native_prefix="/absolute/installed/software",
-    release_root="/absolute/owner-selected/release",
-)
-packet = core.knowledge_node("an-exact-owned-node-id")
-```
-
-The bridge retains the native packet and typed refusal; it has no independent
-query/server implementation or fallback. The [Rust access guide](../rust/crates/tos-access/README.md)
-owns the installed runtime and validation route.
+The [Rust access guide](../rust/crates/tos-access/README.md) owns the installed runtime and validation route.
 
 `tos.source-text.search` requires an explicitly selected durable PostgreSQL
 consumer. The optional Worker gateway forwards it only when its native HTTPS
@@ -393,10 +378,9 @@ native `tos mcp` server is an off-page route, not a prerequisite for browser use
 ## Cloudflare delivery
 
 The repository's public deployment route is the
-[Cloudflare Worker package](deploy/cloudflare-worker/README.md). Static assets
-serve the web client, while generated read-only packets and D1 provide bounded
-projection access. Offline build/import steps and the production publication
-boundary live with that route. The older
+[Cloudflare Worker package](deploy/cloudflare-worker/README.md). The public research Worker serves the static stands and their assets; the
+retired atlas API and D1 are not part of that route. The publication boundary
+lives with that route. The older
 [Cloudflare Tunnel profile](deploy/cloudflare-tunnel/README.md) is for local
 preview or recovery, not the intended availability architecture.
 

@@ -15,7 +15,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
             .unwrap()
             .as_nanos()
     ));
-    fs::create_dir_all(root.join("access/src/tos_access")).unwrap();
+    fs::create_dir_all(root.join("access/tests/fixtures")).unwrap();
     let git = |args: &[&str]| {
         let output = Command::new("git")
             .args(args)
@@ -35,7 +35,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
     git(&["config", "commit.gpgsign", "false"]);
     git(&["config", "core.hooksPath", "/dev/null"]);
     fs::write(root.join("README.md"), "[old missing](missing-old.md)\n").unwrap();
-    fs::write(root.join("access/src/tos_access/reader.py"), "# source\n").unwrap();
+    fs::write(root.join("access/tests/fixtures/reader.json"), "{}\n").unwrap();
     let integration =
         "mechanics/questbook/parts/obligation-boundary/docs/QUESTBOOK_TOS_INTEGRATION.md";
     fs::create_dir_all(root.join(integration).parent().unwrap()).unwrap();
@@ -43,7 +43,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
     git(&["add", "."]);
     git(&["commit", "-m", "baseline"]);
     let base = git(&["rev-parse", "HEAD"]);
-    fs::remove_file(root.join("access/src/tos_access/reader.py")).unwrap();
+    fs::remove_file(root.join("access/tests/fixtures/reader.json")).unwrap();
     fs::write(
         root.join("access/заметка😀.md"),
         "[reference]\n[reference]: ../target.md\n",
@@ -52,7 +52,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
     fs::write(root.join("target.md"), "exists\n").unwrap();
     fs::write(root.join("README.md"), "[old missing](missing-old.md)\n```md\n[literal](fake.md)\n```\n[new](target.md#part)\n[external](https://example.invalid/no-fetch)\n[root](/hosted-site)\n").unwrap();
     git(&["add", "-A"]);
-    git(&["commit", "-m", "reader removal plus Unicode documentation"]);
+    git(&["commit", "-m", "fixture removal plus Unicode documentation"]);
     let executable = std::env::var_os("TOS_SOFTWARE_CI_TEST_EXECUTABLE")
         .unwrap_or_else(|| env!("CARGO_BIN_EXE_tos-software-ci").into());
     let invoke = |mode: &str, needs: Option<&str>, full: bool, tree: Option<&str>| -> Output {
@@ -97,13 +97,13 @@ fn software_ci_actual_history_and_required_gate_are_native() {
             selection["changed_paths"],
             serde_json::json!([
                 "README.md",
-                "access/src/tos_access/reader.py",
+                "access/tests/fixtures/reader.json",
                 "access/заметка😀.md",
                 "target.md"
             ])
         );
-        assert_eq!(selection["worker"], true);
-        assert_eq!(selection["rust"], full);
+        assert_eq!(selection["worker"], full);
+        assert_eq!(selection["rust"], true);
         assert_eq!(selection["forced_full"], full);
         assert!(
             fs::read_to_string(root.join("native-output"))
@@ -111,7 +111,7 @@ fn software_ci_actual_history_and_required_gate_are_native() {
                 .ends_with(if full {
                     "software_mode=full\nworker=true\nrust=true\n"
                 } else {
-                    "software_mode=reader\nworker=true\nrust=false\n"
+                    "software_mode=reader\nworker=false\nrust=true\n"
                 })
         );
         assert!(

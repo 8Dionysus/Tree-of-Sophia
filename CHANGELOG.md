@@ -7,6 +7,9 @@ Tracking starts with the community-docs baseline for this repository.
 
 ## [Unreleased]
 
+- Retired the imported Python access SDK; native CLI, HTTP and MCP remain the
+  supported access routes.
+
 - Added Spanish, German and Simplified Chinese presentation for both public
   Bonsai stands, their research materials and shared reader. Language changes
   retain exact source locations and personal graph identities; the reader can

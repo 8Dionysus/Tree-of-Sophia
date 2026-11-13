@@ -76,7 +76,7 @@ owner surfaces.
    ```
 
    This verified Linux x86_64 recipe produces the matching JavaScript, WASM and
-   two declaration files required by the Worker bootstrap and Node preloader.
+   two declaration files required by the browser and shared-contract Node preloader.
    Then run `npm ci --prefix access/deploy/cloudflare-worker`, `npm run typecheck
    --prefix access/deploy/cloudflare-worker` and `npm test --prefix
    access/deploy/cloudflare-worker`. These checks run against local fixtures;
@@ -134,13 +134,13 @@ owner surfaces.
    and merge checks, deploy only
    `wrangler deploy --config wrangler.public-research.jsonc`. It serves
    `/`, `/zarathustra*`, `/antiquity*` and `/__research/*` on apex and `www`.
-   Its `/*` routes cover root query strings; all other requests pass unchanged
-   to the existing Custom Domain Worker. It has no D1, R2 or secret bindings. This deployment leaves the existing access
-   Worker and D1 data unchanged. Record its version ID; rollback with
+   Its `/*` routes cover root query strings; unmatched paths receive a 404.
+   It has no D1, R2 or secret bindings. After merge, the operator separately
+   exports D1 and transfers the custom domain before retiring the old Worker
+   and D1. Record its version ID; rollback with
    `wrangler rollback VERSION_ID --name tree-of-sophia-public-research` restores
    that Worker's version while preserving its current route patterns. A rollback
-   to a pre-root-proxy version also requires restoring its narrow routes; do
-   not leave a handler without origin forwarding on the broad `/*` routes.
+   to an older version requires checking its routes and origin dependencies.
    Native prepare fixture calls in CI use a 45-second allowance and a 55-second
    child wait, matching the measured joined maintenance fixture; the native
    product default remains 20 seconds. This allowance is not a production SLO.
@@ -185,7 +185,7 @@ the full suite; a missing or failed selector fails the required gate.
 | `AGENTS.md` in those homes | The plan job checks the 800-word limit |
 | `ToS/` Markdown, `QUESTBOOK.md`, `quests/` Markdown or `mechanics/questbook/README.md` | Complete Rust consumer lane and installs |
 | `access/web/` or `access/e2e/` code/configuration, or a stand's data under `bonsai/` | Source-bound software preparation, fixture tests, browser build/unit/types/behavior (including each bonsai's check against the Tree's contracts), and isolated package install |
-| `access/src/` or `access/tests/` | Source-bound software preparation, package/browser checks, reader/API fixture tests, and Worker cross-adapter tests |
+| `access/tests/fixtures/` | Source-bound software preparation, package/browser checks, reader/API fixture tests, and Rust workspace consumers |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
 | Rust source under `rust/crates/tos-reader/src/` | Rust workspace and isolated exact reader install; the independent browser/package job is omitted |
 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Software contracts, browser assets and native package install, plus pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install |
@@ -297,7 +297,7 @@ the measured software baseline. Rust host-program fixtures use the qualified
 Ubuntu 24.04 runner explicitly; changing its distribution is a separate
 validation step. The installed reader checks exact old/current bytes from a tiny
 synthetic store.
-The Worker job checks the shipped `tos-web-rules` WASM product with the matching
+The Worker job checks shared `tos-web-rules` WASM contracts with the matching
 `wasm-bindgen` CLI verified against its pinned release digest.
 Browser/Worker bundle installation, public access and larger runtime profiles
 remain subject to later gates.
@@ -515,5 +515,5 @@ source pin `14ee1e33e43749d23c557b3ef526eca7edb36196` is not a retagged release
 or a current software CI dependency. AbyssOS consumer admission remains with
 its own owner when that integration is explicitly selected.
 
-Public site, Worker and D1 activation remain deferred. Local preparation,
+Public site deployment and cloud retirement remain separately operated. Local preparation,
 fixture tests and a validated software artifact do not authorize activation.

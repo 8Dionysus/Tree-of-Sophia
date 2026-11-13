@@ -219,11 +219,15 @@ counterpart shown may be the neighbouring sentence; the parallel reading of
 the whole place shows the context.
 
 When a translation covers only part of a corpus work, a stand may declare its
-`translation-scopes.json` entry with the source URL and exact original
-version, text-layer revision and first and last unit IDs. The mechanism checks
+`translation-scopes.json` entry with the source URL, exact original and
+translation versions and text-layer revisions, and first and last original unit IDs. The mechanism checks
 those bindings and aligns only that range; a cited fragment outside it has no
 counterpart in that witness. The range is an unreviewed source-bound proposal,
 not a manually chosen translation of each quotation.
+The same source-bound scope may cover the whole original where a translation
+joins unusually many source sentences into one. Its optional
+`maxSourceSentences` (4–6) lets the alignment mechanism consider those group
+shapes; it does not select a passage or assess the resulting correspondence.
 
 ```sh
 node bonsai/lib/cli.mjs align-corpus antiquity          # align again, report whether the module matches

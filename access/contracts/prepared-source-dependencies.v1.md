@@ -1,11 +1,13 @@
 # Private prepared source-Claim dependency index
 
-`tos_access.prepared_source_dependencies` stores explicit source-Claim
+The prepared source dependency index stores explicit source-Claim
 declarations and their reverse typed references in the **same prepared SQLite
 file** as the [selected source roots](prepared-source-binding.v1.md). It does
 not derive dependencies from graph incidence, inspect source files, normalize
 Claims, discover missing Claims, or grant source/semantic admission. It is an
-offline owner API, not a consumer packet or automatic CLI attachment.
+offline owner contract, not a consumer packet or automatic CLI attachment.
+The operation names below describe the retired Python API; the current native
+owner is `rust/crates/tos-command/src/source_claim_publication_dependencies.rs`.
 
 ## Declaration and selection
 
@@ -136,7 +138,7 @@ and identifiers/reasons/field pointers at 4096 UTF-8 bytes. Defaults remain
 1 MiB stored declaration rows and 32 MiB operation input accounting. All limits
 are refusal caps, not full-corpus admission or RAM/disk forecasts.
 
-Stored wide columns are length-masked before Python transfer. Queries use exact
+Stored wide columns are length-masked before transfer. Queries use exact
 primary/index prefixes and explicit caps; own-table triggers are outside the
 write mask. Whole-file allowance is lowered to the minimum of the existing
 SQLite ceiling, prepared owner ceiling and this operation's byte limit. It
