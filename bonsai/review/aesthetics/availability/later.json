@@ -1690,7 +1690,84 @@
         "AE21",
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "it",
+      "people": [
+        {
+          "name": "Umberto Eco",
+          "role": "author",
+          "birth": 1932,
+          "death": 2016,
+          "evidence": [
+            "https://books.google.com/books?vid=ISBN9780674639768"
+          ]
+        },
+        {
+          "name": "Anna Cancogni",
+          "role": "English translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://openlibrary.org/isbn/9780674639768.json"
+          ]
+        },
+        {
+          "name": "Roser Berdaqué",
+          "role": "Spanish translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://openlibrary.org/isbn/9788434408012.json"
+          ]
+        },
+        {
+          "name": "Günter Memmert",
+          "role": "German translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.suhrkamp.de/buch/umberto-eco-das-offene-kunstwerk-t-9783518278222"
+          ]
+        },
+        {
+          "name": "刘儒庭",
+          "role": "Chinese translator candidate",
+          "dates_status": "not established",
+          "evidence": [
+            "https://openlibrary.org/isbn/9787801487544.json"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Opera aperta, Bompiani, 1962",
+          "status": "First-edition text and exact pages for requested readings not yet verified; later Italian editions and revised English selection cannot be assumed identical."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "The Open Work, Harvard University Press, 1989, translated Anna Cancogni; introduction David Robey",
+          "url": "https://books.google.com.mx/books?id=7jroM0M8TuwC&pg=PA12",
+          "status": "Publisher-authorized Google Books preview visually inspected: p.1 begins chapter I; p.12 discusses Scambi and distinguishes works in movement from interpretive openness. Publisher notes the English selection differs from the Italian original; copyright remains separate."
+        },
+        {
+          "language": "de",
+          "edition": "Das offene Kunstwerk, translated Günter Memmert",
+          "url": "https://www.suhrkamp.de/buch/umberto-eco-das-offene-kunstwerk-t-9783518278222",
+          "status": "Publisher bibliographic evidence; relevant pages not inspected."
+        }
+      ],
+      "requested_places": [
+        "C:A-I062: Scambi, open work and works in movement; authorized English preview p.12 inspected, exact original passage pending",
+        "C:A-I063: aesthetic message and ambiguity; original and lawful translation pages pending",
+        "C:A-I064: open work and interpretation; locate exact place, current source locator needs review"
+      ],
+      "searches": [
+        {
+          "source": "Harvard University Press authorized Google Books preview",
+          "url": "https://books.google.com.mx/books?id=7jroM0M8TuwC",
+          "result": "Contents: chapter I starts p.1, II p.24, III p.44. Page 12 personally viewed. A third-party reformatted PDF cited in the register has uncertain authorization; its PDF pp.46–49 straddle chapters II and III, not chapter I, and its PDF pagination is not Harvard print pagination."
+        }
+      ],
+      "remaining": "Find original Italian locations and authorized editions of translations; verify C:A-I064 claim against primary text and correct its source-owned locator only after review. Search Russian, national catalogs, and all required sources; no absence inferred."
     },
     {
       "work": "wassily-kandinsky.ueber-das-geistige-in-der-kunst",
@@ -1837,7 +1914,62 @@
       "areas": [
         "AE09"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "fr",
+      "people": [
+        {
+          "name": "Albert Camus",
+          "role": "author",
+          "birth": 1913,
+          "death": 1960,
+          "evidence": [
+            "https://classiques.uqam.ca/classiques/camus_albert/mythe_de_sisyphe/mythe_de_sisyphe.pdf"
+          ]
+        },
+        {
+          "name": "Самарий Великовский",
+          "role": "Russian translator candidate",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.litres.ru/book/alber-kamu/mif-o-sizife-154434/chitat-onlayn/"
+          ]
+        },
+        {
+          "name": "Justin O’Brien",
+          "role": "English translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.penguin.co.uk/books/56970/the-myth-of-sisyphus-by-albert-camus-trans-justin-obrien-intro-james-wood/9780141182001"
+          ]
+        },
+        {
+          "name": "Vincent von Wroblewsky",
+          "role": "German translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://www.rowohlt.de/buch/albert-camus-der-mythos-des-sisyphos-9783499227653"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Le Mythe de Sisyphe, 1942; Canadian digital transcription",
+          "url": "https://classiques.uqam.ca/classiques/camus_albert/mythe_de_sisyphe/mythe_de_sisyphe.pdf",
+          "status": "Personally inspected transcription PDF pp.31 and 52: original pagination markers [45], [77], edition behind pagination still to verify. Repeated running header names a different author; title and text identify Camus. File asserts Canadian public domain and separately restricts redistribution; no worldwide licence inferred."
+        }
+      ],
+      "requested_places": [
+        "A:E134: PDF p.31 [45], human demand and unreasonable silence",
+        "A:E135: PDF p.52 [77], conscious revolt and persistence of the absurd"
+      ],
+      "searches": [
+        {
+          "source": "Publisher and library catalogs",
+          "result": "English Justin O’Brien; German Vincent von Wroblewsky, publisher sample limited to early pages; Russian Litres names Великовский; Spanish publisher sample translator not yet identified. Chinese catalog identifies 沈志明, requiring an authorized copy and independent rights verification. Different editions and translation rights must not be conflated.",
+          "url": "https://www.penguinlibros.com/pe/filosofia/326295-libro-el-mito-de-sisifo-9786073826334/fragmento"
+        }
+      ],
+      "remaining": "Complete required catalogs and full-text searches, establish source edition and copyright for every jurisdiction and translation, verify exact aligned passages in lawful copies. Current search does not establish absence."
     },
     {
       "work": "alison-hills.aesthetic-testimony-understanding-and-virtue",
