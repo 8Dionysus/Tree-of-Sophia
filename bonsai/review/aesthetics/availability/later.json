@@ -1009,7 +1009,58 @@
       "areas": [
         "AE07"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "ru",
+      "people": [
+        {
+          "name": "Михаил Михайлович Бахтин",
+          "role": "author",
+          "birth": 1895,
+          "death": 1975,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q185375"
+          ]
+        },
+        {
+          "name": "Hélène Iswolsky",
+          "role": "English translator",
+          "birth": 1896,
+          "death": 1975,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q16007816",
+            "https://openlibrary.org/isbn/9780262055031"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Творчество Франсуа Рабле и народная культура средневековья и Ренессанса, 1965",
+          "status": "Original edition and exact Russian pages for readings still to be checked in authorized witness."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "Rabelais and His World, translated Hélène Iswolsky, MIT Press 1968",
+          "url": "https://openlibrary.org/isbn/9780262055031",
+          "status": "Catalog evidence; English place locations in existing register await inspection of lawful copy. Copyright of original and translation separate."
+        }
+      ],
+      "requested_places": [
+        "A:E112 English Iswolsky pp.310–311",
+        "A:E109 English Iswolsky pp.316–317",
+        "A:E110 English Iswolsky pp.322–323",
+        "A:E111 English Iswolsky pp.326–327",
+        "A:E113 is a secondary article, not an additional book passage"
+      ],
+      "searches": [
+        {
+          "source": "Catalog and existing register",
+          "url": "https://catalog.hathitrust.org/Record/002609342",
+          "result": "Hathi catalog has 1984 Indiana reprint; full-view status and places need checking. Columbia course scan exists but pages and authority to distribute were not independently established."
+        }
+      ],
+      "remaining": "Find Russian original pages, inspect authorized translation passages, contributors and rights, all mandatory catalogs including Chinese; no absence inferred."
     },
     {
       "work": "viktor-shklovsky.iskusstvo-kak-priem",
@@ -2630,7 +2681,48 @@
         "AE21",
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Susan Sontag",
+          "role": "author",
+          "birth": 1933,
+          "death": 2004,
+          "evidence": [
+            "https://books.google.com/books?vid=ISBN9780374520403"
+          ]
+        },
+        {
+          "name": "Horacio Vázquez Rial",
+          "role": "Spanish translator candidate",
+          "birth": 1947,
+          "death": 2012,
+          "evidence": [
+            "https://openlibrary.org/works/OL496452W/editions.json?limit=30",
+            "https://www.wikidata.org/wiki/Q2406730"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Against Interpretation, essay dated 1964; collection Farrar, Straus & Giroux 1966",
+          "url": "https://susansontag.com/SusanSontag/books/againstInterpExcerpt.shtml",
+          "status": "Estate of Susan Sontag publishes original excerpt, §§1–4 accessible and personally checked; all rights reserved, print pages absent. First journal publication and individual quotation rights need verification."
+        }
+      ],
+      "requested_places": [
+        "C:A-I083: Estate excerpt §§1–2, historical distinction of form and content",
+        "C:A-I082: Estate excerpt §§2–4, interpretation and sensory experience"
+      ],
+      "searches": [
+        {
+          "source": "Estate of Susan Sontag and Google Books",
+          "url": "https://susansontag.com/SusanSontag/books/againstInterpretation.shtml",
+          "result": "Estate excerpt covers both structural locations; Google Books 1986 ISBN 9780374520403 shows metadata but no preview in this browser. Collection first published 1966; essay initial publication needs evidence."
+        }
+      ],
+      "remaining": "Find exact printed pages and aligned lawful translation passages, rights and dates, all mandatory search routes; Russian and simplified Chinese remain unconfirmed, not absent."
     },
     {
       "work": "susanne-k-langer.feeling-and-form",
