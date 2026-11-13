@@ -17433,16 +17433,33 @@
   "fetched": "2026-11-13"
  },
  "william-k-wimsatt": {
-  "item": null,
+  "item": "Q8014127",
   "label": {
-   "ru": "Уильям Курц Уимсетт",
-   "en": "William K. Wimsatt"
+   "en": "William Kurtz Wimsatt, Jr.",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1907-11-17T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1975-12-17T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-12",
+  "identity_register": {
+   "born": 1907,
+   "died": 1975
+  },
+  "identity_reference": {
+   "source": "https://en.wikipedia.org/wiki/William_K._Wimsatt",
+   "work_source": "https://api.crossref.org/works/10.1515/9781474465519-013",
+   "basis": "The biography identifies Q8014127 and names the coauthored work; Crossref independently records Wimsatt and Beardsley for the title."
+  },
   "relation_search": {
    "complete": true,
    "titles": [
