@@ -208,8 +208,8 @@
         }
       ],
       "jurisdiction_basis": {
-        "us": "unverified",
-        "eu": "unverified",
+        "us": "1934 registration A71183 renewed 1961 as R274497; the original remains within the 95-year publication term through 2029 under the owner's stated boundary; short quotation remains to be assessed per passage",
+        "eu": "candidate: author died in 1952, within the owner's EU life-plus-70 boundary; text editors and translators require separate verification",
         "ru": "unverified",
         "mx": "unverified"
       },
@@ -229,6 +229,10 @@
         {
           "url": "https://catalog.hathitrust.org/api/volumes/brief/oclc/527798.json",
           "observation": "HathiTrust identifies Art as experience, 1934, record 000209057; the returned item mdp.39015007228193 has rightsCode ic and US rights string Limited (search-only). This item is not full view; this does not settle renewal or availability of other copies."
+        },
+        {
+          "url": "https://archive.org/details/catalogofcopyrig3151lib/page/n837/mode/1up",
+          "observation": "The US Catalog of Copyright Entries, Third Series, Part 1, Books and Pamphlets, January–June 1961, printed p. 820 (scan leaf n837), records Art as experience, John Dewey, original registration 23 March 1934 A71183 and renewal 14 April 1961 R274497 in the name of Roberta L. Dewey, widow. The scan image was visually checked; OCR alone did not determine the entry."
         }
       ],
       "participants_incomplete": true
@@ -390,8 +394,10 @@
         {
           "role": "author",
           "name": "Martin Heidegger",
-          "dates": "unverified",
-          "source": "https://api.crossref.org/works/10.5771/9783465142362-1"
+          "source": "https://api.crossref.org/works/10.5771/9783465142362-1",
+          "born": 1889,
+          "died": 1976,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q48301.json"
         }
       ],
       "jurisdiction_basis": {
@@ -525,8 +531,10 @@
         {
           "role": "author",
           "name": "Arthur Danto",
-          "dates": "unverified",
-          "source": "https://www.helsinki.fi/assets/drupal/2024-03/Danto-Artworld-1964.pdf"
+          "source": "https://www.helsinki.fi/assets/drupal/2024-03/Danto-Artworld-1964.pdf",
+          "born": 1924,
+          "died": 2013,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q365129.json"
         }
       ],
       "jurisdiction_basis": {
@@ -785,8 +793,9 @@
         {
           "role": "author",
           "name": "Susan Buck-Morss",
-          "dates": "unverified",
-          "source": "https://api.crossref.org/works/10.2307/778700"
+          "source": "https://api.crossref.org/works/10.2307/778700",
+          "born": 1942,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q3267701.json"
         }
       ],
       "jurisdiction_basis": {
@@ -882,7 +891,6 @@
         {
           "role": "author",
           "name": "Yuriko Saito",
-          "dates": "unverified",
           "source": "https://api.openalex.org/works/https://doi.org/10.4324/9781315237541-18",
           "born": 1953,
           "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q8061670.json"
@@ -1054,8 +1062,9 @@
         {
           "role": "author_in_crossref",
           "name": "Claire Bishop",
-          "dates": "unverified",
-          "source": "https://api.crossref.org/works/10.1162/0162287042379810"
+          "source": "https://api.crossref.org/works/10.1162/0162287042379810",
+          "born": 1971,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q19666872.json"
         }
       ],
       "jurisdiction_basis": {
@@ -1321,8 +1330,10 @@
         {
           "role": "author",
           "name": "Howard S. Becker",
-          "dates": "unverified",
-          "source": "https://www.columbia.edu/itc/barnard/arthist/wolff/pdfs/week5_becker.pdf"
+          "source": "https://www.columbia.edu/itc/barnard/arthist/wolff/pdfs/week5_becker.pdf",
+          "born": 1928,
+          "died": 2023,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q718736.json"
         }
       ],
       "jurisdiction_basis": {
@@ -1358,9 +1369,10 @@
       "participants": [
         {
           "role": "author_in_crossref",
-          "name": "Jacques Rancie`re",
-          "dates": "unverified",
-          "source": "https://api.crossref.org/works/10.1080/0969725032000162657"
+          "name": "Jacques Rancière",
+          "source": "https://api.crossref.org/works/10.1080/0969725032000162657",
+          "born": 1940,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q467470.json"
         }
       ],
       "jurisdiction_basis": {
@@ -1983,7 +1995,6 @@
         {
           "role": "author",
           "name": "Walter D. Mignolo",
-          "dates": "unverified",
           "source": "https://api.crossref.org/works/10.14483/21450706.1224",
           "born": 1941,
           "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q497968.json"
@@ -2031,7 +2042,6 @@
         {
           "role": "author",
           "name": "Yuriko Saito",
-          "dates": "unverified",
           "source": "https://api.crossref.org/works/10.24310/contrastescontrastes.v25i3.11567",
           "born": 1953,
           "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q8061670.json"
@@ -2621,8 +2631,10 @@
         {
           "role": "author_in_crossref",
           "name": "Allen Carlson",
-          "dates": "unverified",
-          "source": "https://api.crossref.org/works/10.1007/978-94-007-7470-4_10"
+          "source": "https://api.crossref.org/works/10.1007/978-94-007-7470-4_10",
+          "born": 1943,
+          "died": 2025,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q2837880.json"
         }
       ],
       "jurisdiction_basis": {
@@ -2739,7 +2751,6 @@
         {
           "role": "author_in_crossref",
           "name": "Yuriko Saito",
-          "dates": "unverified",
           "source": "https://api.crossref.org/works/10.5840/enviroethics199820228",
           "born": 1953,
           "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q8061670.json"
@@ -2936,6 +2947,62 @@
         "La Distinction"
       ],
       "outcome": "Candidate records found, with license or access discrepancies; no reuse approved. Some matching-title Bourdieu records are book reviews, not the original work, and are not used as witnesses."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "Russian Wikisource search API",
+      "queries": [
+        "Бернейс",
+        "Дюбуа",
+        "Вальтер Беньямин",
+        "Джон Дьюи",
+        "Олдо Леопольд",
+        "Коллингвуд",
+        "Хёйзинга"
+      ],
+      "outcome": "The first eight results per query did not identify the seven target works or their translations; some names matched unrelated people. This bounded search is not an absence finding, and alternate spellings and the rest of the required sources remain."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "HathiTrust Bibliographic API",
+      "queries": [
+        "OCLC 870843682",
+        "OCLC 255689542",
+        "OCLC 4825430",
+        "OCLC 32889703",
+        "OCLC 2567372",
+        "OCLC 191808",
+        "OCLC 10529865"
+      ],
+      "outcome": "All seven queried values obtained from Open Library searches for Collingwood returned empty record/item lists. Verify other identifiers and editions; this is not a finding that HathiTrust lacks the work."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "Wikidata entity search and wbgetentities",
+      "queries": [
+        "Q2837880",
+        "Q365129",
+        "Q19666872",
+        "Q718736",
+        "Q467470",
+        "Q48301",
+        "Q3267701",
+        "Q497968",
+        "Q8061670"
+      ],
+      "outcome": "Recorded available birth/death years for matched authors. No P570 claim in the returned record is not proof that a person is living; searches with ambiguous identities or HTTP 429 remain unverified."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "Internet Archive, Catalog of Copyright Entries OCR and page image",
+      "queries": [
+        "1961 Jan–Jun catalogofcopyrig3151lib",
+        "1961 Jul–Dec catalogofcopyrig3151libr",
+        "1962 Jan–Jun catalogofcopyrig3161libr",
+        "1962 Jul–Dec catalogofcopyrig3161lib",
+        "Dewey, John; Art as experience; R274497"
+      ],
+      "outcome": "1961 Jan–Jun catalog printed p. 820, leaf n837, records registration A71183 and renewal R274497; page image visually checked. The remaining three volumes had no exact title match in OCR; this result is secondary to the positive renewal record."
     }
   ]
 }
