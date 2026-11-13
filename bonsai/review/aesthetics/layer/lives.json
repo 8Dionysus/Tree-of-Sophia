@@ -3115,26 +3115,24 @@
   }
  },
  "daniel-dennett": {
-  "item": null,
+  "item": "Q215263",
   "label": {
-   "ru": "Дэниел Деннет",
-   "en": "Daniel Dennett"
+   "en": "Daniel Dennett",
+   "ru": "Дэниел Деннет"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Daniel Dennett"
-   },
-   {
-    "kind": "work",
-    "query": "Inside Jokes: Using Humor to Reverse-Engineer the Mind"
+    "time": "+1942-03-28T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [
+   {
+    "time": "+2024-04-19T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-12",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3160,6 +3158,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Inside Jokes: Using Humor to Reverse-Engineer the Mind",
+   "source": "https://openlibrary.org/authors/OL342699A/Daniel_C._Dennett",
+   "person_url": "https://www.wikidata.org/wiki/Q215263",
+   "basis": "Open Library lists the exact coauthored book on this author authority and links it to the Wikidata person."
   }
  },
  "daniel-e-berlyne": {
@@ -8007,26 +8011,25 @@
   }
  },
  "john-ruskin": {
-  "item": null,
+  "item": "Q179126",
   "label": {
-   "ru": "Джон Рёскин",
-   "en": "John Ruskin"
+   "en": "John Ruskin",
+   "ru": "Джон Рёскин"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "John Ruskin"
-   },
-   {
-    "kind": "work",
-    "query": "The Stones of Venice, Volume III"
+    "time": "+1819-02-08T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [
+   {
+    "time": "+1900-01-20T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-12",
+  "identity_work": "Q7766650",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -10022,16 +10025,33 @@
   }
  },
  "marcus-vitruvius-pollio": {
-  "item": null,
+  "item": "Q47163",
   "label": {
-   "ru": "Марк Витрувий Поллион",
-   "en": "Marcus Vitruvius Pollio"
+   "en": "Vitruvius",
+   "ru": "Марк Витрувий Поллион"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "-0080-01-01T00:00:00Z",
+    "precision": 9,
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "died": [
+   {
+    "time": "-0015-00-00T00:00:00Z",
+    "precision": 9,
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "fetched": "2026-11-12",
+  "identity_work": "Q1232238",
   "relation_search": {
    "complete": true,
    "titles": [
