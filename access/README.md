@@ -102,17 +102,12 @@ SQLite path and an owner-selected binding. A reader never creates a missing
 product, infers a binding from database contents, or falls back to a different
 dataset after a selected product fails.
 
-Projection search retains its declared engine-specific behavior: legacy and
-indexed modes keep their own pagination and filters, while compressed search is
-available only for an explicitly selected prepared profile. The native
-consumer does not translate offsets into cursors or silently select another
-engine. See the [compressed-search contract](COMPRESSED_SEARCH_V3.md) and
-[native semantics](shared/NATIVE_SEMANTICS.md) for engine compatibility and
-work limits.
+Knowledge search uses the compressed profile of an explicitly selected prepared
+publication. The native consumer does not translate offsets into cursors or
+silently select another dataset. See the [compressed-search contract](COMPRESSED_SEARCH_V3.md) for the cursor and work limits.
 
 Source navigation provides `tos.source.descend` and `tos.dossier.inspect` on
-the native source-navigation product (or the explicitly supported legacy
-carrier). A dossier can include the connected bibliographic chain, observed
+the native source-navigation product. A dossier can include the connected bibliographic chain, observed
 links, scoped rights records, gaps and source references. Check the rights record
 before using a downloadable URL. A prepared
 reader without its declared navigation and rights companions is unavailable

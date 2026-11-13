@@ -361,15 +361,6 @@ pub(crate) struct ReferenceReleaseGuard {
 }
 
 impl ReferenceReleaseGuard {
-    pub(crate) fn open_for_standalone_snapshot(
-        release_root_path: &Path,
-        snapshot_root_path: &Path,
-        manifest_raw: &[u8],
-    ) -> Result<Self> {
-        Self::open_selected(release_root_path, Some((snapshot_root_path, manifest_raw)))
-            .map(|(_, guard)| guard)
-    }
-
     /// Resolve the maintained Reference ReleaseStore while retaining its shared
     /// lock and exact pointer/pair/binding bytes through the caller's operation.
     pub(crate) fn resolve_current_snapshot_root(
@@ -519,22 +510,6 @@ impl ReferenceReleaseGuard {
 
     pub(crate) fn receipt(&self) -> &str {
         &self.receipt
-    }
-
-    pub(crate) fn retained_state_upper_bound(&self) -> usize {
-        std::mem::size_of::<Self>()
-            .saturating_add(self.root_path.as_os_str().len())
-            .saturating_add(self.pair_id.capacity())
-            .saturating_add(self.pointer_raw.capacity())
-            .saturating_add(self.pair_raw.capacity())
-            .saturating_add(self.bindings_raw.capacity())
-            .saturating_add(
-                self.revoked_digests
-                    .iter()
-                    .map(String::capacity)
-                    .sum::<usize>(),
-            )
-            .saturating_add(self.receipt.capacity())
     }
 
     pub(crate) fn check(&self) -> Result<()> {

@@ -249,11 +249,7 @@ pub(crate) fn mcp_tool_list(
             crate::reading::PUBLIC_WORD_CAPABILITY_OPERATION
             | crate::reading::PUBLIC_READING_CAPABILITY_OPERATION => true,
             crate::reading::OPERATION_ID => executor.reading_search_available(),
-            SEARCH_OPERATION_ID => {
-                executor.knowledge_search_indexed_available()
-                    || executor.knowledge_search_legacy_available()
-                    || executor.knowledge_search_compressed_available()
-            }
+            SEARCH_OPERATION_ID => executor.knowledge_search_compressed_available(),
             SOURCE_TEXT_SEARCH_OPERATION_ID => source_text_search_selected,
             id if crate::source_read::Operation::from_id(id).is_some() => {
                 crate::source_read::Operation::from_id(id).is_some_and(|op| op.software_available())
@@ -931,21 +927,6 @@ macro_rules! access_executor_contract {
             "selected public ledger unavailable",
         ))
     }
-    /// Maintained v1 is available only with an owner-selected normalized model
-    /// and its distinct current search authority.
-    fn knowledge_search_legacy_available(&self) -> bool {
-        false
-    }
-    fn knowledge_search_legacy(
-        &self,
-        _: tos_query::knowledge_legacy_search::LegacySearchRequest,
-        _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
-        Err(AccessError::new(
-            AccessErrorCode::Unavailable,
-            "legacy knowledge search unavailable",
-        ))
-    }
     /// Indexed v2 requires a complete selected publication and its QRY executor.
     fn knowledge_search_indexed_available(&self) -> bool {
         false
@@ -1114,16 +1095,6 @@ impl<'hold, T: AccessExecutor + ?Sized> ScopedAccessExecutor<'hold> for T {
         arg1: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'hold>, AccessError> {
         AccessExecutor::source_gap(self, arg0, arg1)
-    }
-    fn knowledge_search_legacy_available(&self) -> bool {
-        AccessExecutor::knowledge_search_legacy_available(self)
-    }
-    fn knowledge_search_legacy(
-        &self,
-        arg0: tos_query::knowledge_legacy_search::LegacySearchRequest,
-        arg1: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'hold>, AccessError> {
-        AccessExecutor::knowledge_search_legacy(self, arg0, arg1)
     }
     fn knowledge_search_indexed_available(&self) -> bool {
         AccessExecutor::knowledge_search_indexed_available(self)
@@ -1418,13 +1389,6 @@ pub(crate) fn error_json(error: &AccessError) -> Vec<u8> {
 pub(crate) fn validate_packet(raw: &[u8], max_bytes: usize) -> Result<(), AccessError> {
     validate_packet_in_state(raw, max_bytes, None)
 }
-pub(crate) fn validate_packet_with_state_budget(
-    raw: &[u8],
-    max_bytes: usize,
-    remaining_state: usize,
-) -> Result<(), AccessError> {
-    validate_packet_in_state(raw, max_bytes, Some(remaining_state))
-}
 /// Existing public packet grammar grant shared with Resource rendering.
 pub(crate) fn packet_json_limits(max_bytes: usize) -> JsonLimits {
     JsonLimits {
@@ -1472,13 +1436,4 @@ fn validate_packet_in_state(
         ));
     }
     Ok(())
-}
-
-/// Typed allocations added by checked_execute and the one owner lease adapter.
-/// Lease payload state remains with its selected owner; shared Arc targets are
-/// counted by their original owner rather than each pointer alias.
-pub(crate) fn scoped_packet_wrapper_state_bytes() -> usize {
-    std::mem::size_of::<PreparedPacket<'_>>()
-        + std::mem::size_of::<AbortFence<'_>>()
-        + std::mem::size_of::<Box<dyn DisclosureFence>>()
 }

@@ -120,9 +120,6 @@ impl Authority {
             O::Lens => tos_query::knowledge_lens::LENS_INTENDED_USE,
             O::Focus => tos_query::knowledge_lens::FOCUS_INTENDED_USE,
             O::StoredLens => tos_query::knowledge_lens::STORED_LENS_INTENDED_USE,
-            O::SearchCapabilities => {
-                tos_query::knowledge_legacy_search::SEARCH_CAPABILITIES_INTENDED_USE
-            }
             O::Contracts => tos_query::knowledge_contracts::KNOWLEDGE_CONTRACTS_INTENDED_USE,
             _ => "read_only_public_knowledge_inspect_v1",
         };
@@ -414,13 +411,6 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
             assert!(
                 observed.is_empty(),
                 "registry carriers are separately granted, not graph rows"
-            );
-        } else if self.inspect.operation_id
-            == tos_query::knowledge_legacy_search::SEARCH_CAPABILITIES_OPERATION
-        {
-            assert!(
-                observed.is_empty(),
-                "capabilities authenticates selected engine binding without disclosing graph rows"
             );
         } else if observed.is_empty()
             && self.inspect.operation_id == "tos.knowledge.temporal.list_claims"
