@@ -66,6 +66,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-10-hogarth.json"
   },
   {
+   "id": "codex-2026-11-12-poetics-form",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Aristotle, Poetics VII–VIII, in the Greek text of the public corpus, beside the registers' readings.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-poetics-form.json"
+  },
+  {
    "id": "codex-2026-11-12-poetics-forms",
    "model": "gpt-6",
    "date": "2026-11-12",
@@ -11112,6 +11119,88 @@
    "admission": "map",
    "grew_from": [
     "A:E015"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:whole-and-parts",
+   "type": "tos.entity.conception",
+   "of": [
+    "unity"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "8, 1451a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-6b4670ba50ca469f9183258d5fe1cd06",
+       "tos.text-unit.sid-6b4670ba50ca469f9183258d5fe1cd06"
+      ],
+      "s": 758,
+      "e": 1109
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Фабула подражает единому целому действию; её части соединены так, что перестановка или удаление части изменяет и потрясает целое.",
+    "en": "A plot represents a single whole action; its parts are joined so that moving or removing one changes and dislocates the whole."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-form",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:A-I003"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:beauty-order-and-magnitude",
+   "type": "tos.entity.conception",
+   "of": [
+    "form"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "7, 1450b–1451a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-e73a347a1cbe4250bc3d3b3cdcd60bc7",
+       "tos.text-unit.sid-e73a347a1cbe4250bc3d3b3cdcd60bc7"
+      ],
+      "s": 729,
+      "e": 1322
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Прекрасное составное целое имеет порядок и определённую величину: тело должно быть обозримым, а фабула — удерживаться в памяти.",
+    "en": "A beautiful composite whole has order and a certain magnitude: a body must be easy to take in at a glance, and a plot easy to hold in memory."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-form",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:A-I004"
    ]
   },
   {

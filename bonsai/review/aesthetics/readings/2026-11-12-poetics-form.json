@@ -1,0 +1,82 @@
+{
+  "reader": {
+    "id": "codex-2026-11-12-poetics-form",
+    "model": "gpt-6",
+    "date": "2026-11-12",
+    "reads": "Aristotle, Poetics VII–VIII, in the Greek text of the public corpus, beside the registers' readings."
+  },
+  "library": {
+    "agents": {
+      "aristotle": {
+        "tree": "tos.agent.aristotle"
+      }
+    },
+    "works": {
+      "aristotle.poetics": {
+        "title": {
+          "ru": "Поэтика",
+          "en": "Poetics"
+        },
+        "original": "grc",
+        "tree": "tos.work.retained-antiquity.poetics"
+      }
+    }
+  },
+  "conceptions": [
+    {
+      "id": "aristotle.poetics:whole-and-parts",
+      "of": [
+        "C:A-C007"
+      ],
+      "areas": [
+        "AE21"
+      ],
+      "work": "aristotle.poetics",
+      "locus": "8, 1451a",
+      "formula": [
+        {
+          "unit": "Глава 8",
+          "from": "χρὴ οὖν, καθάπερ",
+          "to": "οὐδὲν μόριον τοῦ ὅλου ἐστίν."
+        }
+      ],
+      "thesis": {
+        "ru": "Фабула подражает единому целому действию; её части соединены так, что перестановка или удаление части изменяет и потрясает целое.",
+        "en": "A plot represents a single whole action; its parts are joined so that moving or removing one changes and dislocates the whole."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "C:A-I003"
+      ]
+    },
+    {
+      "id": "aristotle.poetics:beauty-order-and-magnitude",
+      "of": [
+        "C:A-C001"
+      ],
+      "areas": [
+        "AE21"
+      ],
+      "work": "aristotle.poetics",
+      "locus": "7, 1450b–1451a",
+      "formula": [
+        {
+          "unit": "Глава 7",
+          "from": "ἔτι δ’ ἐπεὶ τὸ καλὸν",
+          "to": "τοῦτο δὲ εὐμνημόνευτον εἶναι."
+        }
+      ],
+      "thesis": {
+        "ru": "Прекрасное составное целое имеет порядок и определённую величину: тело должно быть обозримым, а фабула — удерживаться в памяти.",
+        "en": "A beautiful composite whole has order and a certain magnitude: a body must be easy to take in at a glance, and a plot easy to hold in memory."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "C:A-I004"
+      ]
+    }
+  ],
+  "links": []
+}
