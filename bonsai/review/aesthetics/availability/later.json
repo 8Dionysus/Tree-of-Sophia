@@ -572,6 +572,12 @@
           "edition": "Estética, José Sánchez-Rojas, Madrid: Francisco Beltrán, 1912",
           "scan": "https://archive.org/details/estetica-croce",
           "status": "candidate; title date, target pages and rights need review"
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "美学原理, translated Zhu Guangqian; specific Tencent edition not identified",
+          "url": "https://weread.qq.com/web/bookDetail/66c32570811e57e17g0130b7",
+          "status": "Personally inspected WeRead book description explicitly attributes translation to Zhu and discusses revision. Page showed catalog description without accessible book pages; edition, publication rights and exact loci remain to verify."
         }
       ],
       "searches": [
@@ -601,6 +607,11 @@
           "source": "1912 Spanish scan, first paragraph",
           "url": "https://iiif.archive.org/iiif/estetica-croce$46/full/1200,/0/default.jpg",
           "result": "Personally inspected chapter I first paragraph: its final sentence names concepts without the images contrast present in the 1902 Italian p.3. Determine origin of this edition-specific discrepancy before alignment."
+        },
+        {
+          "source": "National Library of China scan via Wikimedia Commons",
+          "url": "https://commons.wikimedia.org/wiki/File:NLC511-004031011020885-2420_%E7%BE%8E%E5%AD%B8%E5%8E%9F%E7%90%86.pdf",
+          "result": "Catalog identifies a 1947 traditional-script edition; Commons marks PD China. That label alone does not establish translation rights or simplified-script text; translator and exact pages must be checked."
         }
       ],
       "remaining": "Review all target passages and sentence alignment, particularly Spanish opening discrepancy; verify contributors, lawful access and rights, complete required searches. No absence inferred."
@@ -1650,10 +1661,12 @@
         {
           "name": "Victor Ernest Mașek",
           "role": "Romanian translator, 1984, cited intermediary",
-          "dates_status": "identity and dates need independent authority verification",
+          "dates_status": "death not established; role in specific 1984 printing needs title-page confirmation",
           "evidence": [
-            "https://mari.kiev.ua/sites/default/files/inline-images/pdfs/Shkepu_book_site.pdf"
-          ]
+            "https://mari.kiev.ua/sites/default/files/inline-images/pdfs/Shkepu_book_site.pdf",
+            "https://id.loc.gov/authorities/names/n84012946.html"
+          ],
+          "birth": 1937
         }
       ],
       "original_candidates": [
@@ -1709,9 +1722,14 @@
           "source": "National Academy of Arts of Ukraine, Modern Art Research Institute hosted edition",
           "result": "2010 monograph includes Russian rendering of Rosenkranz; own bibliographic note explicitly calls it translation of a translation and discusses Romanian intermediary. Printed pp.33–34 and 70–71 match relevant German 1853 preface IV–V and pp.67–68 in broad subject; exact collation and contributor rights remain open.",
           "url": "https://mari.kiev.ua/sites/default/files/inline-images/pdfs/Shkepu_book_site.pdf"
+        },
+        {
+          "source": "Independent German/Russian passage collation",
+          "url": "https://mari.kiev.ua/sites/default/files/inline-images/pdfs/Shkepu_book_site.pdf",
+          "result": "1853 pp.68, 115, 164 compared with Shkepu 2010 pp.71, 95, 119. The indirect Russian rendering differs materially on Anordnung der Unterschiede, Formlosigkeit and geistiges; latter is rendered as ideal. Exact alignment and intermediary must be reviewed before admission. First sentence p.164/p.119 appears closer, with surrounding context still to review."
         }
       ],
-      "remaining": "Use the institution-hosted indirect Russian rendering and publisher English preview to align exact places; independently verify all translation contributors and rights, finish the required searches and apply the owner line. No absence finding."
+      "remaining": "Independently review alignment and indirect Russian intermediary, assess quotation rights, locate English and Spanish exact sentences and all other requested languages, complete mandatory searches. No absence finding."
     },
     {
       "work": "kendall-l-walton.fearing-fictions",
