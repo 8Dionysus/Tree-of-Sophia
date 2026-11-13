@@ -1,0 +1,3768 @@
+{
+  "schema": "tos_bonsai_bounded_alignment_candidate_v1",
+  "candidates": {
+    "1.1–3": {
+      "la": "Ita fac, mi Lucili; vindica te tibi, et tempus, quod adhuc aut auferebatur aut subripiebatur aut excidebat, collige et serva. Persuade tibi hoc sic esse, ut scribo: quaedam tempora eripiuntur nobis, quaedam subducuntur, quaedam effluunt. Turpissima tamen est iactura, quae per neglegentiam fit. Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus. Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori? In hoc enim fallimur, quod mortem prospicimus; magna pars eius iam praeterit. Quicquid aetatis retro est, mors tenet.\n\nFac ergo, mi Lucili, quod facere te scribis, omnes horas conplectere. Sic fiet, ut minus ex crastino pendeas, si hodierno manum inieceris. Dum differtur, vita transcurrit. Omnia, Lucili, aliena sunt, tempus tantum nostrum est. In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult. Et tanta stultitia mortalium est, ut quae minima et vilissima sunt, certe reparabilia, imputari sibi, cum impetravere, patiantur; nemo se iudicet quicquam debere, qui tempus accepit, cum interim hoc unum est, quod ne gratus quidem potest reddere. Interrogabis fortasse, quid ego faciam, qui tibi ista praecipio.",
+      "ru": "Поступай такъ, мой Луцилій: вызывай себя чаще на очную ставку съ самимъ собой; не упускай и береги время, которое у тебя доселѣ или отнимали, или незамѣтно для тебя похищали, или самъ ты безплодно терялъ по своей невнимательности. Воспитай въ себѣ убѣжденіе, что истина то, о чемъ я теперь пишу тебѣ: есть дни и часы, которые силою вырываютъ у насъ люди или обстоятельства; иногда-же принадлежащее намъ время исхищается у насъ тайкомъ, изъ-подъ самыхъ рукъ; а существуютъ и такія минуты, которыя для насъ самихъ протекаютъ незамѣтно. Изъ всѣхъ этихъ утратъ самая тяжкая есть та, которая дѣлается по нашей нерадивости. Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать. Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни? Въ томъ именно и состоитъ наше главное заблужденіе, что мы взираемъ на смерть, какъ на нѣчто отдаленное, не смотря на то, что на самомъ дѣлѣ наша жизнь своею значительною частью уже протекла; ибо тѣ возрасты нашей жизни, которые остались позади насъ, не намъ уже принадлежатъ, а смерти.\n\nИтакъ, не измѣняй себѣ, мой Луцилій, и поступай сообразно съ тѣмъ, какъ сообщаешь: веди счетъ всѣмъ днямъ; вѣдь если ты будешь держать въ рукахъ сегодняшній день, то менѣе будешь зависѣть отъ завтрашняго. Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи. Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти. Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ. И вотъ сколь велика неразсудительность людей: они допускаютъ, чтобы имъ были поставлены на счетъ тѣ мелкія, дешевыя и легко замѣнимыя вещи, которыя они выпросили у другихъ; а никто не размыслитъ о томъ, что онъ имѣетъ нѣкоторый долгъ и по отношенію ко времени, которое получилъ; между тѣмъ какъ это есть единственная вещь, которую даже и самый благодарный не можетъ отдать обратно. Ты, быть можетъ, спросишь, что дѣлаю я-то самъ, дающій такія наставленія?",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.877,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "1.1–3": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0.45,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        125
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        230
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        126,
+                        237
+                      ],
+                      [
+                        0,
+                        238,
+                        294
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        231,
+                        533
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        414,
+                        516
+                      ],
+                      [
+                        0,
+                        517,
+                        594
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        534,
+                        617
+                      ],
+                      [
+                        0,
+                        618,
+                        861
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        595,
+                        634
+                      ],
+                      [
+                        0,
+                        636,
+                        705
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        862,
+                        1073
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        706,
+                        774
+                      ],
+                      [
+                        0,
+                        775,
+                        807
+                      ],
+                      [
+                        0,
+                        808,
+                        862
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        1074,
+                        1360
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        863,
+                        964
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        1567,
+                        1679
+                      ],
+                      [
+                        0,
+                        1680,
+                        1761
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        965,
+                        1211
+                      ],
+                      [
+                        0,
+                        1212,
+                        1276
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        1762,
+                        1939
+                      ],
+                      [
+                        0,
+                        1940,
+                        2321
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Ita fac, mi Lucili; vindica te tibi, et tempus, quod adhuc aut auferebatur aut subripiebatur aut excidebat, collige et serva.",
+          "raw": "Ita fac, mi Lucili; vindica te tibi, et tempus, quod adhuc aut auferebatur aut subripiebatur aut excidebat, collige et serva."
+        },
+        {
+          "id": "1",
+          "text": "Persuade tibi hoc sic esse, ut scribo: quaedam tempora eripiuntur nobis, quaedam subducuntur, quaedam effluunt.",
+          "raw": "Persuade tibi hoc sic esse, ut scribo: quaedam tempora eripiuntur nobis, quaedam subducuntur, quaedam effluunt."
+        },
+        {
+          "id": "2",
+          "text": "Turpissima tamen est iactura, quae per neglegentiam fit.",
+          "raw": "Turpissima tamen est iactura, quae per neglegentiam fit."
+        },
+        {
+          "id": "3",
+          "text": "Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus.",
+          "raw": "Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus."
+        },
+        {
+          "id": "4",
+          "text": "Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori?",
+          "raw": "Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori?"
+        },
+        {
+          "id": "5",
+          "text": "In hoc enim fallimur, quod mortem prospicimus; magna pars eius iam praeterit.",
+          "raw": "In hoc enim fallimur, quod mortem prospicimus; magna pars eius iam praeterit."
+        },
+        {
+          "id": "6",
+          "text": "Quicquid aetatis retro est, mors tenet.",
+          "raw": "Quicquid aetatis retro est, mors tenet."
+        },
+        {
+          "id": "7",
+          "text": "Fac ergo, mi Lucili, quod facere te scribis, omnes horas conplectere.",
+          "raw": "Fac ergo, mi Lucili, quod facere te scribis, omnes horas conplectere."
+        },
+        {
+          "id": "8",
+          "text": "Sic fiet, ut minus ex crastino pendeas, si hodierno manum inieceris.",
+          "raw": "Sic fiet, ut minus ex crastino pendeas, si hodierno manum inieceris."
+        },
+        {
+          "id": "9",
+          "text": "Dum differtur, vita transcurrit.",
+          "raw": "Dum differtur, vita transcurrit."
+        },
+        {
+          "id": "10",
+          "text": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est.",
+          "raw": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est."
+        },
+        {
+          "id": "11",
+          "text": "In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult.",
+          "raw": "In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult."
+        },
+        {
+          "id": "12",
+          "text": "Et tanta stultitia mortalium est, ut quae minima et vilissima sunt, certe reparabilia, imputari sibi, cum impetravere, patiantur; nemo se iudicet quicquam debere, qui tempus accepit, cum interim hoc unum est, quod ne gratus quidem potest reddere.",
+          "raw": "Et tanta stultitia mortalium est, ut quae minima et vilissima sunt, certe reparabilia, imputari sibi, cum impetravere, patiantur; nemo se iudicet quicquam debere, qui tempus accepit, cum interim hoc unum est, quod ne gratus quidem potest reddere."
+        },
+        {
+          "id": "13",
+          "text": "Interrogabis fortasse, quid ego faciam, qui tibi ista praecipio.",
+          "raw": "Interrogabis fortasse, quid ego faciam, qui tibi ista praecipio."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Поступай такъ, мой Луцилій: вызывай себя чаще на очную ставку съ самимъ собой; не упускай и береги время, которое у тебя доселѣ или отнимали, или незамѣтно для тебя похищали, или самъ ты безплодно терялъ по своей невнимательности.",
+          "raw": "Поступай такъ, мой Луцилій: вызывай себя чаще на очную ставку съ самимъ собой; не упускай и береги время, которое у тебя доселѣ или отнимали, или незамѣтно для тебя похищали, или самъ ты безплодно терялъ по своей невнимательности."
+        },
+        {
+          "id": "1",
+          "text": "Воспитай въ себѣ убѣжденіе, что истина то, о чемъ я теперь пишу тебѣ: есть дни и часы, которые силою вырываютъ у насъ люди или обстоятельства; иногда-же принадлежащее намъ время исхищается у насъ тайкомъ, изъ-подъ самыхъ рукъ; а существуютъ и такія минуты, которыя для насъ самихъ протекаютъ незамѣтно.",
+          "raw": "Воспитай въ себѣ убѣжденіе, что истина то, о чемъ я теперь пишу тебѣ: есть дни и часы, которые силою вырываютъ у насъ люди или обстоятельства; иногда-же принадлежащее намъ время исхищается у насъ тайкомъ, изъ-подъ самыхъ рукъ; а существуютъ и такія минуты, которыя для насъ самихъ протекаютъ незамѣтно."
+        },
+        {
+          "id": "2",
+          "text": "Изъ всѣхъ этихъ утратъ самая тяжкая есть та, которая дѣлается по нашей нерадивости.",
+          "raw": "Изъ всѣхъ этихъ утратъ самая тяжкая есть та, которая дѣлается по нашей нерадивости."
+        },
+        {
+          "id": "3",
+          "text": "Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать.",
+          "raw": "Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать."
+        },
+        {
+          "id": "4",
+          "text": "Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни?",
+          "raw": "Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни?"
+        },
+        {
+          "id": "5",
+          "text": "Въ томъ именно и состоитъ наше главное заблужденіе, что мы взираемъ на смерть, какъ на нѣчто отдаленное, не смотря на то, что на самомъ дѣлѣ наша жизнь своею значительною частью уже протекла; ибо тѣ возрасты нашей жизни, которые остались позади насъ, не намъ уже принадлежатъ, а смерти.",
+          "raw": "Въ томъ именно и состоитъ наше главное заблужденіе, что мы взираемъ на смерть, какъ на нѣчто отдаленное, не смотря на то, что на самомъ дѣлѣ наша жизнь своею значительною частью уже протекла; ибо тѣ возрасты нашей жизни, которые остались позади насъ, не намъ уже принадлежатъ, а смерти."
+        },
+        {
+          "id": "6",
+          "text": "Итакъ, не измѣняй себѣ, мой Луцилій, и поступай сообразно съ тѣмъ, какъ сообщаешь: веди счетъ всѣмъ днямъ; вѣдь если ты будешь держать въ рукахъ сегодняшній день, то менѣе будешь зависѣть отъ завтрашняго.",
+          "raw": "Итакъ, не измѣняй себѣ, мой Луцилій, и поступай сообразно съ тѣмъ, какъ сообщаешь: веди счетъ всѣмъ днямъ; вѣдь если ты будешь держать въ рукахъ сегодняшній день, то менѣе будешь зависѣть отъ завтрашняго."
+        },
+        {
+          "id": "7",
+          "text": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи.",
+          "raw": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи."
+        },
+        {
+          "id": "8",
+          "text": "Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти.",
+          "raw": "Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти."
+        },
+        {
+          "id": "9",
+          "text": "Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ.",
+          "raw": "Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ."
+        },
+        {
+          "id": "10",
+          "text": "И вотъ сколь велика неразсудительность людей: они допускаютъ, чтобы имъ были поставлены на счетъ тѣ мелкія, дешевыя и легко замѣнимыя вещи, которыя они выпросили у другихъ; а никто не размыслитъ о томъ, что онъ имѣетъ нѣкоторый долгъ и по отношенію ко времени, которое получилъ; между тѣмъ какъ это есть единственная вещь, которую даже и самый благодарный не можетъ отдать обратно.",
+          "raw": "И вотъ сколь велика неразсудительность людей: они допускаютъ, чтобы имъ были поставлены на счетъ тѣ мелкія, дешевыя и легко замѣнимыя вещи, которыя они выпросили у другихъ; а никто не размыслитъ о томъ, что онъ имѣетъ нѣкоторый долгъ и по отношенію ко времени, которое получилъ; между тѣмъ какъ это есть единственная вещь, которую даже и самый благодарный не можетъ отдать обратно."
+        },
+        {
+          "id": "11",
+          "text": "Ты, быть можетъ, спросишь, что дѣлаю я-то самъ, дающій такія наставленія?",
+          "raw": "Ты, быть можетъ, спросишь, что дѣлаю я-то самъ, дающій такія наставленія?"
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1,
+        "variance": 6.8,
+        "modelPairs": 3,
+        "chapters": {
+          "1.1–3": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0",
+                  "1"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "2:1",
+                "cost": 2.428
+              },
+              {
+                "s": [],
+                "t": [
+                  "1"
+                ],
+                "shape": "0:1",
+                "cost": 5.204
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 1.541
+              },
+              {
+                "s": [
+                  "3",
+                  "4"
+                ],
+                "t": [
+                  "3"
+                ],
+                "shape": "2:1",
+                "cost": 3.326
+              },
+              {
+                "s": [
+                  "5",
+                  "6",
+                  "7"
+                ],
+                "t": [
+                  "4"
+                ],
+                "shape": "3:1",
+                "cost": 4.787
+              },
+              {
+                "s": [],
+                "t": [
+                  "5"
+                ],
+                "shape": "0:1",
+                "cost": 5.172
+              },
+              {
+                "s": [
+                  "8",
+                  "9",
+                  "10"
+                ],
+                "t": [
+                  "6"
+                ],
+                "shape": "3:1",
+                "cost": 5.485
+              },
+              {
+                "s": [
+                  "11"
+                ],
+                "t": [
+                  "7"
+                ],
+                "shape": "1:1",
+                "cost": 0.382
+              },
+              {
+                "s": [
+                  "12"
+                ],
+                "t": [
+                  "8",
+                  "9"
+                ],
+                "shape": "1:2",
+                "cost": 2.559
+              },
+              {
+                "s": [],
+                "t": [
+                  "10"
+                ],
+                "shape": "0:1",
+                "cost": 5.362
+              },
+              {
+                "s": [
+                  "13"
+                ],
+                "t": [
+                  "11"
+                ],
+                "shape": "1:1",
+                "cost": 0.841
+              }
+            ]
+          }
+        }
+      }
+    },
+    "9.1": {
+      "la": "An merito reprehendat in quadam epistula Epicurus eos, qui dicunt sapientem se ipso esse contentum et propter hoc amico non indigere, desideras scire. Hoc obicitur Stilboni ab Epicuro et iis quibus summum bonum visum est animus inpatiens. In ambiguitatem incidendum est, si exprimere ἀπάθειαν uno verbo cito voluerimus et inpatientiam dicere.",
+      "ru": "Ты желаешь знать, по праву-ли въ одномъ письмѣ упрекаетъ Эпикуръ тѣхъ, которые говорятъ, что мудрый довольствуется самъ собой, и, въ такомъ случаѣ, не имѣетъ нужды въ другѣ. Этотъ упрекъ высказываетъ Эпикуръ противъ Стильпона и тѣхъ, для которыхъ высочайшимъ благомъ является душа неотзывчивая, неподверженная страданію. Но мы не избѣжимъ впасть въ двусмысленность, если захотимъ греческое слово ἀπάθεια передать посредствомъ латинскаго impatientia, нечувствительность.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.3713,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "9.1": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        150
+                      ],
+                      [
+                        0,
+                        151,
+                        238
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        173
+                      ],
+                      [
+                        0,
+                        174,
+                        320
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        239,
+                        342
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        321,
+                        469
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "An merito reprehendat in quadam epistula Epicurus eos, qui dicunt sapientem se ipso esse contentum et propter hoc amico non indigere, desideras scire.",
+          "raw": "An merito reprehendat in quadam epistula Epicurus eos, qui dicunt sapientem se ipso esse contentum et propter hoc amico non indigere, desideras scire."
+        },
+        {
+          "id": "1",
+          "text": "Hoc obicitur Stilboni ab Epicuro et iis quibus summum bonum visum est animus inpatiens.",
+          "raw": "Hoc obicitur Stilboni ab Epicuro et iis quibus summum bonum visum est animus inpatiens."
+        },
+        {
+          "id": "2",
+          "text": "In ambiguitatem incidendum est, si exprimere ἀπάθειαν uno verbo cito voluerimus et inpatientiam dicere.",
+          "raw": "In ambiguitatem incidendum est, si exprimere ἀπάθειαν uno verbo cito voluerimus et inpatientiam dicere."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Ты желаешь знать, по праву-ли въ одномъ письмѣ упрекаетъ Эпикуръ тѣхъ, которые говорятъ, что мудрый довольствуется самъ собой, и, въ такомъ случаѣ, не имѣетъ нужды въ другѣ.",
+          "raw": "Ты желаешь знать, по праву-ли въ одномъ письмѣ упрекаетъ Эпикуръ тѣхъ, которые говорятъ, что мудрый довольствуется самъ собой, и, въ такомъ случаѣ, не имѣетъ нужды въ другѣ."
+        },
+        {
+          "id": "1",
+          "text": "Этотъ упрекъ высказываетъ Эпикуръ противъ Стильпона и тѣхъ, для которыхъ высочайшимъ благомъ является душа неотзывчивая, неподверженная страданію.",
+          "raw": "Этотъ упрекъ высказываетъ Эпикуръ противъ Стильпона и тѣхъ, для которыхъ высочайшимъ благомъ является душа неотзывчивая, неподверженная страданію."
+        },
+        {
+          "id": "2",
+          "text": "Но мы не избѣжимъ впасть въ двусмысленность, если захотимъ греческое слово ἀπάθεια передать посредствомъ латинскаго impatientia, нечувствительность.",
+          "raw": "Но мы не избѣжимъ впасть въ двусмысленность, если захотимъ греческое слово ἀπάθεια передать посредствомъ латинскаго impatientia, нечувствительность."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.3735,
+        "variance": 15.974,
+        "modelPairs": 3,
+        "chapters": {
+          "9.1": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 0.73
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 0.693
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 0.135
+              }
+            ]
+          }
+        }
+      }
+    },
+    "9.8": {
+      "la": "Fructuosior est adulescentia liberorum, sed infantia dulcior. Nunc ad propositum revertamur. Sapiens, etiam si contentus est se, tamen habere amicum vult, si nihil aliud, ut exerceat amicitiam, ne tam magna virtus iaceat, non ad hoc, quod dicebat Epicurus in hac ipsa epistula, “ut habeat, qui sibi aegro adsideat, succurrat in vincula coniecto vel inopi,” sed ut habeat aliquem, cui ipse aegro adsideat, quem ipse circumventum hostili custodia liberet. Qui se spectat et propter hoc ad amicitiam venit, male cogitat. Quemadmodum coepit, sic desinet: paravit amicum adversum vincla laturum opem; cum primum crepuerit catena, discedet. Hae sunt amicitiae, quas temporarias populus appellat; qui utilitatis causa adsumptus est, tamdiu placebit, quamdiu utilis fuerit.",
+      "ru": "Дѣти, выросши, дѣлаютъ больше полезнаго; но они милѣе, пока малы. Теперь воротимся къ нашей задачѣ. Мудрый, даже и имѣя довольство въ самомъ себѣ, желаетъ имѣть друга, пусть и не по какой-либо другой причинѣ, какъ только для того, чтобы дать исходъ дружескому чувству — не дать безполезно покончиться столь великой силѣ; и не потому, какъ говоритъ Эпикуръ въ вышеупомянутомъ письмѣ, „чтобы имѣть человѣка, который во время болѣзни былъ бы у него сидѣлкой, — который прибѣгалъ-бы къ нему на помощь, когда онъ поверженъ въ оковы или въ нуждѣ“; но дабы имѣть кого-либо, у кого онъ самъ въ случаѣ болѣзни могъ-бы быть прислужникомъ, кого онъ самъ могъ-бы освободить изъ-подъ стражи. Кто точкой зрѣнія избралъ самого себя, и отъ этого пункта направляется къ дружбѣ, не собралъ много матеріала для истиннаго представленія о дружбѣ; вступивши на ложный путь, онъ и застрянетъ на немъ. Вотъ онъ, говорятъ, воспиталъ для себя такого друга, который не откажется подать ему помощь даже и въ заключеніи: однако этотъ другъ окажется далеко, лишь только послышится звукъ цѣпей. Вотъ дружба, которую люди называютъ благовременною. Другъ, котораго мы приблизили къ сердцу изъ-за выгоды, будетъ нравиться намъ дотолѣ, доколѣ будетъ полезнымъ.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.6013,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "9.8": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        61
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        65
+                      ],
+                      [
+                        0,
+                        66,
+                        99
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        93,
+                        453
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        100,
+                        678
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        518,
+                        634
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        679,
+                        877
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        635,
+                        765
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        878,
+                        1063
+                      ],
+                      [
+                        0,
+                        1064,
+                        1115
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Fructuosior est adulescentia liberorum, sed infantia dulcior.",
+          "raw": "Fructuosior est adulescentia liberorum, sed infantia dulcior."
+        },
+        {
+          "id": "1",
+          "text": "Nunc ad propositum revertamur.",
+          "raw": "Nunc ad propositum revertamur."
+        },
+        {
+          "id": "2",
+          "text": "Sapiens, etiam si contentus est se, tamen habere amicum vult, si nihil aliud, ut exerceat amicitiam, ne tam magna virtus iaceat, non ad hoc, quod dicebat Epicurus in hac ipsa epistula, “ut habeat, qui sibi aegro adsideat, succurrat in vincula coniecto vel inopi,” sed ut habeat aliquem, cui ipse aegro adsideat, quem ipse circumventum hostili custodia liberet.",
+          "raw": "Sapiens, etiam si contentus est se, tamen habere amicum vult, si nihil aliud, ut exerceat amicitiam, ne tam magna virtus iaceat, non ad hoc, quod dicebat Epicurus in hac ipsa epistula, “ut habeat, qui sibi aegro adsideat, succurrat in vincula coniecto vel inopi,” sed ut habeat aliquem, cui ipse aegro adsideat, quem ipse circumventum hostili custodia liberet."
+        },
+        {
+          "id": "3",
+          "text": "Qui se spectat et propter hoc ad amicitiam venit, male cogitat.",
+          "raw": "Qui se spectat et propter hoc ad amicitiam venit, male cogitat."
+        },
+        {
+          "id": "4",
+          "text": "Quemadmodum coepit, sic desinet: paravit amicum adversum vincla laturum opem; cum primum crepuerit catena, discedet.",
+          "raw": "Quemadmodum coepit, sic desinet: paravit amicum adversum vincla laturum opem; cum primum crepuerit catena, discedet."
+        },
+        {
+          "id": "5",
+          "text": "Hae sunt amicitiae, quas temporarias populus appellat; qui utilitatis causa adsumptus est, tamdiu placebit, quamdiu utilis fuerit.",
+          "raw": "Hae sunt amicitiae, quas temporarias populus appellat; qui utilitatis causa adsumptus est, tamdiu placebit, quamdiu utilis fuerit."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Дѣти, выросши, дѣлаютъ больше полезнаго; но они милѣе, пока малы.",
+          "raw": "Дѣти, выросши, дѣлаютъ больше полезнаго; но они милѣе, пока малы."
+        },
+        {
+          "id": "1",
+          "text": "Теперь воротимся къ нашей задачѣ.",
+          "raw": "Теперь воротимся къ нашей задачѣ."
+        },
+        {
+          "id": "2",
+          "text": "Мудрый, даже и имѣя довольство въ самомъ себѣ, желаетъ имѣть друга, пусть и не по какой-либо другой причинѣ, какъ только для того, чтобы дать исходъ дружескому чувству — не дать безполезно покончиться столь великой силѣ; и не потому, какъ говоритъ Эпикуръ въ вышеупомянутомъ письмѣ, „чтобы имѣть человѣка, который во время болѣзни былъ бы у него сидѣлкой, — который прибѣгалъ-бы къ нему на помощь, когда онъ поверженъ въ оковы или въ нуждѣ“; но дабы имѣть кого-либо, у кого онъ самъ въ случаѣ болѣзни могъ-бы быть прислужникомъ, кого онъ самъ могъ-бы освободить изъ-подъ стражи.",
+          "raw": "Мудрый, даже и имѣя довольство въ самомъ себѣ, желаетъ имѣть друга, пусть и не по какой-либо другой причинѣ, какъ только для того, чтобы дать исходъ дружескому чувству — не дать безполезно покончиться столь великой силѣ; и не потому, какъ говоритъ Эпикуръ въ вышеупомянутомъ письмѣ, „чтобы имѣть человѣка, который во время болѣзни былъ бы у него сидѣлкой, — который прибѣгалъ-бы къ нему на помощь, когда онъ поверженъ въ оковы или въ нуждѣ“; но дабы имѣть кого-либо, у кого онъ самъ въ случаѣ болѣзни могъ-бы быть прислужникомъ, кого онъ самъ могъ-бы освободить изъ-подъ стражи."
+        },
+        {
+          "id": "3",
+          "text": "Кто точкой зрѣнія избралъ самого себя, и отъ этого пункта направляется къ дружбѣ, не собралъ много матеріала для истиннаго представленія о дружбѣ; вступивши на ложный путь, онъ и застрянетъ на немъ.",
+          "raw": "Кто точкой зрѣнія избралъ самого себя, и отъ этого пункта направляется къ дружбѣ, не собралъ много матеріала для истиннаго представленія о дружбѣ; вступивши на ложный путь, онъ и застрянетъ на немъ."
+        },
+        {
+          "id": "4",
+          "text": "Вотъ онъ, говорятъ, воспиталъ для себя такого друга, который не откажется подать ему помощь даже и въ заключеніи: однако этотъ другъ окажется далеко, лишь только послышится звукъ цѣпей.",
+          "raw": "Вотъ онъ, говорятъ, воспиталъ для себя такого друга, который не откажется подать ему помощь даже и въ заключеніи: однако этотъ другъ окажется далеко, лишь только послышится звукъ цѣпей."
+        },
+        {
+          "id": "5",
+          "text": "Вотъ дружба, которую люди называютъ благовременною.",
+          "raw": "Вотъ дружба, которую люди называютъ благовременною."
+        },
+        {
+          "id": "6",
+          "text": "Другъ, котораго мы приблизили къ сердцу изъ-за выгоды, будетъ нравиться намъ дотолѣ, доколѣ будетъ полезнымъ.",
+          "raw": "Другъ, котораго мы приблизили къ сердцу изъ-за выгоды, будетъ нравиться намъ дотолѣ, доколѣ будетъ полезнымъ."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1,
+        "variance": 6.8,
+        "modelPairs": 4,
+        "chapters": {
+          "9.8": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 0.166
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 0.177
+              },
+              {
+                "s": [],
+                "t": [
+                  "2"
+                ],
+                "shape": "0:1",
+                "cost": 5.756
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "3",
+                  "4"
+                ],
+                "shape": "1:2",
+                "cost": 2.735
+              },
+              {
+                "s": [
+                  "3"
+                ],
+                "t": [
+                  "5"
+                ],
+                "shape": "1:1",
+                "cost": 0.612
+              },
+              {
+                "s": [
+                  "4"
+                ],
+                "t": [
+                  "6"
+                ],
+                "shape": "1:1",
+                "cost": 0.223
+              },
+              {
+                "s": [
+                  "5"
+                ],
+                "t": [],
+                "shape": "1:0",
+                "cost": 4.86
+              }
+            ]
+          }
+        }
+      }
+    },
+    "9.10": {
+      "la": "In quid amicum paro? Ut habeam pro quo mori possim, ut habeam quem in exilium sequar, cuius me morti opponam et inpendam. Ista, quam tu describis, negotiatio est, non amicitia, quae ad commodum accedit, quae quid consecutura sit spectat. Non dubie habet aliquid simile amicitiae affectus amantium; possis dicere illam esse insanam amicitiam.",
+      "ru": "„Во имя чего я отыскиваю друга?“ — Дабы имѣть, за кого-бы я могъ умереть, за кого-бы могъ послѣдовать въ изгнаніе, — кого отъ смерти могъ-бы защитить, расходуя свою собственную жизнь. Та дружба, которую ты описываешь, есть не что иное, какъ купля-продажа, а не дружба: она вѣдь является на прибыль и заглядываетъ, не перепадетъ-ли что на ея долю. Нѣтъ сомнѣнія, душевное настроеніе любящихъ имѣетъ нѣчто сходное съ дружбой: можно сказать, что чувство это есть вышедшая за предѣлы здраво-спокойнаго состоянія дружба.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.5103,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "9.10": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0.5,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        20
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        32
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        21,
+                        121
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        33,
+                        183
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        122,
+                        237
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        184,
+                        346
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        238,
+                        341
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        347,
+                        515
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "In quid amicum paro?",
+          "raw": "In quid amicum paro?"
+        },
+        {
+          "id": "1",
+          "text": "Ut habeam pro quo mori possim, ut habeam quem in exilium sequar, cuius me morti opponam et inpendam.",
+          "raw": "Ut habeam pro quo mori possim, ut habeam quem in exilium sequar, cuius me morti opponam et inpendam."
+        },
+        {
+          "id": "2",
+          "text": "Ista, quam tu describis, negotiatio est, non amicitia, quae ad commodum accedit, quae quid consecutura sit spectat.",
+          "raw": "Ista, quam tu describis, negotiatio est, non amicitia, quae ad commodum accedit, quae quid consecutura sit spectat."
+        },
+        {
+          "id": "3",
+          "text": "Non dubie habet aliquid simile amicitiae affectus amantium; possis dicere illam esse insanam amicitiam.",
+          "raw": "Non dubie habet aliquid simile amicitiae affectus amantium; possis dicere illam esse insanam amicitiam."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "„Во имя чего я отыскиваю друга?“",
+          "raw": "„Во имя чего я отыскиваю друга?“"
+        },
+        {
+          "id": "1",
+          "text": "— Дабы имѣть, за кого-бы я могъ умереть, за кого-бы могъ послѣдовать въ изгнаніе, — кого отъ смерти могъ-бы защитить, расходуя свою собственную жизнь.",
+          "raw": "— Дабы имѣть, за кого-бы я могъ умереть, за кого-бы могъ послѣдовать въ изгнаніе, — кого отъ смерти могъ-бы защитить, расходуя свою собственную жизнь."
+        },
+        {
+          "id": "2",
+          "text": "Та дружба, которую ты описываешь, есть не что иное, какъ купля-продажа, а не дружба: она вѣдь является на прибыль и заглядываетъ, не перепадетъ-ли что на ея долю.",
+          "raw": "Та дружба, которую ты описываешь, есть не что иное, какъ купля-продажа, а не дружба: она вѣдь является на прибыль и заглядываетъ, не перепадетъ-ли что на ея долю."
+        },
+        {
+          "id": "3",
+          "text": "Нѣтъ сомнѣнія, душевное настроеніе любящихъ имѣетъ нѣчто сходное съ дружбой: можно сказать, что чувство это есть вышедшая за предѣлы здраво-спокойнаго состоянія дружба.",
+          "raw": "Нѣтъ сомнѣнія, душевное настроеніе любящихъ имѣетъ нѣчто сходное съ дружбой: можно сказать, что чувство это есть вышедшая за предѣлы здраво-спокойнаго состоянія дружба."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.5094,
+        "variance": 2.654,
+        "modelPairs": 4,
+        "chapters": {
+          "9.10": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 0.715
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 0.547
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 0.693
+              },
+              {
+                "s": [
+                  "3"
+                ],
+                "t": [
+                  "3"
+                ],
+                "shape": "1:1",
+                "cost": 0.782
+              }
+            ]
+          }
+        }
+      }
+    },
+    "9.13": {
+      "la": "Se contentus est sapiens. Hoc, mi Lucili, plerique perperam interpretantur; sapientem undique submovent et intra cutem suam cogunt. Distinguendum autem est, quid et quatenus vox ista promittat; se contentus est sapiens ad beate vivendum, non ad vivendum. Ad hoc enim multis illi rebus opus est, ad illud tantum animo sano et erecto et despiciente fortunam. Volo tibi Chrysippi quoque distinctionem indicare.",
+      "ru": "Искать довольства внѣ себя мудрый не имѣетъ нужды. Это положеніе, мой Луцилій, многіе изъясняютъ превратно; они желаютъ отдалить мудраго отъ всего внѣшняго, и заключить его, такъ сказать, въ своей собственной кожѣ. Но должно точно ограничивать, что обѣщаетъ это положеніе, и какъ далеко идутъ его обѣщанія. Мудрый въ себѣ самомъ имѣетъ достаточно силъ для счастливой жизни, но не вообще для жизни. Для этой послѣдней онъ нуждается во многихъ вещахъ; для той же потребно только имѣть душу здравую, взирающую на возвышенное и пренебрегающую случайностями счастія. При этомъ случаѣ я желаю указать тебѣ и на различіе Хризиппа.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.5307,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "9.13": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        25
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        50
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        26,
+                        131
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        51,
+                        214
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        132,
+                        254
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        215,
+                        306
+                      ],
+                      [
+                        0,
+                        307,
+                        397
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        255,
+                        356
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        398,
+                        561
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        357,
+                        407
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        562,
+                        623
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Se contentus est sapiens.",
+          "raw": "Se contentus est sapiens."
+        },
+        {
+          "id": "1",
+          "text": "Hoc, mi Lucili, plerique perperam interpretantur; sapientem undique submovent et intra cutem suam cogunt.",
+          "raw": "Hoc, mi Lucili, plerique perperam interpretantur; sapientem undique submovent et intra cutem suam cogunt."
+        },
+        {
+          "id": "2",
+          "text": "Distinguendum autem est, quid et quatenus vox ista promittat; se contentus est sapiens ad beate vivendum, non ad vivendum.",
+          "raw": "Distinguendum autem est, quid et quatenus vox ista promittat; se contentus est sapiens ad beate vivendum, non ad vivendum."
+        },
+        {
+          "id": "3",
+          "text": "Ad hoc enim multis illi rebus opus est, ad illud tantum animo sano et erecto et despiciente fortunam.",
+          "raw": "Ad hoc enim multis illi rebus opus est, ad illud tantum animo sano et erecto et despiciente fortunam."
+        },
+        {
+          "id": "4",
+          "text": "Volo tibi Chrysippi quoque distinctionem indicare.",
+          "raw": "Volo tibi Chrysippi quoque distinctionem indicare."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Искать довольства внѣ себя мудрый не имѣетъ нужды.",
+          "raw": "Искать довольства внѣ себя мудрый не имѣетъ нужды."
+        },
+        {
+          "id": "1",
+          "text": "Это положеніе, мой Луцилій, многіе изъясняютъ превратно; они желаютъ отдалить мудраго отъ всего внѣшняго, и заключить его, такъ сказать, въ своей собственной кожѣ.",
+          "raw": "Это положеніе, мой Луцилій, многіе изъясняютъ превратно; они желаютъ отдалить мудраго отъ всего внѣшняго, и заключить его, такъ сказать, въ своей собственной кожѣ."
+        },
+        {
+          "id": "2",
+          "text": "Но должно точно ограничивать, что обѣщаетъ это положеніе, и какъ далеко идутъ его обѣщанія.",
+          "raw": "Но должно точно ограничивать, что обѣщаетъ это положеніе, и какъ далеко идутъ его обѣщанія."
+        },
+        {
+          "id": "3",
+          "text": "Мудрый въ себѣ самомъ имѣетъ достаточно силъ для счастливой жизни, но не вообще для жизни.",
+          "raw": "Мудрый въ себѣ самомъ имѣетъ достаточно силъ для счастливой жизни, но не вообще для жизни."
+        },
+        {
+          "id": "4",
+          "text": "Для этой послѣдней онъ нуждается во многихъ вещахъ; для той же потребно только имѣть душу здравую, взирающую на возвышенное и пренебрегающую случайностями счастія.",
+          "raw": "Для этой послѣдней онъ нуждается во многихъ вещахъ; для той же потребно только имѣть душу здравую, взирающую на возвышенное и пренебрегающую случайностями счастія."
+        },
+        {
+          "id": "5",
+          "text": "При этомъ случаѣ я желаю указать тебѣ и на различіе Хризиппа.",
+          "raw": "При этомъ случаѣ я желаю указать тебѣ и на различіе Хризиппа."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1,
+        "variance": 6.8,
+        "modelPairs": 3,
+        "chapters": {
+          "9.13": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 2.142
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 2.906
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 1.389
+              },
+              {
+                "s": [
+                  "3"
+                ],
+                "t": [
+                  "3"
+                ],
+                "shape": "1:1",
+                "cost": 0.406
+              },
+              {
+                "s": [],
+                "t": [
+                  "4"
+                ],
+                "shape": "0:1",
+                "cost": 4.926
+              },
+              {
+                "s": [
+                  "4"
+                ],
+                "t": [
+                  "5"
+                ],
+                "shape": "1:1",
+                "cost": 0.56
+              }
+            ]
+          }
+        }
+      }
+    },
+    "9.19": {
+      "la": "Hic enim capta patria, amissis liberis, amissa uxore cum ex incendio publico solus et tamen beatus exiret, interroganti Demetrio, cui cognomen ab exitio urbium Poliorcetes fuit, numquid perdidisset, Omnia, inquit, bona mea mecum sunt. Ecce vir fortis ac strenuus! Ipsam hostis sui victoriam vicit. “Nihil,” inquit, “perdidi”; dubitare illum coegit, an vicisset. “Omnia mea mecum sunt;” hoc ipsum est nihil bonum putare, quod eripi possit.\n\nMiramur animalia quaedam, quae per medios ignes sine noxa corporum transeant; quanto hic mirabilior vir, qui per ferrum et ruinas et ignes inlaesus et indemnis evasit! Vides, quanto facilius sit totam gentem quam unum virum vincere? Haec vox illi communis est cum Stoico. Aeque et hic intacta bona per concrematas urbes fert. Se enim ipso contentus est. Hoc felicitatem suam fine designat. Ne existimes nos solos generosa verba iactare; et ipse Stilbonis obiurgator Epicurus similem illi vocem emisit, quam tu boni consule, etiam si hunc diem iam expunxi.",
+      "ru": "Этотъ философъ, вмѣстѣ съ завоеваніемъ города потерявши дѣтей и супругу, одинъ, какъ перстъ, являясь невредимымъ на всеобщемъ пожарищѣ, и тѣмъ не менѣе счастливымъ, — на вопросъ Димитрія, прозваннаго за разрушеніе городовъ Поліоркетомъ: „неужели онъ ничего не потерялъ?“ отвѣтилъ: „все добро мое находится при мнѣ!“ Вотъ мужъ неустрашимый и бодрый! Онъ побѣдилъ самого врага, побѣдившаго его. „Я ничего не потерялъ“, говорилъ онъ, и принуждалъ его такимъ образомъ усумниться, точно-ли онъ побѣдилъ. „Все мнѣ принадлежащее при мнѣ“ — справедливость, доблестность, дальновидность, и это правило нравственной жизни — ничего не считать за благо, что можетъ быть вырвано изъ рукъ.\n\nМы удивляемся нѣкоторымъ животнымъ, которыя проходятъ сквозь пламя, безъ ущерба для своего тѣла: на сколько-же удивительнѣе мужъ, который изъ подъ желѣза, развалинъ и огня поднимается невредимый, не столкнувшись ни съ какой обидой для себя. Не видишь-ли, что легче возобладать надъ цѣлымъ племенемъ, чѣмъ надъ однимъ мужемъ? Но эта мысль не Стильпона только даръ, но и стоиковъ: и они также проносятъ свои сокровища по дымящимся городамъ невредимо. Внутренняя жизнь своего „я“ занимаетъ ихъ всего болѣе: до этого предѣла они отмѣриваютъ себѣ счастіе. Не подумай, что только мы, стоики, роняемъ такія животворныя слова: даже оспаривающій Стильпона Эпикуръ вымолвилъ нѣчто, похожее на это; прими сказанное имъ съ добромъ, хотя долгъ на сегодня я уже погасилъ.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.4412,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "9.19": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0.45,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        234
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        315
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        235,
+                        263
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        316,
+                        348
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        264,
+                        297
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        349,
+                        392
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        298,
+                        361
+                      ],
+                      [
+                        0,
+                        362,
+                        438
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        499,
+                        675
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        440,
+                        607
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        677,
+                        917
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        608,
+                        672
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        918,
+                        1001
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        673,
+                        711
+                      ],
+                      [
+                        0,
+                        712,
+                        765
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        1002,
+                        1125
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        766,
+                        793
+                      ],
+                      [
+                        0,
+                        794,
+                        829
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        1126,
+                        1227
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        830,
+                        995
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        1228,
+                        1434
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Hic enim capta patria, amissis liberis, amissa uxore cum ex incendio publico solus et tamen beatus exiret, interroganti Demetrio, cui cognomen ab exitio urbium Poliorcetes fuit, numquid perdidisset, Omnia, inquit, bona mea mecum sunt.",
+          "raw": "Hic enim capta patria, amissis liberis, amissa uxore cum ex incendio publico solus et tamen beatus exiret, interroganti Demetrio, cui cognomen ab exitio urbium Poliorcetes fuit, numquid perdidisset, Omnia, inquit, bona mea mecum sunt."
+        },
+        {
+          "id": "1",
+          "text": "Ecce vir fortis ac strenuus!",
+          "raw": "Ecce vir fortis ac strenuus!"
+        },
+        {
+          "id": "2",
+          "text": "Ipsam hostis sui victoriam vicit.",
+          "raw": "Ipsam hostis sui victoriam vicit."
+        },
+        {
+          "id": "3",
+          "text": "“Nihil,” inquit, “perdidi”; dubitare illum coegit, an vicisset.",
+          "raw": "“Nihil,” inquit, “perdidi”; dubitare illum coegit, an vicisset."
+        },
+        {
+          "id": "4",
+          "text": "“Omnia mea mecum sunt;” hoc ipsum est nihil bonum putare, quod eripi possit.",
+          "raw": "“Omnia mea mecum sunt;” hoc ipsum est nihil bonum putare, quod eripi possit."
+        },
+        {
+          "id": "5",
+          "text": "Miramur animalia quaedam, quae per medios ignes sine noxa corporum transeant; quanto hic mirabilior vir, qui per ferrum et ruinas et ignes inlaesus et indemnis evasit!",
+          "raw": "Miramur animalia quaedam, quae per medios ignes sine noxa corporum transeant; quanto hic mirabilior vir, qui per ferrum et ruinas et ignes inlaesus et indemnis evasit!"
+        },
+        {
+          "id": "6",
+          "text": "Vides, quanto facilius sit totam gentem quam unum virum vincere?",
+          "raw": "Vides, quanto facilius sit totam gentem quam unum virum vincere?"
+        },
+        {
+          "id": "7",
+          "text": "Haec vox illi communis est cum Stoico.",
+          "raw": "Haec vox illi communis est cum Stoico."
+        },
+        {
+          "id": "8",
+          "text": "Aeque et hic intacta bona per concrematas urbes fert.",
+          "raw": "Aeque et hic intacta bona per concrematas urbes fert."
+        },
+        {
+          "id": "9",
+          "text": "Se enim ipso contentus est.",
+          "raw": "Se enim ipso contentus est."
+        },
+        {
+          "id": "10",
+          "text": "Hoc felicitatem suam fine designat.",
+          "raw": "Hoc felicitatem suam fine designat."
+        },
+        {
+          "id": "11",
+          "text": "Ne existimes nos solos generosa verba iactare; et ipse Stilbonis obiurgator Epicurus similem illi vocem emisit, quam tu boni consule, etiam si hunc diem iam expunxi.",
+          "raw": "Ne existimes nos solos generosa verba iactare; et ipse Stilbonis obiurgator Epicurus similem illi vocem emisit, quam tu boni consule, etiam si hunc diem iam expunxi."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Этотъ философъ, вмѣстѣ съ завоеваніемъ города потерявши дѣтей и супругу, одинъ, какъ перстъ, являясь невредимымъ на всеобщемъ пожарищѣ, и тѣмъ не менѣе счастливымъ, — на вопросъ Димитрія, прозваннаго за разрушеніе городовъ Поліоркетомъ: „неужели онъ ничего не потерялъ?“ отвѣтилъ: „все добро мое находится при мнѣ!“",
+          "raw": "Этотъ философъ, вмѣстѣ съ завоеваніемъ города потерявши дѣтей и супругу, одинъ, какъ перстъ, являясь невредимымъ на всеобщемъ пожарищѣ, и тѣмъ не менѣе счастливымъ, — на вопросъ Димитрія, прозваннаго за разрушеніе городовъ Поліоркетомъ: „неужели онъ ничего не потерялъ?“ отвѣтилъ: „все добро мое находится при мнѣ!“"
+        },
+        {
+          "id": "1",
+          "text": "Вотъ мужъ неустрашимый и бодрый!",
+          "raw": "Вотъ мужъ неустрашимый и бодрый!"
+        },
+        {
+          "id": "2",
+          "text": "Онъ побѣдилъ самого врага, побѣдившаго его.",
+          "raw": "Онъ побѣдилъ самого врага, побѣдившаго его."
+        },
+        {
+          "id": "3",
+          "text": "„Я ничего не потерялъ“, говорилъ онъ, и принуждалъ его такимъ образомъ усумниться, точно-ли онъ побѣдилъ.",
+          "raw": "„Я ничего не потерялъ“, говорилъ онъ, и принуждалъ его такимъ образомъ усумниться, точно-ли онъ побѣдилъ."
+        },
+        {
+          "id": "4",
+          "text": "„Все мнѣ принадлежащее при мнѣ“ — справедливость, доблестность, дальновидность, и это правило нравственной жизни — ничего не считать за благо, что можетъ быть вырвано изъ рукъ.",
+          "raw": "„Все мнѣ принадлежащее при мнѣ“ — справедливость, доблестность, дальновидность, и это правило нравственной жизни — ничего не считать за благо, что можетъ быть вырвано изъ рукъ."
+        },
+        {
+          "id": "5",
+          "text": "Мы удивляемся нѣкоторымъ животнымъ, которыя проходятъ сквозь пламя, безъ ущерба для своего тѣла: на сколько-же удивительнѣе мужъ, который изъ подъ желѣза, развалинъ и огня поднимается невредимый, не столкнувшись ни съ какой обидой для себя.",
+          "raw": "Мы удивляемся нѣкоторымъ животнымъ, которыя проходятъ сквозь пламя, безъ ущерба для своего тѣла: на сколько-же удивительнѣе мужъ, который изъ подъ желѣза, развалинъ и огня поднимается невредимый, не столкнувшись ни съ какой обидой для себя."
+        },
+        {
+          "id": "6",
+          "text": "Не видишь-ли, что легче возобладать надъ цѣлымъ племенемъ, чѣмъ надъ однимъ мужемъ?",
+          "raw": "Не видишь-ли, что легче возобладать надъ цѣлымъ племенемъ, чѣмъ надъ однимъ мужемъ?"
+        },
+        {
+          "id": "7",
+          "text": "Но эта мысль не Стильпона только даръ, но и стоиковъ: и они также проносятъ свои сокровища по дымящимся городамъ невредимо.",
+          "raw": "Но эта мысль не Стильпона только даръ, но и стоиковъ: и они также проносятъ свои сокровища по дымящимся городамъ невредимо."
+        },
+        {
+          "id": "8",
+          "text": "Внутренняя жизнь своего „я“ занимаетъ ихъ всего болѣе: до этого предѣла они отмѣриваютъ себѣ счастіе.",
+          "raw": "Внутренняя жизнь своего „я“ занимаетъ ихъ всего болѣе: до этого предѣла они отмѣриваютъ себѣ счастіе."
+        },
+        {
+          "id": "9",
+          "text": "Не подумай, что только мы, стоики, роняемъ такія животворныя слова: даже оспаривающій Стильпона Эпикуръ вымолвилъ нѣчто, похожее на это; прими сказанное имъ съ добромъ, хотя долгъ на сегодня я уже погасилъ.",
+          "raw": "Не подумай, что только мы, стоики, роняемъ такія животворныя слова: даже оспаривающій Стильпона Эпикуръ вымолвилъ нѣчто, похожее на это; прими сказанное имъ съ добромъ, хотя долгъ на сегодня я уже погасилъ."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1,
+        "variance": 6.8,
+        "modelPairs": 6,
+        "chapters": {
+          "9.19": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0",
+                  "1"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "2:1",
+                "cost": 4.213
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 0.255
+              },
+              {
+                "s": [
+                  "3"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 1.731
+              },
+              {
+                "s": [
+                  "4"
+                ],
+                "t": [
+                  "3"
+                ],
+                "shape": "1:1",
+                "cost": 1.417
+              },
+              {
+                "s": [
+                  "5"
+                ],
+                "t": [
+                  "4"
+                ],
+                "shape": "1:1",
+                "cost": 0.933
+              },
+              {
+                "s": [],
+                "t": [
+                  "5"
+                ],
+                "shape": "0:1",
+                "cost": 5.08
+              },
+              {
+                "s": [
+                  "6"
+                ],
+                "t": [
+                  "6"
+                ],
+                "shape": "1:1",
+                "cost": 0.928
+              },
+              {
+                "s": [
+                  "7",
+                  "8"
+                ],
+                "t": [
+                  "7"
+                ],
+                "shape": "2:1",
+                "cost": 3.746
+              },
+              {
+                "s": [
+                  "9",
+                  "10"
+                ],
+                "t": [
+                  "8"
+                ],
+                "shape": "2:1",
+                "cost": 4.627
+              },
+              {
+                "s": [
+                  "11"
+                ],
+                "t": [
+                  "9"
+                ],
+                "shape": "1:1",
+                "cost": 1.393
+              }
+            ]
+          }
+        }
+      }
+    },
+    "28.1": {
+      "la": "Hoc tibi soli putas accidisse et admiraris quasi rem novam, quod peregrinatione tam longa et tot locorum varietatibus non discussisti tristitiam gravitatemque mentis? Animum debes mutare, non caelum. Licet vastum traieceris mare, licet, ut ait Vergilius noster,\nTerraeque urbesque recedant,\nsequentur te, quocumque perveneris, vitia. Hoc idem querenti cuidam Socrates ait: Quid miraris nihil tibi peregrinationes prodesse, cum te circumferas?",
+      "ru": "Ты удивляешься, какъ будто чему-то новому, и думаешь, что съ тобой только случилось, что столь продолжительное путешествіе и такое разнообразіе мѣстностей не разсѣяло твоей печали и не уничтожило тяжелаго настроенія духа. Нравъ свой должно измѣнить, а не мѣсто. Переправляйся за широкое море; пусть, какъ говоритъ Виргилій:\nМелькаютъ предъ тобой и города, и земли, —\nтвои недостатки будутъ слѣдовать за тобой всюду, куда бы ты ни отправился. Тоже самое говоритъ на вопросъ одного человѣка Сократъ: „что-же удивительнаго въ томъ, что твое путешествіе не принесло тебѣ пользы, когда ты повсюду путешествуешь съ самимъ собою?“",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.4095,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "28.1": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0.45,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        166
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        221
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        167,
+                        199
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        222,
+                        261
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        200,
+                        333
+                      ],
+                      [
+                        0,
+                        334,
+                        442
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        262,
+                        441
+                      ],
+                      [
+                        0,
+                        442,
+                        623
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Hoc tibi soli putas accidisse et admiraris quasi rem novam, quod peregrinatione tam longa et tot locorum varietatibus non discussisti tristitiam gravitatemque mentis?",
+          "raw": "Hoc tibi soli putas accidisse et admiraris quasi rem novam, quod peregrinatione tam longa et tot locorum varietatibus non discussisti tristitiam gravitatemque mentis?"
+        },
+        {
+          "id": "1",
+          "text": "Animum debes mutare, non caelum.",
+          "raw": "Animum debes mutare, non caelum."
+        },
+        {
+          "id": "2",
+          "text": "Licet vastum traieceris mare, licet, ut ait Vergilius noster,\nTerraeque urbesque recedant,\nsequentur te, quocumque perveneris, vitia.",
+          "raw": "Licet vastum traieceris mare, licet, ut ait Vergilius noster,\nTerraeque urbesque recedant,\nsequentur te, quocumque perveneris, vitia."
+        },
+        {
+          "id": "3",
+          "text": "Hoc idem querenti cuidam Socrates ait: Quid miraris nihil tibi peregrinationes prodesse, cum te circumferas?",
+          "raw": "Hoc idem querenti cuidam Socrates ait: Quid miraris nihil tibi peregrinationes prodesse, cum te circumferas?"
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Ты удивляешься, какъ будто чему-то новому, и думаешь, что съ тобой только случилось, что столь продолжительное путешествіе и такое разнообразіе мѣстностей не разсѣяло твоей печали и не уничтожило тяжелаго настроенія духа.",
+          "raw": "Ты удивляешься, какъ будто чему-то новому, и думаешь, что съ тобой только случилось, что столь продолжительное путешествіе и такое разнообразіе мѣстностей не разсѣяло твоей печали и не уничтожило тяжелаго настроенія духа."
+        },
+        {
+          "id": "1",
+          "text": "Нравъ свой должно измѣнить, а не мѣсто.",
+          "raw": "Нравъ свой должно измѣнить, а не мѣсто."
+        },
+        {
+          "id": "2",
+          "text": "Переправляйся за широкое море; пусть, какъ говоритъ Виргилій:\nМелькаютъ предъ тобой и города, и земли, —\nтвои недостатки будутъ слѣдовать за тобой всюду, куда бы ты ни отправился.",
+          "raw": "Переправляйся за широкое море; пусть, какъ говоритъ Виргилій:\nМелькаютъ предъ тобой и города, и земли, —\nтвои недостатки будутъ слѣдовать за тобой всюду, куда бы ты ни отправился."
+        },
+        {
+          "id": "3",
+          "text": "Тоже самое говоритъ на вопросъ одного человѣка Сократъ: „что-же удивительнаго въ томъ, что твое путешествіе не принесло тебѣ пользы, когда ты повсюду путешествуешь съ самимъ собою?“",
+          "raw": "Тоже самое говоритъ на вопросъ одного человѣка Сократъ: „что-же удивительнаго въ томъ, что твое путешествіе не принесло тебѣ пользы, когда ты повсюду путешествуешь съ самимъ собою?“"
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.4275,
+        "variance": 3.494,
+        "modelPairs": 4,
+        "chapters": {
+          "28.1": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 1.143
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 0.67
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 0.496
+              },
+              {
+                "s": [
+                  "3"
+                ],
+                "t": [
+                  "3"
+                ],
+                "shape": "1:1",
+                "cost": 1.686
+              }
+            ]
+          }
+        }
+      }
+    },
+    "1.1": {
+      "la": "Ita fac, mi Lucili; vindica te tibi, et tempus, quod adhuc aut auferebatur aut subripiebatur aut excidebat, collige et serva. Persuade tibi hoc sic esse, ut scribo: quaedam tempora eripiuntur nobis, quaedam subducuntur, quaedam effluunt. Turpissima tamen est iactura, quae per neglegentiam fit. Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus. Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori?",
+      "ru": "Поступай такъ, мой Луцилій: вызывай себя чаще на очную ставку съ самимъ собой; не упускай и береги время, которое у тебя доселѣ или отнимали, или незамѣтно для тебя похищали, или самъ ты безплодно терялъ по своей невнимательности. Воспитай въ себѣ убѣжденіе, что истина то, о чемъ я теперь пишу тебѣ: есть дни и часы, которые силою вырываютъ у насъ люди или обстоятельства; иногда-же принадлежащее намъ время исхищается у насъ тайкомъ, изъ-подъ самыхъ рукъ; а существуютъ и такія минуты, которыя для насъ самихъ протекаютъ незамѣтно. Изъ всѣхъ этихъ утратъ самая тяжкая есть та, которая дѣлается по нашей нерадивости. Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать. Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни?",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 2.0795,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "1.1": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        125
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        230
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        126,
+                        237
+                      ],
+                      [
+                        0,
+                        238,
+                        294
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        231,
+                        533
+                      ],
+                      [
+                        0,
+                        534,
+                        617
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        295,
+                        413
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        618,
+                        861
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        414,
+                        516
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        862,
+                        1073
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Ita fac, mi Lucili; vindica te tibi, et tempus, quod adhuc aut auferebatur aut subripiebatur aut excidebat, collige et serva.",
+          "raw": "Ita fac, mi Lucili; vindica te tibi, et tempus, quod adhuc aut auferebatur aut subripiebatur aut excidebat, collige et serva."
+        },
+        {
+          "id": "1",
+          "text": "Persuade tibi hoc sic esse, ut scribo: quaedam tempora eripiuntur nobis, quaedam subducuntur, quaedam effluunt.",
+          "raw": "Persuade tibi hoc sic esse, ut scribo: quaedam tempora eripiuntur nobis, quaedam subducuntur, quaedam effluunt."
+        },
+        {
+          "id": "2",
+          "text": "Turpissima tamen est iactura, quae per neglegentiam fit.",
+          "raw": "Turpissima tamen est iactura, quae per neglegentiam fit."
+        },
+        {
+          "id": "3",
+          "text": "Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus.",
+          "raw": "Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus."
+        },
+        {
+          "id": "4",
+          "text": "Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori?",
+          "raw": "Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori?"
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Поступай такъ, мой Луцилій: вызывай себя чаще на очную ставку съ самимъ собой; не упускай и береги время, которое у тебя доселѣ или отнимали, или незамѣтно для тебя похищали, или самъ ты безплодно терялъ по своей невнимательности.",
+          "raw": "Поступай такъ, мой Луцилій: вызывай себя чаще на очную ставку съ самимъ собой; не упускай и береги время, которое у тебя доселѣ или отнимали, или незамѣтно для тебя похищали, или самъ ты безплодно терялъ по своей невнимательности."
+        },
+        {
+          "id": "1",
+          "text": "Воспитай въ себѣ убѣжденіе, что истина то, о чемъ я теперь пишу тебѣ: есть дни и часы, которые силою вырываютъ у насъ люди или обстоятельства; иногда-же принадлежащее намъ время исхищается у насъ тайкомъ, изъ-подъ самыхъ рукъ; а существуютъ и такія минуты, которыя для насъ самихъ протекаютъ незамѣтно.",
+          "raw": "Воспитай въ себѣ убѣжденіе, что истина то, о чемъ я теперь пишу тебѣ: есть дни и часы, которые силою вырываютъ у насъ люди или обстоятельства; иногда-же принадлежащее намъ время исхищается у насъ тайкомъ, изъ-подъ самыхъ рукъ; а существуютъ и такія минуты, которыя для насъ самихъ протекаютъ незамѣтно."
+        },
+        {
+          "id": "2",
+          "text": "Изъ всѣхъ этихъ утратъ самая тяжкая есть та, которая дѣлается по нашей нерадивости.",
+          "raw": "Изъ всѣхъ этихъ утратъ самая тяжкая есть та, которая дѣлается по нашей нерадивости."
+        },
+        {
+          "id": "3",
+          "text": "Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать.",
+          "raw": "Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать."
+        },
+        {
+          "id": "4",
+          "text": "Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни?",
+          "raw": "Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни?"
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 2.0879,
+        "variance": 17.949,
+        "modelPairs": 5,
+        "chapters": {
+          "1.1": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 0.693
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 1.948
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 1.398
+              },
+              {
+                "s": [
+                  "3"
+                ],
+                "t": [
+                  "3"
+                ],
+                "shape": "1:1",
+                "cost": 0.06
+              },
+              {
+                "s": [
+                  "4"
+                ],
+                "t": [
+                  "4"
+                ],
+                "shape": "1:1",
+                "cost": 0.037
+              }
+            ]
+          }
+        }
+      }
+    },
+    "1.2": {
+      "la": "Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus. Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori? In hoc enim fallimur, quod mortem prospicimus; magna pars eius iam praeterit. Quicquid aetatis retro est, mors tenet.\n\nFac ergo, mi Lucili, quod facere te scribis, omnes horas conplectere. Sic fiet, ut minus ex crastino pendeas, si hodierno manum inieceris. Dum differtur, vita transcurrit. Omnia, Lucili, aliena sunt, tempus tantum nostrum est.",
+      "ru": "Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать. Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни? Въ томъ именно и состоитъ наше главное заблужденіе, что мы взираемъ на смерть, какъ на нѣчто отдаленное, не смотря на то, что на самомъ дѣлѣ наша жизнь своею значительною частью уже протекла; ибо тѣ возрасты нашей жизни, которые остались позади насъ, не намъ уже принадлежатъ, а смерти.\n\nИтакъ, не измѣняй себѣ, мой Луцилій, и поступай сообразно съ тѣмъ, какъ сообщаешь: веди счетъ всѣмъ днямъ; вѣдь если ты будешь держать въ рукахъ сегодняшній день, то менѣе будешь зависѣть отъ завтрашняго. Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи. Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 2.0159,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "1.2": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        118
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        243
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        119,
+                        221
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        244,
+                        455
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        341,
+                        410
+                      ],
+                      [
+                        0,
+                        411,
+                        479
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        456,
+                        742
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        480,
+                        512
+                      ],
+                      [
+                        0,
+                        513,
+                        567
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        949,
+                        1061
+                      ],
+                      [
+                        0,
+                        1062,
+                        1143
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus.",
+          "raw": "Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus."
+        },
+        {
+          "id": "1",
+          "text": "Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori?",
+          "raw": "Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori?"
+        },
+        {
+          "id": "2",
+          "text": "In hoc enim fallimur, quod mortem prospicimus; magna pars eius iam praeterit.",
+          "raw": "In hoc enim fallimur, quod mortem prospicimus; magna pars eius iam praeterit."
+        },
+        {
+          "id": "3",
+          "text": "Quicquid aetatis retro est, mors tenet.",
+          "raw": "Quicquid aetatis retro est, mors tenet."
+        },
+        {
+          "id": "4",
+          "text": "Fac ergo, mi Lucili, quod facere te scribis, omnes horas conplectere.",
+          "raw": "Fac ergo, mi Lucili, quod facere te scribis, omnes horas conplectere."
+        },
+        {
+          "id": "5",
+          "text": "Sic fiet, ut minus ex crastino pendeas, si hodierno manum inieceris.",
+          "raw": "Sic fiet, ut minus ex crastino pendeas, si hodierno manum inieceris."
+        },
+        {
+          "id": "6",
+          "text": "Dum differtur, vita transcurrit.",
+          "raw": "Dum differtur, vita transcurrit."
+        },
+        {
+          "id": "7",
+          "text": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est.",
+          "raw": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать.",
+          "raw": "Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать."
+        },
+        {
+          "id": "1",
+          "text": "Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни?",
+          "raw": "Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни?"
+        },
+        {
+          "id": "2",
+          "text": "Въ томъ именно и состоитъ наше главное заблужденіе, что мы взираемъ на смерть, какъ на нѣчто отдаленное, не смотря на то, что на самомъ дѣлѣ наша жизнь своею значительною частью уже протекла; ибо тѣ возрасты нашей жизни, которые остались позади насъ, не намъ уже принадлежатъ, а смерти.",
+          "raw": "Въ томъ именно и состоитъ наше главное заблужденіе, что мы взираемъ на смерть, какъ на нѣчто отдаленное, не смотря на то, что на самомъ дѣлѣ наша жизнь своею значительною частью уже протекла; ибо тѣ возрасты нашей жизни, которые остались позади насъ, не намъ уже принадлежатъ, а смерти."
+        },
+        {
+          "id": "3",
+          "text": "Итакъ, не измѣняй себѣ, мой Луцилій, и поступай сообразно съ тѣмъ, какъ сообщаешь: веди счетъ всѣмъ днямъ; вѣдь если ты будешь держать въ рукахъ сегодняшній день, то менѣе будешь зависѣть отъ завтрашняго.",
+          "raw": "Итакъ, не измѣняй себѣ, мой Луцилій, и поступай сообразно съ тѣмъ, какъ сообщаешь: веди счетъ всѣмъ днямъ; вѣдь если ты будешь держать въ рукахъ сегодняшній день, то менѣе будешь зависѣть отъ завтрашняго."
+        },
+        {
+          "id": "4",
+          "text": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи.",
+          "raw": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи."
+        },
+        {
+          "id": "5",
+          "text": "Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти.",
+          "raw": "Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1,
+        "variance": 6.8,
+        "modelPairs": 1,
+        "chapters": {
+          "1.2": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [],
+                "t": [
+                  "0"
+                ],
+                "shape": "0:1",
+                "cost": 5.086
+              },
+              {
+                "s": [
+                  "0",
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "2:1",
+                "cost": 2.506
+              },
+              {
+                "s": [],
+                "t": [
+                  "2"
+                ],
+                "shape": "0:1",
+                "cost": 5.172
+              },
+              {
+                "s": [
+                  "2",
+                  "3",
+                  "4"
+                ],
+                "t": [
+                  "3"
+                ],
+                "shape": "3:1",
+                "cost": 4.109
+              },
+              {
+                "s": [
+                  "5",
+                  "6"
+                ],
+                "t": [
+                  "4"
+                ],
+                "shape": "2:1",
+                "cost": 2.723
+              },
+              {
+                "s": [
+                  "7"
+                ],
+                "t": [
+                  "5"
+                ],
+                "shape": "1:1",
+                "cost": 1.572
+              }
+            ]
+          }
+        }
+      }
+    },
+    "1.3": {
+      "la": "Dum differtur, vita transcurrit. Omnia, Lucili, aliena sunt, tempus tantum nostrum est. In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult. Et tanta stultitia mortalium est, ut quae minima et vilissima sunt, certe reparabilia, imputari sibi, cum impetravere, patiantur; nemo se iudicet quicquam debere, qui tempus accepit, cum interim hoc unum est, quod ne gratus quidem potest reddere. Interrogabis fortasse, quid ego faciam, qui tibi ista praecipio.",
+      "ru": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи. Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти. Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ. И вотъ сколь велика неразсудительность людей: они допускаютъ, чтобы имъ были поставлены на счетъ тѣ мелкія, дешевыя и легко замѣнимыя вещи, которыя они выпросили у другихъ; а никто не размыслитъ о томъ, что онъ имѣетъ нѣкоторый долгъ и по отношенію ко времени, которое получилъ; между тѣмъ какъ это есть единственная вещь, которую даже и самый благодарный не можетъ отдать обратно. Ты, быть можетъ, спросишь, что дѣлаю я-то самъ, дающій такія наставленія?",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.6527,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "1.3": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0.45,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        33,
+                        87
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        113,
+                        194
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        88,
+                        189
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        195,
+                        372
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        190,
+                        436
+                      ],
+                      [
+                        0,
+                        437,
+                        501
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        373,
+                        754
+                      ],
+                      [
+                        0,
+                        755,
+                        828
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Dum differtur, vita transcurrit.",
+          "raw": "Dum differtur, vita transcurrit."
+        },
+        {
+          "id": "1",
+          "text": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est.",
+          "raw": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est."
+        },
+        {
+          "id": "2",
+          "text": "In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult.",
+          "raw": "In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult."
+        },
+        {
+          "id": "3",
+          "text": "Et tanta stultitia mortalium est, ut quae minima et vilissima sunt, certe reparabilia, imputari sibi, cum impetravere, patiantur; nemo se iudicet quicquam debere, qui tempus accepit, cum interim hoc unum est, quod ne gratus quidem potest reddere.",
+          "raw": "Et tanta stultitia mortalium est, ut quae minima et vilissima sunt, certe reparabilia, imputari sibi, cum impetravere, patiantur; nemo se iudicet quicquam debere, qui tempus accepit, cum interim hoc unum est, quod ne gratus quidem potest reddere."
+        },
+        {
+          "id": "4",
+          "text": "Interrogabis fortasse, quid ego faciam, qui tibi ista praecipio.",
+          "raw": "Interrogabis fortasse, quid ego faciam, qui tibi ista praecipio."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи.",
+          "raw": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи."
+        },
+        {
+          "id": "1",
+          "text": "Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти.",
+          "raw": "Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти."
+        },
+        {
+          "id": "2",
+          "text": "Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ.",
+          "raw": "Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ."
+        },
+        {
+          "id": "3",
+          "text": "И вотъ сколь велика неразсудительность людей: они допускаютъ, чтобы имъ были поставлены на счетъ тѣ мелкія, дешевыя и легко замѣнимыя вещи, которыя они выпросили у другихъ; а никто не размыслитъ о томъ, что онъ имѣетъ нѣкоторый долгъ и по отношенію ко времени, которое получилъ; между тѣмъ какъ это есть единственная вещь, которую даже и самый благодарный не можетъ отдать обратно.",
+          "raw": "И вотъ сколь велика неразсудительность людей: они допускаютъ, чтобы имъ были поставлены на счетъ тѣ мелкія, дешевыя и легко замѣнимыя вещи, которыя они выпросили у другихъ; а никто не размыслитъ о томъ, что онъ имѣетъ нѣкоторый долгъ и по отношенію ко времени, которое получилъ; между тѣмъ какъ это есть единственная вещь, которую даже и самый благодарный не можетъ отдать обратно."
+        },
+        {
+          "id": "4",
+          "text": "Ты, быть можетъ, спросишь, что дѣлаю я-то самъ, дающій такія наставленія?",
+          "raw": "Ты, быть можетъ, спросишь, что дѣлаю я-то самъ, дающій такія наставленія?"
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.5312,
+        "variance": 5.153,
+        "modelPairs": 2,
+        "chapters": {
+          "1.3": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0",
+                  "1"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "2:1",
+                "cost": 3.405
+              },
+              {
+                "s": [],
+                "t": [
+                  "1"
+                ],
+                "shape": "0:1",
+                "cost": 4.762
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 1.067
+              },
+              {
+                "s": [
+                  "3"
+                ],
+                "t": [
+                  "3"
+                ],
+                "shape": "1:1",
+                "cost": 0.101
+              },
+              {
+                "s": [
+                  "4"
+                ],
+                "t": [
+                  "4"
+                ],
+                "shape": "1:1",
+                "cost": 2.412
+              }
+            ]
+          }
+        }
+      }
+    },
+    "1.2-start": {
+      "la": "Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus. Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori? In hoc enim fallimur, quod mortem prospicimus; magna pars eius iam praeterit.",
+      "ru": "Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать. Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни? Въ томъ именно и состоитъ наше главное заблужденіе, что мы взираемъ на смерть, какъ на нѣчто отдаленное, не смотря на то, что на самомъ дѣлѣ наша жизнь своею значительною частью уже протекла; ибо тѣ возрасты нашей жизни, которые остались позади насъ, не намъ уже принадлежатъ, а смерти.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 2.4816,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "1.2-start": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        119,
+                        221
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        243
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        222,
+                        299
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        244,
+                        455
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus.",
+          "raw": "Et si volueris attendere, maxima pars vitae elabitur male agentibus, magna nihil agentibus, tota vita aliud agentibus."
+        },
+        {
+          "id": "1",
+          "text": "Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori?",
+          "raw": "Quem mihi dabis, qui aliquod pretium tempori ponat, qui diem aestimet, qui intellegat se cotidie mori?"
+        },
+        {
+          "id": "2",
+          "text": "In hoc enim fallimur, quod mortem prospicimus; magna pars eius iam praeterit.",
+          "raw": "In hoc enim fallimur, quod mortem prospicimus; magna pars eius iam praeterit."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать.",
+          "raw": "Если захочешь вникнуть въ это дѣло, ты найдешь, что самая большая часть жизни тратится у насъ на то, чтобы дѣлать злое, значительная на то, чтобы ничего не дѣлать, а вся жизнь проходитъ въ томъ, что мы дѣлаемъ совсѣмъ не то, что должны дѣлать."
+        },
+        {
+          "id": "1",
+          "text": "Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни?",
+          "raw": "Можешь-ли ты указать человѣка, который умѣлъ-бы давать надлежащую цѣну времени, понималъ-бы всю стоимость одного дня и проникнутъ былъ мыслью о томъ, что каждый лишній день приближаетъ его къ концу земной жизни?"
+        },
+        {
+          "id": "2",
+          "text": "Въ томъ именно и состоитъ наше главное заблужденіе, что мы взираемъ на смерть, какъ на нѣчто отдаленное, не смотря на то, что на самомъ дѣлѣ наша жизнь своею значительною частью уже протекла; ибо тѣ возрасты нашей жизни, которые остались позади насъ, не намъ уже принадлежатъ, а смерти.",
+          "raw": "Въ томъ именно и состоитъ наше главное заблужденіе, что мы взираемъ на смерть, какъ на нѣчто отдаленное, не смотря на то, что на самомъ дѣлѣ наша жизнь своею значительною частью уже протекла; ибо тѣ возрасты нашей жизни, которые остались позади насъ, не намъ уже принадлежатъ, а смерти."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 2.4916,
+        "variance": 53.065,
+        "modelPairs": 3,
+        "chapters": {
+          "1.2-start": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 0.693
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 0.616
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 1.677
+              }
+            ]
+          }
+        }
+      }
+    },
+    "1.2-end": {
+      "la": "Sic fiet, ut minus ex crastino pendeas, si hodierno manum inieceris. Dum differtur, vita transcurrit. Omnia, Lucili, aliena sunt, tempus tantum nostrum est.",
+      "ru": "Итакъ, не измѣняй себѣ, мой Луцилій, и поступай сообразно съ тѣмъ, какъ сообщаешь: веди счетъ всѣмъ днямъ; вѣдь если ты будешь держать въ рукахъ сегодняшній день, то менѣе будешь зависѣть отъ завтрашняго. Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи. Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 2.5577,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "1.2-end": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        68
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        204
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        69,
+                        101
+                      ],
+                      [
+                        0,
+                        102,
+                        156
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        205,
+                        317
+                      ],
+                      [
+                        0,
+                        318,
+                        399
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Sic fiet, ut minus ex crastino pendeas, si hodierno manum inieceris.",
+          "raw": "Sic fiet, ut minus ex crastino pendeas, si hodierno manum inieceris."
+        },
+        {
+          "id": "1",
+          "text": "Dum differtur, vita transcurrit.",
+          "raw": "Dum differtur, vita transcurrit."
+        },
+        {
+          "id": "2",
+          "text": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est.",
+          "raw": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Итакъ, не измѣняй себѣ, мой Луцилій, и поступай сообразно съ тѣмъ, какъ сообщаешь: веди счетъ всѣмъ днямъ; вѣдь если ты будешь держать въ рукахъ сегодняшній день, то менѣе будешь зависѣть отъ завтрашняго.",
+          "raw": "Итакъ, не измѣняй себѣ, мой Луцилій, и поступай сообразно съ тѣмъ, какъ сообщаешь: веди счетъ всѣмъ днямъ; вѣдь если ты будешь держать въ рукахъ сегодняшній день, то менѣе будешь зависѣть отъ завтрашняго."
+        },
+        {
+          "id": "1",
+          "text": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи.",
+          "raw": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи."
+        },
+        {
+          "id": "2",
+          "text": "Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти.",
+          "raw": "Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 2.3361,
+        "variance": 79.368,
+        "modelPairs": 3,
+        "chapters": {
+          "1.2-end": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 0.57
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 0.676
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 0.806
+              }
+            ]
+          }
+        }
+      }
+    },
+    "1.3-start": {
+      "la": "Dum differtur, vita transcurrit. Omnia, Lucili, aliena sunt, tempus tantum nostrum est. In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult.",
+      "ru": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи. Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти. Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.9683,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "1.3-start": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        32
+                      ],
+                      [
+                        0,
+                        33,
+                        87
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        112
+                      ],
+                      [
+                        0,
+                        113,
+                        194
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        88,
+                        189
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        195,
+                        372
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Dum differtur, vita transcurrit.",
+          "raw": "Dum differtur, vita transcurrit."
+        },
+        {
+          "id": "1",
+          "text": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est.",
+          "raw": "Omnia, Lucili, aliena sunt, tempus tantum nostrum est."
+        },
+        {
+          "id": "2",
+          "text": "In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult.",
+          "raw": "In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи.",
+          "raw": "Жизнь утекаетъ въ то самое время, какъ мы по лживой самонадѣянности удлиняемъ ее для себя въ своемъ воображеніи."
+        },
+        {
+          "id": "1",
+          "text": "Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти.",
+          "raw": "Въ самомъ дѣлѣ, все иное зависитъ не отъ насъ, одно только время въ нашей власти."
+        },
+        {
+          "id": "2",
+          "text": "Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ.",
+          "raw": "Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.6645,
+        "variance": 2.526,
+        "modelPairs": 1,
+        "chapters": {
+          "1.3-start": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 10.219,
+                "split": "2:2"
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 10.219,
+                "split": "2:2"
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 0.539
+              }
+            ]
+          }
+        }
+      }
+    },
+    "1.3-end": {
+      "la": "In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult. Et tanta stultitia mortalium est, ut quae minima et vilissima sunt, certe reparabilia, imputari sibi, cum impetravere, patiantur; nemo se iudicet quicquam debere, qui tempus accepit, cum interim hoc unum est, quod ne gratus quidem potest reddere. Interrogabis fortasse, quid ego faciam, qui tibi ista praecipio.",
+      "ru": "Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ. И вотъ сколь велика неразсудительность людей: они допускаютъ, чтобы имъ были поставлены на счетъ тѣ мелкія, дешевыя и легко замѣнимыя вещи, которыя они выпросили у другихъ; а никто не размыслитъ о томъ, что онъ имѣетъ нѣкоторый долгъ и по отношенію ко времени, которое получилъ; между тѣмъ какъ это есть единственная вещь, которую даже и самый благодарный не можетъ отдать обратно. Ты, быть можетъ, спросишь, что дѣлаю я-то самъ, дающій такія наставленія?",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.5327,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "1.3-end": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0.45,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        101
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        177
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        102,
+                        348
+                      ],
+                      [
+                        0,
+                        349,
+                        413
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        178,
+                        559
+                      ],
+                      [
+                        0,
+                        560,
+                        633
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult.",
+          "raw": "In huius rei unius fugacis ac lubricae possessionem natura nos misit, ex qua expellit quicumque vult."
+        },
+        {
+          "id": "1",
+          "text": "Et tanta stultitia mortalium est, ut quae minima et vilissima sunt, certe reparabilia, imputari sibi, cum impetravere, patiantur; nemo se iudicet quicquam debere, qui tempus accepit, cum interim hoc unum est, quod ne gratus quidem potest reddere.",
+          "raw": "Et tanta stultitia mortalium est, ut quae minima et vilissima sunt, certe reparabilia, imputari sibi, cum impetravere, patiantur; nemo se iudicet quicquam debere, qui tempus accepit, cum interim hoc unum est, quod ne gratus quidem potest reddere."
+        },
+        {
+          "id": "2",
+          "text": "Interrogabis fortasse, quid ego faciam, qui tibi ista praecipio.",
+          "raw": "Interrogabis fortasse, quid ego faciam, qui tibi ista praecipio."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ.",
+          "raw": "Одно время, быстролетное и неуловимое, природа оставила въ нашемъ владѣніи; владѣніе это однако столь непрочно, что изъ нашего владѣнія можетъ насъ изгнать всякій, кто захочетъ."
+        },
+        {
+          "id": "1",
+          "text": "И вотъ сколь велика неразсудительность людей: они допускаютъ, чтобы имъ были поставлены на счетъ тѣ мелкія, дешевыя и легко замѣнимыя вещи, которыя они выпросили у другихъ; а никто не размыслитъ о томъ, что онъ имѣетъ нѣкоторый долгъ и по отношенію ко времени, которое получилъ; между тѣмъ какъ это есть единственная вещь, которую даже и самый благодарный не можетъ отдать обратно.",
+          "raw": "И вотъ сколь велика неразсудительность людей: они допускаютъ, чтобы имъ были поставлены на счетъ тѣ мелкія, дешевыя и легко замѣнимыя вещи, которыя они выпросили у другихъ; а никто не размыслитъ о томъ, что онъ имѣетъ нѣкоторый долгъ и по отношенію ко времени, которое получилъ; между тѣмъ какъ это есть единственная вещь, которую даже и самый благодарный не можетъ отдать обратно."
+        },
+        {
+          "id": "2",
+          "text": "Ты, быть можетъ, спросишь, что дѣлаю я-то самъ, дающій такія наставленія?",
+          "raw": "Ты, быть можетъ, спросишь, что дѣлаю я-то самъ, дающій такія наставленія?"
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.5353,
+        "variance": 9.781,
+        "modelPairs": 3,
+        "chapters": {
+          "1.3-end": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 0.693
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 0.055
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 1.725
+              }
+            ]
+          }
+        }
+      }
+    },
+    "9.8-start": {
+      "la": "Fructuosior est adulescentia liberorum, sed infantia dulcior. Nunc ad propositum revertamur. Sapiens, etiam si contentus est se, tamen habere amicum vult, si nihil aliud, ut exerceat amicitiam, ne tam magna virtus iaceat, non ad hoc, quod dicebat Epicurus in hac ipsa epistula, “ut habeat, qui sibi aegro adsideat, succurrat in vincula coniecto vel inopi,” sed ut habeat aliquem, cui ipse aegro adsideat, quem ipse circumventum hostili custodia liberet.",
+      "ru": "Дѣти, выросши, дѣлаютъ больше полезнаго; но они милѣе, пока малы. Теперь воротимся къ нашей задачѣ. Мудрый, даже и имѣя довольство въ самомъ себѣ, желаетъ имѣть друга, пусть и не по какой-либо другой причинѣ, какъ только для того, чтобы дать исходъ дружескому чувству — не дать безполезно покончиться столь великой силѣ; и не потому, какъ говоритъ Эпикуръ въ вышеупомянутомъ письмѣ, „чтобы имѣть человѣка, который во время болѣзни былъ бы у него сидѣлкой, — который прибѣгалъ-бы къ нему на помощь, когда онъ поверженъ въ оковы или въ нуждѣ“; но дабы имѣть кого-либо, у кого онъ самъ въ случаѣ болѣзни могъ-бы быть прислужникомъ, кого онъ самъ могъ-бы освободить изъ-подъ стражи.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.4967,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "9.8-start": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        61
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        65
+                      ],
+                      [
+                        0,
+                        66,
+                        99
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        62,
+                        92
+                      ],
+                      [
+                        0,
+                        93,
+                        453
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        100,
+                        678
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Fructuosior est adulescentia liberorum, sed infantia dulcior.",
+          "raw": "Fructuosior est adulescentia liberorum, sed infantia dulcior."
+        },
+        {
+          "id": "1",
+          "text": "Nunc ad propositum revertamur.",
+          "raw": "Nunc ad propositum revertamur."
+        },
+        {
+          "id": "2",
+          "text": "Sapiens, etiam si contentus est se, tamen habere amicum vult, si nihil aliud, ut exerceat amicitiam, ne tam magna virtus iaceat, non ad hoc, quod dicebat Epicurus in hac ipsa epistula, “ut habeat, qui sibi aegro adsideat, succurrat in vincula coniecto vel inopi,” sed ut habeat aliquem, cui ipse aegro adsideat, quem ipse circumventum hostili custodia liberet.",
+          "raw": "Sapiens, etiam si contentus est se, tamen habere amicum vult, si nihil aliud, ut exerceat amicitiam, ne tam magna virtus iaceat, non ad hoc, quod dicebat Epicurus in hac ipsa epistula, “ut habeat, qui sibi aegro adsideat, succurrat in vincula coniecto vel inopi,” sed ut habeat aliquem, cui ipse aegro adsideat, quem ipse circumventum hostili custodia liberet."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Дѣти, выросши, дѣлаютъ больше полезнаго; но они милѣе, пока малы.",
+          "raw": "Дѣти, выросши, дѣлаютъ больше полезнаго; но они милѣе, пока малы."
+        },
+        {
+          "id": "1",
+          "text": "Теперь воротимся къ нашей задачѣ.",
+          "raw": "Теперь воротимся къ нашей задачѣ."
+        },
+        {
+          "id": "2",
+          "text": "Мудрый, даже и имѣя довольство въ самомъ себѣ, желаетъ имѣть друга, пусть и не по какой-либо другой причинѣ, какъ только для того, чтобы дать исходъ дружескому чувству — не дать безполезно покончиться столь великой силѣ; и не потому, какъ говоритъ Эпикуръ въ вышеупомянутомъ письмѣ, „чтобы имѣть человѣка, который во время болѣзни былъ бы у него сидѣлкой, — который прибѣгалъ-бы къ нему на помощь, когда онъ поверженъ въ оковы или въ нуждѣ“; но дабы имѣть кого-либо, у кого онъ самъ въ случаѣ болѣзни могъ-бы быть прислужникомъ, кого онъ самъ могъ-бы освободить изъ-подъ стражи.",
+          "raw": "Мудрый, даже и имѣя довольство въ самомъ себѣ, желаетъ имѣть друга, пусть и не по какой-либо другой причинѣ, какъ только для того, чтобы дать исходъ дружескому чувству — не дать безполезно покончиться столь великой силѣ; и не потому, какъ говоритъ Эпикуръ въ вышеупомянутомъ письмѣ, „чтобы имѣть человѣка, который во время болѣзни былъ бы у него сидѣлкой, — который прибѣгалъ-бы къ нему на помощь, когда онъ поверженъ въ оковы или въ нуждѣ“; но дабы имѣть кого-либо, у кого онъ самъ въ случаѣ болѣзни могъ-бы быть прислужникомъ, кого онъ самъ могъ-бы освободить изъ-подъ стражи."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.5273,
+        "variance": 19.2,
+        "modelPairs": 3,
+        "chapters": {
+          "9.8-start": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 0.99
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 0.572
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 0.304
+              }
+            ]
+          }
+        }
+      }
+    },
+    "9.8-end": {
+      "la": "Qui se spectat et propter hoc ad amicitiam venit, male cogitat. Quemadmodum coepit, sic desinet: paravit amicum adversum vincla laturum opem; cum primum crepuerit catena, discedet. Hae sunt amicitiae, quas temporarias populus appellat; qui utilitatis causa adsumptus est, tamdiu placebit, quamdiu utilis fuerit.",
+      "ru": "Кто точкой зрѣнія избралъ самого себя, и отъ этого пункта направляется къ дружбѣ, не собралъ много матеріала для истиннаго представленія о дружбѣ; вступивши на ложный путь, онъ и застрянетъ на немъ. Вотъ онъ, говорятъ, воспиталъ для себя такого друга, который не откажется подать ему помощь даже и въ заключеніи: однако этотъ другъ окажется далеко, лишь только послышится звукъ цѣпей. Вотъ дружба, которую люди называютъ благовременною.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.4019,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "9.8-end": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        64,
+                        180
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        198
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        181,
+                        311
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        199,
+                        384
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Qui se spectat et propter hoc ad amicitiam venit, male cogitat.",
+          "raw": "Qui se spectat et propter hoc ad amicitiam venit, male cogitat."
+        },
+        {
+          "id": "1",
+          "text": "Quemadmodum coepit, sic desinet: paravit amicum adversum vincla laturum opem; cum primum crepuerit catena, discedet.",
+          "raw": "Quemadmodum coepit, sic desinet: paravit amicum adversum vincla laturum opem; cum primum crepuerit catena, discedet."
+        },
+        {
+          "id": "2",
+          "text": "Hae sunt amicitiae, quas temporarias populus appellat; qui utilitatis causa adsumptus est, tamdiu placebit, quamdiu utilis fuerit.",
+          "raw": "Hae sunt amicitiae, quas temporarias populus appellat; qui utilitatis causa adsumptus est, tamdiu placebit, quamdiu utilis fuerit."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Кто точкой зрѣнія избралъ самого себя, и отъ этого пункта направляется къ дружбѣ, не собралъ много матеріала для истиннаго представленія о дружбѣ; вступивши на ложный путь, онъ и застрянетъ на немъ.",
+          "raw": "Кто точкой зрѣнія избралъ самого себя, и отъ этого пункта направляется къ дружбѣ, не собралъ много матеріала для истиннаго представленія о дружбѣ; вступивши на ложный путь, онъ и застрянетъ на немъ."
+        },
+        {
+          "id": "1",
+          "text": "Вотъ онъ, говорятъ, воспиталъ для себя такого друга, который не откажется подать ему помощь даже и въ заключеніи: однако этотъ другъ окажется далеко, лишь только послышится звукъ цѣпей.",
+          "raw": "Вотъ онъ, говорятъ, воспиталъ для себя такого друга, который не откажется подать ему помощь даже и въ заключеніи: однако этотъ другъ окажется далеко, лишь только послышится звукъ цѣпей."
+        },
+        {
+          "id": "2",
+          "text": "Вотъ дружба, которую люди называютъ благовременною.",
+          "raw": "Вотъ дружба, которую люди называютъ благовременною."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.4045,
+        "variance": 258.482,
+        "modelPairs": 3,
+        "chapters": {
+          "9.8-end": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 0.693
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 0.103
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 0.996
+              }
+            ]
+          }
+        }
+      }
+    },
+    "9.19-start": {
+      "la": "Hic enim capta patria, amissis liberis, amissa uxore cum ex incendio publico solus et tamen beatus exiret, interroganti Demetrio, cui cognomen ab exitio urbium Poliorcetes fuit, numquid perdidisset, Omnia, inquit, bona mea mecum sunt. Ecce vir fortis ac strenuus! Ipsam hostis sui victoriam vicit.",
+      "ru": "Этотъ философъ, вмѣстѣ съ завоеваніемъ города потерявши дѣтей и супругу, одинъ, какъ перстъ, являясь невредимымъ на всеобщемъ пожарищѣ, и тѣмъ не менѣе счастливымъ, — на вопросъ Димитрія, прозваннаго за разрушеніе городовъ Поліоркетомъ: „неужели онъ ничего не потерялъ?“ отвѣтилъ: „все добро мое находится при мнѣ!“ Вотъ мужъ неустрашимый и бодрый! Онъ побѣдилъ самого врага, побѣдившаго его.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.3199,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "9.19-start": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0.65,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        234
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        315
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        235,
+                        263
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        316,
+                        348
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        264,
+                        297
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        349,
+                        392
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Hic enim capta patria, amissis liberis, amissa uxore cum ex incendio publico solus et tamen beatus exiret, interroganti Demetrio, cui cognomen ab exitio urbium Poliorcetes fuit, numquid perdidisset, Omnia, inquit, bona mea mecum sunt.",
+          "raw": "Hic enim capta patria, amissis liberis, amissa uxore cum ex incendio publico solus et tamen beatus exiret, interroganti Demetrio, cui cognomen ab exitio urbium Poliorcetes fuit, numquid perdidisset, Omnia, inquit, bona mea mecum sunt."
+        },
+        {
+          "id": "1",
+          "text": "Ecce vir fortis ac strenuus!",
+          "raw": "Ecce vir fortis ac strenuus!"
+        },
+        {
+          "id": "2",
+          "text": "Ipsam hostis sui victoriam vicit.",
+          "raw": "Ipsam hostis sui victoriam vicit."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Этотъ философъ, вмѣстѣ съ завоеваніемъ города потерявши дѣтей и супругу, одинъ, какъ перстъ, являясь невредимымъ на всеобщемъ пожарищѣ, и тѣмъ не менѣе счастливымъ, — на вопросъ Димитрія, прозваннаго за разрушеніе городовъ Поліоркетомъ: „неужели онъ ничего не потерялъ?“ отвѣтилъ: „все добро мое находится при мнѣ!“",
+          "raw": "Этотъ философъ, вмѣстѣ съ завоеваніемъ города потерявши дѣтей и супругу, одинъ, какъ перстъ, являясь невредимымъ на всеобщемъ пожарищѣ, и тѣмъ не менѣе счастливымъ, — на вопросъ Димитрія, прозваннаго за разрушеніе городовъ Поліоркетомъ: „неужели онъ ничего не потерялъ?“ отвѣтилъ: „все добро мое находится при мнѣ!“"
+        },
+        {
+          "id": "1",
+          "text": "Вотъ мужъ неустрашимый и бодрый!",
+          "raw": "Вотъ мужъ неустрашимый и бодрый!"
+        },
+        {
+          "id": "2",
+          "text": "Онъ побѣдилъ самого врага, побѣдившаго его.",
+          "raw": "Онъ побѣдилъ самого врага, побѣдившаго его."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.3462,
+        "variance": 1,
+        "modelPairs": 3,
+        "chapters": {
+          "9.19-start": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "0"
+                ],
+                "t": [
+                  "0"
+                ],
+                "shape": "1:1",
+                "cost": 0.65
+              },
+              {
+                "s": [
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "1:1",
+                "cost": 1.335
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 0.22
+              }
+            ]
+          }
+        }
+      }
+    },
+    "9.19-end": {
+      "la": "Se enim ipso contentus est. Hoc felicitatem suam fine designat. Ne existimes nos solos generosa verba iactare; et ipse Stilbonis obiurgator Epicurus similem illi vocem emisit, quam tu boni consule, etiam si hunc diem iam expunxi.",
+      "ru": "Но эта мысль не Стильпона только даръ, но и стоиковъ: и они также проносятъ свои сокровища по дымящимся городамъ невредимо. Внутренняя жизнь своего „я“ занимаетъ ихъ всего болѣе: до этого предѣла они отмѣриваютъ себѣ счастіе. Не подумай, что только мы, стоики, роняемъ такія животворныя слова: даже оспаривающій Стильпона Эпикуръ вымолвилъ нѣчто, похожее на это; прими сказанное имъ съ добромъ, хотя долгъ на сегодня я уже погасилъ.",
+      "result": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.8865,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "9.19-end": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [
+                  "la"
+                ],
+                "t": [
+                  "ru"
+                ],
+                "shape": "1:1",
+                "cost": 0,
+                "sentences": [
+                  [
+                    [
+                      [
+                        0,
+                        0,
+                        27
+                      ],
+                      [
+                        0,
+                        28,
+                        63
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        0,
+                        123
+                      ]
+                    ]
+                  ],
+                  [
+                    [
+                      [
+                        0,
+                        64,
+                        229
+                      ]
+                    ],
+                    [
+                      [
+                        0,
+                        124,
+                        225
+                      ],
+                      [
+                        0,
+                        226,
+                        432
+                      ]
+                    ]
+                  ]
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "latin": [
+        {
+          "id": "0",
+          "text": "Se enim ipso contentus est.",
+          "raw": "Se enim ipso contentus est."
+        },
+        {
+          "id": "1",
+          "text": "Hoc felicitatem suam fine designat.",
+          "raw": "Hoc felicitatem suam fine designat."
+        },
+        {
+          "id": "2",
+          "text": "Ne existimes nos solos generosa verba iactare; et ipse Stilbonis obiurgator Epicurus similem illi vocem emisit, quam tu boni consule, etiam si hunc diem iam expunxi.",
+          "raw": "Ne existimes nos solos generosa verba iactare; et ipse Stilbonis obiurgator Epicurus similem illi vocem emisit, quam tu boni consule, etiam si hunc diem iam expunxi."
+        }
+      ],
+      "russian": [
+        {
+          "id": "0",
+          "text": "Но эта мысль не Стильпона только даръ, но и стоиковъ: и они также проносятъ свои сокровища по дымящимся городамъ невредимо.",
+          "raw": "Но эта мысль не Стильпона только даръ, но и стоиковъ: и они также проносятъ свои сокровища по дымящимся городамъ невредимо."
+        },
+        {
+          "id": "1",
+          "text": "Внутренняя жизнь своего „я“ занимаетъ ихъ всего болѣе: до этого предѣла они отмѣриваютъ себѣ счастіе.",
+          "raw": "Внутренняя жизнь своего „я“ занимаетъ ихъ всего болѣе: до этого предѣла они отмѣриваютъ себѣ счастіе."
+        },
+        {
+          "id": "2",
+          "text": "Не подумай, что только мы, стоики, роняемъ такія животворныя слова: даже оспаривающій Стильпона Эпикуръ вымолвилъ нѣчто, похожее на это; прими сказанное имъ съ добромъ, хотя долгъ на сегодня я уже погасилъ.",
+          "raw": "Не подумай, что только мы, стоики, роняемъ такія животворныя слова: даже оспаривающій Стильпона Эпикуръ вымолвилъ нѣчто, похожее на это; прими сказанное имъ съ добромъ, хотя долгъ на сегодня я уже погасилъ."
+        }
+      ],
+      "sentenceGroups": {
+        "source": "la",
+        "target": "ru",
+        "ratio": 1.2485,
+        "variance": 1,
+        "modelPairs": 1,
+        "chapters": {
+          "9.19-end": {
+            "targetMissing": false,
+            "groups": [
+              {
+                "s": [],
+                "t": [
+                  "0"
+                ],
+                "shape": "0:1",
+                "cost": 4.846
+              },
+              {
+                "s": [
+                  "0",
+                  "1"
+                ],
+                "t": [
+                  "1"
+                ],
+                "shape": "2:1",
+                "cost": 7.55
+              },
+              {
+                "s": [
+                  "2"
+                ],
+                "t": [
+                  "2"
+                ],
+                "shape": "1:1",
+                "cost": 0
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

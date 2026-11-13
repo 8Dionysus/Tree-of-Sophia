@@ -6,10 +6,12 @@ It does not admit a source, translation, interpretation or canon claim. The
 new curated records live with `ToS/source-witnesses/`; journey questions live
 with `ToS/research-packets/public-prototypes-20261026/`.
 
-Both profiles select the same 50 works: German and English *Zarathustra* and
-all 49 books in the retained Antiquity collection. The selection contains 121
-reading versions, including 17 newly captured Russian Karpov translations of
-Plato from Wikisource. Distinct reading representations of the same edition
+Both profiles select the same 51 works: *Zarathustra*, the 49 books in the
+retained Antiquity collection, and Xenophon’s *Memorabilia*. The selection
+contains 137 reading versions, including 17 captured Russian Karpov translations
+of Plato from Wikisource and the complete English Dakyns *Memorabilia*. The
+39-chapter reading retains editorial footnotes; the source prints chapter XII
+twice in Book III, and the second is numbered 13 for navigation only. Distinct reading representations of the same edition
 are not additional historical editions.
 Gutenberg's electronic editions and the pinned Perseus
 repository revision are identified in `acquisition-index.v1.json` and the
@@ -127,8 +129,8 @@ Their authored owners remain the same-named packets under
 metadata projections, then verify their byte parity:
 
 ```sh
-python3 access/public-corpus/prepare_reader_companions.py --write
-python3 access/public-corpus/prepare_reader_companions.py
+node access/public-corpus/prepare-reader-companions.mjs --write
+node access/public-corpus/prepare-reader-companions.mjs
 ```
 
 This route does not rebuild texts or change references. Software builds consume

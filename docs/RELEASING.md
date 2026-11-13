@@ -185,7 +185,7 @@ the full suite; a missing or failed selector fails the required gate.
 | `AGENTS.md` in those homes | The plan job checks the 800-word limit |
 | `ToS/` Markdown, `QUESTBOOK.md`, `quests/` Markdown or `mechanics/questbook/README.md` | Complete Rust consumer lane and installs |
 | `access/web/` or `access/e2e/` code/configuration, or a stand's data under `bonsai/` | Source-bound software preparation, fixture tests, browser build/unit/types/behavior (including each bonsai's check against the Tree's contracts), and isolated package install |
-| `access/src/` or `access/tests/` | Source-bound software preparation, package/browser checks, reader/API fixture tests, and Worker cross-adapter tests |
+| `access/tests/fixtures/` | Source-bound software preparation, package/browser checks, reader/API fixture tests, and Rust workspace consumers |
 | `access/deploy/cloudflare-worker/` code/configuration | Worker type and behavior tests, including cross-adapter fixtures |
 | Rust source under `rust/crates/tos-reader/src/` | Rust workspace and isolated exact reader install; the independent browser/package job is omitted |
 | `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `rust/` or `tests/conformance/rust/` | Software contracts, browser assets and native package install, plus pinned Rust workspace formatting, native tests, FND/VAL WASM target checks, isolated exact reader install |

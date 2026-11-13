@@ -1182,6 +1182,11 @@ export function mountCorpusReader({
     head.append(element('span','cr-kicker',versionLabel(version)),element('h2','',documentTitle({id:state.document.id,title:version.title||state.document.title},[version.id])));
     const meta=[localized(version.edition,uiLocale()),localized(version.translator,uiLocale()),localized(version.locator,uiLocale())].filter(Boolean).join(' · ');
     if(meta)head.append(element('p','cr-muted',meta));pane.append(head);
+    if(version.license?.url==='https://www.gutenberg.org/policy/license.html'){
+      const notice=element('p','cr-editorial-notice');
+      notice.append(document.createTextNode('This eBook is for the use of anyone anywhere in the United States and most other parts of the world at no cost and with almost no restrictions whatsoever. You may copy it, give it away or re-use it under the terms of the Project Gutenberg License included with this eBook or online at www.gutenberg.org. If you are not located in the United States, you will have to check the laws of the country where you are located before using this eBook. '));
+      const link=element('a','','Project Gutenberg License');link.href=version.license.url;link.target='_blank';link.rel='noopener noreferrer';notice.append(link);head.append(notice);
+    }
     if(hasEditorialProjection(version))head.append(element('p','cr-editorial-notice',copyLocale(uiLocale)==='en'
       ?localeText('Source markup is shown where matched; consult the edition for its complete apparatus.',locale)
       :'Пометы источника показаны там, где их удалось сопоставить; полный аппарат проверяйте в издании.'));
