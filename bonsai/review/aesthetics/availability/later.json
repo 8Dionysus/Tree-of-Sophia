@@ -1124,7 +1124,7 @@
         "AE08",
         "AE12"
       ],
-      "status": "research-pending",
+      "status": "research-in-progress",
       "search_attempts": [
         {
           "source": "Crossref title search",
@@ -1146,7 +1146,38 @@
           },
           "result": "rejected: identical title belongs to Juan A. Prieto-Pablos (1998), not the register author or year"
         }
-      ]
+      ],
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Aaron Smuts",
+          "role": "author",
+          "dates_status": "not established",
+          "evidence": [
+            "https://plato.stanford.edu/entries/paradox-suspense/"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "The Paradox of Suspense, Stanford Encyclopedia of Philosophy, 2009, substantive revision 2021",
+          "url": "https://plato.stanford.edu/entries/paradox-suspense/",
+          "status": "Authoritative online text with numbered sections, no print pagination; SEP copyright and use restrictions apply. DOI of this entry not established."
+        }
+      ],
+      "requested_places": [
+        "A:E130 §1",
+        "A:E132 §3",
+        "A:E133 §6"
+      ],
+      "searches": [
+        {
+          "source": "Stanford Encyclopedia of Philosophy",
+          "result": "Authoritative current version is openly readable; © Aaron Smuts, distribution and translations subject to SEP terms. Carroll 2001 and Smuts 2008 are different works.",
+          "url": "https://plato.stanford.edu/info.html#c"
+        }
+      ],
+      "remaining": "Choose and align exact sentences, verify version and terms, research translations, contributors and all required search routes."
     },
     {
       "work": "berys-gaut.the-ethical-criticism-of-art",
@@ -1566,7 +1597,7 @@
         "AE08",
         "AE20"
       ],
-      "status": "research-pending",
+      "status": "research-in-progress",
       "search_attempts": [
         {
           "source": "Crossref title search",
@@ -1588,7 +1619,40 @@
           },
           "result": "rejected: identical title belongs to Juan A. Prieto-Pablos (1998), not the register author or year"
         }
-      ]
+      ],
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Noël Carroll",
+          "role": "author",
+          "birth": 1947,
+          "death_status": "not established",
+          "evidence": [
+            "https://archive.org/metadata/beyondaesthetics0000carr"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "The Paradox of Suspense, Beyond Aesthetics, Cambridge University Press, 2001, pp.254–270",
+          "doi": "10.1017/CBO9780511605970.017",
+          "publisher_preview": "https://www.cambridge.org/core/books/abs/beyond-aesthetics/paradox-of-suspense/0E077226972958F03F4054F14E50D174",
+          "status": "Publisher preview and Google Books show parts of chapter; pp.255, 258, 263 visually inspected. Exact sentence alignment and rights remain open."
+        }
+      ],
+      "requested_places": [
+        "A:E131",
+        "B:B-I027",
+        "B:B-I050"
+      ],
+      "searches": [
+        {
+          "source": "Cambridge and Google Books publisher preview",
+          "result": "2001 chapter DOI verified. In publisher-authorized preview p.255 states the initial paradox, p.258 contrasts mystery and suspense, p.263 discusses probability within the fictional world. Some pages restricted; alignment to each reading requires review.",
+          "url": "https://books.google.com.mx/books?id=t4IHIuuxFHcC&q=uncertainty"
+        }
+      ],
+      "remaining": "Align exact sentences and translations in lawful copies, verify contributors and rights, and complete mandatory searches. SEP Smuts is a secondary account of Carroll, not this original."
     },
     {
       "work": "richard-shusterman.thinking-through-the-body-educating",
