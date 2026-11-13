@@ -1,5 +1,5 @@
 {
-  "status": "research-candidate; incomplete; different source passage; not admitted; source identity, independent reading, alignment and rights assessment pending",
+  "status": "research-candidate; incomplete; not admitted; independent reading, alignment and rights assessment pending",
   "work": "friedrich-schiller.ueber-die-tragische-kunst",
   "language": "es",
   "edition_candidate": "Friedrich Schiller, «La Verdad Poética y la Verdad Histórica», translated from German in Juan A. Ortega y Medina, «Poesía e historia en Federico Schiller», Universidad de México, vol. X, no. 4 (December 1955), p. 9. The note identifies the German source as Werke in drei Bänden, vol. 2 (Ansbach, 1952).",
@@ -19,7 +19,7 @@
     }
   ],
   "rights": "1955 translation by Ortega y Medina (d. 1992); not established as public domain or openly licensed. Publisher-hosted historical journal scan. Short quotation subject to independent review of jurisdiction, purpose and extent, and source and translator attribution.",
-  "method": "Maker inspected journal p.9 image. The article labels the source «La Verdad Poética y la Verdad Histórica», not Über die tragische Kunst; the translated sentence resembles III p164, but identity of the underlying original passage and relationship between the two texts must be established before treating it as a witness. Handlung is rendered narración.",
+  "method": "Maker inspected journal p.9 and compared the surrounding paragraph with German Ueber die tragische Kunst at Wikisource. The Spanish article uses a thematic title, but its preceding and following sentences match the surrounding argument of the original; its opening omits original viertens and Handlung is rendered narración. Second reader must independently verify source and alignment.",
   "places": {
     "III p164": {
       "text": "La tragedia, empero, tiene una intención poética; a saber, ella presenta una narración con objeto de conmover y por medio de la emoción deleitar.",
@@ -27,12 +27,12 @@
       "scan_images": [
         "https://us-mia-1.linodeobjects.com/rum/44ca97b4-7db2-47d4-8f1d-459b9bdd85ca#page=11"
       ],
-      "verification": "maker inspected article page image; this text is attributed there to a differently titled Schiller text, so source identity and alignment are unresolved"
+      "verification": "maker compared journal page and German surrounding paragraph; second reader and rights assessment pending"
     }
   },
   "research_notes": {
     "III p163": "Not yet located as an accessible, attributed Spanish translation; search remains partial. Do not mark absent.",
     "alternative": "María del Rosario Acosta López translated the complete essay in Friedrich Schiller: estética y libertad (Universidad Nacional de Colombia, 2008), pp. 181–210, https://www.dla-marbach.de/fileadmin/redaktion/Bibliothek/Bibliographien/schillerbibl-2008.pdf. Book declares CC BY-NC-ND 2.5 Colombia unless stated otherwise, https://www.academia.edu/415565/Friedrich_Schiller_est%C3%A9tica_y_libertad; accessible preview contains only front matter, and the exact target pages have not been inspected. License applicability requires review.",
-    "source_identity": "Article labels this translation La Verdad Poética y la Verdad Histórica. A matching sentence alone does not establish that it translates the selected original witness; compare source edition before admission."
+    "source_identity": "The journal uses the thematic heading La Verdad Poética y la Verdad Histórica. Its preceding and following sentences correspond to Ueber die tragische Kunst: https://de.wikisource.org/wiki/Ueber_die_tragische_Kunst . Opening ordinal viertens is omitted in this excerpt; the selected III p164 sentence is present."
   }
 }
