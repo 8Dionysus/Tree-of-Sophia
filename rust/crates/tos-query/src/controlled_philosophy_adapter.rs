@@ -138,7 +138,7 @@ pub fn execute_controlled_philosophy_metadata_response_render<
             let body = if render {
                 let mut limits = caps.json;
                 limits.max_bytes = limits.max_bytes.min(caps.max_response_bytes);
-                let pretty = heap.emit_python_pretty_owned_json(&packet, limits)
+                let pretty = heap.emit_sorted_indent2_owned_json_v1(&packet, limits)
                     .map_err(compiler_query_error)?;
                 heap.retain(pretty.capacity()).map_err(compiler_query_error)?;
                 let text = std::str::from_utf8(&pretty).map_err(|_| corrupt())?;

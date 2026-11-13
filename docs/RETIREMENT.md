@@ -78,11 +78,13 @@ A basename search finds 100 tracked files containing `legacy` or `historical`, i
 
 ## Python value and compact JSON codecs
 
-`tos-foundation/src/python_value.rs` implements Python-compatible value behavior; `json.rs` owns `emit_python_compact_json`. Command and access code emit packets and stored values, while native/Worker consumers read them through foundation and WASM bindings in `access/shared/native-semantics.ts`. Zero tracked JSON/JSONL files mention the emitter function name. Inspect external receipts, cached packets, content digests, wire consumers and saved inputs.
+`tos-foundation/src/python_value.rs` implements Python-compatible value behavior; `json.rs` owns `emit_ordered_compact_json_v1`. Command and access code emit packets and stored values, while native/Worker consumers read them through foundation and WASM bindings in `access/shared/native-semantics.ts`. Zero tracked JSON/JSONL files mention the emitter function name. Inspect external receipts, cached packets, content digests, wire consumers and saved inputs.
 
 **Removal condition:** Independent vectors cover numeric, container, string, serialization and error semantics; every retained byte-sensitive artifact remains verifiable and all supported producers and readers adopt an explicit successor. **Package:** Python-value and wire-codec migration, followed by compatibility cleanup.
 
 ## Canonical profiles
+
+The retained profiles are specified by byte rules and fixed vectors in `tos-foundation`.
 
 `tos-foundation/src/json.rs` defines `CorpusSnapshotV1`, `SourceRecordDigestV1` and `SourceCommandInputV1`. Command, source-store and access writers use them for snapshots, record digests and command inputs; readers and verifiers recompute their bytes. Only the snapshot profile adds a final LF. Zero tracked JSON/JSONL files contain each of the three exact profile identifiers; unlabelled preimages and digests remain uncounted. Inspect retained manifests, revision and command receipts, selected publications, backups and external verifiers.
 
