@@ -8,7 +8,7 @@ import {statSync} from 'node:fs';
 import {isAbsolute} from 'node:path';
 
 function usage() {
-  return 'usage: node verify_ui_backend.mjs --native-executable ABS --root ABS --release-root ABS --http-base LOOPBACK_URL';
+  return 'usage: node verify_ui_backend.mjs --native-executable ABS --prepared-read-model ABS --prepared-binding ABS --http-base LOOPBACK_URL';
 }
 
 function argumentsOf(argv) {
@@ -21,7 +21,7 @@ function argumentsOf(argv) {
     }
     result[key] = value;
   }
-  for (const key of ['--native-executable', '--root', '--release-root', '--http-base']) {
+  for (const key of ['--native-executable', '--prepared-read-model', '--prepared-binding', '--http-base']) {
     if (!result[key]) throw new Error(`${usage()}\nmissing ${key}`);
   }
   return result;
@@ -35,8 +35,8 @@ function canonical(value) {
   return JSON.stringify(value);
 }
 
-function nativePacket(executable, root, releaseRoot, command) {
-  const result = spawnSync(executable, ['--release-root', releaseRoot, '--root', root, ...command], {
+function nativePacket(executable, model, binding, command) {
+  const result = spawnSync(executable, ['--prepared-read-model', model, '--prepared-binding', binding, ...command], {
     encoding: 'utf8', timeout: 60_000, maxBuffer: 32 * 1024 * 1024,
   });
   if (result.error) throw result.error;
@@ -53,15 +53,15 @@ async function httpPacket(base, path) {
 async function main() {
   const args = argumentsOf(process.argv.slice(2));
   const executable = args['--native-executable'];
-  if (!isAbsolute(executable) || !['--root', '--release-root'].every(key => isAbsolute(args[key]))) {
-    throw new Error('--native-executable, --root, and --release-root must be absolute paths');
+  if (!isAbsolute(executable) || !['--prepared-read-model', '--prepared-binding'].every(key => isAbsolute(args[key]))) {
+    throw new Error('--native-executable, --prepared-read-model, and --prepared-binding must be absolute paths');
   }
   const executableInfo = statSync(executable);
   if (!executableInfo.isFile() || (executableInfo.mode & 0o111) === 0) {
     throw new Error('--native-executable must select an executable file');
   }
-  const root = args['--root'];
-  const releaseRoot = args['--release-root'];
+  const model = args['--prepared-read-model'];
+  const binding = args['--prepared-binding'];
   const base = new URL(args['--http-base']);
   if (base.protocol !== 'http:' || !['127.0.0.1', 'localhost', '::1'].includes(base.hostname)
       || base.username || base.password || base.search || base.hash || !['', '/'].includes(base.pathname)) {
@@ -70,18 +70,31 @@ async function main() {
 
   const requests = [
     {name: 'catalog', command: ['knowledge', 'catalog'], path: '/api/knowledge/catalog'},
-    {name: 'indexed-search', command: ['knowledge', 'search', 'Заратустра', '--mode', 'indexed', '--limit', '6'],
-      path: '/api/knowledge/search?query=%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0&mode=indexed&limit=6'},
+    {name: 'compressed-search', command: ['knowledge', 'search', 'Заратустра', '--mode', 'compressed', '--limit', '6'],
+      path: '/api/knowledge/search?query=%D0%97%D0%B0%D1%80%D0%B0%D1%82%D1%83%D1%81%D1%82%D1%80%D0%B0&mode=compressed&limit=6'},
   ];
   const results = [];
   for (const request of requests) {
-    const cli = nativePacket(executable, root, releaseRoot, request.command);
+    const cli = nativePacket(executable, model, binding, request.command);
     const http = await httpPacket(base, request.path);
+    if (request.name === 'compressed-search') {
+      // Continuation tokens can differ between processes. Compare their shape
+      // and availability while retaining every other packet field.
+      for (const packet of [cli, http]) {
+        assert.equal(typeof packet.page?.has_more, 'boolean');
+        assert.ok(packet.page.has_more
+          ? typeof packet.page.next_cursor === 'string' && packet.page.next_cursor.length > 0
+          : packet.page.next_cursor === null, 'invalid continuation token');
+      }
+      delete cli.page.next_cursor;
+      delete http.page.next_cursor;
+    }
     assert.equal(canonical(http), canonical(cli), `${request.name} differs between installed CLI and live HTTP`);
-    results.push({name: request.name, source_revision: cli.source_revision ?? null});
+    assert.ok(typeof cli.source_revision === 'string' && cli.source_revision.length > 0, 'source revision missing');
+    results.push({name: request.name, source_revision: cli.source_revision});
   }
   const revisions = new Set(results.map(item => item.source_revision).filter(Boolean));
-  assert.equal(revisions.size, 1, 'CLI and HTTP did not retain one selected release revision');
+  assert.equal(revisions.size, 1, 'CLI and HTTP did not retain one selected source revision');
   process.stdout.write(`${JSON.stringify({ok: true, source_revision: [...revisions][0], comparisons: results})}\n`);
 }
 
