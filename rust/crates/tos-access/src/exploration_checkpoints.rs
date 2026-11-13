@@ -13,7 +13,7 @@ use tos_query::{
         ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints, ExplorationState,
         PreparedExplorationCheckpoint,
     },
-    search_v2::{SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode},
 };
 
 #[derive(Clone, Copy)]
@@ -42,53 +42,35 @@ struct Entry {
     value: Arc<ExplorationCheckpoint>,
     encoded_bytes: usize,
 }
-fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn error(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
-fn corrupt() -> SearchV2Error {
+fn corrupt() -> SearchError {
     error(
-        SearchV2ErrorCode::CorruptSelectedCarrier,
+        SearchErrorCode::CorruptSelectedCarrier,
         "exploration checkpoint store invariant failed",
     )
 }
-fn budget() -> SearchV2Error {
+fn budget() -> SearchError {
     error(
-        SearchV2ErrorCode::BudgetExceeded,
+        SearchErrorCode::BudgetExceeded,
         "exploration checkpoint capacity exceeded",
     )
 }
-fn expired() -> SearchV2Error {
+fn expired() -> SearchError {
     error(
-        SearchV2ErrorCode::CursorExpired,
+        SearchErrorCode::CursorExpired,
         "exploration checkpoint expired or unavailable; restart",
     )
 }
-fn lock(store: &Arc<Mutex<Store>>) -> Result<std::sync::MutexGuard<'_, Store>, SearchV2Error> {
+fn lock(store: &Arc<Mutex<Store>>) -> Result<std::sync::MutexGuard<'_, Store>, SearchError> {
     store.lock().map_err(|_| corrupt())
 }
 impl ProcessExplorationCheckpoints {
-    /// The finite resource URI owner has no checkpoint-mutating operation.
-    /// Verify the actual shared store remains empty; count its single mutex
-    /// payload once, even when the executor and this observer share Arc aliases.
-    pub(crate) fn retained_empty_state_upper_bound(&self) -> Result<usize, SearchV2Error> {
-        let store = lock(&self.store)?;
-        if !store.entries.is_empty()
-            || !store.busy.is_empty()
-            || !store.reserved_tokens.is_empty()
-            || store.encoded_bytes != 0
-            || store.reserved_bytes != 0
-        {
-            return Err(corrupt());
-        }
-        std::mem::size_of::<Self>()
-            .checked_add(std::mem::size_of::<Mutex<Store>>())
-            .ok_or_else(budget)
-    }
-
     pub fn limits(&self) -> CheckpointLimits {
         self.limits
     }
-    pub fn new(limits: CheckpointLimits) -> Result<Self, SearchV2Error> {
+    pub fn new(limits: CheckpointLimits) -> Result<Self, SearchError> {
         if limits.ttl.is_zero()
             || limits.max_entries == 0
             || limits.max_entries > 128
@@ -96,7 +78,7 @@ impl ProcessExplorationCheckpoints {
             || limits.max_encoded_bytes > 32 * 1024 * 1024
         {
             return Err(error(
-                SearchV2ErrorCode::InvalidRequest,
+                SearchErrorCode::InvalidRequest,
                 "invalid process exploration checkpoint limits",
             ));
         }
@@ -130,19 +112,19 @@ impl ProcessExplorationCheckpoints {
         retired
     }
 }
-fn token() -> Result<String, SearchV2Error> {
+fn token() -> Result<String, SearchError> {
     let mut entropy = [0u8; 32];
     File::open("/dev/urandom")
         .and_then(|mut file| file.read_exact(&mut entropy))
         .map_err(|_| {
             error(
-                SearchV2ErrorCode::Unavailable,
+                SearchErrorCode::Unavailable,
                 "exploration cursor entropy unavailable",
             )
         })?;
     Ok(Digest256::of_bytes(&entropy).to_hex())
 }
-fn set_cursor(packet: &JsonValue, cursor: Option<&str>) -> Result<JsonValue, SearchV2Error> {
+fn set_cursor(packet: &JsonValue, cursor: Option<&str>) -> Result<JsonValue, SearchError> {
     let mut packet = packet.clone();
     let JsonValue::Object(fields) = &mut packet else {
         return Err(corrupt());
@@ -168,11 +150,7 @@ fn set_cursor(packet: &JsonValue, cursor: Option<&str>) -> Result<JsonValue, Sea
     Ok(packet)
 }
 impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
-    fn load(
-        &mut self,
-        cursor: &str,
-        revision: &str,
-    ) -> Result<ExplorationCheckpoint, SearchV2Error> {
+    fn load(&mut self, cursor: &str, revision: &str) -> Result<ExplorationCheckpoint, SearchError> {
         let (value, retired) = {
             let mut store = lock(&self.store)?;
             let retired = Self::purge(&mut store, Instant::now());
@@ -181,13 +159,13 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
                 let entry = store.entries.get(cursor).ok_or_else(expired)?;
                 if entry.revision != revision {
                     return Err(error(
-                        SearchV2ErrorCode::StaleContinuation,
+                        SearchErrorCode::StaleContinuation,
                         "exploration snapshot or policy changed; restart",
                     ));
                 }
                 if store.busy.contains(cursor) {
                     return Err(error(
-                        SearchV2ErrorCode::Unavailable,
+                        SearchErrorCode::Unavailable,
                         "exploration continuation already being prepared",
                     ));
                 }
@@ -217,7 +195,7 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
         successor: Option<&ExplorationState>,
         packet: &JsonValue,
         limits: ExplorationBudget,
-    ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> {
+    ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchError> {
         if revision.is_empty()
             || successor.is_some_and(|state| state.snapshot_revision() != revision)
         {
@@ -237,13 +215,13 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
                     let entry = store.entries.get(input).ok_or_else(expired)?;
                     if entry.revision != revision {
                         return Err(error(
-                            SearchV2ErrorCode::StaleContinuation,
+                            SearchErrorCode::StaleContinuation,
                             "exploration snapshot or policy changed; restart",
                         ));
                     }
                     if store.busy.contains(input) {
                         return Err(error(
-                            SearchV2ErrorCode::Unavailable,
+                            SearchErrorCode::Unavailable,
                             "exploration continuation already being prepared",
                         ));
                     }
@@ -260,10 +238,7 @@ impl ExplorationCheckpoints for ProcessExplorationCheckpoints {
                                     && !store.reserved_tokens.contains(candidate)
                             })
                             .ok_or_else(|| {
-                                error(
-                                    SearchV2ErrorCode::Unavailable,
-                                    "exploration cursor collision",
-                                )
+                                error(SearchErrorCode::Unavailable, "exploration cursor collision")
                             })?,
                     )
                 } else {
@@ -374,7 +349,7 @@ impl PreparedExplorationCheckpoint for Staged {
     fn next_cursor(&self) -> Option<&str> {
         self.next.as_deref()
     }
-    fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchV2Error> {
+    fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchError> {
         if self.done || self.response_staged {
             return Err(corrupt());
         }
@@ -412,7 +387,7 @@ impl PreparedExplorationCheckpoint for Staged {
         self.response_staged = true;
         Ok(())
     }
-    fn commit(&mut self) -> Result<(), SearchV2Error> {
+    fn commit(&mut self) -> Result<(), SearchError> {
         if self.done || !self.response_staged {
             return Err(corrupt());
         }

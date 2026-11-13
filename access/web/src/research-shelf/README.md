@@ -148,7 +148,7 @@ mobile, keyboard focus and reduced-motion handling.
 
 ## Browser acceptance fixture
 
-Open `/static/fixtures/research-shelf.html` from the Vite development server to run the
+Open `/__research/fixtures/research-shelf.html` from the Vite development server to run the
 synthetic IndexedDB check. It uses a fresh database name and verifies two
 connections' record CAS, cursor invalidation after a write, all-or-nothing
 additive import, and reopening the same database. Save its compact result with

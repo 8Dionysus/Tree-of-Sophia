@@ -6,7 +6,7 @@ use crate::source_managed_selection::{ManagedCurrentModelLease, ManagedSelectedP
 use std::sync::Arc;
 use tos_compiler::{ManagedProducerProof, ManagedSourceProofV1, ManagedSourceProofV2};
 use tos_foundation::Digest256;
-use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode};
+use tos_query::search::{CurrentPolicyBinding, SearchError, SearchErrorCode};
 use tos_query::{
     CatalogCurrentAuthority, CatalogDisclosureLease, CatalogDisclosureScope, CatalogError,
     CatalogErrorCode, IndexedDisclosureScope, InspectCurrentAuthority, InspectDisclosureLease,
@@ -27,11 +27,11 @@ fn catalog_check<P: ManagedSelectedProof>(
 fn inspect_check<P: ManagedSelectedProof>(
     source: &ManagedCurrentModelLease<'_, P>,
     proof: &P,
-) -> Result<(), SearchV2Error> {
+) -> Result<(), SearchError> {
     source
         .require_managed_basis(proof)
-        .map_err(|_| SearchV2Error {
-            code: SearchV2ErrorCode::StaleSelection,
+        .map_err(|_| SearchError {
+            code: SearchErrorCode::StaleSelection,
             message: "managed source current hold changed",
         })
 }
@@ -123,7 +123,7 @@ struct ManagedInspectLease<'hold, 'source, P: ManagedSelectedProof> {
     proof: &'hold P,
 }
 impl<P: ManagedSelectedProof> InspectDisclosureLease for ManagedInspectLease<'_, '_, P> {
-    fn recheck(&mut self) -> Result<(), SearchV2Error> {
+    fn recheck(&mut self) -> Result<(), SearchError> {
         self.inner.recheck()?;
         inspect_check(self.source, self.proof)
     }
@@ -134,10 +134,10 @@ impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurre
     fn authorize_managed_source_current(
         &mut self,
         proof: &ManagedSourceProofV1,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         if self.proof.basis() != proof.basis() {
-            return Err(SearchV2Error {
-                code: SearchV2ErrorCode::StaleSelection,
+            return Err(SearchError {
+                code: SearchErrorCode::StaleSelection,
                 message: "managed source proof version/identity differs",
             });
         }
@@ -146,10 +146,10 @@ impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurre
     fn authorize_managed_source_v2_current(
         &mut self,
         proof: &ManagedSourceProofV2,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         if self.proof.basis() != proof.basis() {
-            return Err(SearchV2Error {
-                code: SearchV2ErrorCode::StaleSelection,
+            return Err(SearchError {
+                code: SearchErrorCode::StaleSelection,
                 message: "managed source proof version/identity differs",
             });
         }
@@ -164,11 +164,11 @@ impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurre
     fn disclosure_scope(&self) -> IndexedDisclosureScope {
         self.inner.disclosure_scope()
     }
-    fn check_selected(&mut self) -> Result<(), SearchV2Error> {
+    fn check_selected(&mut self) -> Result<(), SearchError> {
         inspect_check(self.source, self.proof)?;
         self.inner.check_selected()
     }
-    fn authorize_current(&mut self, carrier: &InspectedCarrier) -> Result<(), SearchV2Error> {
+    fn authorize_current(&mut self, carrier: &InspectedCarrier) -> Result<(), SearchError> {
         inspect_check(self.source, self.proof)?;
         self.inner.authorize_current(carrier)
     }
@@ -176,7 +176,7 @@ impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurre
         &mut self,
         scope: &IndexedDisclosureScope,
         consulted: &[ObservedInspectCarrier],
-    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
+    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchError> {
         inspect_check(self.source, self.proof)?;
         let inner = self.inner.acquire_disclosure(scope, consulted)?;
         inspect_check(self.source, self.proof)?;
@@ -192,7 +192,7 @@ impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurre
         position: i64,
         raw: &[u8],
         digest: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         inspect_check(self.source, self.proof)?;
         self.inner
             .authorize_navigation_original_current(receipt, position, raw, digest)
@@ -202,11 +202,11 @@ impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurre
         path: &str,
         raw: &[u8],
         digest: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         inspect_check(self.source, self.proof)?;
         self.inner.authorize_registry_current(path, raw, digest)
     }
-    fn authorize_catalog_current(&mut self, digest: Digest256) -> Result<(), SearchV2Error> {
+    fn authorize_catalog_current(&mut self, digest: Digest256) -> Result<(), SearchError> {
         inspect_check(self.source, self.proof)?;
         self.inner.authorize_catalog_current(digest)
     }
@@ -217,7 +217,7 @@ impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurre
         position: u64,
         raw: &[u8],
         digest: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         inspect_check(self.source, self.proof)?;
         self.inner
             .authorize_corpus_original_current(receipt, collection, position, raw, digest)
@@ -228,7 +228,7 @@ impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurre
         position: u64,
         id: Option<&str>,
         digest: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         inspect_check(self.source, self.proof)?;
         self.inner
             .authorize_corpus_view_identity_current(receipt, position, id, digest)
@@ -240,7 +240,7 @@ impl<'hold, 'source: 'hold, 'inner: 'hold, P: ManagedSelectedProof> InspectCurre
         position: u64,
         raw: &[u8],
         digest: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         inspect_check(self.source, self.proof)?;
         self.inner
             .authorize_philosophy_original_current(receipt, collection, position, raw, digest)

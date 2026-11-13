@@ -3,9 +3,7 @@
 //! Cloudflare owns URL/D1 framing and bounded SQL execution. This module owns
 //! the search-domain constants and decisions that must agree with native QRY.
 
-use crate::search_v2::{
-    SearchRank, SearchV2Error, SearchV2ErrorCode, normalize_worker_search_query,
-};
+use crate::search::{SearchError, SearchErrorCode, SearchRank, normalize_worker_search_query};
 use tos_foundation::python_lower_unicode16_v1;
 
 pub const WORKER_KNOWLEDGE_SOURCES_V1: [&str; 7] = [
@@ -105,20 +103,20 @@ fn invalid(message: impl Into<String>) -> WorkerSearchControlError {
     error("invalid_request", message)
 }
 
-fn search_invalid(message: &'static str) -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::InvalidRequest,
+fn search_invalid(message: &'static str) -> SearchError {
+    SearchError {
+        code: SearchErrorCode::InvalidRequest,
         message,
     }
 }
 
-fn query_error(value: SearchV2Error, indexed: bool) -> WorkerSearchControlError {
+fn query_error(value: SearchError, indexed: bool) -> WorkerSearchControlError {
     match value.code {
-        SearchV2ErrorCode::QueryTooLong => invalid("knowledge search query exceeds 256 characters"),
-        SearchV2ErrorCode::QueryTooShort => {
+        SearchErrorCode::QueryTooLong => invalid("knowledge search query exceeds 256 characters"),
+        SearchErrorCode::QueryTooShort => {
             invalid("indexed knowledge search requires a query of at least three characters")
         }
-        SearchV2ErrorCode::BudgetExceeded => error("budget_exceeded", value.message),
+        SearchErrorCode::BudgetExceeded => error("budget_exceeded", value.message),
         _ => invalid(if indexed {
             "indexed knowledge search query is invalid"
         } else {
@@ -249,10 +247,10 @@ pub fn normalize_worker_search(
 /// D1's SQL expression is the transport implementation of QRY's stable four
 /// rank classes; it is generated here so adapters cannot diverge in rank or
 /// bind order.
-pub fn worker_rank_sql(alias: &str, has_needle: bool) -> Result<(String, usize), SearchV2Error> {
+pub fn worker_rank_sql(alias: &str, has_needle: bool) -> Result<(String, usize), SearchError> {
     if !matches!(alias, "s" | "c") {
-        return Err(SearchV2Error {
-            code: SearchV2ErrorCode::InvalidRequest,
+        return Err(SearchError {
+            code: SearchErrorCode::InvalidRequest,
             message: "knowledge search SQL alias is invalid",
         });
     }
@@ -288,17 +286,14 @@ pub fn worker_rank_sql(alias: &str, has_needle: bool) -> Result<(String, usize),
 
 /// Lower an already bounded id using the same native Unicode profile used to
 /// validate a cursor's order key.
-pub fn worker_search_lower_id(value: &str) -> Result<String, SearchV2Error> {
+pub fn worker_search_lower_id(value: &str) -> Result<String, SearchError> {
     lower_id_with_limit(value, WORKER_SEARCH_CURSOR_TOKEN_MAX_CHARS)
 }
 
 /// Validate the selected D1 identity pair with the same Unicode lower rule
 /// used for authored native index identities. The byte ceiling matches the
 /// adapter's existing bounded identity projection.
-pub fn worker_search_identity_matches_lower(
-    id: &str,
-    id_lower: &str,
-) -> Result<bool, SearchV2Error> {
+pub fn worker_search_identity_matches_lower(id: &str, id_lower: &str) -> Result<bool, SearchError> {
     if id_lower.len() > WORKER_SEARCH_ID_MAX_BYTES
         || id_lower.chars().count() > WORKER_SEARCH_ID_MAX_BYTES
     {
@@ -307,7 +302,7 @@ pub fn worker_search_identity_matches_lower(
     Ok(lower_id_with_limit(id, WORKER_SEARCH_ID_MAX_BYTES)? == id_lower)
 }
 
-fn lower_id_with_limit(value: &str, maximum: usize) -> Result<String, SearchV2Error> {
+fn lower_id_with_limit(value: &str, maximum: usize) -> Result<String, SearchError> {
     if value.len() > maximum || value.chars().count() > maximum {
         return Err(search_invalid("invalid indexed knowledge search cursor"));
     }

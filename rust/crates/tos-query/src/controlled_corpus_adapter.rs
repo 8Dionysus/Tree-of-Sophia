@@ -1,21 +1,21 @@
 //! Maintained Corpus metadata over the authentic cold Original namespace.
 use crate::controlled_original_reader::{OriginalReadCharges, read_original};
 use crate::controlled_query_adapter::compiler_query_error;
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode};
 use crate::{BoundCmpKnowledge, InspectBudget, InspectCurrentAuthority};
 use tos_compiler::{
     ControlledKnowledgeModel, ControlledOriginalCollection, CorpusOriginalCollection,
 };
 use tos_foundation::{JsonString, JsonValue, OwnedState};
-fn budget() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+fn budget() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "controlled philosophy status budget exceeded",
     }
 }
-fn corrupt() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+fn corrupt() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::CorruptSelectedCarrier,
         message: "controlled philosophy status header differs",
     }
 }
@@ -31,8 +31,8 @@ pub fn execute_controlled_corpus_metadata_response<
     request: &crate::corpus_read::CorpusReadRequest,
     context: &crate::corpus_read::CorpusReadContext,
     render: bool,
-    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
-) -> Result<(), SearchV2Error> {
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchError>,
+) -> Result<(), SearchError> {
     execute_controlled_corpus_response(
         model, bound, authority, caps, request, context, render, deliver,
     )
@@ -46,15 +46,15 @@ pub fn execute_controlled_corpus_response<'hold, A: InspectCurrentAuthority<'hol
     request: &crate::corpus_read::CorpusReadRequest,
     context: &crate::corpus_read::CorpusReadContext,
     render: bool,
-    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
-) -> Result<(), SearchV2Error> {
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchError>,
+) -> Result<(), SearchError> {
     bound.check_controlled_model(model)?;
     model
         .check_query_open_vm_admission(caps.max_open_vm_steps)
         .map_err(compiler_query_error)?;
     let forecast = authority.disclosure_metadata_state_upper_bound()?;
     let frame = std::mem::size_of_val(&deliver)
-        .checked_add(std::mem::size_of::<crate::search_v2::CurrentPolicyBinding>())
+        .checked_add(std::mem::size_of::<crate::search::CurrentPolicyBinding>())
         .and_then(|n| n.checked_add(std::mem::size_of::<crate::IndexedDisclosureScope>()))
         .and_then(|n| n.checked_add(std::mem::size_of::<OriginalReadCharges>()))
         .ok_or_else(budget)?;
@@ -163,7 +163,7 @@ pub fn execute_controlled_corpus_response<'hold, A: InspectCurrentAuthority<'hol
                         let mut limits = caps.json;
                         limits.max_bytes = limits.max_bytes.min(caps.max_response_bytes);
                         let pretty = heap
-                            .emit_python_pretty_owned_json(&packet, limits)
+                            .emit_sorted_indent2_owned_json_v1(&packet, limits)
                             .map_err(compiler_query_error)?;
                         heap.retain(pretty.capacity())
                             .map_err(compiler_query_error)?;

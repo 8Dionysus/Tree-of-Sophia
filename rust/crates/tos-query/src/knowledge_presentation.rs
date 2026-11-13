@@ -5,7 +5,7 @@ use crate::{
         LensVocabulary, array, boolean, corrupt, field, get, language, lower, number, remove, set,
         string, strip,
     },
-    search_v2::SearchV2Error,
+    search::SearchError,
     source_read_projection::{object, text},
 };
 use std::collections::{BTreeMap, BTreeSet};
@@ -212,7 +212,7 @@ pub fn lens_carrier(
     item: &JsonValue,
     detail: &str,
     lang: Option<&str>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let mut out = item.clone();
     if detail != "full" {
         remove(&mut out, "source_record");
@@ -250,7 +250,7 @@ pub fn knowledge_scene(
     focus_node: Option<&str>,
     focus_relation: Option<&str>,
     vocabulary: &LensVocabulary,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let mut groups: BTreeMap<String, (Option<String>, Vec<&JsonValue>)> = BTreeMap::new();
     let mut by_node = BTreeMap::new();
     for n in nodes {
@@ -354,7 +354,7 @@ fn compact_claim_scene(
     by_node: &BTreeMap<String, String>,
     focus_node: Option<&str>,
     focus_relation: Option<&str>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let by_relation: BTreeMap<_, _> = relations
         .iter()
         .map(|r| (string(get(r, "id")), r))
@@ -741,14 +741,14 @@ fn json_same(a: &JsonValue, b: &JsonValue) -> bool {
         .ok()
 }
 
-fn form_cost(v: &JsonValue, limit: usize) -> Result<usize, SearchV2Error> {
+fn form_cost(v: &JsonValue, limit: usize) -> Result<usize, SearchError> {
     fn walk(
         v: &JsonValue,
         depth: usize,
         cost: &mut usize,
         members: &mut usize,
         limit: usize,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         *members += 1;
         if depth > 64 || *members > 30000 {
             return Err(corrupt("human form JSON structural bounds exceeded"));
@@ -838,7 +838,7 @@ fn subtract(value: &JsonValue, base: &JsonValue) -> JsonValue {
     }
     out
 }
-fn encode_selection(logical: &JsonValue, enforce: bool) -> Result<JsonValue, SearchV2Error> {
+fn encode_selection(logical: &JsonValue, enforce: bool) -> Result<JsonValue, SearchError> {
     form_cost(logical, 524288)?;
     let mut packets = BTreeMap::new();
     let mut shared_limits: Vec<JsonValue> = vec![];
@@ -930,11 +930,7 @@ fn empty_roles() -> JsonValue {
             .collect(),
     )
 }
-fn stop_selection(
-    result: &JsonValue,
-    state: &str,
-    issue: &str,
-) -> Result<JsonValue, SearchV2Error> {
+fn stop_selection(result: &JsonValue, state: &str, issue: &str) -> Result<JsonValue, SearchError> {
     let mut out = result.clone();
     set(&mut out, "state", text(state));
     set(&mut out, "roles", empty_roles());
@@ -1203,7 +1199,7 @@ fn native_record_field(record: &JsonValue) -> Result<&'static str, ()> {
     }
     Ok(key)
 }
-fn select_human_forms(item: &JsonValue, lang: &str) -> Result<JsonValue, SearchV2Error> {
+fn select_human_forms(item: &JsonValue, lang: &str) -> Result<JsonValue, SearchError> {
     let attrs = get(item, "attributes");
     let forms = get(attrs, "human_forms");
     let source_ref = get(attrs, "human_forms_source_ref")

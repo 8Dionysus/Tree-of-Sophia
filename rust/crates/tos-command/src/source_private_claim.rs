@@ -16,7 +16,9 @@ use crate::source_text_private_store::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonLimits, JsonValue, RelativePath, emit_python_compact_json};
+use tos_foundation::{
+    Digest256, JsonLimits, JsonValue, RelativePath, emit_ordered_compact_json_v1,
+};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::MAX_RECORD_BYTES;
 
@@ -2284,7 +2286,7 @@ pub(crate) fn owner_metadata_snapshot(
         ("owner_context", cmd::string(&owner_context)),
         ("inputs", JsonValue::Array(rows)),
     ]);
-    let raw = emit_python_compact_json(
+    let raw = emit_ordered_compact_json_v1(
         &value,
         JsonLimits {
             max_bytes: 8_388_608,
@@ -2348,7 +2350,7 @@ fn public_native_snapshot(
             ])
         })
         .collect();
-    let raw = emit_python_compact_json(
+    let raw = emit_ordered_compact_json_v1(
         &JsonValue::Array(rows),
         JsonLimits {
             max_bytes: 8_388_608,
@@ -4185,7 +4187,7 @@ fn resolve_native_selection(
         ("owner_context", cmd::string(&owner_context)),
         ("inputs", JsonValue::Array(inputs)),
     ]);
-    let snapshot_raw = emit_python_compact_json(
+    let snapshot_raw = emit_ordered_compact_json_v1(
         &snapshot_value,
         JsonLimits {
             max_bytes: 8_388_608,

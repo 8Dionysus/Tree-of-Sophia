@@ -101,8 +101,8 @@ describe('the layer store',()=>{
         await plugin.closeBundle();
       }
     }finally{log.mockRestore();}
-    expect(existsSync(join(root,'out-development','layers'))).toBe(false);
-    for(const entry of layers.entries)expect(sha256(readFileSync(join(root,'out-public-research','layers',objectKey(entry.sha256))))).toBe(entry.sha256);
+    for(const mode of ['development','public-research'])
+      for(const entry of layers.entries)expect(sha256(readFileSync(join(root,`out-${mode}`,'layers',objectKey(entry.sha256))))).toBe(entry.sha256);
   });
   it('carries files no store holds on the transfer branch, and drops them once R2 has them',async()=>{
     const {root,home}=stand();

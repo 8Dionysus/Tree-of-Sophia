@@ -4,11 +4,19 @@ This inventory records removal gates under [TOS-D-0069](decisions/TOS-D-0069-rus
 
 For each package, inventory installed versions, deployments, selected publications, backups and all consumers with the operator. Inspect service arguments and configuration without exposing credentials; inspect store manifests, SQLite metadata, D1 publication metadata and PostgreSQL version/profile and consumer metadata through authorized read-only access. Record counts, retention policy and the exact selected revisions. Exercise old and replacement software/data pairs, restoration, rollback, authorization and rights; retain exact bytes, IDs, references and historical locators. Establish target-capacity and recovery evidence before a large cutover or final legacy retirement. Each gate below adds to these shared conditions. Unknown external counts remain open until this inventory is complete.
 
+## Legacy atlas web
+
+The retired atlas web source is retained at the locally prepared tag
+[`retired/atlas-web`](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/atlas-web)
+(commit `b0903fc7bffac2b445a4459a8a309cadbf6adcfb`). The tag must be published
+with the retirement. The live public research site and native HTTP/MCP API
+remain separate; D1 export, domain transfer and cloud removal are operator steps.
+
 ## Source store V1
 
-`tos-source-store/src/manifest.rs`, `capture_import.rs` and `CorpusReader` write or read `tos_corpus_snapshot_v1`; `tos-reader` selects V1 by default and admission can migrate it to V2. Two tracked JSON snapshot fixtures carry the V1 marker. Inspect configured store roots, revision manifests and backups for selected and retained snapshots and installed `tos-reader` consumers.
+`tos-reader` reads V2 only. `tos_corpus_snapshot_v1` lives on in three roles: it is the genesis artifact of every V2 rootset (`native_v2/roots.rs`, `source_admission_segment_v2.rs`); `CorpusReader` serves current source cuts, navigation prepare and the streamed PostgreSQL bootstrap (`source_current_cut.rs`, `source_navigation_model_prepare_cli.rs`, `source_pg_bootstrap_streamed_cli.rs`); and admission migrates V1 captures through `capture_import.rs` and `source_admission_spooled_candidate.rs`. The data of the retained V1 copies is archived in `/abyss/Backups/archive/project-copies/tos-retired-20261112/source-store-v1/`.
 
-**Removal condition:** Every retained V1 revision required by policy has a verified V2 mapping preserving membership, bytes, identity, rights and history; old and new revisions restore and read, pointers and supported clients have switched, and no retained obligation requires the V1 reader. **Package:** Source-store migration and later V1 reader retirement; retain an old software/data pair when historical verification requires it.
+**Removal condition:** A V2 source-cut provider serves members, identities, dependencies, retirements and history to the cut, navigation and bootstrap consumers with the same limits, fixity and fence; V2 revisions keep their genesis identity. Then the standalone V1 reader, capture import and migration leave under the tag `retired/source-store-v1`. **Package:** V2 source-cut provider, then V1 reader retirement.
 
 ## Source store V2 and physical revisions
 
@@ -18,15 +26,16 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Legacy knowledge search
 
-`tos-query/src/knowledge_legacy_search.rs` scans selected carriers; `tos-access/src/core_legacy_query_executor.rs`, `knowledge.rs` and the Worker D1 `knowledgeSearchD1` serve callers. The compiler and D1 publication routes produce its input carriers. Tracked legacy-search carrier counts are not established; JSON marker counts alone cannot identify those carriers. Inspect installed CLI, HTTP, MCP and web clients, selected stores and D1 deployments and offsets.
-
-**Removal condition:** Every supported consumer and publication uses a replacement with accepted normalization, ranking, ordering, offsets, rights and error behavior, or an explicitly versioned and accepted change; outstanding continuations expire or migrate and rollback works. **Package:** Search consumer cutover and legacy executor retirement.
+The native access legacy scan is removed. The intended preservation tag is
+`retired/legacy-search`; the tag and its data archive must be established and
+verified by the landing owner. The separate retired Worker is handled by its
+own package.
 
 ## Indexed search V2
 
-`tos-query/src/search_v2.rs` defines typed requests, vocabulary and cursor behavior; `tos-access/src/prepared_local.rs` and `indexed_cursor.rs` serve indexed readers, while the Worker calls `knowledgeSearchD1Indexed`. Prepared/D1 publishers supply indexed data. Three tracked JSON contract files mention `tos_knowledge_search_indexed_v2`. Inspect deployed capabilities, D1 and local publications, clients and unexpired cursors.
-
-**Removal condition:** A selected API implements accepted indexed semantics and rights, all clients and publications switch, and old cursor lifetimes expire or are migrated with tested continuation and rollback. **Package:** Offline export and consumer cutover; retain reusable V2 semantics in the chosen owner.
+The native indexed search V2 is retired. The intended preservation tag is
+[`retired/indexed-search-v2`](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/indexed-search-v2); the landing owner must establish and verify that
+tag and its data archive. The separate Worker/D1 retirement has its own package.
 
 ## Compressed search V3
 
@@ -54,13 +63,14 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Diagnostic query-store search
 
-`tos-query/src/source_diagnostic_legacy.rs` and `source_diagnostic.rs` read authenticated `tos_query_store_v1` carriers; `tos-access/src/core_snapshot.rs` and `core_legacy_query_executor.rs` expose selected query-store operations. Compiler snapshot routes produce carriers. Zero tracked JSON/JSONL files contain the exact marker; binary and external carriers are unknown. Inspect configured query-store files, snapshot metadata, backups and CLI/MCP consumers.
-
-**Removal condition:** Every retained selected carrier and required diagnostic operation has a source-returning, authorized replacement; regenerate or migrate carriers, verify restore and switch consumers. **Package:** Diagnostic carrier migration and reader retirement.
+The native access diagnostic query-store reader is removed. The intended
+preservation tag is `retired/query-store`; the tag and its data archive must be
+established and verified by the landing owner. Source diagnostics retain
+separate selected-input checks.
 
 ## Files named legacy or historical
 
-A basename search finds 100 tracked files containing `legacy` or `historical`, including data and fixtures; nine are Rust files, eight under `rust/` totaling 12,941 lines and one under `tests/`. Their names are not a deletion list. The Rust files are `tos-access/src/core_legacy_query_executor.rs`, `tos-query/src/{knowledge_legacy_search,source_diagnostic_legacy}.rs`, `tos-compiler/src/legacy.rs`, and `tos-command/src/{source_legacy_claim_store,source_legacy_historical_claim,source_native_legacy_claim_cli,source_native_pg_forms_historical_cli}.rs`; the test is `tests/conformance/rust/command_legacy_claim_cases.rs`. Command modules write or read claims and forms; the compiler and query modules produce or read compatibility carriers. Historical-subject forms and authored Claims remain active responsibilities. Inspect operator claim stores, permissions, selected captures and consumers as well as tracked references.
+The pre-retirement basename survey found 100 tracked files containing `legacy` or `historical`, including data and fixtures. Their names are not a deletion list. The remaining Rust files include `tos-compiler/src/legacy.rs` and `tos-command/src/{source_legacy_claim_store,source_legacy_historical_claim,source_native_legacy_claim_cli,source_native_pg_forms_historical_cli}.rs`; the test is `tests/conformance/rust/command_legacy_claim_cases.rs`. Command modules write or read claims and forms; the compiler and query modules produce or read compatibility carriers. Historical-subject forms and authored Claims remain active responsibilities. Inspect operator claim stores, permissions, selected captures and consumers as well as tracked references.
 
 **Removal condition:** Classify each file and its records by actual behavior; move active historical-subject responsibilities to an accepted owner, satisfy each relevant search or claim migration gate, preserve records and history, and prove no supported caller needs the old implementation. **Package:** Per-owner claim/forms, compiler, query and conformance cleanup; remove only individually qualified files.
 
@@ -78,11 +88,13 @@ A basename search finds 100 tracked files containing `legacy` or `historical`, i
 
 ## Python value and compact JSON codecs
 
-`tos-foundation/src/python_value.rs` implements Python-compatible value behavior; `json.rs` owns `emit_python_compact_json`. Command and access code emit packets and stored values, while native/Worker consumers read them through foundation and WASM bindings in `access/shared/native-semantics.ts`. Zero tracked JSON/JSONL files mention the emitter function name. Inspect external receipts, cached packets, content digests, wire consumers and saved inputs.
+`tos-foundation/src/python_value.rs` implements Python-compatible value behavior; `json.rs` owns `emit_ordered_compact_json_v1`. Command and access code emit packets and stored values, while native/Worker consumers read them through foundation and WASM bindings in `access/shared/native-semantics.ts`. Zero tracked JSON/JSONL files mention the emitter function name. Inspect external receipts, cached packets, content digests, wire consumers and saved inputs.
 
 **Removal condition:** Independent vectors cover numeric, container, string, serialization and error semantics; every retained byte-sensitive artifact remains verifiable and all supported producers and readers adopt an explicit successor. **Package:** Python-value and wire-codec migration, followed by compatibility cleanup.
 
 ## Canonical profiles
+
+The retained profiles are specified by byte rules and fixed vectors in `tos-foundation`.
 
 `tos-foundation/src/json.rs` defines `CorpusSnapshotV1`, `SourceRecordDigestV1` and `SourceCommandInputV1`. Command, source-store and access writers use them for snapshots, record digests and command inputs; readers and verifiers recompute their bytes. Only the snapshot profile adds a final LF. Zero tracked JSON/JSONL files contain each of the three exact profile identifiers; unlabelled preimages and digests remain uncounted. Inspect retained manifests, revision and command receipts, selected publications, backups and external verifiers.
 

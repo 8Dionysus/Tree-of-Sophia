@@ -14,7 +14,7 @@ use tos_foundation::{
 use tos_query::{
     AbortProbe, InspectBudget,
     philosophy_read::{PhilosophyReadBudget, compute_source_philosophy_view_diagnostic},
-    source_diagnostic::{self, LegacyStore},
+    source_diagnostic,
 };
 const SOURCE_BYTES: usize = 4 * 1024 * 1024;
 const REPORT_BYTES: usize = 65536;
@@ -155,8 +155,19 @@ fn diagnostic_limits() -> source_diagnostic::Limits {
         max_json_bytes: SOURCE_BYTES,
         max_rows: 100_000,
         max_work_steps: 1_000_000,
-        max_sql_vm_steps: 1_000_000,
-        sqlite_cache_kib: 8192,
+    }
+}
+fn partitioned_projection_limits() -> tos_compiler::d1_projection_snapshot::D1ProjectionLimits {
+    let limits = diagnostic_limits();
+    tos_compiler::d1_projection_snapshot::D1ProjectionLimits {
+        max_opened_parts: limits.max_work_steps,
+        max_read_bytes: limits.max_input_bytes,
+        max_stored_read_bytes: limits.max_input_bytes,
+        max_decoded_bytes: limits.max_input_bytes,
+        max_keys: limits.max_rows,
+        max_rows: limits.max_rows,
+        max_changes: 0,
+        max_output_bytes: limits.max_json_bytes as u64,
     }
 }
 fn diagnostic_value(value: &serde_json::Value) -> Result<JsonValue, String> {
@@ -193,7 +204,7 @@ pub fn doctor_report(
     root: &Path,
     profile: &str,
     require_mcp: bool,
-    program_directory: &Path,
+    _program_directory: &Path,
 ) -> Result<JsonValue, String> {
     if profile != "standalone" {
         return Err(format!("unknown access profile: {profile}"));
@@ -217,11 +228,6 @@ pub fn doctor_report(
         "TOS_EVIDENCE_PROJECTION_PATH",
         "ToS/derived-exports/epistemic_evidence_projection.min.json",
     );
-    let store = selected_path(
-        &root,
-        "TOS_QUERY_STORE_PATH",
-        "ToS/derived-exports/runtime/knowledge.sqlite3",
-    );
     let mut checks = vec![];
     let index_raw = if index.is_file() {
         Some(read(&index).and_then(|raw| document(&raw).map(|value| (raw, value))))
@@ -233,80 +239,6 @@ pub fn doctor_report(
     } else {
         None
     };
-    let source_partitioned = [index_raw.as_ref(), graph_raw.as_ref()]
-        .into_iter()
-        .flatten()
-        .any(|raw| {
-            raw.as_ref()
-                .ok()
-                .is_some_and(|(_, value)| partitioned(value))
-        });
-    let bibliographic = selected_path(
-        &root,
-        "TOS_BIBLIOGRAPHIC_GRAPH_PATH",
-        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-    );
-    let bibliography_partitioned = bibliographic.is_file()
-        && read(&bibliographic)
-            .and_then(|raw| document(&raw))
-            .is_ok_and(|value| partitioned(&value));
-    let store_required = std::env::var_os("TOS_QUERY_STORE_PATH")
-        .is_some_and(|raw| !raw.is_empty())
-        || store.is_file()
-        || source_partitioned
-        || bibliography_partitioned;
-    let mut query_store = None;
-    if store_required {
-        let inputs = [
-            (
-                "ToS/derived-exports/tos_corpus_index.min.json".to_owned(),
-                index.clone(),
-            ),
-            (
-                "ToS/derived-exports/philosophy_graph_projection.min.json".to_owned(),
-                graph.clone(),
-            ),
-            (
-                "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json".to_owned(),
-                bibliographic,
-            ),
-            (
-                "ToS/doctrine/semantic-interchange/entity-types.v1.json".to_owned(),
-                selected_path(
-                    &root,
-                    "TOS_ENTITY_TYPE_REGISTRY_PATH",
-                    "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-                ),
-            ),
-            (
-                "ToS/doctrine/semantic-interchange/relation-types.v1.json".to_owned(),
-                selected_path(
-                    &root,
-                    "TOS_RELATION_TYPE_REGISTRY_PATH",
-                    "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-                ),
-            ),
-        ];
-        match LegacyStore::open(
-            &store,
-            &inputs,
-            diagnostic_limits(),
-            deadline,
-            abort.clone(),
-        ) {
-            Ok(opened) => query_store = Some(opened),
-            Err(error) => check(
-                &mut checks,
-                "query-store",
-                false,
-                true,
-                vec![
-                    ("path", text(&store.to_string_lossy())),
-                    ("error", text(&error.to_string())),
-                ],
-            ),
-        }
-    }
     check(
         &mut checks,
         "corpus-index-present",
@@ -317,9 +249,7 @@ pub fn doctor_report(
     if let Some(raw) = index_raw {
         match raw {
             Ok((raw, value)) => {
-                let header = if let Some(store) = query_store.as_ref() {
-                    diagnostic_value(&store.corpus_header)
-                } else if partitioned(&value) {
+                let header = if partitioned(&value) {
                     projection_header(&index, deadline, abort.as_ref())
                 } else {
                     Ok(value)
@@ -359,7 +289,8 @@ pub fn doctor_report(
     if let Some(raw) = graph_raw {
         match raw {
             Ok((raw, source_value)) => {
-                let header = if partitioned(&source_value) {
+                let graph_is_partitioned = partitioned(&source_value);
+                let header = if graph_is_partitioned {
                     projection_header(&graph, deadline, abort.as_ref())
                 } else {
                     Ok(source_value)
@@ -387,11 +318,6 @@ pub fn doctor_report(
                     ],
                 );
                 if supported {
-                    let first = field(&value, "views").as_array().and_then(|views| {
-                        views.iter().find_map(|view| {
-                            field(view, "view_id").as_str().filter(|id| !id.is_empty())
-                        })
-                    });
                     let budget = PhilosophyReadBudget {
                         inspect: InspectBudget {
                             max_open_vm_steps: 1_000_000,
@@ -406,22 +332,41 @@ pub fn doctor_report(
                         },
                         max_work_steps: 1_000_000,
                     };
-                    let packet = if let Some(store) = query_store.as_mut() {
-                        store.first_view_packet(budget).map_err(|e| e.to_string())
-                    } else {
-                        first
-                            .ok_or_else(|| "projection has no graph views".to_owned())
-                            .and_then(|view| {
-                                compute_source_philosophy_view_diagnostic(
-                                    &raw,
-                                    view,
-                                    budget,
-                                    abort.as_ref(),
-                                )
-                                .map_err(|e| e.message.to_owned())
+                    let packet = (|| {
+                        let graph_bytes = if graph_is_partitioned {
+                            crate::partitioned_projection::materialize_collections(
+                                &raw,
+                                &graph,
+                                &["nodes", "edges", "views"],
+                                partitioned_projection_limits(),
+                                deadline,
+                            )?
+                            .0
+                        } else {
+                            raw.clone()
+                        };
+                        let projection = document(&graph_bytes)?;
+                        let first = field(&projection, "views").as_array().and_then(|views| {
+                            views.iter().find_map(|view| {
+                                field(view, "view_id").as_str().filter(|id| !id.is_empty())
                             })
-                    }
-                    .and_then(|bytes| document(&bytes));
+                        });
+                        let view =
+                            first.ok_or_else(|| "projection has no graph views".to_owned())?;
+                        let packet = compute_source_philosophy_view_diagnostic(
+                            &graph_bytes,
+                            view,
+                            budget,
+                            abort.as_ref(),
+                        )
+                        .map_err(|error| error.message.to_owned())?;
+                        if read(&graph)? != raw {
+                            return Err(
+                                "selected philosophy projection changed during verification".into(),
+                            );
+                        }
+                        document(&packet)
+                    })();
                     match packet {
                         Ok(value) => {
                             let nodes = field(&value, "node_count");
@@ -451,7 +396,7 @@ pub fn doctor_report(
                             false,
                             true,
                             vec![
-                                ("view_id", first.map(text).unwrap_or(JsonValue::Null)),
+                                ("view_id", JsonValue::Null),
                                 ("node_count", number(0)),
                                 ("edge_count", number(0)),
                                 ("error", text(&error)),
@@ -524,35 +469,6 @@ pub fn doctor_report(
         true,
         vec![("path", text("embedded:access/contracts"))],
     );
-    let web = program_directory.join("web_dist");
-    let web_read = read(&web.join("assets/tos-graph.js"));
-    let web_ok = web_read.as_ref().is_ok_and(|raw| !raw.is_empty());
-    check(
-        &mut checks,
-        "web-assets",
-        web_ok,
-        true,
-        vec![
-            (
-                "path",
-                if web_ok {
-                    text(&web.to_string_lossy())
-                } else {
-                    JsonValue::Null
-                },
-            ),
-            (
-                "error",
-                if web_ok {
-                    JsonValue::Null
-                } else {
-                    text(
-                        "installed software web assets unavailable; selected data cannot supply executable assets",
-                    )
-                },
-            ),
-        ],
-    );
     check(
         &mut checks,
         "native-mcp-dependency",
@@ -563,30 +479,6 @@ pub fn doctor_report(
             ("implementation", text("built-in-rust-stdio")),
         ],
     );
-    if let Some(store_reader) = query_store.as_ref() {
-        match store_reader.verify_currentness() {
-            Ok(()) => check(
-                &mut checks,
-                "query-store",
-                true,
-                true,
-                vec![
-                    ("path", text(&store.to_string_lossy())),
-                    ("revision", text(&store_reader.revision)),
-                ],
-            ),
-            Err(error) => check(
-                &mut checks,
-                "query-store",
-                false,
-                true,
-                vec![
-                    ("path", text(&store.to_string_lossy())),
-                    ("error", text(&error.to_string())),
-                ],
-            ),
-        }
-    }
     if abort.reason().is_some() {
         check(
             &mut checks,

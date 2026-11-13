@@ -379,8 +379,10 @@ fn copy_tree(
 
 fn check_assets(records: &BTreeMap<String, (String, u64)>) -> io::Result<()> {
     for required in [
-        "web/dist/assets/tos-graph.js",
-        "web/dist/assets/tos-graph.css",
+        "web/dist/home/index.html",
+        "web/dist/zarathustra/index.html",
+        "web/dist/antiquity/index.html",
+        "web/dist/not-found/index.html",
         "worker-generated/tos_web_rules.js",
         "worker-generated/tos_web_rules_bg.wasm",
     ] {

@@ -27,7 +27,7 @@ use tos_query::{
     BoundCmpKnowledge, DisclosableInspect, InspectBudget, InspectCurrentAuthority,
     InspectDisclosureLease, InspectVisitMeter, execute_selected_claim_list,
     execute_selected_inspect,
-    search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode, SearchKind},
 };
 
 const INPUT_CAP: usize = 65_536;
@@ -35,7 +35,7 @@ const BODY_CAP: usize = 2 * 1024 * 1024;
 #[derive(Debug)]
 pub enum StoredChronologyListError {
     Owner(SourceCommandError),
-    Query(SearchV2Error),
+    Query(SearchError),
     Binding(StoredChronologyProjectionError),
     InvalidRequest(&'static str),
     NeedsBinding(&'static str),
@@ -56,8 +56,8 @@ impl From<SourceCommandError> for StoredChronologyListError {
         Self::Owner(e)
     }
 }
-impl From<SearchV2Error> for StoredChronologyListError {
-    fn from(e: SearchV2Error) -> Self {
+impl From<SearchError> for StoredChronologyListError {
+    fn from(e: SearchError) -> Self {
         Self::Query(e)
     }
 }
@@ -80,7 +80,7 @@ impl From<StoredChronologyProjectionError> for StoredChronologyListError {
                 resource()
             }
             StoredChronologyProjectionError::Query(e)
-                if e.code == SearchV2ErrorCode::BudgetExceeded =>
+                if e.code == SearchErrorCode::BudgetExceeded =>
             {
                 resource()
             }
@@ -969,7 +969,7 @@ where
             q,
         );
         if attributed.is_some()
-            && matches!(&packet, Err(reason) if reason.code == SearchV2ErrorCode::BudgetExceeded)
+            && matches!(&packet, Err(reason) if reason.code == SearchErrorCode::BudgetExceeded)
         {
             // Covers native authority and prelude errors outside these source
             // paths. The owner records it ONLY if no earlier fault exists.
@@ -1202,7 +1202,7 @@ where
     }
     let packet = execute_selected_claim_list(model, bound, list_authority, &native_request, list_q);
     if attributed.is_some()
-        && matches!(&packet, Err(reason) if reason.code == SearchV2ErrorCode::BudgetExceeded)
+        && matches!(&packet, Err(reason) if reason.code == SearchErrorCode::BudgetExceeded)
     {
         list_authority.observe_inspect_budget("fallback", "unclassified_native_budget", [None; 4]);
     }
@@ -1495,14 +1495,14 @@ fn envelope_probe(probe: Option<&dyn tos_query::AbortProbe>) -> Result<()> {
     let (code, message) = match probe.and_then(|probe| probe.reason()) {
         None => return Ok(()),
         Some(tos_query::AbortReason::Cancelled) => {
-            (SearchV2ErrorCode::Cancelled, "envelope caller cancelled")
+            (SearchErrorCode::Cancelled, "envelope caller cancelled")
         }
         Some(tos_query::AbortReason::DeadlineExceeded) => (
-            SearchV2ErrorCode::DeadlineExceeded,
+            SearchErrorCode::DeadlineExceeded,
             "envelope caller deadline exceeded",
         ),
     };
-    Err(StoredChronologyListError::Query(SearchV2Error {
+    Err(StoredChronologyListError::Query(SearchError {
         code,
         message,
     }))

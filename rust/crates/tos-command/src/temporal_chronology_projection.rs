@@ -13,13 +13,13 @@ use tos_query::{
     BoundCmpKnowledge, DisclosableInspect, InspectBudget, InspectCurrentAuthority,
     InspectDisclosureLease, InspectVisitMeter, execute_selected_claim_projection,
     execute_selected_inspect,
-    search_v2::{SearchKind, SearchV2Error},
+    search::{SearchError, SearchKind},
 };
 
 #[derive(Debug)]
 pub enum StoredChronologyProjectionError {
     Owner(SourceCommandError),
-    Query(SearchV2Error),
+    Query(SearchError),
     Json(FoundationError),
     WrongModelSource,
     MissingMember,
@@ -32,8 +32,8 @@ impl From<SourceCommandError> for StoredChronologyProjectionError {
         Self::Owner(e)
     }
 }
-impl From<SearchV2Error> for StoredChronologyProjectionError {
-    fn from(e: SearchV2Error) -> Self {
+impl From<SearchError> for StoredChronologyProjectionError {
+    fn from(e: SearchError) -> Self {
         Self::Query(e)
     }
 }

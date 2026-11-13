@@ -3,13 +3,13 @@
 //! and the existing semantic kernels retain their respective authority.
 use crate::compressed_search_sqlite::Read;
 use crate::prepared_inspect::{budget, codec, corrupt, lookup, storage_error};
-use crate::search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode, SearchKind};
 use tos_compiler::local_prepared::PreparedReadTransaction;
-use tos_foundation::{JsonValue, emit_python_compact_json};
-type Result<T> = std::result::Result<T, SearchV2Error>;
+use tos_foundation::{JsonValue, emit_ordered_compact_json_v1};
+type Result<T> = std::result::Result<T, SearchError>;
 
 fn admit_request(request: &JsonValue, read: &Read<'_>) -> Result<()> {
-    emit_python_compact_json(request, codec(65_536.min(read.limits.max_row_bytes)))
+    emit_ordered_compact_json_v1(request, codec(65_536.min(read.limits.max_row_bytes)))
         .map_err(|_| budget())?;
     read.check_abort().map_err(storage_error)
 }
@@ -38,7 +38,7 @@ pub(crate) fn temporal(
         },
         output_limits,
     )?;
-    emit_python_compact_json(&packet, output_limits).map_err(|_| budget())?;
+    emit_ordered_compact_json_v1(&packet, output_limits).map_err(|_| budget())?;
     read.check_abort().map_err(storage_error)?;
     Ok(packet)
 }
@@ -65,7 +65,7 @@ pub(crate) fn focus_spec(
         request,
         &crate::knowledge_lens_spec::LensVocabulary::published_shape(),
     )?;
-    emit_python_compact_json(&spec, codec(cap)).map_err(|_| budget())?;
+    emit_ordered_compact_json_v1(&spec, codec(cap)).map_err(|_| budget())?;
     read.check_abort().map_err(storage_error)?;
     Ok(spec)
 }
@@ -73,8 +73,8 @@ pub(crate) fn stored_spec(catalog: &JsonValue, identifier: &str) -> Result<JsonV
     // An admitted <=128-codepoint valid UTF8 identifier can never exceed512B.
     // Avoid constructing an unbounded JsonString before the maintained parser.
     if identifier.len() > 512 {
-        return Err(SearchV2Error {
-            code: SearchV2ErrorCode::InvalidRequest,
+        return Err(SearchError {
+            code: SearchErrorCode::InvalidRequest,
             message: "invalid stored lens identifier",
         });
     }

@@ -5,7 +5,7 @@ use crate::knowledge_inspect::{
     InspectVisitMeter, Reader, execute_selected_carrier_packet,
     execute_selected_carrier_packet_with_optional_meter,
 };
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode};
 use crate::source_read_projection::{object, text};
 use crate::{
     AbortProbe, AbortReason, BoundCmpKnowledge, DisclosableInspect, InspectBudget,
@@ -29,7 +29,7 @@ mod public;
 pub use evidence::{EVIDENCE_OPERATION, EvidenceMode, EvidenceRequest, execute_selected_evidence};
 
 pub const PHILOSOPHY_INTENDED_USE: &str = "read_only_public_philosophy_projection_v1";
-pub const PHILOSOPHY_CARRIER_LAYER: &str = crate::knowledge_packet::INDEXED_SEARCH_CARRIER_LAYER;
+pub const PHILOSOPHY_CARRIER_LAYER: &str = crate::knowledge_scope::INDEXED_SEARCH_CARRIER_LAYER;
 
 /// Whole maintained compatibility reads. Existing inspect bounds govern the
 /// retained originals, SQL work and final packet; this is not a scale API.
@@ -56,7 +56,7 @@ pub fn compute_source_philosophy_view_diagnostic(
     view_id: &str,
     budget: PhilosophyReadBudget,
     probe: &dyn AbortProbe,
-) -> Result<Vec<u8>, SearchV2Error> {
+) -> Result<Vec<u8>, SearchError> {
     if view_id.is_empty() || view_id.len() > budget.inspect.max_field_bytes {
         return Err(invalid());
     }
@@ -73,17 +73,17 @@ pub fn compute_source_philosophy_view_diagnostic(
     }
     let exhausted = || {
         failure(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "source philosophy diagnostic budget exceeded",
         )
     };
     let mut interrupt = || match probe.reason() {
         Some(AbortReason::Cancelled) => Err(failure(
-            SearchV2ErrorCode::Cancelled,
+            SearchErrorCode::Cancelled,
             "source philosophy diagnostic cancelled",
         )),
         Some(AbortReason::DeadlineExceeded) => Err(failure(
-            SearchV2ErrorCode::DeadlineExceeded,
+            SearchErrorCode::DeadlineExceeded,
             "source philosophy diagnostic deadline exceeded",
         )),
         None => Ok(()),
@@ -110,14 +110,14 @@ pub fn compute_source_philosophy_view_diagnostic(
         Some("tos_philosophy_graph_projection_v1" | "tos_philosophy_graph_projection_v2")
     ) {
         return Err(failure(
-            SearchV2ErrorCode::UnsupportedProfile,
+            SearchErrorCode::UnsupportedProfile,
             "source philosophy diagnostic requires a monolithic graph",
         ));
     }
     let nodes = arr(get(graph, "nodes"));
     let edges = arr(get(graph, "edges"));
     let mut rows = 0u64;
-    let mut charge = |count: usize| -> Result<(), SearchV2Error> {
+    let mut charge = |count: usize| -> Result<(), SearchError> {
         rows = rows
             .checked_add(u64::try_from(count).map_err(|_| exhausted())?)
             .ok_or_else(exhausted)?;
@@ -279,7 +279,7 @@ impl PhilosophyReadRequest {
             Self::Unresolved { .. } => "tos_philosophy_graph_unresolved",
         }
     }
-    fn validate(&self, budget: InspectBudget) -> Result<(), SearchV2Error> {
+    fn validate(&self, budget: InspectBudget) -> Result<(), SearchError> {
         let id = |s: &str| !s.is_empty() && s.len() <= budget.max_field_bytes;
         let optional =
             |s: &Option<String>| s.as_ref().is_none_or(|s| s.len() <= budget.max_field_bytes);
@@ -398,7 +398,7 @@ fn original_rows<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     receipt: &PhilosophyOriginalReceipt,
     collection: PhilosophyOriginalCollection,
     count: u64,
-) -> Result<Vec<JsonValue>, SearchV2Error> {
+) -> Result<Vec<JsonValue>, SearchError> {
     let mut rows = Vec::new();
     let mut after = None;
     for ordinal in 0..count {
@@ -406,13 +406,13 @@ fn original_rows<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .philosophy_row(receipt, collection, after)?
             .ok_or_else(|| {
                 failure(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "selected philosophy original coverage incomplete",
                 )
             })?;
         if actual != ordinal || row.as_object().is_none() {
             return Err(failure(
-                SearchV2ErrorCode::CorruptSelectedCarrier,
+                SearchErrorCode::CorruptSelectedCarrier,
                 "selected philosophy original order differs",
             ));
         }
@@ -430,7 +430,7 @@ pub fn execute_selected_philosophy<'hold, A: InspectCurrentAuthority<'hold> + ?S
     authority: &mut A,
     request: &PhilosophyReadRequest,
     budget: PhilosophyReadBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     execute_selected_philosophy_with_meter(model, bound, authority, request, budget, None)
 }
 
@@ -441,7 +441,7 @@ pub fn execute_selected_philosophy_metered<'hold, A: InspectCurrentAuthority<'ho
     request: &PhilosophyReadRequest,
     budget: PhilosophyReadBudget,
     meter: &mut InspectVisitMeter,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     execute_selected_philosophy_with_meter(model, bound, authority, request, budget, Some(meter))
 }
 
@@ -452,11 +452,11 @@ fn execute_selected_philosophy_with_meter<'hold, A: InspectCurrentAuthority<'hol
     request: &PhilosophyReadRequest,
     budget: PhilosophyReadBudget,
     mut meter: Option<&mut InspectVisitMeter>,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     request.validate(budget.inspect)?;
     if budget.max_work_steps == 0 {
         return Err(failure(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "invalid philosophy work budget",
         ));
     }
@@ -477,13 +477,13 @@ fn execute_selected_philosophy_with_meter<'hold, A: InspectCurrentAuthority<'hol
                     .and_then(|count| count.checked_add(1))
                     .ok_or_else(|| {
                         failure(
-                            SearchV2ErrorCode::BudgetExceeded,
+                            SearchErrorCode::BudgetExceeded,
                             "selected philosophy projection row count overflow",
                         )
                     })?;
                 if rows > budget.max_work_steps {
                     return Err(failure(
-                        SearchV2ErrorCode::BudgetExceeded,
+                        SearchErrorCode::BudgetExceeded,
                         "selected philosophy projection exceeds work budget",
                     ));
                 }
@@ -570,18 +570,18 @@ fn values(v: impl IntoIterator<Item = JsonValue>) -> JsonValue {
 fn copies<'a>(v: impl IntoIterator<Item = &'a JsonValue>) -> JsonValue {
     values(v.into_iter().cloned())
 }
-fn failure(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn failure(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
-fn unknown() -> SearchV2Error {
+fn unknown() -> SearchError {
     failure(
-        SearchV2ErrorCode::UnknownIdentifier,
+        SearchErrorCode::UnknownIdentifier,
         "unknown selected philosophy object",
     )
 }
-fn invalid() -> SearchV2Error {
+fn invalid() -> SearchError {
     failure(
-        SearchV2ErrorCode::InvalidRequest,
+        SearchErrorCode::InvalidRequest,
         "invalid philosophy request",
     )
 }
@@ -613,7 +613,7 @@ fn compose_full_projection(
     header: JsonValue,
     nodes: Vec<JsonValue>,
     edges: Vec<JsonValue>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     validate_full_projection_header(&header)?;
     let JsonValue::Object(fields) = header else {
         unreachable!("validated full projection header is an object")
@@ -628,7 +628,7 @@ fn compose_full_projection(
             Some("nodes") => {
                 if saw_nodes {
                     return Err(failure(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "selected philosophy header repeats nodes",
                     ));
                 }
@@ -638,7 +638,7 @@ fn compose_full_projection(
             Some("edges") => {
                 if saw_edges {
                     return Err(failure(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "selected philosophy header repeats edges",
                     ));
                 }
@@ -656,10 +656,10 @@ fn compose_full_projection(
     }
     Ok(JsonValue::Object(projection))
 }
-fn validate_full_projection_header(header: &JsonValue) -> Result<(), SearchV2Error> {
+fn validate_full_projection_header(header: &JsonValue) -> Result<(), SearchError> {
     if header.as_object().is_none() {
         return Err(failure(
-            SearchV2ErrorCode::CorruptSelectedCarrier,
+            SearchErrorCode::CorruptSelectedCarrier,
             "selected philosophy projection header is not an object",
         ));
     }
@@ -670,7 +670,7 @@ fn validate_full_projection_header(header: &JsonValue) -> Result<(), SearchV2Err
         Some("tos_philosophy_graph_projection_v1" | "tos_philosophy_graph_projection_v2")
     ) {
         return Err(failure(
-            SearchV2ErrorCode::UnsupportedProfile,
+            SearchErrorCode::UnsupportedProfile,
             "selected philosophy projection schema is unsupported",
         ));
     }
@@ -702,13 +702,13 @@ fn predicate_allowed(item: &JsonValue, filter: &BTreeSet<String>) -> bool {
 }
 struct Work<'a> {
     remaining: u64,
-    interrupt: &'a mut dyn FnMut() -> Result<(), SearchV2Error>,
+    interrupt: &'a mut dyn FnMut() -> Result<(), SearchError>,
 }
 impl Work<'_> {
-    fn step(&mut self) -> Result<(), SearchV2Error> {
+    fn step(&mut self) -> Result<(), SearchError> {
         self.remaining = self.remaining.checked_sub(1).ok_or_else(|| {
             failure(
-                SearchV2ErrorCode::BudgetExceeded,
+                SearchErrorCode::BudgetExceeded,
                 "philosophy work budget exceeded",
             )
         })?;
@@ -726,7 +726,7 @@ impl<'a> Graph<'a> {
         nodes: &'a [JsonValue],
         edges: &'a [JsonValue],
         w: &mut Work<'_>,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         let mut result = Self {
             header,
             nodes: vec![],
@@ -738,7 +738,7 @@ impl<'a> Graph<'a> {
                           key: &str,
                           seen: &mut BTreeSet<String>,
                           out: &mut Vec<&'a JsonValue>|
-         -> Result<(), SearchV2Error> {
+         -> Result<(), SearchError> {
             for item in items {
                 w.step()?;
                 let id = s(get(item, key));
@@ -766,7 +766,7 @@ impl<'a> Graph<'a> {
         }
         Ok(result)
     }
-    fn view(&self, id: &str) -> Result<&'a JsonValue, SearchV2Error> {
+    fn view(&self, id: &str) -> Result<&'a JsonValue, SearchError> {
         objs(get(self.header, "views"))
             .into_iter()
             .find(|v| s(get(v, "view_id")) == id)
@@ -797,14 +797,14 @@ impl<'a> Graph<'a> {
                 .collect(),
         )
     }
-    fn node(&self, id: &str) -> Result<&'a JsonValue, SearchV2Error> {
+    fn node(&self, id: &str) -> Result<&'a JsonValue, SearchError> {
         self.nodes
             .iter()
             .copied()
             .find(|v| s(get(v, "node_id")) == id)
             .ok_or_else(unknown)
     }
-    fn review(&self, id: &str) -> Result<&'a JsonValue, SearchV2Error> {
+    fn review(&self, id: &str) -> Result<&'a JsonValue, SearchError> {
         objs(get(self.header, "review_packets"))
             .into_iter()
             .find(|v| s(get(v, "view_id")) == id)
@@ -834,7 +834,7 @@ fn bounded_graph<'a>(
     edges: &[&'a JsonValue],
     limit: usize,
     w: &mut Work<'_>,
-) -> Result<(Vec<&'a JsonValue>, Vec<&'a JsonValue>), SearchV2Error> {
+) -> Result<(Vec<&'a JsonValue>, Vec<&'a JsonValue>), SearchError> {
     let by_id = nodes
         .iter()
         .map(|n| s(get(n, "node_id")))
@@ -885,7 +885,7 @@ fn bounded_clusters(
     nodes: &[&JsonValue],
     edges: &[&JsonValue],
     w: &mut Work<'_>,
-) -> Result<Vec<JsonValue>, SearchV2Error> {
+) -> Result<Vec<JsonValue>, SearchError> {
     let ni = nodes
         .iter()
         .map(|n| s(get(n, "node_id")))
@@ -948,8 +948,8 @@ pub(crate) fn compute_philosophy_read(
     base_edges: &[JsonValue],
     request: &PhilosophyReadRequest,
     max_steps: u64,
-    interrupt: &mut dyn FnMut() -> Result<(), SearchV2Error>,
-) -> Result<JsonValue, SearchV2Error> {
+    interrupt: &mut dyn FnMut() -> Result<(), SearchError>,
+) -> Result<JsonValue, SearchError> {
     let mut w = Work {
         remaining: max_steps,
         interrupt,
@@ -964,7 +964,7 @@ fn compute_on_graph<'a>(
     base_edges: &'a [JsonValue],
     request: &PhilosophyReadRequest,
     mut w: &mut Work<'_>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let header = graph.header;
     let boundary = || metadata(header, "runtime_projection_boundary");
     match request {
@@ -1602,13 +1602,13 @@ pub(crate) fn controlled_header_metadata(
 fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     bound: &BoundCmpKnowledge<'_>,
-) -> Result<PhilosophyOriginalReceipt, SearchV2Error> {
+) -> Result<PhilosophyOriginalReceipt, SearchError> {
     let receipt = read.philosophy_receipt()?;
     let source = bound
         .source_for_adapter("philosophy-node-edge-v1")
         .ok_or_else(|| {
             failure(
-                SearchV2ErrorCode::Unavailable,
+                SearchErrorCode::Unavailable,
                 "selected philosophy source unavailable",
             )
         })?;
@@ -1619,7 +1619,7 @@ fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
         || receipt.membership_root != bound.selection().source_membership_root.to_hex()
     {
         return Err(failure(
-            SearchV2ErrorCode::CorruptSelectedCarrier,
+            SearchErrorCode::CorruptSelectedCarrier,
             "selected philosophy original binding differs",
         ));
     }
@@ -1634,7 +1634,7 @@ pub fn execute_selected_philosophy_view_ids<'hold, A: InspectCurrentAuthority<'h
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     budget: PhilosophyReadBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     if budget.max_work_steps == 0 {
         return Err(invalid());
     }
@@ -1652,7 +1652,7 @@ pub fn execute_selected_philosophy_view_ids<'hold, A: InspectCurrentAuthority<'h
                 .next()
                 .ok_or_else(|| {
                     failure(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "selected philosophy header absent",
                     )
                 })?;
@@ -1672,7 +1672,7 @@ pub fn execute_selected_philosophy_view_ids<'hold, A: InspectCurrentAuthority<'h
                 let id = crate::knowledge_lens_spec::py_string(get(view, "view_id"));
                 if id.len() > budget.inspect.max_field_bytes {
                     return Err(failure(
-                        SearchV2ErrorCode::BudgetExceeded,
+                        SearchErrorCode::BudgetExceeded,
                         "philosophy view identity exceeds field budget",
                     ));
                 }
@@ -1692,7 +1692,7 @@ pub fn execute_selected_philosophy_health_seed_metered<
     authority: &mut A,
     budget: PhilosophyReadBudget,
     meter: &mut InspectVisitMeter,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     execute_selected_philosophy_health_seed_with_meter(model, bound, authority, budget, Some(meter))
 }
 
@@ -1700,8 +1700,8 @@ pub(crate) fn controlled_health_seed(
     header: &JsonValue,
     max_field_bytes: usize,
     max_work_steps: u64,
-    interrupt: &mut dyn FnMut() -> Result<(), SearchV2Error>,
-) -> Result<JsonValue, SearchV2Error> {
+    interrupt: &mut dyn FnMut() -> Result<(), SearchError>,
+) -> Result<JsonValue, SearchError> {
     let mut work = Work {
         remaining: max_work_steps,
         interrupt,
@@ -1711,14 +1711,14 @@ pub(crate) fn controlled_health_seed(
         .filter(|value| !value.is_empty())
         .ok_or_else(|| {
             failure(
-                SearchV2ErrorCode::CorruptSelectedCarrier,
+                SearchErrorCode::CorruptSelectedCarrier,
                 "selected philosophy projection schema absent",
             )
         })?
         .to_owned();
     if schema.len() > max_field_bytes {
         return Err(failure(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "philosophy schema exceeds field budget",
         ));
     }
@@ -1731,7 +1731,7 @@ pub(crate) fn controlled_health_seed(
         let id = crate::knowledge_lens_spec::py_string(get(view, "view_id"));
         if id.len() > max_field_bytes {
             return Err(failure(
-                SearchV2ErrorCode::BudgetExceeded,
+                SearchErrorCode::BudgetExceeded,
                 "philosophy view identity exceeds field budget",
             ));
         }
@@ -1760,7 +1760,7 @@ fn execute_selected_philosophy_health_seed_with_meter<
     authority: &mut A,
     budget: PhilosophyReadBudget,
     mut meter: Option<&mut InspectVisitMeter>,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     if budget.max_work_steps == 0 {
         return Err(invalid());
     }
@@ -1779,7 +1779,7 @@ fn execute_selected_philosophy_health_seed_with_meter<
                 .next()
                 .ok_or_else(|| {
                     failure(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "selected philosophy header absent",
                     )
                 })?;
@@ -1807,7 +1807,7 @@ pub fn execute_selected_philosophy_audit<'hold, A: InspectCurrentAuthority<'hold
     audit_path: &str,
     audit_raw: Option<&[u8]>,
     budget: PhilosophyReadBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     if audit_path.is_empty() || audit_path.len() > budget.inspect.max_field_bytes {
         return Err(invalid());
     }
@@ -1817,7 +1817,7 @@ pub fn execute_selected_philosophy_audit<'hold, A: InspectCurrentAuthority<'hold
         || bytes as u64 >= budget.max_work_steps
     {
         return Err(failure(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "audit projection work/byte budget",
         ));
     }
@@ -1835,7 +1835,7 @@ pub fn execute_selected_philosophy_audit<'hold, A: InspectCurrentAuthority<'hold
                 let document = parse_json(raw, JsonMode::PublishedStrict, budget.inspect.json)
                     .map_err(|_| {
                         failure(
-                            SearchV2ErrorCode::CorruptSelectedCarrier,
+                            SearchErrorCode::CorruptSelectedCarrier,
                             "invalid philosophy audit",
                         )
                     })?;
@@ -1844,7 +1844,7 @@ pub fn execute_selected_philosophy_audit<'hold, A: InspectCurrentAuthority<'hold
                         != "tos_philosophy_post_planting_audit_v1"
                 {
                     return Err(failure(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "philosophy audit schema",
                     ));
                 }

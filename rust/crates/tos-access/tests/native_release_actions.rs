@@ -17,7 +17,11 @@ use tos_foundation::{
 };
 use zip::{ZipWriter, write::SimpleFileOptions};
 
-const CLI: &str = env!("CARGO_BIN_EXE_tos-access");
+fn cli() -> PathBuf {
+    std::env::var_os("TOS_NATIVE_ACCESS_TEST_EXECUTABLE")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_tos-access")))
+}
 // The selected relation registry is over 256 KiB; all vocabulary members
 // must fit the same explicit metadata envelope used by release preparation.
 const MAX_METADATA: usize = 524_288;
@@ -40,7 +44,7 @@ impl Scratch {
         // preparation requires custody of a single-link running image, just
         // like the independently extracted executable used after installation.
         let program = path.join("release-tool");
-        fs::copy(CLI, &program).unwrap();
+        fs::copy(cli(), &program).unwrap();
         fs::set_permissions(&program, fs::Permissions::from_mode(0o700)).unwrap();
         Self(path)
     }
@@ -75,7 +79,7 @@ fn write_private(path: &Path, raw: &[u8]) {
 }
 
 fn create_archive(path: &Path, marker: &str) -> String {
-    let binary = fs::read(CLI).unwrap();
+    let binary = fs::read(cli()).unwrap();
     let lock = include_bytes!("../../../../Cargo.lock").to_vec();
     let pin = include_bytes!("../../../../rust-toolchain.toml").to_vec();
     // Pair admission includes the complete shared delivery descriptor.
@@ -84,15 +88,8 @@ fn create_archive(path: &Path, marker: &str) -> String {
     // Genuine command execution is covered by the installed conformance route.
     let mut files: BTreeMap<String, Vec<u8>> = [
         ("Cargo.lock", lock),
+        ("README.md", marker.as_bytes().to_vec()),
         ("access/src/tos_access/tos-access", binary),
-        (
-            "access/src/tos_access/web_dist/assets/tos-graph.css",
-            format!("body{{margin:0}}/*{marker}*/\n").into_bytes(),
-        ),
-        (
-            "access/src/tos_access/web_dist/assets/tos-graph.js",
-            b"export const softwareOwned=true;\n".to_vec(),
-        ),
         ("rust-toolchain.toml", pin),
     ]
     .into_iter()
@@ -412,7 +409,7 @@ fn bounded_command_output(mut command: Command) -> Output {
 }
 
 fn install_archive(archive: &Path, prefix: &Path) -> Output {
-    let mut command = Command::new(CLI);
+    let mut command = Command::new(cli());
     command
         .args(["software", "install", "--archive"])
         .arg(archive)
@@ -1049,7 +1046,7 @@ fn deployment_profile_install_defaults_and_flag_overrides() {
                selected: Option<&Path>,
                cli_profile: Option<&Path>,
                override_bytes: Option<&str>| {
-        let mut command = Command::new(CLI);
+        let mut command = Command::new(cli());
         command.env_remove("TOS_DEPLOYMENT_PROFILE");
         if let Some(path) = selected {
             command.env("TOS_DEPLOYMENT_PROFILE", path);

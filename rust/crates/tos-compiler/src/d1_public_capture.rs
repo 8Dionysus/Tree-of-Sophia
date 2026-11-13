@@ -3755,10 +3755,6 @@ pub(crate) fn runtime_companions() -> impl Iterator<Item = (&'static str, &'stat
             include_bytes!("../../../../access/contracts/knowledge-graph.v1.schema.json"),
         ),
         (
-            "access/contracts/knowledge-search-indexed.v2.schema.json",
-            include_bytes!("../../../../access/contracts/knowledge-search-indexed.v2.schema.json"),
-        ),
-        (
             "access/contracts/readable-context.v1.schema.json",
             include_bytes!("../../../../access/contracts/readable-context.v1.schema.json"),
         ),

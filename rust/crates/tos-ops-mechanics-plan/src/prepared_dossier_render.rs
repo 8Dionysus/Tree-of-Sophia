@@ -1592,7 +1592,7 @@ fn render_branch_readme(
         format!("## Route Constraints\n\n{constraints}\n")
     };
     Ok(format!(
-        "# {title}\n\nAtlas row: `{}`. Prepared dossier: `{}`.\n\nThis branch is the ToS philosophy home for the prepared dossier's first tree-shaped growth. It keeps the dossier material in the philosophy tree while leaving canon promotion to a later authored review.\n\n## Branch Pressure\n\n- Candidate node rows: {}\n- Candidate relation rows: {}\n- Source-anchor backlog rows: {}\n- Term rows: {}\n- Transmission rows: {}\n- Node pressure: {}\n- Relation pressure: {}\n\n{}{}## Local Surfaces\n\n| Surface | Role |\n| --- | --- |\n{}| `sources/source-anchor-backlog.jsonl` | future real source witness and edition anchors for this branch |\n{}| `graph-workbench/pre-canon-summary.json` | local summary of proposed graph rows before canon review |\n\nGlobal proposed node and relation rows for this branch are aggregated in `{}` and `{}`.\n",
+        "# {title}\n\nAtlas row: `{}`. Prepared dossier: `{}`.\n\nThis branch is the ToS philosophy home for the prepared dossier's first tree-shaped growth. It keeps the dossier material in the philosophy tree while leaving canon promotion to a later authored review.\n\n## Branch Pressure\n\n- Candidate node rows: {}\n- Candidate relation rows: {}\n- Source-anchor backlog rows: {}\n- Term rows: {}\n- Transmission rows: {}\n- Node pressure: {}\n- Relation pressure: {}\n\n{}{}## Local Surfaces\n\n| Surface | Role |\n| --- | --- |\n{}| `ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl` | source witness and edition anchors, selected by `branch_path` |\n{}| `graph-workbench/pre-canon-summary.json` | local summary of proposed graph rows before canon review |\n\nGlobal proposed node and relation rows for this branch are aggregated in `{}` and `{}`.\n",
         dossier.dossier_id,
         dossier.source_document,
         dossier.node_rows.len(),
@@ -1723,7 +1723,7 @@ fn branch_surfaces(
             "branch_id":branch_id(path),"role":role,"atlas_rows":[dossier.dossier_id],
             "prepared_dossiers":[dossier.dossier_id],"evidence_status":"prepared_dossier_branch",
             "expected_local_children":["sources","graph-workbench"],
-            "source_anchor_backlog":format!("{path}/sources/source-anchor-backlog.jsonl"),
+            "source_anchor_backlog":SOURCE_ANCHOR_REF,
             "local_graph_summary":format!("{path}/graph-workbench/pre-canon-summary.json")
         });
         put_route(&mut root_manifest, &fields)?;
@@ -1751,12 +1751,6 @@ fn branch_surfaces(
             plan,
             format!("{path}/sources/branch.manifest.json"),
             json_bytes(&source_manifest)?,
-            check,
-        )?;
-        add_output(
-            plan,
-            format!("{path}/sources/source-anchor-backlog.jsonl"),
-            jsonl_bytes(&dossier.source_rows)?,
             check,
         )?;
         let mut graph_manifest = json!({"branch_id":branch_id(&format!("{path}/graph-workbench")),"role":format!("local pre-canon graph summary for {}",dossier.dossier_id)});
@@ -1961,7 +1955,7 @@ fn readmes(
         ));
     }
     let dossier_readme = format!(
-        "# Dossiers\n\n`dossiers/` indexes admitted prepared Deep Research documents for the philosophy atlas.\n\nThe complete Table I, Table II, and Table III plantings record dossier identity, branch route, graph-row pressure, source-anchor backlog, terms, and transmission rows while keeping canon promotion separate.\n\n| Surface | Role |\n| --- | --- |\n| `index.jsonl` | one entry per admitted prepared dossier |\n| `graph-shape-summary.json` | aggregate node, relation, source-anchor, term, and transmission pressure |\n| `prepared-dossier-routes.json` | source-owned route map from prepared dossier ids to philosophy branch homes |\n{}| `source-anchor-backlog.jsonl` | future source witness, edition, corpus, and risk-control anchors |\n| `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |\n| `transmission-backlog.jsonl` | incoming and outgoing transmission rows extracted from dossier tables |\n\nText-bearing language packets for graph review live in `ToS/philosophy/graph-workbench/language-packets/` and follow `ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json`.\n\nBranch bodies live under `ToS/philosophy/eras/...` or an explicit `ToS/philosophy/frontiers/...` route, and pre-canon graph rows live under `ToS/philosophy/graph-workbench/`.\n",
+        "# Dossiers\n\n`dossiers/` indexes admitted prepared Deep Research documents for the philosophy atlas.\n\nThe complete Table I, Table II, and Table III plantings record dossier identity, branch route, graph-row pressure, source-anchor backlog, terms, and transmission rows while keeping canon promotion separate.\n\n| Surface | Role |\n| --- | --- |\n| `index.jsonl` | one entry per admitted prepared dossier |\n| `graph-shape-summary.json` | aggregate node, relation, source-anchor, term, and transmission pressure |\n| `prepared-dossier-routes.json` | source-owned route map from prepared dossier ids to philosophy branch homes |\n{}| `source-anchor-backlog.jsonl` | future source witness, edition, corpus, and risk-control anchors |\n| `term-index.jsonl` | prepared term rows extracted from dossier terminology tables |\n| `transmission-backlog.jsonl` | incoming and outgoing transmission rows extracted from dossier tables |\n\nText-bearing language packets for graph review live in `ToS/philosophy/graph-workbench/language-packets/` and follow `ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json`.\n\nBranch bodies live under `ToS/philosophy/eras/...` or an explicit `ToS/philosophy/frontiers/...` route, and pre-canon graph rows live under `ToS/philosophy/graph-workbench/`.\n\nBranch source-anchor rows are selected from `source-anchor-backlog.jsonl` by\n`branch_path`, preserving their source order. Existing planting addresses of the\nform `<branch>/sources/source-anchor-backlog.jsonl` and their line numbers are\nlogical addresses in that selection, not physical files. The philosophy topology\nroute resolves them against this source and verifies the selected row.\n",
         lines
     );
     let atlas_readme = format!(

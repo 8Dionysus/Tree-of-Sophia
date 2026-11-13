@@ -17,7 +17,7 @@ use tos_foundation::{
 };
 
 use crate::knowledge_inspect::InspectVisitMeter;
-use crate::{knowledge_binding::BoundCmpKnowledge, search_v2::CurrentPolicyBinding};
+use crate::{knowledge_binding::BoundCmpKnowledge, search::CurrentPolicyBinding};
 
 pub const CATALOG_OPERATION_ID: &str = "tos.knowledge.catalog";
 pub const CATALOG_CARRIER_LAYER: &str = "tos_knowledge_public_graph_projection_v1";
@@ -337,7 +337,7 @@ pub fn execute_selected_catalog<'hold, A: CatalogCurrentAuthority<'hold> + ?Size
         .validate_catalog_identity(root, budget.json)
         .map_err(|reason| {
             error(
-                if reason.code == crate::search_v2::SearchV2ErrorCode::BudgetExceeded {
+                if reason.code == crate::search::SearchErrorCode::BudgetExceeded {
                     CatalogErrorCode::BudgetExceeded
                 } else {
                     CatalogErrorCode::CorruptSelectedCarrier
@@ -1032,7 +1032,7 @@ pub fn execute_selected_knowledge_health_metadata<
             .validate_catalog_identity_metered(&catalog, budget.json, meter)
             .map_err(|reason| {
                 error(
-                    if reason.code == crate::search_v2::SearchV2ErrorCode::BudgetExceeded {
+                    if reason.code == crate::search::SearchErrorCode::BudgetExceeded {
                         CatalogErrorCode::BudgetExceeded
                     } else {
                         CatalogErrorCode::CorruptSelectedCarrier

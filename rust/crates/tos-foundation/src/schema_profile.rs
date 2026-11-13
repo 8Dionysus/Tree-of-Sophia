@@ -8,6 +8,7 @@ pub const IN_PROCESS_SCHEMA_ENGINE_ID: &str = "tos_schema_engine_in_process_v1";
 /// optional format packages on the host.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FormatProfile {
+    /// Historical identifier retained in stored bindings and proof.
     LegacyPythonObserved20260923,
     AssertedSourceCandidateV1,
 }

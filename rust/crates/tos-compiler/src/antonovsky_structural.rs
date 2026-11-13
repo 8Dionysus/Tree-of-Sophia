@@ -15,7 +15,7 @@ use std::{
     },
     time::{Duration, Instant},
 };
-use tos_foundation::{Digest256, JsonLimits, JsonMode, emit_python_compact_json, parse_json};
+use tos_foundation::{Digest256, JsonLimits, JsonMode, emit_ordered_compact_json_v1, parse_json};
 mod output;
 pub mod technical_markup;
 use output::OutputOwner;
@@ -286,7 +286,7 @@ fn encode_until(deadline: Instant, v: &Value, pretty: bool) -> Result<Vec<u8>> {
         JsonLimits::new(64 * 1024 * 1024, 128, 4_000_000, 4300).map_err(|e| e.to_string())?;
     let doc = parse_json(&raw, JsonMode::PublishedStrict, limits).map_err(|e| e.to_string())?;
     tick(deadline)?;
-    let compact = emit_python_compact_json(doc.root(), limits).map_err(|e| e.to_string())?;
+    let compact = emit_ordered_compact_json_v1(doc.root(), limits).map_err(|e| e.to_string())?;
     tick(deadline)?;
     if !pretty {
         return Ok(compact);

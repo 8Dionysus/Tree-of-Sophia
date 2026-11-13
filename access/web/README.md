@@ -1,6 +1,6 @@
 # Tree of Sophia web client
 
-The web client presents the selected Access backend read-only. Browser-local
+The public research site presents the Zarathustra and Antiquity stands. Browser-local
 notes, hypotheses and proposals are provisional; export is their sole handoff.
 
 ## Presentation contract
@@ -21,10 +21,10 @@ traces and routine transport state are kept out of ordinary reading panels.
 The [human-form delivery contract](../contracts/human-form-delivery.md) owns exact
 selection, revision and context requirements.
 
-## Observatory and research space
+## Public research space
 
-The published `/` and `/zarathustra/` entries open Zarathustra; `/antiquity/`
-opens Antiquity. Both share the constructor's Rust graph, sky, lenses, typed
+The published `/` welcomes visitors to the stands; `/zarathustra/` opens
+Zarathustra and `/antiquity/` opens Antiquity. Both share the constructor's Rust graph, sky, lenses, typed
 relations, comparisons and personal branches, plus the public corpus reader and
 research workspace. Prepared readings are proposals. A bibliographic pointer
 opens an exact reading when it binds to a unit in the selected public version;
@@ -165,46 +165,6 @@ Nested objections can be selected separately; the original received response is
 retained locally even when an objection is omitted from application. The strict
 packet shapes and bounds live in [`agent-bridge.mjs`](src/public-research/agent-bridge.mjs).
 
-The default entry is the Observatory: a full-window star field with bounded
-knowledge neighborhoods and floating search, source and research panels. The
-separate `/static/research.html` entry provides the cosmic research interface;
-both use the same knowledge client, source reader, HumanForms and personal
-shelf. A missing or unavailable backend capability remains explicit. The demo
-constructor is a development entry, not a public data source.
-
-The main interactions are:
-
-- Search and inspect source-linked records. Service/projection objects can be
-  hidden from the research view without changing the retained packet.
-- Read one material or compare up to two exact objects or relations. Reader
-  positions bind to the delivered source/content revisions, language and form;
-  a changed revision does not silently reattach a position.
-- Build a bounded lens from catalog vocabulary and path conditions. Preview
-  does not change the graph until applied. Definitions and links recompile
-  against current data; they are not frozen research snapshots.
-- Continue a bounded neighborhood exploration. Each Exploration area is at
-  most 200 nodes, 600 relations and 4 MiB; LensResults remain at most 40 nodes
-  and 80 relations. Page counts describe the selected traversal, not corpus
-  totals.
-- Keep a local research workspace with notes, exclusions, route comparisons,
-  hypotheses and typed proposals. These records stay separate from ToS source,
-  review ledgers, candidate intake and canon.
-
-The personal shelf stores exact material/form/text/lens/route references and
-notes in browser storage; it does not copy source text or transport handles.
-The notebook, shelf, reading-position and last-view stores have distinct
-lifecycles. Refresh fetches current owner data. An observed access revocation
-clears the displayed copy; a network failure can retain only a visibly marked
-earlier in-page copy. Storage failures are shown, and damaged or competing-tab
-state is not silently overwritten.
-
-Only the most recent scene/query context and exact selection are retained in
-page memory. At most two previous areas can keep their bounded result and
-camera in memory. Browser history and named places store bounded IDs, query
-state and poses, not source packets or exploration cursors. The full local
-workspace export/import has a separate explicit replace flow; see the
-[research shelf guide](src/research-shelf/README.md).
-
 ### The reference
 
 The reference mode reads the same stand as a book
@@ -285,23 +245,14 @@ npm run build
 npm run dev
 ```
 
-`npm run dev` proxies `/api` to the local backend on `127.0.0.1:44258`;
-`TOS_DEV_API_TARGET` selects another local target. Production uses same-origin
-APIs. `dist/` is generated output and must be rebuilt from source. The
-standalone validation route is documented in the repository's
-[`VALIDATION.md`](../../VALIDATION.md); local browser checks, CI, release and
-deployment remain separate evidence.
-
-Development fixtures are served under `/static/fixtures/`. The reader fixture
-uses artificial materials to exercise multilingual text, gaps, access expiry,
-and bounded scene behavior. The lens fixture checks bounded lens and reading
-flows. Fixtures and local timing probes are not production data, sustained
-performance guarantees or deployment acceptance. Keep the app visible when
-measuring interaction; hidden browser tabs may be throttled.
-
-Browser asset output uses a stable bootstrap at `/static/assets/tos-graph.js`
-and `tos-graph.css`; imported JS/CSS use content hashes. The build does not
-require a CDN, inline script, iframe or relaxed CSP.
+`npm run build` writes the four public pages to `dist/` without fetching or
+copying published layers; it is suitable for software validation.
+`npm run build:public-research` writes the pages and their published layers to
+the public Worker output. Both use the `/__research/` asset base. Outputs are
+generated and remain outside Git.
+The standalone validation route is documented in
+[`VALIDATION.md`](../../VALIDATION.md); browser checks, CI and deployment are
+separate evidence. The native `tos serve` exposes the API, not these pages.
 
 ## Owner guides
 

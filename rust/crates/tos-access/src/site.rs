@@ -1,6 +1,6 @@
 //! Installed software delivery. Explicit data selection cannot supply code.
 use crate::software_archive::installed::{SelectedRole, selected_role_proof};
-use crate::{AccessError, AccessErrorCode, AccessProfile, DisclosureFence, ScopedAccessExecutor};
+use crate::{AccessError, AccessErrorCode, AccessProfile, DisclosureFence};
 use std::{
     fs::File,
     io::Read,
@@ -15,10 +15,7 @@ use tos_foundation::{
 use tos_query::AbortProbe;
 
 const MANIFEST_BYTES: usize = 1_048_576;
-pub const MAX_STATIC_BYTES: usize = 16 * 1024 * 1024;
 const PROGRAM: &str = "access/src/tos_access/tos-access";
-const STATIC_PREFIX: &str = "access/src/tos_access/web_dist/";
-const INDEX: &str = "<!doctype html>\n<html lang=\"ru\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Древо Софии</title><link rel=\"stylesheet\" href=\"/static/assets/tos-graph.css\"></head><body><div id=\"app\"></div><script nonce=\"__CSP_NONCE__\">window.__TOS_GRAPH_BOOT__=__BOOT__;</script><script type=\"module\" src=\"/static/assets/tos-graph.js\"></script></body></html>";
 type Identity = (u64, u64, u64, i64, i64, i64, i64);
 fn unavailable(message: &'static str) -> AccessError {
     AccessError::new(AccessErrorCode::Unavailable, message)
@@ -138,7 +135,6 @@ pub struct SoftwareSite {
     executable: File,
     executable_identity: Identity,
     required_assets: Vec<(File, String, Identity)>,
-    web_assets: bool,
 }
 const SCHEMA_WORKER: &str = "native/bin/tos-schema-worker";
 pub(crate) const WORD_OPERATION: &str = "tos.zarathustra.word_analysis_task";
@@ -326,10 +322,8 @@ impl SoftwareSite {
         }
         let mut fence = SoftwareFence {
             site: Arc::clone(self),
-            file: None,
             probe,
-            holds: vec![],
-            absent: Some(absent),
+            absent,
         };
         fence.recheck()?;
         Ok(crate::PreparedPacket {
@@ -371,7 +365,7 @@ impl InstalledSchemaWorker {
 impl SoftwareSite {
     /// Standalone raw binaries retain existing MCP fixture behavior without
     /// claiming an installed provider. A recognized installed layout must verify
-    /// its native role; web routes separately admit assets. Integrity failures
+    /// its native role. Integrity failures
     /// never fall back to absent software authority.
     pub fn installed_for_mcp(probe: Arc<dyn AbortProbe>) -> Result<Option<Arc<Self>>, AccessError> {
         let executable =
@@ -388,21 +382,20 @@ impl SoftwareSite {
         }
         let running = File::open("/proc/self/exe")
             .map_err(|_| unavailable("actual running image unavailable"))?;
-        Self::open_inner(&executable, probe, Some(running), false).map(Some)
+        Self::open_inner(&executable, probe, Some(running)).map(Some)
     }
     pub fn installed(probe: Arc<dyn AbortProbe>) -> Result<Arc<Self>, AccessError> {
         let executable =
             std::env::current_exe().map_err(|_| unavailable("installed executable unavailable"))?;
         Self::open_running(&executable, probe)
     }
-    /// Native exact-source startup selects code and its release bindings. Web
-    /// assets are admitted separately if this holder later serves a web route.
+    /// Native exact-source startup selects code and its release bindings.
     pub(crate) fn installed_source(probe: Arc<dyn AbortProbe>) -> Result<Arc<Self>, AccessError> {
         let executable =
             std::env::current_exe().map_err(|_| unavailable("installed executable unavailable"))?;
         let running = File::open("/proc/self/exe")
             .map_err(|_| unavailable("actual running image unavailable"))?;
-        Self::open_inner(&executable, probe, Some(running), false)
+        Self::open_inner(&executable, probe, Some(running))
     }
     /// Kernel-bound production image. An explicit path can locate the layout,
     /// but cannot substitute a different ELF for the currently running image.
@@ -412,18 +405,17 @@ impl SoftwareSite {
     ) -> Result<Arc<Self>, AccessError> {
         let running = File::open("/proc/self/exe")
             .map_err(|_| unavailable("actual running image unavailable"))?;
-        Self::open_inner(executable, probe, Some(running), true)
+        Self::open_inner(executable, probe, Some(running))
     }
     /// Explicit software integrity fixture/inspection route. This does not
     /// assert that its ELF is running; the server uses installed/open_running.
     pub fn open(executable: &Path, probe: Arc<dyn AbortProbe>) -> Result<Arc<Self>, AccessError> {
-        Self::open_inner(executable, probe, None, true)
+        Self::open_inner(executable, probe, None)
     }
     fn open_inner(
         executable: &Path,
         probe: Arc<dyn AbortProbe>,
         running: Option<File>,
-        web_assets: bool,
     ) -> Result<Arc<Self>, AccessError> {
         crate::knowledge::check_abort(&probe)?;
         let root_path = executable
@@ -511,7 +503,6 @@ impl SoftwareSite {
         proof_guards.push((pin, "rust-toolchain.toml".to_owned(), pin_identity));
         let path_image = child(&root, PROGRAM)?;
         let path_identity = identity(&path_image)?;
-        let require_executable = running.is_some() || !web_assets;
         let executable = if let Some(running) = running {
             if identity(&running)? != path_identity {
                 return Err(unavailable("installed path differs from running image"));
@@ -521,9 +512,7 @@ impl SoftwareSite {
             path_image
         };
         let executable_identity = identity(&executable)?;
-        if require_executable {
-            check_executable(&executable)?;
-        }
+        check_executable(&executable)?;
         let expected_size = size(proof)?;
         let native_sha = field(proof, "sha256")?.to_owned();
         if executable_identity.2 != expected_size as u64
@@ -532,7 +521,7 @@ impl SoftwareSite {
         {
             return Err(unavailable("installed native executable binding differs"));
         }
-        let mut site = Self {
+        let site = Self {
             root,
             root_path: root_path.to_owned(),
             manifest,
@@ -541,64 +530,19 @@ impl SoftwareSite {
             executable,
             executable_identity,
             required_assets: proof_guards,
-            web_assets,
         };
-        // Assembly must declare finite size for every installed static member;
-        // no count from today's fixture is treated as a production rule.
-        let mut total = 0u64;
-        for item in site.members()? {
-            if web_assets && field(item, "path")?.starts_with(STATIC_PREFIX) {
-                let bytes = size(item)?;
-                if bytes > MAX_STATIC_BYTES {
-                    return Err(unavailable("installed static member exceeds software cap"));
-                }
-                total = total
-                    .checked_add(bytes as u64)
-                    .ok_or_else(|| unavailable("installed static aggregate size overflows"))?;
-            }
-        }
-        // Only the manifest integer sum is representable. This is not an
-        // aggregate resource quota; the actual body cap is per request.
-        let _encoded_static_size_sum = total;
-        let required: &[&str] = if web_assets {
-            &[
-                PROGRAM,
-                "access/src/tos_access/web_dist/assets/tos-graph.js",
-                "access/src/tos_access/web_dist/assets/tos-graph.css",
-            ]
-        } else {
-            &[PROGRAM]
-        };
-        for &required in required {
-            let matches = site
-                .members()?
-                .iter()
-                .filter(|item| field(item, "path").ok() == Some(required))
-                .collect::<Vec<_>>();
-            if matches.len() != 1 {
-                return Err(unavailable("installed site member closure differs"));
-            }
-            let item = matches[0];
-            if required == PROGRAM {
-                if size(item)? != expected_size || field(item, "sha256")? != native_sha {
-                    return Err(unavailable(
-                        "installed native manifest member binding differs",
-                    ));
-                }
-            } else {
-                let file = child(&site.root, required)?;
-                let before = identity(&file)?;
-                let declared = size(item)?;
-                if declared == 0
-                    || before.2 != declared as u64
-                    || hash_file(&file, declared, &probe)?.to_hex() != field(item, "sha256")?
-                    || identity(&file)? != before
-                {
-                    return Err(unavailable("installed site asset integrity differs"));
-                }
-                site.required_assets
-                    .push((file, required.to_owned(), before));
-            }
+        let matches = site
+            .members()?
+            .iter()
+            .filter(|item| field(item, "path").ok() == Some(PROGRAM))
+            .collect::<Vec<_>>();
+        if matches.len() != 1
+            || size(matches[0])? != expected_size
+            || field(matches[0], "sha256")? != native_sha
+        {
+            return Err(unavailable(
+                "installed native manifest member binding differs",
+            ));
         }
         site.check()?;
         crate::knowledge::check_abort(&probe)?;
@@ -682,311 +626,26 @@ impl SoftwareSite {
                         .map_err(|_| unavailable("installed required software member changed"))?,
                 )? != *original
             {
-                return Err(unavailable("installed required site asset changed"));
+                return Err(unavailable("installed required software member changed"));
             }
         }
         Ok(())
     }
-    /// Upgrade a source-only holder at the web boundary. Both associations
-    /// must still name the same admitted manifest and executable. The returned
-    /// holder pins JS/CSS through final flush just like ordinary web startup.
-    fn with_web_assets(
-        self: &Arc<Self>,
-        probe: Arc<dyn AbortProbe>,
-    ) -> Result<Arc<Self>, AccessError> {
-        crate::knowledge::check_abort(&probe)?;
-        self.check()?;
-        if self.web_assets {
-            return Ok(Arc::clone(self));
-        }
-        let web = Self::open_inner(&self.root_path.join(PROGRAM), probe, None, true)?;
-        self.check()?;
-        if web.manifest_identity != self.manifest_identity
-            || web.executable_identity != self.executable_identity
-        {
-            return Err(unavailable("installed web association changed"));
-        }
-        Ok(web)
-    }
-    pub(crate) fn asset(
-        self: &Arc<Self>,
-        relative: &str,
-        probe: Arc<dyn AbortProbe>,
-    ) -> Result<crate::PreparedPacket<'static>, AccessError> {
-        RelativePath::parse(relative).map_err(|_| {
-            AccessError::new(AccessErrorCode::InvalidRequest, "invalid static path")
-        })?;
-        if !self.web_assets {
-            return self
-                .with_web_assets(Arc::clone(&probe))?
-                .asset(relative, probe);
-        }
-        let path = format!("{STATIC_PREFIX}{relative}");
-        let matches = self
-            .members()?
-            .iter()
-            .filter(|item| field(item, "path").ok() == Some(path.as_str()))
-            .collect::<Vec<_>>();
-        if matches.len() != 1 {
-            return Err(AccessError::new(
-                AccessErrorCode::UnknownExactId,
-                "static member is not declared software",
-            ));
-        }
-        let declared = size(matches[0])?;
-        if declared > MAX_STATIC_BYTES {
-            return Err(AccessError::new(
-                AccessErrorCode::BudgetExceeded,
-                "static software byte cap exceeded",
-            ));
-        }
-        self.check()?;
-        let file = child(&self.root, &path)?;
-        let original = identity(&file)?;
-        if original.2 != declared as u64 {
-            return Err(unavailable("static software size differs"));
-        }
-        crate::knowledge::check_abort(&probe)?;
-        let mut body = Vec::new();
-        body.try_reserve_exact(declared).map_err(|_| {
-            AccessError::new(
-                AccessErrorCode::BudgetExceeded,
-                "static body allocation unavailable",
-            )
-        })?;
-        body.resize(declared, 0);
-        let mut stream = &file;
-        for part in body.chunks_mut(65536) {
-            crate::knowledge::check_abort(&probe)?;
-            stream
-                .read_exact(part)
-                .map_err(|_| unavailable("static software read failed"))?;
-        }
-        let mut tail = [0u8; 1];
-        if stream
-            .read(&mut tail)
-            .map_err(|_| unavailable("static software read failed"))?
-            != 0
-        {
-            return Err(unavailable("static software size changed"));
-        }
-        if body.len() != declared
-            || identity(&file)? != original
-            || Digest256::of_bytes(&body).to_hex() != field(matches[0], "sha256")?
-        {
-            return Err(unavailable("static software integrity differs"));
-        }
-        Ok(crate::PreparedPacket {
-            body,
-            fence: Box::new(SoftwareFence {
-                site: Arc::clone(self),
-                file: Some((file, path, original)),
-                probe,
-                holds: vec![],
-                absent: None,
-            }),
-        })
-    }
 }
-struct SoftwareFence<'hold> {
+
+struct SoftwareFence {
     site: Arc<SoftwareSite>,
-    file: Option<(File, String, Identity)>,
     probe: Arc<dyn AbortProbe>,
-    holds: Vec<Box<dyn DisclosureFence + 'hold>>,
-    absent: Option<AbsentSoftwareMember>,
+    absent: AbsentSoftwareMember,
 }
-impl DisclosureFence for SoftwareFence<'_> {
+impl DisclosureFence for SoftwareFence {
     fn recheck(&mut self) -> Result<(), AccessError> {
         crate::knowledge::check_abort(&self.probe)?;
         self.site.check()?;
-        if let Some(absent) = &self.absent {
-            absent.verify(&self.site.root)?;
-        }
-        if let Some((file, path, original)) = &self.file {
-            if identity(file)? != *original
-                || identity(&child(&self.site.root, path)?)? != *original
-            {
-                return Err(unavailable("static software changed before delivery"));
-            }
-        }
-        for hold in &mut self.holds {
-            hold.recheck()?;
-        }
+        self.absent.verify(&self.site.root)?;
         crate::knowledge::check_abort(&self.probe)
     }
 }
-pub(crate) fn mime(path: &str) -> &'static str {
-    match path
-        .rsplit('.')
-        .next()
-        .unwrap_or("")
-        .to_ascii_lowercase()
-        .as_str()
-    {
-        "js" | "mjs" => "text/javascript",
-        "css" => "text/css",
-        "html" | "htm" => "text/html",
-        "json" | "map" => "application/json",
-        "svg" => "image/svg+xml",
-        "png" => "image/png",
-        "gif" => "image/gif",
-        "webp" => "image/webp",
-        "ico" => "image/vnd.microsoft.icon",
-        "txt" => "text/plain",
-        "jpg" | "jpeg" => "image/jpeg",
-        "woff" => "font/woff",
-        "woff2" => "font/woff2",
-        "wasm" => "application/wasm",
-        _ => "application/octet-stream",
-    }
-}
-
-impl SoftwareSite {
-    pub(crate) fn shell<'hold, E: ScopedAccessExecutor<'hold> + ?Sized>(
-        self: &Arc<Self>,
-        executor: &E,
-        profile: AccessProfile,
-        probe: Arc<dyn AbortProbe>,
-    ) -> Result<(crate::PreparedPacket<'hold>, String), AccessError> {
-        if !self.web_assets {
-            return self
-                .with_web_assets(Arc::clone(&probe))?
-                .shell(executor, profile, probe);
-        }
-        crate::knowledge::check_abort(&probe)?;
-        self.check()?;
-        let mut holds = Vec::new();
-        let mut first = |request, list: &str| -> Result<(String, bool), AccessError> {
-            match crate::common::checked_execute(Arc::clone(&probe), |probe| {
-                executor.knowledge(request, probe)
-            }) {
-                Ok(packet) => {
-                    let document = parse_json(
-                        &packet.body,
-                        JsonMode::PublishedStrict,
-                        JsonLimits {
-                            max_bytes: profile.max_response_bytes,
-                            max_depth: 64,
-                            max_visits: 300_000,
-                            max_integer_digits: 4_300,
-                        },
-                    )
-                    .map_err(|_| {
-                        AccessError::new(
-                            AccessErrorCode::CorruptSelectedCarrier,
-                            "boot metadata packet invalid",
-                        )
-                    })?;
-                    let rows = document
-                        .root()
-                        .object_get(list)
-                        .and_then(JsonValue::as_array)
-                        .ok_or_else(|| {
-                            AccessError::new(
-                                AccessErrorCode::CorruptSelectedCarrier,
-                                "boot metadata projection absent",
-                            )
-                        })?;
-                    let id = rows
-                        .iter()
-                        .find_map(|row| {
-                            row.object_get("view_id")
-                                .and_then(JsonValue::as_str)
-                                .filter(|id| !id.is_empty())
-                        })
-                        .unwrap_or("")
-                        .to_owned();
-                    holds.push(packet.fence);
-                    Ok((id, true))
-                }
-                Err(error)
-                    if matches!(
-                        error.code,
-                        AccessErrorCode::Unavailable | AccessErrorCode::PolicyDenied
-                    ) =>
-                {
-                    Ok((String::new(), false))
-                }
-                Err(error) => Err(error),
-            }
-        };
-        let (corpus, corpus_available) =
-            first(crate::KnowledgeRequest::CorpusViewIds, "graph_views")?;
-        let (philosophy, philosophy_available) =
-            first(crate::KnowledgeRequest::PhilosophyViewIds, "views")?;
-        let string = |s: &str| JsonValue::String(JsonString::from_utf8(s));
-        let object = |fields: Vec<(&str, JsonValue)>| {
-            JsonValue::Object(
-                fields
-                    .into_iter()
-                    .map(|(k, v)| (JsonString::from_utf8(k), v))
-                    .collect(),
-            )
-        };
-        let boot = object(vec![
-            ("service", string("tree-of-sophia-access")),
-            ("default_view", string(&corpus)),
-            ("default_philosophy_view", string(&philosophy)),
-            ("write_enabled", JsonValue::Bool(false)),
-            ("projection_mode", string("json")),
-            (
-                "neo4j",
-                object(vec![
-                    ("configured", JsonValue::Bool(false)),
-                    ("ready", JsonValue::Bool(false)),
-                    ("note", string("Standalone JSON backend")),
-                ]),
-            ),
-            (
-                "capabilities",
-                object(vec![
-                    ("corpus", JsonValue::Bool(corpus_available)),
-                    ("philosophy", JsonValue::Bool(philosophy_available)),
-                ]),
-            ),
-        ]);
-        let raw = tos_foundation::emit_value_preserved_json(&boot, profile.json_limits())
-            .map_err(|_| unavailable("boot packet exceeds byte budget"))?;
-        // JSON inside an executable script needs HTML-safe separators, even
-        // though the selected values are only metadata IDs.
-        let boot = String::from_utf8(raw)
-            .map_err(|_| unavailable("boot JSON is not UTF-8"))?
-            .replace('&', "\\u0026")
-            .replace('<', "\\u003c")
-            .replace('>', "\\u003e")
-            .replace('\u{2028}', "\\u2028")
-            .replace('\u{2029}', "\\u2029");
-        let mut entropy = [0u8; 18];
-        File::open("/dev/urandom")
-            .and_then(|mut f| f.read_exact(&mut entropy))
-            .map_err(|_| unavailable("site nonce unavailable"))?;
-        let nonce = tos_foundation::encode_lower_hex(&entropy);
-        let body = INDEX
-            .replace("__CSP_NONCE__", &nonce)
-            .replace("__BOOT__", &boot)
-            .into_bytes();
-        if body.len() > profile.max_response_bytes {
-            return Err(AccessError::new(
-                AccessErrorCode::BudgetExceeded,
-                "site shell byte budget exceeded",
-            ));
-        }
-        Ok((
-            crate::PreparedPacket {
-                body,
-                fence: Box::new(SoftwareFence {
-                    site: Arc::clone(self),
-                    file: None,
-                    probe,
-                    holds,
-                    absent: None,
-                }),
-            },
-            nonce,
-        ))
-    }
-}
-
 #[cfg(test)]
 mod mcp_maintained_tests {
     use super::*;
@@ -1304,31 +963,8 @@ mod native_source_tests {
             serde_json::from_slice(&std::fs::read(self.0.join("software.manifest.json")).unwrap())
                 .unwrap()
         }
-        fn web(&self) {
-            let mut manifest = self.read_manifest();
-            for (path, raw) in [
-                (
-                    "access/src/tos_access/web_dist/assets/tos-graph.js",
-                    b"export {};".as_slice(),
-                ),
-                (
-                    "access/src/tos_access/web_dist/assets/tos-graph.css",
-                    b"body{}".as_slice(),
-                ),
-            ] {
-                self.write(path, raw);
-                manifest["members"].as_array_mut().unwrap().push(serde_json::json!({
-                    "path": path, "sha256": Digest256::of_bytes(raw).to_hex(), "size_bytes": raw.len()
-                }));
-            }
-            self.manifest(&manifest);
-        }
-        fn open(
-            &self,
-            web: bool,
-            probe: Arc<dyn AbortProbe>,
-        ) -> Result<Arc<SoftwareSite>, AccessError> {
-            SoftwareSite::open_inner(&self.0.join(PROGRAM), probe, None, web)
+        fn open(&self, probe: Arc<dyn AbortProbe>) -> Result<Arc<SoftwareSite>, AccessError> {
+            SoftwareSite::open_inner(&self.0.join(PROGRAM), probe, None)
         }
     }
     impl Drop for Fixture {
@@ -1345,51 +981,21 @@ mod native_source_tests {
     #[test]
     fn native_source_needs_only_its_exact_executables_and_release_bindings() {
         let fixture = Fixture::new();
-        let site = fixture.open(false, probe()).unwrap();
+        let site = fixture.open(probe()).unwrap();
         let worker = site.source_schema_worker(1024, probe()).unwrap();
         assert_eq!(worker.path(), fixture.0.join(SCHEMA_WORKER));
         worker.verify().unwrap();
         assert!(!fixture.0.join("access/src/tos_access/web_dist").exists());
-        assert!(fixture.open(true, probe()).is_err());
-        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
-        assert!(site.shell(&crate::NoOwner, profile, probe()).is_err());
-        assert!(site.asset("assets/tos-graph.js", probe()).is_err());
         worker.verify().unwrap();
         assert!(SoftwareSite::open_running(&fixture.0.join(PROGRAM), probe()).is_err());
     }
 
     #[test]
-    fn web_upgrade_requires_both_assets_and_retains_them_through_flush() {
-        for asset in ["tos-graph.js", "tos-graph.css"] {
-            let fixture = Fixture::new();
-            fixture.web();
-            let site = fixture.open(false, probe()).unwrap();
-            let worker = site.source_schema_worker(1024, probe()).unwrap();
-            let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
-            let (mut packet, _) = site.shell(&crate::NoOwner, profile, probe()).unwrap();
-            packet.fence.recheck().unwrap();
-            let path = fixture.0.join(format!("{STATIC_PREFIX}assets/{asset}"));
-            // Same-length replacement must be caught by identity/digest, not size.
-            let bytes = std::fs::read(&path).unwrap();
-            std::fs::write(&path, vec![b'x'; bytes.len()]).unwrap();
-            assert!(packet.fence.recheck().is_err());
-            assert!(fixture.open(true, probe()).is_err());
-            assert!(site.shell(&crate::NoOwner, profile, probe()).is_err());
-            assert!(site.asset("assets/tos-graph.js", probe()).is_err());
-            worker.verify().unwrap();
-            std::fs::remove_file(path).unwrap();
-            assert!(fixture.open(false, probe()).is_ok());
-            assert!(fixture.open(true, probe()).is_err());
-        }
-    }
-
-    #[test]
-    fn native_and_web_refuse_code_lock_and_cohort_substitution() {
-        for web in [false, true] {
+    fn native_refuses_code_lock_and_cohort_substitution() {
+        {
             for path in [PROGRAM, SCHEMA_WORKER, "Cargo.lock", "rust-toolchain.toml"] {
                 let fixture = Fixture::new();
-                fixture.web();
-                let site = fixture.open(web, probe()).unwrap();
+                let site = fixture.open(probe()).unwrap();
                 let worker = site.source_schema_worker(1024, probe()).unwrap();
                 let target = fixture.0.join(path);
                 let mut bytes = std::fs::read(&target).unwrap();
@@ -1397,7 +1003,7 @@ mod native_source_tests {
                 std::fs::write(target, bytes).unwrap();
                 assert!(worker.verify().is_err(), "retained {path}");
                 let reopened = fixture
-                    .open(web, probe())
+                    .open(probe())
                     .and_then(|site| site.source_schema_worker(1024, probe()));
                 assert!(reopened.is_err(), "reopened {path}");
             }
@@ -1410,11 +1016,10 @@ mod native_source_tests {
                 "features",
             ] {
                 let fixture = Fixture::new();
-                fixture.web();
                 let mut manifest = fixture.read_manifest();
                 manifest["native_commands"]["tos-schema-worker"][key] = serde_json::json!("wrong");
                 fixture.manifest(&manifest);
-                let site = fixture.open(web, probe()).unwrap();
+                let site = fixture.open(probe()).unwrap();
                 assert!(site.source_schema_worker(1024, probe()).is_err(), "{key}");
             }
         }
@@ -1423,7 +1028,7 @@ mod native_source_tests {
     #[test]
     fn selected_worker_keeps_its_cap_and_exact_member_closure() {
         let fixture = Fixture::new();
-        let site = fixture.open(false, probe()).unwrap();
+        let site = fixture.open(probe()).unwrap();
         assert_eq!(
             site.source_schema_worker(63, probe()).err().unwrap().code,
             AccessErrorCode::BudgetExceeded
@@ -1441,12 +1046,12 @@ mod native_source_tests {
                 members.extend([member.clone(), member]);
             }
             fixture.manifest(&manifest);
-            let site = fixture.open(false, probe()).unwrap();
+            let site = fixture.open(probe()).unwrap();
             assert!(site.source_schema_worker(1024, probe()).is_err());
         }
         let fixture = Fixture::new();
         std::fs::remove_file(fixture.0.join(SCHEMA_WORKER)).unwrap();
-        let site = fixture.open(false, probe()).unwrap();
+        let site = fixture.open(probe()).unwrap();
         assert!(site.source_schema_worker(1024, probe()).is_err());
     }
 
@@ -1454,19 +1059,19 @@ mod native_source_tests {
     fn native_role_mode_replacement_and_operation_abort_remain_fenced() {
         for path in [PROGRAM, SCHEMA_WORKER] {
             let fixture = Fixture::new();
-            let site = fixture.open(false, probe()).unwrap();
+            let site = fixture.open(probe()).unwrap();
             let worker = site.source_schema_worker(1024, probe()).unwrap();
             let target = fixture.0.join(path);
             std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o644)).unwrap();
             assert!(worker.verify().is_err());
             assert!(
                 fixture
-                    .open(false, probe())
+                    .open(probe())
                     .and_then(|site| site.source_schema_worker(1024, probe()))
                     .is_err()
             );
             std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o755)).unwrap();
-            let site = fixture.open(false, probe()).unwrap();
+            let site = fixture.open(probe()).unwrap();
             let worker = site.source_schema_worker(1024, probe()).unwrap();
             std::fs::rename(&target, target.with_extension("old")).unwrap();
             std::fs::copy(target.with_extension("old"), &target).unwrap();
@@ -1482,16 +1087,16 @@ mod native_source_tests {
             }
         }
         let fixture = Fixture::new();
-        for web in [false, true] {
+        {
             assert_eq!(
-                fixture.open(web, Arc::new(Cancelled)).err().unwrap().code,
+                fixture.open(Arc::new(Cancelled)).err().unwrap().code,
                 AccessErrorCode::Cancelled
             );
             let expired = AccessProfile::new(65_536, 1_048_576, 65_536)
                 .with_query_timeout(Duration::ZERO)
                 .deadline_probe();
             assert_eq!(
-                fixture.open(web, expired).err().unwrap().code,
+                fixture.open(expired).err().unwrap().code,
                 AccessErrorCode::DeadlineExceeded
             );
         }
