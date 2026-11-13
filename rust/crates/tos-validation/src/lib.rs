@@ -1460,6 +1460,9 @@ pub mod source_foundation_goldsets;
 pub mod source_foundation_discovery;
 
 #[cfg(feature = "native")]
+pub mod private_custody;
+
+#[cfg(feature = "native")]
 pub mod source_foundation_closure;
 
 #[cfg(feature = "native")]

@@ -2723,10 +2723,304 @@ fn text_free_until(deadline: Instant, value: &Value) -> Result<()> {
 pub fn validate_tracked(root: &Path) -> Result<Value> {
     validate_tracked_with_deadline(root, default_deadline())
 }
+
+fn validate_partial_tracked_outputs(
+    source: &SourceInput,
+    deadline: Instant,
+    missing_names: &[String],
+    manifest: Option<&Value>,
+) -> Result<(usize, Vec<&'static str>, Vec<&'static str>)> {
+    let missing: BTreeSet<_> = missing_names.iter().map(String::as_str).collect();
+    let receipts = manifest
+        .map(|value| {
+            value["generated_outputs"]
+                .as_object()
+                .ok_or("generated outputs object required")
+        })
+        .transpose()?;
+    let mut parsed = BTreeMap::new();
+    let mut present = 0;
+    for (kind, leaf) in OUTPUTS.iter().copied() {
+        tick(deadline)?;
+        if missing.contains(leaf) {
+            continue;
+        }
+        let reference = output(kind);
+        let raw = read_until(deadline, source, &reference)?;
+        if let Some(receipts) = receipts.filter(|_| leaf != "manifest.v2.json") {
+            let receipt = receipts
+                .get(&reference)
+                .ok_or_else(|| format!("generated output receipt missing: {reference}"))?;
+            if sha(&raw) != s(&receipt["sha256"]) || raw.len() != n(&receipt["bytes"]) {
+                return Err(format!("generated_outputs manifest drift: {reference}"));
+            }
+        }
+        let value = if reference.ends_with(".jsonl") {
+            json!(loadl_until(deadline, source, &reference)?)
+        } else {
+            load_until(deadline, source, &reference)?
+        };
+        text_free_until(deadline, &value)?;
+        parsed.insert(reference, value);
+        present += 1;
+    }
+
+    let mut checks = Vec::new();
+    let physical = parsed.get(&output("physical_lines"));
+    if let Some(value) = physical {
+        let rows = a(value);
+        if rows.len() != 13071
+            || rows
+                .iter()
+                .map(|row| s(&row["physical_line_unit_id"]))
+                .collect::<BTreeSet<_>>()
+                .len()
+                != rows.len()
+        {
+            return fail("partial physical-line count or identity check failed");
+        }
+        checks.push("physical-line count and identities");
+    }
+    let logical = parsed.get(&output("logical_rows"));
+    if let Some(value) = logical {
+        let rows = a(value);
+        if rows.len() != 10686
+            || rows
+                .iter()
+                .map(|row| s(&row["logical_row_unit_id"]))
+                .collect::<BTreeSet<_>>()
+                .len()
+                != rows.len()
+        {
+            return fail("partial logical-row count or identity check failed");
+        }
+        checks.push("logical-row count and identities");
+    }
+    if let (Some(physical), Some(logical)) = (physical, logical) {
+        let row_ids: BTreeSet<_> = a(logical)
+            .iter()
+            .map(|row| s(&row["logical_row_unit_id"]))
+            .collect();
+        if a(physical)
+            .iter()
+            .any(|row| !row_ids.contains(s(&row["logical_row_unit_ref"])))
+        {
+            return fail("partial physical-to-logical reference closure failure");
+        }
+        checks.push("physical-to-logical reference closure");
+    }
+    if let Some(value) = parsed.get(&output("structures")) {
+        let rows = a(value);
+        let ids: BTreeSet<_> = rows
+            .iter()
+            .map(|row| s(&row["structure_unit_id"]))
+            .collect();
+        if ids.len() != rows.len()
+            || rows.iter().any(|row| {
+                !row["parent_structure_unit_id"].is_null()
+                    && !ids.contains(s(&row["parent_structure_unit_id"]))
+            })
+            || rows
+                .iter()
+                .filter(|row| s(&row["record_kind"]) == "reading_unit_heading")
+                .count()
+                != 81
+            || rows
+                .iter()
+                .filter(|row| s(&row["record_kind"]) == "numbered_subpart_marker")
+                .count()
+                != 112
+        {
+            return fail("partial structure identity or census check failed");
+        }
+        checks.push("structure identities, parent closure and census");
+    }
+    if let Some(value) = parsed.get(&output("paragraphs")) {
+        let rows = a(value);
+        let mut by_reading = BTreeMap::<&str, Vec<usize>>::new();
+        let mut by_subpart = BTreeMap::<&str, Vec<usize>>::new();
+        for row in rows {
+            tick(deadline)?;
+            by_reading
+                .entry(s(&row["reading_unit_ref"]))
+                .or_default()
+                .push(n(&row["ordinal_within_reading_unit"]));
+            if !row["numbered_subpart_ref"].is_null() {
+                by_subpart
+                    .entry(s(&row["numbered_subpart_ref"]))
+                    .or_default()
+                    .push(n(&row["ordinal_within_numbered_subpart"]));
+            }
+        }
+        if rows.len() != 3569
+            || by_reading.len() != 81
+            || by_reading
+                .values()
+                .chain(by_subpart.values())
+                .any(|ordinals| {
+                    ordinals
+                        .iter()
+                        .enumerate()
+                        .any(|(i, ordinal)| *ordinal != i + 1)
+                })
+        {
+            return fail("partial paragraph count or ordinal check failed");
+        }
+        checks.push("paragraph count and local ordinals");
+    }
+    for (kind, expected, label) in [
+        ("verse_groups", 13, "verse-group count"),
+        ("verse_lines", 359, "verse-line count"),
+    ] {
+        if let Some(value) = parsed.get(&output(kind)) {
+            if a(value).len() != expected {
+                return Err(format!("partial {label} check failed"));
+            }
+            checks.push(label);
+        }
+    }
+    if let (Some(paragraphs), Some(verse)) = (
+        parsed.get(&output("paragraphs")),
+        parsed.get(&output("verse_lines")),
+    ) {
+        let prose: BTreeSet<_> = a(paragraphs)
+            .iter()
+            .flat_map(|row| a(&row["ordered_physical_line_refs"]))
+            .map(s)
+            .collect();
+        let verse: BTreeSet<_> = a(verse)
+            .iter()
+            .flat_map(|row| a(&row["ordered_physical_line_refs"]))
+            .map(s)
+            .collect();
+        if !prose.is_disjoint(&verse) {
+            return fail("partial prose/verse disjointness check failed");
+        }
+        checks.push("prose and verse line disjointness");
+    }
+    if let Some(value) = parsed.get(&output("conflicts")) {
+        let rows = a(value);
+        if rows.len() != 49
+            || rows
+                .iter()
+                .any(|row| s(&row["status"]) != "resolved_by_declared_rule")
+        {
+            return fail("partial boundary-conflict closure failure");
+        }
+        checks.push("boundary-conflict count and resolution");
+    }
+    if let Some(value) = parsed.get(&output("comparison")) {
+        if n(&value["evaluated_adjacent_pairs"]) != 13070
+            || value["unresolved_disagreement_count"] != json!(0)
+        {
+            return fail("partial challenger-comparison check failed");
+        }
+        checks.push("challenger comparison census");
+    }
+    if let Some(value) = parsed.get(&output("contradictions")) {
+        if a(value).iter().any(|row| s(&row["status"]) != "resolved") {
+            return fail("partial contradiction ledger has unresolved rows");
+        }
+        checks.push("contradiction resolution");
+    }
+    if let Some(value) = parsed.get(&output("coverage")) {
+        if s(&value["coverage_status"]) != "complete" {
+            return fail("partial coverage receipt is not complete");
+        }
+        checks.push("coverage receipt status");
+    }
+    if let Some(value) = parsed.get(&output("verification")) {
+        if s(&value["status"]) != "agent_verified_complete" || value["unresolved_count"] != json!(0)
+        {
+            return fail("partial verification receipt is not closed");
+        }
+        checks.push("verification receipt status");
+    }
+    let mut not_run = Vec::new();
+    for (left, right, label) in [
+        (
+            "physical-line-spine.v2.jsonl",
+            "logical-row-spine.v2.jsonl",
+            "physical-to-logical reference closure",
+        ),
+        (
+            "paragraph-spine.v2.jsonl",
+            "verse-line-spine.v2.jsonl",
+            "prose/verse disjointness",
+        ),
+    ] {
+        if missing.contains(left) || missing.contains(right) {
+            not_run.push(label);
+        }
+    }
+    not_run.push("complete census and cross-output structural closure");
+    if manifest.is_none() {
+        not_run.push("static-input and generated-output receipts from manifest.v2.json");
+    }
+    Ok((present, checks, not_run))
+}
+
 pub fn validate_tracked_with_deadline(root: &Path, deadline: Instant) -> Result<Value> {
     tick(deadline)?;
     let source = SourceInput::new(root)?;
     let root = &source;
+    const PRIVATE_OUTPUTS: &[&str] = &[
+        "boundary-comparison.v2.json",
+        "boundary-conflicts.v2.jsonl",
+        "contradiction-ledger.v2.jsonl",
+        "coverage-receipt.v2.json",
+        "logical-row-spine.v2.jsonl",
+        "manifest.v2.json",
+        "paragraph-spine.v2.jsonl",
+        "physical-line-spine.v2.jsonl",
+        "structure-spine.v2.jsonl",
+        "summary.v2.json",
+        "verse-group-spine.v2.jsonl",
+        "verse-line-spine.v2.jsonl",
+    ];
+    let remaining = deadline.saturating_duration_since(Instant::now()).as_secs();
+    if remaining == 0 {
+        return fail("structural whole deadline");
+    }
+    let custody =
+        crate::research_execution::ResearchExecution::new(&root.root, remaining.min(600))?;
+    let missing_names = crate::private_custody::verify_family_missing(
+        &custody,
+        &format!("{V2}/r2-manifest.v1.json"),
+        PRIVATE_OUTPUTS,
+    )?;
+    if !missing_names.is_empty() {
+        let manifest = if missing_names.iter().any(|name| name == "manifest.v2.json") {
+            None
+        } else {
+            Some(load_until(deadline, root, &output("manifest"))?)
+        };
+        if let Some(manifest) = manifest.as_ref() {
+            for (ref_, receipt) in manifest["static_inputs"]
+                .as_object()
+                .ok_or("manifest static inputs object")?
+            {
+                let raw = read_until(deadline, root, ref_)?;
+                if sha(&raw) != s(&receipt["sha256"]) || raw.len() != n(&receipt["bytes"]) {
+                    return Err(format!("static_inputs manifest drift: {ref_}"));
+                }
+            }
+        }
+        let (present, checks, not_run) =
+            validate_partial_tracked_outputs(root, deadline, &missing_names, manifest.as_ref())?;
+        return Ok(json!({
+            "status":"incomplete",
+            "private_custody":{
+                "manifest_verified":true,
+                "message":format!("private custody: {} not hydrated, manifest verified", missing_names.len()),
+                "present_files_verified":present,
+                "not_hydrated":missing_names.len(),
+                "not_hydrated_paths":missing_names
+            },
+            "present_file_content_checks":checks,
+            "not_run":not_run
+        }));
+    }
     let manifest = load_until(deadline, root, &output("manifest"))?;
     for field in ["static_inputs", "generated_outputs"] {
         tick(deadline)?;
