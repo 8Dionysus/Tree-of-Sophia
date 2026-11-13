@@ -1617,14 +1617,14 @@ def cmd_witness_transcribe_page(args):
     if address and not valid_address(address):die('structured address needs kind, value and the source URL')
     if not args.page and not address:die('give a printed page or an exact structured source address')
     if len(args.reason.strip())<40:die('explain why this page needs a human transcription')
-    run=squeeze(args.text)
+    run=squeeze(args.text);page_text=run
     if not run:die('transcribe the page text')
     if args.language=='ru':
         modern=modern_russian(run,old_source=old_russian_source(run))
         if modern!=run:data['witness']['normalization']='Russian spelling modernized from the page by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged.'
         run=modern
     page=args.page or f"{address['kind']} {address['value']}"
-    data['places'][args.loc]={'text':run,'transcription':{'kind':'human-page','reason':args.reason},'page':page,'url':image['url'],'image_sha256':image['sha256'],'alignment':args.alignment,**({'address':address} if address else {}),**({'lines':args.lines} if args.lines else {}),**({'justification':args.justification} if args.justification else {})}
+    data['places'][args.loc]={'text':run,'transcription':{'kind':'human-page','reason':args.reason,'original_text':page_text},'page':page,'url':image['url'],'image_sha256':image['sha256'],'alignment':args.alignment,**({'address':address} if address else {}),**({'lines':args.lines} if args.lines else {}),**({'justification':args.justification} if args.justification else {})}
     (data.get('missing_places') or {}).pop(args.loc,None)
     data['review']={};save(witness_file(path,args.language),data);print(run)
 
@@ -1801,6 +1801,10 @@ def witness_problems(path,lang,data,second=False,offline=False):
             offset=correction.get('offset')
             if type(offset) is not int or offset<0 or back[offset:offset+len(new)]!=new:add(f'{loc}: correction offset no longer identifies the corrected run');continue
             back=back[:offset]+old+back[offset+len(new):]
+        if human:
+            original_text=transcription.get('original_text')
+            if not isinstance(original_text,str) or not original_text.strip():add(f'{loc}: human page transcription needs the original page reading')
+            elif back!=(modern_russian(original_text,old_source=old_russian_source(original_text)) if lang=='ru' else original_text):add(f'{loc}: text differs from the recorded page transcription')
         if not offline:
             for record in (source,image):
                 if not record:continue
