@@ -53,7 +53,8 @@
         "tos.work.retained-antiquity.ancient-medicine",
         "tos.work.retained-antiquity.sacred-disease",
         "tos.work.retained-antiquity.isagoge",
-        "tos.work.retained-antiquity.enneads"
+        "tos.work.retained-antiquity.enneads",
+        "tos.work.xenophon.memorabilia"
       ],
       "initialDocumentId": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.zarathustra.v1.json",
@@ -111,7 +112,8 @@
         "tos.work.retained-antiquity.ancient-medicine",
         "tos.work.retained-antiquity.sacred-disease",
         "tos.work.retained-antiquity.isagoge",
-        "tos.work.retained-antiquity.enneads"
+        "tos.work.retained-antiquity.enneads",
+        "tos.work.xenophon.memorabilia"
       ],
       "initialDocumentId": "tos.work.plato.meno",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.antiquity.v1.json",
@@ -80131,6 +80133,309 @@
           ],
           "coverageLimit": "All 54 tractates are present under their Gutenberg headings. Guthrie states that Ennead IV.2 section 3 is placed inside IV.7; this extraction follows the printed order, so that section is not separately relocated. Gutenberg footnotes, Porphyry and most extra material remain in the retained source files, not this reading layer. Guthrie’s editorial headings and parenthetical interpretations remain in the text. No scan collation; automatic alignment, if made, is unreviewed.",
           "coverageStatus": "complete-tractate-headings-printed-order",
+          "proofreadingStatus": "not scan-collated"
+        }
+      ]
+    },
+    {
+      "id": "tos.work.xenophon.memorabilia",
+      "title": "Memorabilia",
+      "author": "Xenophon",
+      "versions": [
+        {
+          "id": "retained-memorabilia-en-dakyns1897-gutenberg",
+          "legacyId": "memorabilia-en-dakyns1897-gutenberg",
+          "label": "The Works of Xenophon, vol. III, part 1. London and New York: Macmillan, 1897 · 1897 · Henry Graham Dakyns (1838–1911)",
+          "language": "en",
+          "role": "translation",
+          "packetRef": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/source-text-unit-packet.v1.json",
+          "packetSha256": "ca3b1b85a3c045f13fc09d9718b17980c94bc1c5b758daf1fa427214eab4ec0d",
+          "segmentationRef": "tos.text-segmentation.sid-e38bb3cbcc9d4cba942106b2f482c78b",
+          "rightsRef": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+          "rightsSha256": "acf58c36c68a23bf11f34448f9daf55faa3e5d556e43a947b3a5a99f94ca762d",
+          "sourceUrl": "https://www.gutenberg.org/ebooks/1177",
+          "attribution": "Xenophon, The Memorabilia, translated by H. G. Dakyns (1897); electronic text produced by John Bickers for Project Gutenberg. This eBook is for the use of anyone anywhere in the United States and most other parts of the world at no cost and with almost no restrictions whatsoever. You may copy it, give it away or re-use it under the terms of the Project Gutenberg License included with this eBook or online at www.gutenberg.org. If you are not located in the United States, you will have to check the laws of the country where you are located before using this eBook.\nFour books and all 39 chapters of the electronic text are retained. In Book III the source prints XII twice; navigation numbers the second XII as chapter 13, preserving its printed label in the source locators. Inline editorial footnotes and transliterations remain in the text. Newline conventions normalized; no scan collation. The translator moves one sentence from the end of Book I to the start of Book II; this edition follows that order.",
+          "license": {
+            "label": "Public domain translation; Project Gutenberg terms",
+            "url": "https://www.gutenberg.org/policy/license.html"
+          },
+          "structure": [
+            {
+              "id": "tos.anchor.sid-fdb1d17b49a54cd4a6b4893daa08887f",
+              "label": "Книга 1 · Глава 1",
+              "unitId": "tos.text-unit.sid-a4645ef1be1f4fc18ef1b36bbb51b8fc",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-954b22e4daee4e0392c51df0a7d260ce",
+              "label": "Книга 1 · Глава 2",
+              "unitId": "tos.text-unit.sid-71d54160946d4fe7b5437fabaa8634ca",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-99e904d3c3324451aed5e5b6513524e6",
+              "label": "Книга 1 · Глава 3",
+              "unitId": "tos.text-unit.sid-ce3dde827f11497b90907ff11e24948c",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-247e0d23c35040cba1adbed19a372679",
+              "label": "Книга 1 · Глава 4",
+              "unitId": "tos.text-unit.sid-8f09946100c441888644a83fd56d88a8",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-2913b0cec6a748df9ca473c75a25ad79",
+              "label": "Книга 1 · Глава 5",
+              "unitId": "tos.text-unit.sid-b90b8f7b1f1549c3956d23fd0e5d67d9",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-cb1509a7953b4183870ef17b2c439b91",
+              "label": "Книга 1 · Глава 6",
+              "unitId": "tos.text-unit.sid-35b3da038c2e4540ac3604c57b192534",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-6595f423bb4041afb01001ea50b275c3",
+              "label": "Книга 1 · Глава 7",
+              "unitId": "tos.text-unit.sid-27d0e3a1c80246579284493592328e1f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-3b87e906fa2f404ca00cf98734e7555d",
+              "label": "Книга 2 · Глава 1",
+              "unitId": "tos.text-unit.sid-6e9acb7913324b94b8f5a2ea928ebca8",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-988172b21f1f4994b65db3127f3b3123",
+              "label": "Книга 2 · Глава 2",
+              "unitId": "tos.text-unit.sid-b3d9ca014ce44bb2af99830a69b0a73f",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c42fe8d29b1c413999f63c92da295306",
+              "label": "Книга 2 · Глава 3",
+              "unitId": "tos.text-unit.sid-1c9045d1cd8a4f3583fa81869d9c8209",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-4960cda2b0084854b481f716f0b0b01f",
+              "label": "Книга 2 · Глава 4",
+              "unitId": "tos.text-unit.sid-3041be03b1ae4918932a5853bb141c61",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f19b3cc880334074985f5aa748fc9820",
+              "label": "Книга 2 · Глава 5",
+              "unitId": "tos.text-unit.sid-0bc07b58eaf64488882192862aff2253",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-fad704bfef274c478896f8f90f5728d3",
+              "label": "Книга 2 · Глава 6",
+              "unitId": "tos.text-unit.sid-16da195d17714b98acd7303f5566ba60",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b87cb06b77f14ea3a212241719fbb67b",
+              "label": "Книга 2 · Глава 7",
+              "unitId": "tos.text-unit.sid-af73c5b3ef6f461b8c56de56c1cc5d22",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-65ab442e92194b7bae58a861764c0b2c",
+              "label": "Книга 2 · Глава 8",
+              "unitId": "tos.text-unit.sid-21dcb50bf6b248559f2c13c669196cb9",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-03e786bc153a416bb5624a752c169623",
+              "label": "Книга 2 · Глава 9",
+              "unitId": "tos.text-unit.sid-79cc006c26f345c2b61631bc01998b40",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-ef37c2c0d292485f97834efa1749c8ca",
+              "label": "Книга 2 · Глава 10",
+              "unitId": "tos.text-unit.sid-1a6b6aa34d354fccb405f9578a12b761",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b9bc75226f7341eebf1a58fa3864ee7e",
+              "label": "Книга 3 · Глава 1",
+              "unitId": "tos.text-unit.sid-2b72a6d38ffc4144a810477caa639ed4",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-e69524d51c584fbab3d899f5294288eb",
+              "label": "Книга 3 · Глава 2",
+              "unitId": "tos.text-unit.sid-50ba7d9ff5a648e789a38aec366a08bc",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f0f226fe5b5844e6b9d9f8be2d31f96e",
+              "label": "Книга 3 · Глава 3",
+              "unitId": "tos.text-unit.sid-ae6d8535c02c474db0bbb13ffec3d1c5",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-3ef7c9fa811b4a039882f4a3fdd524f7",
+              "label": "Книга 3 · Глава 4",
+              "unitId": "tos.text-unit.sid-523050fa40cf4c90b64da2b1834ec77c",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-3224fea9c2444787ad4d51bf889a7c31",
+              "label": "Книга 3 · Глава 5",
+              "unitId": "tos.text-unit.sid-d34ad0f32b844fa89940aa0d5cc9ed1b",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-3d4dad1536264059984b14ffbcfd51c2",
+              "label": "Книга 3 · Глава 6",
+              "unitId": "tos.text-unit.sid-7b8ad9d9d7484369b44640f21055228a",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b1a181b44d6c4afb9ef8cfe5409f03e2",
+              "label": "Книга 3 · Глава 7",
+              "unitId": "tos.text-unit.sid-c6b6adbff52d4f25ae909d8b1c247dd0",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f82e07d1cd2640059be0d5daf5b18bd6",
+              "label": "Книга 3 · Глава 8",
+              "unitId": "tos.text-unit.sid-dd6899e0c2214a349261cc22762b3045",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f5bf4c8ea2114c938d869c70362932f4",
+              "label": "Книга 3 · Глава 9",
+              "unitId": "tos.text-unit.sid-10e5ff2d96624d64ab482e64f0b9942d",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-f95d2074a517405ba28562e521c3088d",
+              "label": "Книга 3 · Глава 10",
+              "unitId": "tos.text-unit.sid-db009a9019764fafb6ffc6cabc9ca88e",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-d4c1fd59fff54b8fa65b7007f7b46bab",
+              "label": "Книга 3 · Глава 11",
+              "unitId": "tos.text-unit.sid-69c337cf988648f38ae929c5053726ec",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-3526d1749f694633be54cf7081742685",
+              "label": "Книга 3 · Глава 12",
+              "unitId": "tos.text-unit.sid-ae235b32e50345e78ea3a412b4950b51",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-03d41369ef5f473e8f0e4dc59fe28901",
+              "label": "Книга 3 · Глава 13",
+              "unitId": "tos.text-unit.sid-c630089ed0f24c85b76307380953652c",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-2047e4db89014dc98aa23a0b5834841c",
+              "label": "Книга 3 · Глава 14",
+              "unitId": "tos.text-unit.sid-94e681315cd74de081381921ebfb0828",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b05dc647dfd047d09bad22b4544ae563",
+              "label": "Книга 4 · Глава 1",
+              "unitId": "tos.text-unit.sid-e63a4d6ed92e4f11a0d108092bf51cb4",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-65fa31fdd9694c36b6c75373549badc2",
+              "label": "Книга 4 · Глава 2",
+              "unitId": "tos.text-unit.sid-4053766d1b974c61913f1ebfbd15b392",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-bd4b5bde5fef4c1581725b4500c48cf4",
+              "label": "Книга 4 · Глава 3",
+              "unitId": "tos.text-unit.sid-e67dec6d75584a2f9c04edea12ee5650",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-c8d397b9f295468b9189adf8abaa245d",
+              "label": "Книга 4 · Глава 4",
+              "unitId": "tos.text-unit.sid-c06b306b631f45b5912928f6a3f74b76",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-2e7b322cbb44470989fbfa197033853c",
+              "label": "Книга 4 · Глава 5",
+              "unitId": "tos.text-unit.sid-938837e1fcb44666a476238a57b3c5f4",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-102774280b2b4a72b8a0e031a2a949bf",
+              "label": "Книга 4 · Глава 6",
+              "unitId": "tos.text-unit.sid-8720fe97f5f440fe9d04473451b84fb8",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-b717ee79e0f4463aaf4a30cf47b8256a",
+              "label": "Книга 4 · Глава 7",
+              "unitId": "tos.text-unit.sid-26001f7757234f25a1ef181515fc0cd4",
+              "level": 1,
+              "parentId": null
+            },
+            {
+              "id": "tos.anchor.sid-bb31e18e664c4da8a4b6c8a827faeca0",
+              "label": "Книга 4 · Глава 8",
+              "unitId": "tos.text-unit.sid-c701614cf6d841fe900cb871520f126f",
+              "level": 1,
+              "parentId": null
+            }
+          ],
+          "coverageLimit": "Four books and all 39 chapters of the electronic text are retained. In Book III the source prints XII twice; navigation numbers the second XII as chapter 13, preserving its printed label in the source locators. Inline editorial footnotes and transliterations remain in the text. Newline conventions normalized; no scan collation. The translator moves one sentence from the end of Book I to the start of Book II; this edition follows that order.",
+          "coverageStatus": "complete-39-chapters",
           "proofreadingStatus": "not scan-collated"
         }
       ]

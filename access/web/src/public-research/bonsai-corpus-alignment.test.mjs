@@ -43,21 +43,24 @@ describe('the corpus alignment of the stands',()=>{
   });
   it('limits a partial translation to the declared original range and rejects stale scope',()=>{
     const original={id:'latin',language:'la',revision:'rev',units:Array.from({length:6},(_,i)=>({id:`u${i}`,reference:`§${i+1}`,text:'Verba.'}))};
-    const translation={id:'partial',language:'en',units:original.units.slice(0,5).map((unit,i)=>({id:`e${i}`,reference:unit.reference,text:'Words.'}))};
+    const translation={id:'partial',language:'en',revision:'trans-rev',units:original.units.slice(0,5).map((unit,i)=>({id:`e${i}`,reference:unit.reference,text:'Words.'}))};
     const read=()=>({id:'work',versions:[original,translation]});
     const cited=new Map([['a',{original:'latin',units:new Set(['u4','u5'])}]]),works={a:'work'};
-    const scopes=[{work:'a',translationVersionId:'partial',originalVersionId:'latin',originalRevision:'rev',firstUnitId:'u0',lastUnitId:'u4',source:'https://example.test/book'}];
+    const scopes=[{work:'a',translationVersionId:'partial',translationRevision:'trans-rev',originalVersionId:'latin',originalRevision:'rev',firstUnitId:'u0',lastUnitId:'u4',source:'https://example.test/book'}];
     const result=alignCorpus(cited,works,read,scopes);
     expect(result.units.u4.t.partial).toBeDefined();
     expect(result.units.u5).toBeUndefined();
     expect(result.receipt['a:partial'].sourceScope.lastUnitId).toBe('u4');
     expect(()=>alignCorpus(cited,works,read,[{...scopes[0],originalRevision:'stale'}])).toThrow(/invalid or stale translation scope/);
+    expect(()=>alignCorpus(cited,works,read,[{...scopes[0],translationRevision:'stale'}])).toThrow(/invalid or stale translation scope/);
+    expect(()=>alignCorpus(cited,works,()=>({id:'work',versions:[original,{...translation,revision:undefined}]}),[{...scopes[0],translationRevision:undefined}])).toThrow(/invalid or stale translation scope/);
   });
   it('checks the stored scope schema and rejects duplicate or incomplete bindings',()=>{
     const module=json('bonsai/antiquity/translation-scopes.json');
     expect(translationScopesIssues(module)).toEqual([]);
     expect(translationScopesIssues({...module,scopes:[...module.scopes,module.scopes[0]]})).toContain(`duplicate academica:${module.scopes[0].translationVersionId}`);
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],originalRevision:'stale'}]})).toContain('originalRevision');
+    expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],translationRevision:'stale'}]})).toContain('translationRevision');
   });
   it('can align a sentence across a translation reference inside a sentence',()=>{
     const original={language:'grc',units:[

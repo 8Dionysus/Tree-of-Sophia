@@ -1,0 +1,1809 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-7acadc51ddb5430a838236089a296997",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.xenophon.memorabilia",
+    "expression_ref": "tos.expression.retained.antiquity.memorabilia.memorabilia-en-dakyns1897-gutenberg",
+    "edition_ref": "tos.edition.retained.antiquity.memorabilia.memorabilia-en-dakyns1897-gutenberg",
+    "item_ref": "tos.item.retained.antiquity.memorabilia.memorabilia-en-dakyns1897-gutenberg",
+    "file_ref": "tos.file.sha256.cbb5a12b5f71f94206cf69bea3297f1c0cdbab44bffb10ddfbaaf23d87c9cf67",
+    "file_sha256": "cbb5a12b5f71f94206cf69bea3297f1c0cdbab44bffb10ddfbaaf23d87c9cf67"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-536d4e54d13e41789ea46a1d97480c8b",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.memorabilia-en-dakyns1897-gutenberg.20261027",
+        "made_at": "2026-11-12T19:25:33+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-1eb7a5d9b3944f2e9a1f724e918c208b",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 390534,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fdb1d17b49a54cd4a6b4893daa08887f",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 12527,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4281b6d671ea62b5ecd0580dc512bfcabff39bf2940b3cbcd8a82c78d6200761",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-954b22e4daee4e0392c51df0a7d260ce",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 12527,
+        "end": 45169,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cd385a0ab48bee72453ae6424960db4e76291d1218a747fbe720899c9c3a7115",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-99e904d3c3324451aed5e5b6513524e6",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 45169,
+        "end": 54116,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8b483fdb6ab5b9ef63dc41f9c758839f771d6b4339870448cb40554d50e5f745",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-247e0d23c35040cba1adbed19a372679",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 54116,
+        "end": 66290,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0ab92493bb492a700201ea6dc821533186de266378aa0cc69e23e111dd2f362c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2913b0cec6a748df9ca473c75a25ad79",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 66290,
+        "end": 69673,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7c98ac1957fb459c82459641e5a8865028baa5e7b22d1f5ad009bd2bbe86a8ac",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cb1509a7953b4183870ef17b2c439b91",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 69673,
+        "end": 77727,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3c1e3cc0e13cce2fe668fd7faef7a4c7352b87f2ed33ec918303a409230e4509",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6595f423bb4041afb01001ea50b275c3",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 77727,
+        "end": 80867,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b7ed22d893e52ea8fc1033a7c56fc15ab8a153375ed92faf3f3a31d8fe58c9f5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3b87e906fa2f404ca00cf98734e7555d",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 80867,
+        "end": 106435,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7c6c016383a7c2690b2c23418ce46e83608f0fcb85630751f7bf849607721ad1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-988172b21f1f4994b65db3127f3b3123",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 106435,
+        "end": 114992,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bc59f1993cdd69e8f07c33ba633a47adf121ffb6eed975a77cdf40d959423d9f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c42fe8d29b1c413999f63c92da295306",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 114992,
+        "end": 124002,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0cd5e58060303c8c2ca0497ad61c39a161246aebb39fd2fca59f3a3e110abe44",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4960cda2b0084854b481f716f0b0b01f",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 124002,
+        "end": 127979,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bdc0599db3c84ef6b793b532f35b01fadeb05805047f3325f312d91ce7319b30",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f19b3cc880334074985f5aa748fc9820",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 127979,
+        "end": 130386,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bcb01406db9b72f57ca27a6885e771c526ce7c5f73f60ce8dbe0d24d7403a9ec",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fad704bfef274c478896f8f90f5728d3",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 130386,
+        "end": 150656,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8b2e421bec00bb1887b23efefd1182651db17f8f8d3fb4a205135f518c60959a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b87cb06b77f14ea3a212241719fbb67b",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 150656,
+        "end": 160227,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9417d566d3ca4fff8d60a84e2b4651cb44f364e3bcb2ad209ccd72dc585cfe3c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-65ab442e92194b7bae58a861764c0b2c",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 160227,
+        "end": 163033,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0d02d40ceae5f72359302dce0c965da4e14f4012bf5c194939378e91a1380d1b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-03e786bc153a416bb5624a752c169623",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 163033,
+        "end": 167671,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "05ba9d8abc01f38744fc2e7442a365e6da0f096261198d6bd62672c1aca87af8",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ef37c2c0d292485f97834efa1749c8ca",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 167671,
+        "end": 169558,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b5125a7e3f11b4cf8183d87ecd133517af22755013cf126c8018851aa797cd2a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b9bc75226f7341eebf1a58fa3864ee7e",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 169558,
+        "end": 176451,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "141d6f92dba8b2062946565378dce65afedf9abc6e624933a3964779d6097007",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e69524d51c584fbab3d899f5294288eb",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 176451,
+        "end": 178556,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "aa1bd8382eafa8aea2d88a696b08f1ba9c5c8cc41c127e08ffa2894561088247",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f0f226fe5b5844e6b9d9f8be2d31f96e",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 178556,
+        "end": 185709,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5d99012dad2fcbeb5263f772f2790f40cdb5ed7ecf2e8f5f63249cef6a648133",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3ef7c9fa811b4a039882f4a3fdd524f7",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 185709,
+        "end": 192224,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "96c3cf149ee88b189e4814b1e99a77e85282617365001e620e485cfdd492e7c7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3224fea9c2444787ad4d51bf889a7c31",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 192224,
+        "end": 207892,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "94241012e859de505072676c19613a3f16ec59dfc3913d821cb6761dba67f2ab",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3d4dad1536264059984b14ffbcfd51c2",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 207892,
+        "end": 218652,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8f12ef09ee8547d1b4e65c91eb0a5ff6b62a1d191cc6ea004ced6db4c2e3aad0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b1a181b44d6c4afb9ef8cfe5409f03e2",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 218652,
+        "end": 223878,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d4ff1ba1637ae5963b9d766c15df4b1037766c0be64c5b1f853c3ba37186933d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f82e07d1cd2640059be0d5daf5b18bd6",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 223878,
+        "end": 230713,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0e4f9e9543016127e193be5f0a6e3571a45b93e0aa4942385175d032f8add987",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f5bf4c8ea2114c938d869c70362932f4",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 230713,
+        "end": 241465,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cb3cbe84fc988aebee9f5e059e44b25025ef787d9600be4869b6450afb21a754",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f95d2074a517405ba28562e521c3088d",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 241465,
+        "end": 251039,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f55978de252bab7882efdfd2e9b0819ab53602afbfed0810c1d4082ddcd59147",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d4c1fd59fff54b8fa65b7007f7b46bab",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 251039,
+        "end": 260872,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3d023da6a59627a8ae5f09383626d6c694069c886ecbac141ba9703d92939499",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3526d1749f694633be54cf7081742685",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 260872,
+        "end": 265817,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f33925f9bb4e63b6ba6087c089237121e9619740213966ebd6908b110ef1a81f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-03d41369ef5f473e8f0e4dc59fe28901",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 265817,
+        "end": 269816,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bb0d14f39cd75769a57748c9caa24d72bd66be3108a0403d5711c38f2ee7ab84",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2047e4db89014dc98aa23a0b5834841c",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 269816,
+        "end": 275853,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ee90365a8220bdc05407810a4e08b9e41d49be63b7ec6b74ee57fab8d4ab60ee",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b05dc647dfd047d09bad22b4544ae563",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 275853,
+        "end": 281342,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8d3ab8030a70ea52e5beb2532027675b1db86173dcc997f37880c63c4d44f2b7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-65fa31fdd9694c36b6c75373549badc2",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 281342,
+        "end": 312912,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "98317b9dd59e879fd3d50899c2f0677b2ed58bc26b1b5ae02afda9c0cfa833c1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bd4b5bde5fef4c1581725b4500c48cf4",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 312912,
+        "end": 326446,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ea893fd98a4679ebe1f908dc114deff0e229ac2c2e43b4a22bca325afa1f9bd5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c8d397b9f295468b9189adf8abaa245d",
+      "ordinal": 36,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 326446,
+        "end": 345628,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9088dc3be1fc3afc1ea1befee95ee31c6a165f23ae850192388181cd3eec44cd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2e7b322cbb44470989fbfa197033853c",
+      "ordinal": 37,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 345628,
+        "end": 355012,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7c8e4dc83cfe178c1dff00f5ba70473c7370711973393e84b9c7bee7773e33df",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-102774280b2b4a72b8a0e031a2a949bf",
+      "ordinal": 38,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 355012,
+        "end": 373232,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "38f225979ad29543b0a971e9d87e82eb4212da8a0b20e04d54975a87f36c628d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b717ee79e0f4463aaf4a30cf47b8256a",
+      "ordinal": 39,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 373232,
+        "end": 381722,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4a1fd58b623b56646f7a1842ace789c06f8244f3c1eaf78180e77f7f8be6d9d9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bb31e18e664c4da8a4b6c8a827faeca0",
+      "ordinal": 40,
+      "text_layer_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "7e491763937ef8c4dfb56404fb96fd13ac96c33e649e4aa285cfacacaa5d290d",
+      "selector": {
+        "type": "text_position",
+        "start": 381722,
+        "end": 390534,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ae70c3d4b3eee31ef476a263ade28a98677b5115994ed68141833b4451d12399",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/1177"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-a4645ef1be1f4fc18ef1b36bbb51b8fc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fdb1d17b49a54cd4a6b4893daa08887f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-71d54160946d4fe7b5437fabaa8634ca",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-954b22e4daee4e0392c51df0a7d260ce"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ce3dde827f11497b90907ff11e24948c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-99e904d3c3324451aed5e5b6513524e6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8f09946100c441888644a83fd56d88a8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-247e0d23c35040cba1adbed19a372679"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b90b8f7b1f1549c3956d23fd0e5d67d9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2913b0cec6a748df9ca473c75a25ad79"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-35b3da038c2e4540ac3604c57b192534",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cb1509a7953b4183870ef17b2c439b91"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-27d0e3a1c80246579284493592328e1f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6595f423bb4041afb01001ea50b275c3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6e9acb7913324b94b8f5a2ea928ebca8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3b87e906fa2f404ca00cf98734e7555d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b3d9ca014ce44bb2af99830a69b0a73f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-988172b21f1f4994b65db3127f3b3123"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1c9045d1cd8a4f3583fa81869d9c8209",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c42fe8d29b1c413999f63c92da295306"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3041be03b1ae4918932a5853bb141c61",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4960cda2b0084854b481f716f0b0b01f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0bc07b58eaf64488882192862aff2253",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f19b3cc880334074985f5aa748fc9820"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-16da195d17714b98acd7303f5566ba60",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fad704bfef274c478896f8f90f5728d3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-af73c5b3ef6f461b8c56de56c1cc5d22",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b87cb06b77f14ea3a212241719fbb67b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-21dcb50bf6b248559f2c13c669196cb9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-65ab442e92194b7bae58a861764c0b2c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-79cc006c26f345c2b61631bc01998b40",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-03e786bc153a416bb5624a752c169623"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1a6b6aa34d354fccb405f9578a12b761",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ef37c2c0d292485f97834efa1749c8ca"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2b72a6d38ffc4144a810477caa639ed4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b9bc75226f7341eebf1a58fa3864ee7e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-50ba7d9ff5a648e789a38aec366a08bc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e69524d51c584fbab3d899f5294288eb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ae6d8535c02c474db0bbb13ffec3d1c5",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f0f226fe5b5844e6b9d9f8be2d31f96e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-523050fa40cf4c90b64da2b1834ec77c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3ef7c9fa811b4a039882f4a3fdd524f7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d34ad0f32b844fa89940aa0d5cc9ed1b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3224fea9c2444787ad4d51bf889a7c31"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7b8ad9d9d7484369b44640f21055228a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3d4dad1536264059984b14ffbcfd51c2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c6b6adbff52d4f25ae909d8b1c247dd0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b1a181b44d6c4afb9ef8cfe5409f03e2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-dd6899e0c2214a349261cc22762b3045",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f82e07d1cd2640059be0d5daf5b18bd6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-10e5ff2d96624d64ab482e64f0b9942d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f5bf4c8ea2114c938d869c70362932f4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-db009a9019764fafb6ffc6cabc9ca88e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f95d2074a517405ba28562e521c3088d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-69c337cf988648f38ae929c5053726ec",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d4c1fd59fff54b8fa65b7007f7b46bab"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ae235b32e50345e78ea3a412b4950b51",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3526d1749f694633be54cf7081742685"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c630089ed0f24c85b76307380953652c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-03d41369ef5f473e8f0e4dc59fe28901"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-94e681315cd74de081381921ebfb0828",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2047e4db89014dc98aa23a0b5834841c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e63a4d6ed92e4f11a0d108092bf51cb4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b05dc647dfd047d09bad22b4544ae563"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4053766d1b974c61913f1ebfbd15b392",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-65fa31fdd9694c36b6c75373549badc2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e67dec6d75584a2f9c04edea12ee5650",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bd4b5bde5fef4c1581725b4500c48cf4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c06b306b631f45b5912928f6a3f74b76",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c8d397b9f295468b9189adf8abaa245d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-938837e1fcb44666a476238a57b3c5f4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2e7b322cbb44470989fbfa197033853c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8720fe97f5f440fe9d04473451b84fb8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-102774280b2b4a72b8a0e031a2a949bf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-26001f7757234f25a1ef181515fc0cd4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b717ee79e0f4463aaf4a30cf47b8256a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c701614cf6d841fe900cb871520f126f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bb31e18e664c4da8a4b6c8a827faeca0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-e38bb3cbcc9d4cba942106b2f482c78b",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-536d4e54d13e41789ea46a1d97480c8b",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-a4645ef1be1f4fc18ef1b36bbb51b8fc",
+        "tos.text-unit.sid-71d54160946d4fe7b5437fabaa8634ca",
+        "tos.text-unit.sid-ce3dde827f11497b90907ff11e24948c",
+        "tos.text-unit.sid-8f09946100c441888644a83fd56d88a8",
+        "tos.text-unit.sid-b90b8f7b1f1549c3956d23fd0e5d67d9",
+        "tos.text-unit.sid-35b3da038c2e4540ac3604c57b192534",
+        "tos.text-unit.sid-27d0e3a1c80246579284493592328e1f",
+        "tos.text-unit.sid-6e9acb7913324b94b8f5a2ea928ebca8",
+        "tos.text-unit.sid-b3d9ca014ce44bb2af99830a69b0a73f",
+        "tos.text-unit.sid-1c9045d1cd8a4f3583fa81869d9c8209",
+        "tos.text-unit.sid-3041be03b1ae4918932a5853bb141c61",
+        "tos.text-unit.sid-0bc07b58eaf64488882192862aff2253",
+        "tos.text-unit.sid-16da195d17714b98acd7303f5566ba60",
+        "tos.text-unit.sid-af73c5b3ef6f461b8c56de56c1cc5d22",
+        "tos.text-unit.sid-21dcb50bf6b248559f2c13c669196cb9",
+        "tos.text-unit.sid-79cc006c26f345c2b61631bc01998b40",
+        "tos.text-unit.sid-1a6b6aa34d354fccb405f9578a12b761",
+        "tos.text-unit.sid-2b72a6d38ffc4144a810477caa639ed4",
+        "tos.text-unit.sid-50ba7d9ff5a648e789a38aec366a08bc",
+        "tos.text-unit.sid-ae6d8535c02c474db0bbb13ffec3d1c5",
+        "tos.text-unit.sid-523050fa40cf4c90b64da2b1834ec77c",
+        "tos.text-unit.sid-d34ad0f32b844fa89940aa0d5cc9ed1b",
+        "tos.text-unit.sid-7b8ad9d9d7484369b44640f21055228a",
+        "tos.text-unit.sid-c6b6adbff52d4f25ae909d8b1c247dd0",
+        "tos.text-unit.sid-dd6899e0c2214a349261cc22762b3045",
+        "tos.text-unit.sid-10e5ff2d96624d64ab482e64f0b9942d",
+        "tos.text-unit.sid-db009a9019764fafb6ffc6cabc9ca88e",
+        "tos.text-unit.sid-69c337cf988648f38ae929c5053726ec",
+        "tos.text-unit.sid-ae235b32e50345e78ea3a412b4950b51",
+        "tos.text-unit.sid-c630089ed0f24c85b76307380953652c",
+        "tos.text-unit.sid-94e681315cd74de081381921ebfb0828",
+        "tos.text-unit.sid-e63a4d6ed92e4f11a0d108092bf51cb4",
+        "tos.text-unit.sid-4053766d1b974c61913f1ebfbd15b392",
+        "tos.text-unit.sid-e67dec6d75584a2f9c04edea12ee5650",
+        "tos.text-unit.sid-c06b306b631f45b5912928f6a3f74b76",
+        "tos.text-unit.sid-938837e1fcb44666a476238a57b3c5f4",
+        "tos.text-unit.sid-8720fe97f5f440fe9d04473451b84fb8",
+        "tos.text-unit.sid-26001f7757234f25a1ef181515fc0cd4",
+        "tos.text-unit.sid-c701614cf6d841fe900cb871520f126f"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-1eb7a5d9b3944f2e9a1f724e918c208b",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.memorabilia-en-dakyns1897-gutenberg.20261027",
+        "made_at": "2026-11-12T19:25:33+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/xenophon/memorabilia/expressions/retained-memorabilia-en-dakyns1897-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

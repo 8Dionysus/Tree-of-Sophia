@@ -110,6 +110,8 @@ test('provider title fallbacks remain literal even when they match a UI message'
 
 test('the public corpus names its authors in the reader\'s language, and an author it does not know as the manifest spells it',()=>{
   expect(corpusAuthorName('Plato','ru')).toBe('Платон');expect(corpusAuthorName('Plato','en')).toBe('Plato');
+  expect(corpusAuthorName('Xenophon','ru')).toBe('Ксенофонт');expect(corpusAuthorName('Xenophon','es')).toBe('Jenofonte');
+  expect(corpusWorkTitle({id:'tos.work.xenophon.memorabilia',title:'Memorabilia'},'ru')).toBe('Воспоминания о Сократе');
   expect(corpusAuthorName('Hippocratic corpus','ru')).toBe('Гиппократов корпус');
   expect(corpusAuthorName('Friedrich Nietzsche','ru')).toBe('Фридрих Ницше');
   expect(corpusAuthorName('Plato','de')).toBe('Platon');expect(corpusAuthorName('Plato','es')).toBe('Platón');expect(corpusAuthorName('Plato','zh-Hans')).toBe('柏拉图');
