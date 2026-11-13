@@ -1,5 +1,5 @@
 {
-  "status": "research-candidate; incomplete; not admitted; translator, rights and independent review pending",
+  "status": "research-candidate; two different editions; not admitted; translator, rights, witness selection and independent review pending",
   "work": "thomas-aquinas.summa-theologiae",
   "language": "es",
   "edition_candidate": "Gonzalo Soto Posada, La filosofía como filocalia en Tomás de Aquino, Universidad El Bosque, 2023, Introducción, quoting Summa theologiae I q.39 a.8.",
@@ -14,6 +14,12 @@
       "died": null,
       "role": "author of quoting book; translator of passage not yet established",
       "source": "https://id.loc.gov/authorities/names/nr00028501.html"
+    },
+    {
+      "name": "Andrés González-Blanco",
+      "died": 1924,
+      "role": "author of 1909 book and alternative gloss; attribution of base translation needs confirmation",
+      "source": "https://archive.org/metadata/historiadelanove00gonzuoft"
     }
   ],
   "rights": "Google Books indicates publisher-authorized preview; ascertain original translator and evaluate jurisdiction, quotation purpose and extent before admission.",
@@ -27,9 +33,18 @@
         "https://books.google.com/books?id=ITkYEQAAQBAJ&pg=PP10"
       ],
       "verification": "maker inspected publisher-authorized image; quote begins lowercase after colon and has no terminal punctuation; translator identity and independent review pending"
+    },
+    "I q39 a8 p318b": {
+      "text": "Se dice que una imagen es bella si representa perfectamente una cosa, aunque ésta sea fea (ó torpe).",
+      "edition_candidate": "Andrés González-Blanco, Historia de la novela en España (1909), p. 24, footnote 1. This is a different edition and translation from the first place; it must not be treated as the same witness without resolution.",
+      "printed_pages": "24",
+      "scan_images": [
+        "https://archive.org/details/historiadelanove00gonzuoft/page/n29/mode/1up"
+      ],
+      "verification": "maker inspected scan; the author explicitly says he inserted the parenthetical alternative (ó torpe); attribution of the underlying translation and independent review remain open"
     }
   },
   "research_notes": {
-    "I q39 a8 p318b": "Second place not yet located. Search remains partial."
+    "I q39 a8 p318b": "A 1909 printed secondary quotation found and checked; it uses a different translation from the first place. Need determine translator and whether kit supports separate witnesses or choose a single edition for both places."
   }
 }
