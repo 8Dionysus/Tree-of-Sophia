@@ -11,6 +11,7 @@
 import {benchListens,layOnBench} from './bench/bridge.mjs';
 import {chapterTitle} from './chapter-title.mjs';
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
+import {fragmentMayShow} from '../../../../bonsai/lib/fragments.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
 import {modernRussian,isPreReform,respell} from './orthography.mjs';
 import {createLatestFragmentRequest} from './fragment-request.mjs';
@@ -23,10 +24,12 @@ const chapterFiles=import.meta.glob('../../../../bonsai/zarathustra/witnesses/*.
 const loadManifest=()=>import('../../../../bonsai/zarathustra/witnesses.json').then(module=>module.default);
 // Each stand brings its own places of other works and its own alignment of the corpus works it cites.
 const PLACES={
+  aesthetics:()=>import('../../../../bonsai/aesthetics/fragments.json').then(module=>module.default),
   zarathustra:()=>import('../../../../bonsai/zarathustra/fragments.json').then(module=>module.default),
   antiquity:()=>import('../../../../bonsai/antiquity/fragments.json').then(module=>module.default),
 };
 const ALIGNMENTS={
+  aesthetics:()=>import('../../../../bonsai/aesthetics/alignment.json').then(module=>module.default),
   zarathustra:()=>import('../../../../bonsai/zarathustra/alignment.json').then(module=>module.default),
   antiquity:()=>import('../../../../bonsai/antiquity/alignment.json').then(module=>module.default),
 };
@@ -55,6 +58,11 @@ export function readingLanguages(locale,original='de',available=['de','en','ru']
   if(!translation)return {primary:[original],alternate:null};
   if(translation===resolveLocale(locale))return {primary:[translation],alternate:original};
   return {primary:[original,translation],alternate:null};
+}
+
+/** Aesthetics shows the original and exactly the reader's language. */
+export function aestheticsReadingLanguages(locale,original,available){
+  return [...new Set([original,resolveLocale(locale)])].filter(language=>available.includes(language));
 }
 
 // Chapter titles as the witnesses print them, without numbering or a closing period.
@@ -312,8 +320,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     if(!work||!place)throw new Error(`No place ${cite.w} ${cite.loc}`);
     // A place may give a language from another witness of it (the translation of a book the usual one lacks).
     const witnessOf=language=>work.witnesses?.[place.witness?.[language]??language];
-    const available=Object.keys(place.texts??{}).filter(language=>place.texts[language]);
-    const {primary,alternate}=readingLanguages(locale(),work.original,available,{exact:profile==='antiquity'});
+    const available=Object.keys(place.texts??{}).filter(language=>place.texts[language]&&fragmentMayShow(witnessOf(language)));
+    const {primary,alternate}=profile==='aesthetics'?{primary:aestheticsReadingLanguages(locale(),work.original,available),alternate:null}:readingLanguages(locale(),work.original,available,{exact:profile==='antiquity'});
     let showing=primary.filter(language=>available.includes(language));
     if(!showing.length&&profile!=='antiquity')showing=[work.original].filter(language=>available.includes(language));
     const paint=()=>{
@@ -334,6 +342,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label),local(witness?.short),language==='ru'&&isPreReform(text)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
       }
+      if(profile==='aesthetics'&&resolveLocale(locale())!==work.original&&!available.includes(resolveLocale(locale())))figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
       const tools=el('div','ps-fragment-tools');
       const other=alternate&&available.includes(alternate)?(showing.includes(alternate)?primary.filter(language=>available.includes(language)):[alternate]):null;
       if(other&&(other.length||profile==='antiquity'&&showing.includes(alternate))&&other.join()!==showing.join()){

@@ -86,3 +86,14 @@ K gate . --second
 Settle what it prints, until `gate: open`. A `partly` or a `no` is a finished
 answer: the line returns it to the maker. Close with three lines: how many yes,
 partly, no; which pages you read; the one thing the operator should know.
+
+## Language witnesses
+
+For a new work, independently read every prepared language witness against its
+original place and the same page image. Fetch each page with
+`K witness-image . LANG URL --name FILE --by second`, then record the reading
+with `K witness-review . LANG 'LOC' --reader ID --alignment '…'`. The witness
+and packet second gates must open. The acceptance binds the exact reviewed
+language files; a changed text, source, person, page or rights record requires a
+new review. Search records for missing languages are evidence to inspect, not
+proof of a translation that was never looked for.

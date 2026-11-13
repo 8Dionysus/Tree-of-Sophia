@@ -2,7 +2,7 @@
 """Runs the readers of the planting line. The operator's tool: a reader never starts it.
 
   drive.py run WORK                 one work from start to accepted, blocked or stuck
-  drive.py line [--max 2] [--works a,b] [--count N] [--wave first]
+  drive.py line [--max 2] [--works a,b] [--count N] [--wave free-all]
                                     works of the queue, several at a time, until the queue, the count or the usage limit ends
 
 One work, one fresh Codex session as the maker; the gate decides whether the maker is done, and while the gate is
@@ -40,6 +40,9 @@ def kit(*args):
 def codex(work,role,prompt,resume=None):
     """One codex exec turn in the packet directory. Returns the thread, whether the usage limit ended it, and its tokens."""
     st=state(work);n=len(st['sessions'])+1;log=out(work,f'{n:02d}-{role}.jsonl');last=out(work,f'{n:02d}-{role}.md')
+    if '/extensions/' in work:
+        prompt=prompt.replace('../../AGENTS.md','../../../../AGENTS.md').replace('../../MAKER.md','../../../../MAKER.md').replace('../../SECOND-READER.md','../../../../SECOND-READER.md').replace('../../kit.py','../../../../kit.py')
+        prompt+='\n\nThis is an extension directory: the K command in the guides means python3 ../../../../kit.py. Read and change this extension only; the accepted parent stays intact.'
     command=[CODEX,'exec']+(['resume',resume] if resume else [])+['--json','-m',MODEL,'-c',f'model_reasoning_effort={EFFORT}','--dangerously-bypass-approvals-and-sandbox','--skip-git-repo-check','-o',last,prompt]
     started=now()
     with open(log,'w') as file:
@@ -61,7 +64,7 @@ def codex(work,role,prompt,resume=None):
     if limit:LIMIT.set()
     return thread,limit
 
-MAKER="""You are the maker of the packet for the work {work} in the planting line of the Aesthetics bonsai. Your working directory is the packet. Read ../../AGENTS.md and ../../MAKER.md now and follow MAKER.md to its end. Stop only when `python3 ../../kit.py gate .` prints `gate: open`, or when you have written blocked.json as the card describes."""
+MAKER="""You are the maker of the packet for the work {work} in the planting line of the Aesthetics bonsai. Your working directory is the packet. Read ../../AGENTS.md and ../../MAKER.md now and follow MAKER.md to its end, including every interface language and source search. Stop only when `python3 ../../kit.py gate .` prints `gate: open`, or when you have written blocked.json as the card describes."""
 MAKER_ON="""You are the maker of the packet in this directory (../../AGENTS.md, ../../MAKER.md). The gate is still shut. These are its lines:
 
 {gate}
@@ -72,7 +75,7 @@ BLOCK="""You are a maker in the planting line of the Aesthetics bonsai; your wor
 
 Read ../../AGENTS.md and ../../MAKER.md, then test that block yourself: look for what it says is missing or failing. If the block does not hold, delete blocked.json and make the packet by MAKER.md to its end (`python3 ../../kit.py gate .` prints `gate: open`). If it holds, leave blocked.json and add under `tried` what you looked at."""
 RETAKE="""This packet has been through the line before. Under `left` in reading.json, an entry marked `disputed` holds a conception or a link that a second reader did not confirm, with the reader's note. Take each of them up again: read the note and the place in the original; where the work bears the reading in a narrower thesis, a longer cut or two conceptions, grow it again by MAKER.md and take the entry out of `left`; where it does not, leave the entry as it is. Leave what is already in the reading as it is unless the gate asks otherwise."""
-SECOND="""You are the second reader of the packet for the work {work} in the planting line of the Aesthetics bonsai. You did not make this packet. Your working directory is the packet. Read ../../AGENTS.md and ../../SECOND-READER.md now and follow SECOND-READER.md to its end. Stop only when `python3 ../../kit.py gate . --second` prints `gate: open`."""
+SECOND="""You are the second reader of the packet for the work {work} in the planting line of the Aesthetics bonsai. You did not make this packet. Your working directory is the packet. Read ../../AGENTS.md and ../../SECOND-READER.md now and follow SECOND-READER.md to its end, independently reviewing every prepared language witness. Stop only when `python3 ../../kit.py gate . --second` prints `gate: open`."""
 SECOND_ON="""You are the second reader of the packet in this directory (../../AGENTS.md, ../../SECOND-READER.md). The gate is still shut. These are its lines:
 
 {gate}
@@ -150,8 +153,9 @@ def roomy():
         time.sleep(30)
 
 def line(args):
+    if not 1<=args.max<=3:raise SystemExit('--max must be between 1 and 3')
     kit('queue');queue=json.load(open(os.path.join(HERE,'queue.json')))['works']
-    works=args.works.split(',') if args.works else [row['work'] for row in queue if row['wave']==args.wave]
+    works=args.works.split(',') if args.works else [row['work'] for row in queue if row['wave']==args.wave and row.get('status','waiting')=='waiting']
     works=[work for work in works if args.retake or (not have(work,'accepted.json') and not have(work,'blocked.json'))][:args.count or None]
     code,text=kit('ready')                                      # no reader starts in a checkout that cannot plant: each would spend its turns and stop at the same wall
     if code:
@@ -173,7 +177,7 @@ def line(args):
 def main():
     p=argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter);s=p.add_subparsers(dest='cmd',required=True)
     q=s.add_parser('run');q.add_argument('work');q.add_argument('--retake',action='store_true')
-    q=s.add_parser('line');q.add_argument('--max',type=int,default=2);q.add_argument('--works');q.add_argument('--count',type=int);q.add_argument('--wave',default='first');q.add_argument('--retake',action='store_true',help='run the named works again and take up what was left disputed')
+    q=s.add_parser('line');q.add_argument('--max',type=int,default=2);q.add_argument('--works');q.add_argument('--count',type=int);q.add_argument('--wave',default='free-all');q.add_argument('--retake',action='store_true',help='run the named works again and take up what was left disputed')
     args=p.parse_args()
     if args.cmd=='run':print(run(args.work,retake=args.retake))
     else:line(args)

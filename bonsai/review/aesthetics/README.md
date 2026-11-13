@@ -169,10 +169,7 @@ grown or left with a reason, that a thesis hedges or negates only where the
 place does, and that the planting goes through. A packet is planted when its
 gate is open and the second reader confirms every conception and link; what
 the second reader does not confirm after one return to the maker leaves the
-reading and stays under `left`, marked disputed, for a reader to take up. The
-first wave takes works printed by 1929 whose every hand died by 1942; the
-later ones wait for the locator and short-quotation form of the places
-module. Fetched files stay outside the checkout (`~/.cache/tos-planting`).
+reading and stays under `left`, marked disputed, for a reader to take up. The queue classifies leads as free in all jurisdictions, free in some, quotation or locator-only. A separate status records whether a work is held, unread, already planted, in the corpus or waiting. The register date and sourced lives guide this ordering; the gate determines rights from the actual edition and every participant. Each witness records the basis for each jurisdiction. Fetched files stay outside the checkout (`~/.cache/tos-planting`).
 
 ## Rebuilding the layer
 
@@ -196,3 +193,20 @@ work itself and stands as a citation of that place; the registers' paraphrases
 then remain here as the record of where the reading came from. The media
 workbooks' own content — works of art, reproductions, bindings — is not in the
 layer; it is read when the bonsai's media are planted.
+
+`chronology.mjs --fetch` fetches the Wikidata identities explicitly named by
+packet participants. `chronology.mjs --fetch-queue` inventories the layer's
+work authors and looks for a Wikidata work whose author (`P50`) identifies an
+exactly named candidate. `lives.json` keeps unsearched and unresolved people
+explicitly; an unresolved name is not a Wikidata identification. A rate limit
+stops the search and retains completed entries. Resume with the same command;
+`--retry-unresolved` also revisits names for which the earlier bounded search
+found no link. `--fetch-queue-batch` checks exact author and work labels in
+Wikidata SPARQL before admitting any unique P50-linked identity. `--fetch-queue-dates` separately admits a unique exact-name match only when both register lifetime years agree with Wikidata. A known birth without a death is not treated as a closed life.
+
+`--fetch-queue-relations` persists an exact-label/P50 search per author so a
+rate limit leaves completed searches intact. `--fetch-queue-catalogue` follows
+an exact work and author through Open Library's author record to its linked
+Wikidata identity, checking the labels and human identity before admitting it. Where the catalogue has no identifier bridge, it requires a unique Wikidata human matching both catalogued life endpoints.
+Both retain a bounded search as unresolved when no unique identity is found;
+neither turns an unresolved search into a claim of absence.

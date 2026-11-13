@@ -16,6 +16,7 @@ read again by another (the second reader). `kit.py` is the line's one tool;
 | `evidence.json` | fetched files, every place beside the scan, the judgment of every difference | `kit.py` only |
 | `review.json` | the second reader's answer to every conception and link | second reader |
 | `blocked.json` | `{ground, reason, tried}` in place of the rest, when the work cannot be planted by this card; `ground` is `rights`, `sources`, `reading` or `kit` | maker |
+| `witnesses/<language>.json` | an independently sourced translation and its page review | `kit.py` only |
 | `accepted.json` | who let the packet onto the map and on what basis | the line, never a reader |
 
 `../plant.mjs` plants accepted packets into `bonsai/aesthetics/`.
@@ -44,12 +45,13 @@ read again by another (the second reader). `kit.py` is the line's one tool;
 5. **A thesis affirms.** It says what the place says, in the place's own
    terms, in Russian and in English. It hedges, negates or contrasts only
    where the words of the place do.
-6. **Rights are dates.** First wave: every hand in the text (author, editor,
-   translator) died in 1942 or earlier, and the printing read is from 1929 or
-   earlier. An author dead in 1746 is inside the wave; one dead in 1952 is
-   outside it. The
-   kit reads each year of death from the person's Wikidata item and writes the
-   rights sentences itself. A work outside this is a `blocked.json`.
+6. **Rights belong to each jurisdiction.** Record a basis and its legal
+   statement for Russia, the USA and the EU. Public-domain dates use the
+   running year and every hand in the text; unknown wartime status gets the
+   longer Russian term. A protected text may be a short quotation from a
+   lawful copy, with the source page and an independent second reading. A
+   locator needs the edition and the searches performed. Unknown is not a
+   finding of absence.
 7. **Facts are fetched.** An edition, a year, a page number, an address is
    taken from a page opened in this session, never from memory.
 8. **One reader, one packet.** Write inside your packet directory only. No git
