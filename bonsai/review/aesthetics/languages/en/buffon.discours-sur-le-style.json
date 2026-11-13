@@ -53,5 +53,69 @@
         "https://archive.org/details/theoriesofstylew00coop/page/n205/mode/1up"
       ]
     }
+  },
+  "alternative_research": {
+    "edition": {
+      "work": "Discourse on Style",
+      "author": "Georges-Louis Leclerc, comte de Buffon",
+      "translator": "Rollo Walter Brown (1880–1956)",
+      "editor": "Rollo Walter Brown",
+      "book": "The Writer’s Art by Those Who Have Practiced It",
+      "publisher": "Harvard University Press",
+      "year": 1921,
+      "scan": "https://archive.org/details/writersartbytho00browgoog",
+      "translator_credit_scan": "https://archive.org/details/writersartbytho00browgoog/page/n297/mode/1up",
+      "source_french": "René Nollet edition, Librairie Hachette et Cie, Paris, 1905, per p. 277 editor note",
+      "death_source": "https://www.americanantiquarian.org/proceedings/44525042.pdf",
+      "rights": "No open license identified. On the ordinary EU author-life-plus-70 rule, a 1956 death would run through 31 December 2026; jurisdiction and exceptional rights require owner assessment. US publication 1921 is not a universal permission. Digitized access alone does not establish reuse rights."
+    },
+    "places": {
+      "Discours p5a": {
+        "pages": "279",
+        "scan": [
+          "https://archive.org/details/writersartbytho00browgoog/page/n299/mode/1up"
+        ],
+        "alignment": "One complete English sentence; French sentence corresponds."
+      },
+      "Discours p5b": {
+        "pages": "279",
+        "scan": [
+          "https://archive.org/details/writersartbytho00browgoog/page/n299/mode/1up"
+        ],
+        "alignment": "One long French sentence corresponds to two consecutive whole English sentences: starts But, before seeking and ends original conception. Brown divides at French colon."
+      },
+      "Discours p6": {
+        "pages": "280–281",
+        "scan": [
+          "https://archive.org/details/writersartbytho00browgoog/page/n300/mode/1up",
+          "https://archive.org/details/writersartbytho00browgoog/page/n301/mode/1up"
+        ],
+        "alignment": "One complete English sentence spans both pages. Includes the ending on continuity and movement absent in Elizabeth Lee quotation."
+      },
+      "Discours p12": {
+        "pages": "285–286",
+        "scan": [
+          "https://archive.org/details/writersartbytho00browgoog/page/n305/mode/1up",
+          "https://archive.org/details/writersartbytho00browgoog/page/n306/mode/1up"
+        ],
+        "alignment": "French first sentence is spread across three English sentences: first begins with an added preceding proposition about well-written works, then conditional sentence, then Inasmuch as sentence. The final French sentence corresponds to a fourth English sentence on p. 286. Whole-sentence extraction would include the preceding proposition."
+      }
+    },
+    "rejected_candidates": [
+      {
+        "name": "Elizabeth Lee translation of Sainte-Beuve, What Is a Classic?",
+        "death": 1920,
+        "url": "https://bobson.ludost.net/books/HC/Volume%2032.pdf",
+        "reason": "The borrowed quotation corresponding to p6 stops after author’s design remains obscure, omitting the remaining subordinate clauses of the French place."
+      },
+      {
+        "name": "Samuel Butler, Evolution, Old and New",
+        "death": 1902,
+        "year": 1879,
+        "url": "https://darwin-online.org.uk/converted/pdf/1879_Butler_Evolution_CUL-DAR.LIB.98.pdf",
+        "reason": "Quote corresponding to p12 is a loose adaptation with restructured sentences; not a complete source-faithful witness for all four places."
+      }
+    ],
+    "note": "Research reader visually checked scans; no text transcribed here. Independent source, alignment and quotation-rights review remain pending."
   }
 }
