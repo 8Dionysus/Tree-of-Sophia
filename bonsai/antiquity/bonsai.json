@@ -156,8 +156,8 @@
       "path": "translation-scopes.json",
       "format": "tos.bonsai.translation-scopes.v1",
       "role": {
-        "ru": "Ограничения частичных переводов по точному диапазону единиц оригинала; соответствие предложений по-прежнему строит механизм выравнивания.",
-        "en": "Partial translations bounded by exact original-unit ranges; the alignment mechanism still determines sentence correspondence."
+        "ru": "Границы частичных переводов и временное исключение ненадёжного сопоставления с привязкой к точным версиям; соответствие предложений строит механизм выравнивания.",
+        "en": "Bounds for partial translations and temporary withholding of unreliable alignment, bound to exact revisions; the alignment mechanism determines sentence correspondence."
       }
     },
     {
