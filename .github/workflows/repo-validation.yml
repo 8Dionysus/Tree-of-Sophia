@@ -41,6 +41,10 @@ jobs:
           git ls-files -z '*AGENTS.md' | LC_ALL=C xargs -0 wc -w | awk '$NF != "total" && $1 > 800 { print; failed = 1 } END { exit failed }'
       - name: Test source CI proof adapter
         run: node --test .github/scripts/verified-pr-tree.test.mjs
+      - name: Test bonsai review and public-corpus tools
+        run: |
+          node --test bonsai/lib/aesthetics-review.test.mjs access/public-corpus/prepare-reader-companions.test.mjs
+          node access/public-corpus/prepare-reader-companions.mjs
       - name: Verify prior PR source CI for the landed tree
         id: main_ci
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
