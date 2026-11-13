@@ -3,7 +3,7 @@
 The internal `source_claim_publication_normalize::normalize_claim_candidate`
 kernel normalizes an explicitly supplied, bounded source cohort. Claim, Agent
 and metadata publication call this kernel directly. The unused public
-`source_assembly_normalization` wrapper and its `tos_access` re-export have been
+Python source assembly wrapper and its re-export have been
 retired; normalization is not an installed SDK operation.
 
 The publication owner supplies exact registries, descriptor, vocabulary and
