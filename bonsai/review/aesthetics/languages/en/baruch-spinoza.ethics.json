@@ -1,0 +1,37 @@
+{
+  "status": "research-candidate; not admitted; no independent review",
+  "work": "baruch-spinoza.ethics",
+  "language": "en",
+  "edition_candidate": "Benedict de Spinoza, The Chief Works, volume II, translated R. H. M. Elwes, London, George Bell, 1891 (reprint of 1884 edition). Confirm transcription and scan correspond.",
+  "transcription": "https://www.gutenberg.org/ebooks/3800.txt.utf-8",
+  "transcription_sha256": "c549e5146cc820899acbed30f9c4e28e7bb8cd26046a98a977800ae62f856214",
+  "scan": "https://archive.org/details/chiefworksofbene02spin",
+  "scan_metadata": "https://archive.org/metadata/chiefworksofbene02spin",
+  "persons": [
+    {
+      "name": "Baruch Spinoza",
+      "died": 1677
+    },
+    {
+      "name": "Robert Harvey Monro Elwes",
+      "died": 1892,
+      "source": "https://www.wikidata.org/wiki/Q18911484"
+    }
+  ],
+  "rights": "Candidate public domain: 1891 edition, author died 1677 and translator 1892. Verify the edition, complete contributor list and jurisdictional basis.",
+  "method": "Whole sentence candidates cut from Gutenberg transcription by exact boundary strings, whitespace normalized. Compare to scan, establish pages and verify alignment and independent review.",
+  "places": {
+    "III def3 p132": {
+      "text": "By emotion I mean the modifications of the body, whereby the active power of the said body is increased or diminished, aided or constrained, and also the ideas of such modifications. N.B. If we can be the adequate cause of any of these modifications, I then call the emotion an activity, otherwise I call it a passion, or state wherein the mind is passive.",
+      "verification": "candidate; compare scan image and confirm page and alignment"
+    },
+    "III affects2 p184": {
+      "text": "Pleasure is the transition of a man from a less to a greater perfection.",
+      "verification": "candidate; compare scan image and confirm page and alignment"
+    },
+    "III affects3 p184": {
+      "text": "Pain is the transition of a man from a greater to a less perfection.",
+      "verification": "candidate; compare scan image and confirm page and alignment"
+    }
+  }
+}
