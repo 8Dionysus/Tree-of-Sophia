@@ -18,7 +18,7 @@ This branch is the ToS philosophy home for the prepared dossier's first tree-sha
 
 | Surface | Role |
 | --- | --- |
-| `sources/source-anchor-backlog.jsonl` | future real source witness and edition anchors for this branch |
+| `ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl` | source witness and edition anchors, selected by `branch_path` |
 | `sources/plantings/` | exact source-witness routes already planted from backlog anchors |
 | `graph-workbench/pre-canon-summary.json` | local summary of proposed graph rows before canon review |
 
