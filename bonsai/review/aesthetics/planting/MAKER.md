@@ -295,3 +295,11 @@ page image, `K witness-cut-candidate . ru text.txt --loc '…' --page '…'
 that transcription. The original research note remains a candidate; the cut,
 page evidence, rights and independent review still go through the witness
 gate before acceptance.
+
+Use `witness-info` with a JSON object to update edition, URL, maker or
+normalization. `witness-rights . ru russia short-quotation 'legal basis …'`
+sets one jurisdiction at a time. For a person without a usable Wikidata item,
+`witness-person-source . ru translator 'Name' https://… --born YEAR --died YEAR`
+fetches a trusted reference and records its digest. A missing death year stays
+unknown and cannot establish public domain by dates. Every metadata change
+requires a fresh independent reading before acceptance.
