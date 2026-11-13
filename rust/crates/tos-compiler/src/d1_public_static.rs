@@ -481,15 +481,11 @@ fn corpus_view(
 }
 
 fn knowledge_contracts(capture: &PublicCapture, _root: &Path) -> Result<Value> {
-    const CONTRACTS: [(&str, &str); 13] = [
+    const CONTRACTS: [(&str, &str); 12] = [
         ("api", "access/contracts/knowledge-api.v1.json"),
         (
             "knowledge_graph",
             "access/contracts/knowledge-graph.v1.schema.json",
-        ),
-        (
-            "knowledge_search_indexed",
-            "access/contracts/knowledge-search-indexed.v2.schema.json",
         ),
         (
             "readable_context",

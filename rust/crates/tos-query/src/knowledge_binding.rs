@@ -7,19 +7,19 @@ use tos_compiler::{
 };
 use tos_foundation::Digest256;
 
-use crate::search_v2::{
-    QUERY_PRIMITIVE_PROFILE, QueryVocabularyBinding, SEARCH_UNICODE_PROFILE,
-    SearchSelectionBinding, SearchV2Error, SearchV2ErrorCode, SelectedQueryVocabulary,
+use crate::search::{
+    QUERY_PRIMITIVE_PROFILE, QueryVocabularyBinding, SEARCH_UNICODE_PROFILE, SearchError,
+    SearchErrorCode, SearchSelectionBinding, SelectedQueryVocabulary,
 };
 
-fn stale(message: &'static str) -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::StaleSelection,
+fn stale(message: &'static str) -> SearchError {
+    SearchError {
+        code: SearchErrorCode::StaleSelection,
         message,
     }
 }
 
-fn digest(raw: &str) -> Result<Digest256, SearchV2Error> {
+fn digest(raw: &str) -> Result<Digest256, SearchError> {
     Digest256::from_hex(raw).map_err(|_| stale("selected knowledge digest is invalid"))
 }
 
@@ -37,7 +37,7 @@ pub struct BoundCmpKnowledge<'a> {
 impl BoundCmpKnowledge<'_> {
     /// Owned binding/descriptor state only. The vocabulary and model are
     /// borrowed from their original owners and must not be charged twice.
-    pub fn retained_state_upper_bound(&self) -> Result<usize, SearchV2Error> {
+    pub fn retained_state_upper_bound(&self) -> Result<usize, SearchError> {
         use tos_foundation::{OwnedState, checked_state_add};
         let mut bytes = std::mem::size_of::<Self>();
         macro_rules! charge { ($($field:ident),*) => { $(
@@ -70,9 +70,9 @@ impl BoundCmpKnowledge<'_> {
     pub fn source_revision(&self) -> Option<&str> {
         self.source_basis.source_revision()
     }
-    pub fn require_source_revision(&self) -> Result<&str, SearchV2Error> {
-        self.source_revision().ok_or(SearchV2Error {
-            code: SearchV2ErrorCode::UnsupportedModel,
+    pub fn require_source_revision(&self) -> Result<&str, SearchError> {
+        self.source_revision().ok_or(SearchError {
+            code: SearchErrorCode::UnsupportedModel,
             message: "query requires a cut source revision",
         })
     }
@@ -86,7 +86,7 @@ impl BoundCmpKnowledge<'_> {
         &self,
         packet: &tos_foundation::JsonValue,
         limits: tos_foundation::JsonLimits,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.validate_catalog_identity_with_meter(packet, limits, None)
     }
     pub(crate) fn validate_catalog_identity_metered(
@@ -94,7 +94,7 @@ impl BoundCmpKnowledge<'_> {
         packet: &tos_foundation::JsonValue,
         limits: tos_foundation::JsonLimits,
         meter: &mut crate::knowledge_inspect::InspectVisitMeter,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.validate_catalog_identity_with_meter(packet, limits, Some(meter))
     }
     fn validate_catalog_identity_with_meter(
@@ -102,10 +102,10 @@ impl BoundCmpKnowledge<'_> {
         packet: &tos_foundation::JsonValue,
         limits: tos_foundation::JsonLimits,
         mut meter: Option<&mut crate::knowledge_inspect::InspectVisitMeter>,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         use tos_foundation::JsonValue;
-        let invalid = || SearchV2Error {
-            code: SearchV2ErrorCode::CorruptSelectedCarrier,
+        let invalid = || SearchError {
+            code: SearchErrorCode::CorruptSelectedCarrier,
             message: "selected catalog identity differs",
         };
         match &self.source_basis {
@@ -144,7 +144,7 @@ impl BoundCmpKnowledge<'_> {
         &self,
         basis: &tos_foundation::JsonValue,
         limits: tos_foundation::JsonLimits,
-    ) -> Result<String, SearchV2Error> {
+    ) -> Result<String, SearchError> {
         self.validate_managed_basis_with_meter(basis, limits, None)
     }
     fn validate_managed_basis_with_meter(
@@ -152,10 +152,10 @@ impl BoundCmpKnowledge<'_> {
         basis: &tos_foundation::JsonValue,
         limits: tos_foundation::JsonLimits,
         mut meter: Option<&mut crate::knowledge_inspect::InspectVisitMeter>,
-    ) -> Result<String, SearchV2Error> {
+    ) -> Result<String, SearchError> {
         use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
-        let invalid = || SearchV2Error {
-            code: SearchV2ErrorCode::CorruptSelectedCarrier,
+        let invalid = || SearchError {
+            code: SearchErrorCode::CorruptSelectedCarrier,
             message: "selected managed source basis differs",
         };
         let (kind, expected) = match &self.source_basis {
@@ -180,11 +180,11 @@ impl BoundCmpKnowledge<'_> {
             }
             None => canonical_bytes_v1(proof, CanonicalProfile::SourceRecordDigestV1, limits),
         }
-        .map_err(|reason| SearchV2Error {
+        .map_err(|reason| SearchError {
             code: if reason.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-                SearchV2ErrorCode::BudgetExceeded
+                SearchErrorCode::BudgetExceeded
             } else {
-                SearchV2ErrorCode::CorruptSelectedCarrier
+                SearchErrorCode::CorruptSelectedCarrier
             },
             message: "selected managed source basis cannot be checked",
         })?;
@@ -211,7 +211,7 @@ impl BoundCmpKnowledge<'_> {
     /// Refuse a different pinned selected file before running a query with
     /// this semantic binding. The source owner separately checks its pin and
     /// current policy through the full disclosure lifetime.
-    pub fn check_model(&self, model: &VerifiedKnowledgeModel<'_>) -> Result<(), SearchV2Error> {
+    pub fn check_model(&self, model: &VerifiedKnowledgeModel<'_>) -> Result<(), SearchError> {
         model
             .check_pin()
             .map_err(|_| stale("selected knowledge pin changed"))?;
@@ -230,7 +230,7 @@ impl BoundCmpKnowledge<'_> {
     pub fn check_controlled_model(
         &self,
         model: &ControlledKnowledgeModel<'_, '_, '_>,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         model
             .check_pin()
             .map_err(|_| stale("selected knowledge pin changed"))?;
@@ -246,7 +246,7 @@ impl BoundCmpKnowledge<'_> {
         selected: &KnowledgeSelectedExpectation,
         source_basis: &KnowledgeSourceBasis,
         search_index_profile: &str,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         if digest(&selected.model_sha256)? != self.selection.index_root_sha256
             || source_basis != &self.source_basis
             || search_index_profile != self.selection.search_unicode_profile
@@ -278,7 +278,7 @@ pub fn bind_verified_knowledge<'a>(
     model: &VerifiedKnowledgeModel<'_>,
     vocabulary: &'a QueryVocabulary,
     authored_descriptor: &[u8],
-) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
+) -> Result<BoundCmpKnowledge<'a>, SearchError> {
     if !matches!(model.source_basis(), KnowledgeSourceBasis::V1Cut { .. }) {
         return Err(stale("managed source requires its current owner binding"));
     }
@@ -292,8 +292,8 @@ pub fn bind_managed_verified_knowledge<'a>(
     model: &VerifiedKnowledgeModel<'_>,
     vocabulary: &'a QueryVocabulary,
     authored_descriptor: &[u8],
-    authorize_current: impl FnOnce(&ManagedSourceProofV1) -> Result<(), SearchV2Error>,
-) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
+    authorize_current: impl FnOnce(&ManagedSourceProofV1) -> Result<(), SearchError>,
+) -> Result<BoundCmpKnowledge<'a>, SearchError> {
     let bound = bind_knowledge(model, vocabulary, authored_descriptor)?;
     let proof = bound
         .source_basis
@@ -310,8 +310,8 @@ pub fn bind_managed_proof_verified_knowledge<'a, P: tos_compiler::ManagedProduce
     vocabulary: &'a QueryVocabulary,
     authored_descriptor: &[u8],
     proof: &P,
-    authorize_current: impl FnOnce(&P) -> Result<(), SearchV2Error>,
-) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
+    authorize_current: impl FnOnce(&P) -> Result<(), SearchError>,
+) -> Result<BoundCmpKnowledge<'a>, SearchError> {
     let bound = bind_knowledge(model, vocabulary, authored_descriptor)?;
     if bound.source_basis != proof.basis() {
         return Err(stale("managed binding typed source proof differs"));
@@ -328,7 +328,7 @@ fn bind_knowledge<'a>(
     model: &VerifiedKnowledgeModel<'_>,
     vocabulary: &'a QueryVocabulary,
     authored_descriptor: &[u8],
-) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
+) -> Result<BoundCmpKnowledge<'a>, SearchError> {
     vocabulary
         .verify_authored_bytes(authored_descriptor)
         .map_err(|_| stale("authored query vocabulary bytes differ"))?;
@@ -351,29 +351,13 @@ fn bind_knowledge<'a>(
     )
 }
 
-pub(crate) fn bind_controlled_knowledge_from_parts<'a>(
-    selected: &KnowledgeSelectedExpectation,
-    source_basis: &KnowledgeSourceBasis,
-    search_index_profile: &str,
-    vocabulary: &'a QueryVocabulary,
-    authored_descriptor: &tos_foundation::JsonValue,
-) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
-    bind_knowledge_from_parts(
-        selected,
-        source_basis,
-        search_index_profile,
-        vocabulary,
-        authored_descriptor.clone(),
-    )
-}
-
 fn bind_knowledge_from_parts<'a>(
     selected: &KnowledgeSelectedExpectation,
     source_basis: &KnowledgeSourceBasis,
     search_index_profile: &str,
     vocabulary: &'a QueryVocabulary,
     descriptor: tos_foundation::JsonValue,
-) -> Result<BoundCmpKnowledge<'a>, SearchV2Error> {
+) -> Result<BoundCmpKnowledge<'a>, SearchError> {
     source_basis
         .validate()
         .map_err(|_| stale("selected knowledge source basis is invalid"))?;
@@ -462,7 +446,7 @@ fn bind_knowledge_from_parts<'a>(
     })
 }
 
-tos_foundation::impl_owned_state!(crate::search_v2::SearchSelectionBinding {
+tos_foundation::impl_owned_state!(crate::search::SearchSelectionBinding {
     model_abi,
     vocabulary,
     semantic_primitive_profile,
@@ -489,12 +473,12 @@ tos_foundation::impl_owned_state!(crate::search_v2::SearchSelectionBinding {
     complete
 });
 
-tos_foundation::impl_owned_state!(crate::search_v2::QueryVocabularyBinding {
+tos_foundation::impl_owned_state!(crate::search::QueryVocabularyBinding {
     descriptor_sha256,
     descriptor_version
 });
 
-tos_foundation::impl_owned_state!(crate::search_v2::CurrentPolicyBinding {
+tos_foundation::impl_owned_state!(crate::search::CurrentPolicyBinding {
     scope,
     issuer_ref,
     authorization_receipt_id,

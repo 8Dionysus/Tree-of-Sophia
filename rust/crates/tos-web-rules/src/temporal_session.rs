@@ -7,7 +7,7 @@ use tos_foundation::{
 };
 use tos_query::{
     compare_temporal_operands,
-    search_v2::{SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode},
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -50,16 +50,16 @@ pub struct TemporalSession {
     published_output: bool,
 }
 
-fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn error(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
-fn charge(used: &mut usize, amount: usize, maximum: usize) -> Result<(), SearchV2Error> {
+fn charge(used: &mut usize, amount: usize, maximum: usize) -> Result<(), SearchError> {
     *used = used
         .checked_add(amount)
         .filter(|v| *v <= maximum)
         .ok_or_else(|| {
             error(
-                SearchV2ErrorCode::BudgetExceeded,
+                SearchErrorCode::BudgetExceeded,
                 "temporal replay admission exhausted",
             )
         })?;
@@ -80,11 +80,11 @@ impl TemporalSession {
         profile: String,
         raw: &[u8],
         budget: TemporalSessionBudget,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         let request = parse_json(raw, JsonMode::RequestLastWins, budget.json)
             .map_err(|_| {
                 error(
-                    SearchV2ErrorCode::InvalidRequest,
+                    SearchErrorCode::InvalidRequest,
                     "temporal request JSON invalid",
                 )
             })?
@@ -99,7 +99,7 @@ impl TemporalSession {
             .contains(&0)
         {
             return Err(error(
-                SearchV2ErrorCode::Unavailable,
+                SearchErrorCode::Unavailable,
                 "temporal replay admission unavailable",
             ));
         }
@@ -119,10 +119,10 @@ impl TemporalSession {
         })
     }
 
-    pub fn advance(&mut self) -> Result<TemporalSessionStep, SearchV2Error> {
+    pub fn advance(&mut self) -> Result<TemporalSessionStep, SearchError> {
         if self.terminal || self.pending.is_some() {
             return Err(error(
-                SearchV2ErrorCode::NonMonotoneProgress,
+                SearchErrorCode::NonMonotoneProgress,
                 "temporal continuation is not advanceable",
             ));
         }
@@ -133,13 +133,13 @@ impl TemporalSession {
         result
     }
 
-    fn execute(&mut self) -> Result<TemporalSessionStep, SearchV2Error> {
+    fn execute(&mut self) -> Result<TemporalSessionStep, SearchError> {
         // Two operands can each read Claim, temporal value and documentary
         // subject. Seven executions cover six distinct needs and finalization.
         self.executions += 1;
         if self.executions > 7 {
             return Err(error(
-                SearchV2ErrorCode::BudgetExceeded,
+                SearchErrorCode::BudgetExceeded,
                 "temporal replay execution cap",
             ));
         }
@@ -149,7 +149,7 @@ impl TemporalSession {
                 .checked_add(self.source_bytes)
                 .ok_or_else(|| {
                     error(
-                        SearchV2ErrorCode::BudgetExceeded,
+                        SearchErrorCode::BudgetExceeded,
                         "temporal replay byte overflow",
                     )
                 })?,
@@ -181,7 +181,7 @@ impl TemporalSession {
                 }
                 need = Some(id.to_owned());
                 Err(error(
-                    SearchV2ErrorCode::Unavailable,
+                    SearchErrorCode::Unavailable,
                     "temporal exact carrier needed",
                 ))
             },
@@ -190,7 +190,7 @@ impl TemporalSession {
         if let Some(id) = need {
             if self.rows.len() >= 6 {
                 return Err(error(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "temporal exact lookup cap",
                 ));
             }
@@ -210,9 +210,9 @@ impl TemporalSession {
         .map_err(|reason| {
             error(
                 if self.published_output && reason.code != FoundationErrorCode::BudgetExceeded {
-                    SearchV2ErrorCode::CorruptSelectedCarrier
+                    SearchErrorCode::CorruptSelectedCarrier
                 } else {
-                    SearchV2ErrorCode::BudgetExceeded
+                    SearchErrorCode::BudgetExceeded
                 },
                 "temporal packet emission refused",
             )
@@ -230,7 +230,7 @@ impl TemporalSession {
 
     /// None attests exact absence; Some is the full retained published carrier,
     /// never an object reserialized by JS. Only the outstanding need can resume.
-    pub fn provide(&mut self, id: &str, raw: Option<&[u8]>) -> Result<(), SearchV2Error> {
+    pub fn provide(&mut self, id: &str, raw: Option<&[u8]>) -> Result<(), SearchError> {
         let result = self.accept(id, raw);
         if result.is_err() {
             self.terminal = true;
@@ -239,10 +239,10 @@ impl TemporalSession {
         result
     }
 
-    fn accept(&mut self, id: &str, raw: Option<&[u8]>) -> Result<(), SearchV2Error> {
+    fn accept(&mut self, id: &str, raw: Option<&[u8]>) -> Result<(), SearchError> {
         if self.terminal || self.pending.as_deref() != Some(id) || self.rows.contains_key(id) {
             return Err(error(
-                SearchV2ErrorCode::NonMonotoneProgress,
+                SearchErrorCode::NonMonotoneProgress,
                 "temporal carrier response differs from outstanding need",
             ));
         }
@@ -257,7 +257,7 @@ impl TemporalSession {
                 let value = parse_json(raw, JsonMode::PublishedStrict, self.budget.json)
                     .map_err(|_| {
                         error(
-                            SearchV2ErrorCode::CorruptSelectedCarrier,
+                            SearchErrorCode::CorruptSelectedCarrier,
                             "temporal carrier JSON invalid",
                         )
                     })?
@@ -265,7 +265,7 @@ impl TemporalSession {
                     .clone();
                 if value.object_get("id").and_then(JsonValue::as_str) != Some(id) {
                     return Err(error(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "temporal exact carrier identity differs",
                     ));
                 }

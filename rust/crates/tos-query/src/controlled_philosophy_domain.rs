@@ -1,21 +1,21 @@
 //! Maintained Philosophy Status over the authentic cold Original header.
 use crate::controlled_original_reader::{OriginalReadCharges, read_original};
 use crate::controlled_query_adapter::compiler_query_error;
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode};
 use crate::{BoundCmpKnowledge, InspectBudget, InspectCurrentAuthority};
 use tos_compiler::{
     ControlledKnowledgeModel, ControlledOriginalCollection, PhilosophyOriginalCollection,
 };
 use tos_foundation::{JsonString, JsonValue, OwnedState};
-fn budget() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+fn budget() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "controlled philosophy status budget exceeded",
     }
 }
-fn corrupt() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+fn corrupt() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::CorruptSelectedCarrier,
         message: "controlled philosophy status header differs",
     }
 }
@@ -30,8 +30,8 @@ pub fn execute_controlled_philosophy_domain_response<
     caps: InspectBudget,
     request: &crate::philosophy_read::PhilosophyReadRequest,
     render: bool,
-    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
-) -> Result<(), SearchV2Error> {
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchError>,
+) -> Result<(), SearchError> {
     match request {
         crate::philosophy_read::PhilosophyReadRequest::Views => (),
         crate::philosophy_read::PhilosophyReadRequest::View { view_id, limit }
@@ -42,8 +42,8 @@ pub fn execute_controlled_philosophy_domain_response<
             ()
         }
         _ => {
-            return Err(SearchV2Error::new(
-                SearchV2ErrorCode::InvalidRequest,
+            return Err(SearchError::new(
+                SearchErrorCode::InvalidRequest,
                 "controlled Philosophy domain request unavailable",
             ));
         }
@@ -54,7 +54,7 @@ pub fn execute_controlled_philosophy_domain_response<
         .map_err(compiler_query_error)?;
     let forecast = authority.disclosure_metadata_state_upper_bound()?;
     let frame = std::mem::size_of_val(&deliver)
-        .checked_add(std::mem::size_of::<crate::search_v2::CurrentPolicyBinding>())
+        .checked_add(std::mem::size_of::<crate::search::CurrentPolicyBinding>())
         .and_then(|n| n.checked_add(std::mem::size_of::<crate::IndexedDisclosureScope>()))
         .and_then(|n| n.checked_add(std::mem::size_of::<OriginalReadCharges>()))
         .ok_or_else(budget)?;
@@ -117,7 +117,7 @@ pub fn execute_controlled_philosophy_domain_response<
                         return Err(corrupt());
                     }
                     let mut read_rows =
-                        |collection, count: u64| -> Result<Vec<JsonValue>, SearchV2Error> {
+                        |collection, count: u64| -> Result<Vec<JsonValue>, SearchError> {
                             let mut output = Vec::new();
                             let mut after = -1;
                             for expected in 0..count {

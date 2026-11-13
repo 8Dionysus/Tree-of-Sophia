@@ -3,10 +3,10 @@
 //! and the existing semantic kernels retain their respective authority.
 use crate::compressed_search_sqlite::Read;
 use crate::prepared_inspect::{budget, codec, corrupt, lookup, storage_error};
-use crate::search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode, SearchKind};
 use tos_compiler::local_prepared::PreparedReadTransaction;
 use tos_foundation::{JsonValue, emit_python_compact_json};
-type Result<T> = std::result::Result<T, SearchV2Error>;
+type Result<T> = std::result::Result<T, SearchError>;
 
 fn admit_request(request: &JsonValue, read: &Read<'_>) -> Result<()> {
     emit_python_compact_json(request, codec(65_536.min(read.limits.max_row_bytes)))
@@ -73,8 +73,8 @@ pub(crate) fn stored_spec(catalog: &JsonValue, identifier: &str) -> Result<JsonV
     // An admitted <=128-codepoint valid UTF8 identifier can never exceed512B.
     // Avoid constructing an unbounded JsonString before the maintained parser.
     if identifier.len() > 512 {
-        return Err(SearchV2Error {
-            code: SearchV2ErrorCode::InvalidRequest,
+        return Err(SearchError {
+            code: SearchErrorCode::InvalidRequest,
             message: "invalid stored lens identifier",
         });
     }

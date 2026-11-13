@@ -66,7 +66,7 @@ pub(super) fn search<'a>(
     query: &str,
     limit: usize,
     w: &mut Work<'_>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let needle = crate::source_value_search::normalize_query(query, &mut |steps| {
         for _ in 0..steps {
             w.step()?;
@@ -158,7 +158,7 @@ fn scale_rows<'a>(
     view_id: Option<&str>,
     layers: &BTreeSet<String>,
     w: &mut Work<'_>,
-) -> Result<Vec<JsonValue>, SearchV2Error> {
+) -> Result<Vec<JsonValue>, SearchError> {
     let (nodes, edges, clusters) = if let Some(id) = view_id.filter(|id| !id.is_empty()) {
         let view = graph.view(id)?;
         let (nodes, edges) = graph.view_rows(view, base_nodes, base_edges);
@@ -261,7 +261,7 @@ pub(super) fn scale<'a>(
     layers: &[String],
     page: Option<(usize, usize)>,
     w: &mut Work<'_>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let layers = layers.iter().cloned().collect::<BTreeSet<_>>();
     if let Some(table) = table {
         let rows = scale_rows(graph, base_nodes, base_edges, table, view_id, &layers, w)?;

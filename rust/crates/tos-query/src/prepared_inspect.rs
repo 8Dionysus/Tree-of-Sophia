@@ -2,35 +2,35 @@
 //! The caller owns the retained transaction, cumulative meter and disclosure.
 use crate::compressed_search_sqlite::Read;
 use crate::compressed_search_state::{CompressedSearchError, CompressedSearchErrorCode};
-use crate::search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode, SearchKind};
 use crate::{InspectBudget, InspectNeed, InspectPlan, InspectRequest};
 use tos_compiler::local_prepared::PreparedReadTransaction;
 use tos_foundation::{
     Digest256, JsonLimits, JsonMode, JsonValue, emit_python_compact_json, parse_json,
 };
 
-type Result<T> = std::result::Result<T, SearchV2Error>;
-pub(crate) fn corrupt() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+type Result<T> = std::result::Result<T, SearchError>;
+pub(crate) fn corrupt() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::CorruptSelectedCarrier,
         message: "prepared inspect carrier closure invalid",
     }
 }
-pub(crate) fn budget() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+pub(crate) fn budget() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "prepared inspect budget exceeded",
     }
 }
-pub(crate) fn storage_error(error: CompressedSearchError) -> SearchV2Error {
-    SearchV2Error {
+pub(crate) fn storage_error(error: CompressedSearchError) -> SearchError {
+    SearchError {
         code: match error.code {
-            CompressedSearchErrorCode::Cancelled => SearchV2ErrorCode::Cancelled,
-            CompressedSearchErrorCode::DeadlineExceeded => SearchV2ErrorCode::DeadlineExceeded,
-            CompressedSearchErrorCode::BudgetExceeded => SearchV2ErrorCode::BudgetExceeded,
-            CompressedSearchErrorCode::StaleBinding => SearchV2ErrorCode::StaleSelection,
-            CompressedSearchErrorCode::InvalidRequest => SearchV2ErrorCode::InvalidRequest,
-            _ => SearchV2ErrorCode::CorruptSelectedCarrier,
+            CompressedSearchErrorCode::Cancelled => SearchErrorCode::Cancelled,
+            CompressedSearchErrorCode::DeadlineExceeded => SearchErrorCode::DeadlineExceeded,
+            CompressedSearchErrorCode::BudgetExceeded => SearchErrorCode::BudgetExceeded,
+            CompressedSearchErrorCode::StaleBinding => SearchErrorCode::StaleSelection,
+            CompressedSearchErrorCode::InvalidRequest => SearchErrorCode::InvalidRequest,
+            _ => SearchErrorCode::CorruptSelectedCarrier,
         },
         message: "prepared inspect read refused",
     }

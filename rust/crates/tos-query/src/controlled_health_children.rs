@@ -3,22 +3,22 @@ use crate::controlled_original_reader::{OriginalReadCharges, read_original};
 use crate::controlled_query_adapter::{
     compiler_query_error, execute_controlled_catalog_payload_response,
 };
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode};
 use crate::{BoundCmpKnowledge, InspectBudget, InspectCurrentAuthority};
 use tos_compiler::{
     ControlledKnowledgeModel, ControlledOriginalCollection, CorpusOriginalCollection,
     PhilosophyOriginalCollection,
 };
 use tos_foundation::{JsonValue, OwnedState};
-fn budget() -> SearchV2Error {
-    SearchV2Error::new(
-        SearchV2ErrorCode::BudgetExceeded,
+fn budget() -> SearchError {
+    SearchError::new(
+        SearchErrorCode::BudgetExceeded,
         "controlled health child budget exceeded",
     )
 }
-fn corrupt() -> SearchV2Error {
-    SearchV2Error::new(
-        SearchV2ErrorCode::CorruptSelectedCarrier,
+fn corrupt() -> SearchError {
+    SearchError::new(
+        SearchErrorCode::CorruptSelectedCarrier,
         "controlled health Original binding differs",
     )
 }
@@ -38,8 +38,8 @@ pub fn execute_controlled_health_seed_response<
     authority: &mut A,
     caps: InspectBudget,
     seed: ControlledHealthSeed,
-    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
-) -> Result<(), SearchV2Error> {
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchError>,
+) -> Result<(), SearchError> {
     bound.check_controlled_model(model)?;
     model
         .check_query_open_vm_admission(caps.max_open_vm_steps)

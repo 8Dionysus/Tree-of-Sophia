@@ -1,7 +1,7 @@
 //! Source-declared temporal envelopes only: no calendar conversion, inferred
 //! Claims, prose parsing, relative-anchor inference or historical assessment.
 use crate::{
-    search_v2::{SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode},
     source_read_projection::{object, text},
 };
 use std::collections::BTreeSet;
@@ -11,12 +11,12 @@ use tos_foundation::{
 };
 pub const TEMPORAL_OPERATION: &str = "tos.knowledge.temporal.compare";
 pub const TEMPORAL_INTENDED_USE: &str = "read_only_public_knowledge_temporal_compare_v1";
-fn err(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn err(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
-fn corrupt() -> SearchV2Error {
+fn corrupt() -> SearchError {
     err(
-        SearchV2ErrorCode::CorruptSelectedCarrier,
+        SearchErrorCode::CorruptSelectedCarrier,
         "temporal operand carrier invalid",
     )
 }
@@ -92,7 +92,7 @@ fn same_json(left: &JsonValue, right: &JsonValue) -> bool {
         _ => left == right,
     }
 }
-fn containers(value: &JsonValue) -> Result<(), SearchV2Error> {
+fn containers(value: &JsonValue) -> Result<(), SearchError> {
     if ["attributes", "semantics", "type_mapping"]
         .iter()
         .any(|k| field(value, k).as_object().is_none())
@@ -115,10 +115,10 @@ fn unique_issues(values: Vec<String>) -> Vec<String> {
         .filter(|value| seen.insert(value.clone()))
         .collect()
 }
-fn canonical(value: &JsonValue, limits: JsonLimits) -> Result<Vec<u8>, SearchV2Error> {
+fn canonical(value: &JsonValue, limits: JsonLimits) -> Result<Vec<u8>, SearchError> {
     canonical_bytes_v1(value, CanonicalProfile::SourceRecordDigestV1, limits).map_err(|_| corrupt())
 }
-fn sha(value: &JsonValue, limits: JsonLimits) -> Result<String, SearchV2Error> {
+fn sha(value: &JsonValue, limits: JsonLimits) -> Result<String, SearchError> {
     Ok(Digest256::of_bytes(&canonical(value, limits)?).to_hex())
 }
 struct Operand {
@@ -152,9 +152,9 @@ fn documentary<L>(
     source_graph: &str,
     lookup: &mut L,
     limits: JsonLimits,
-) -> Result<Option<&'static str>, SearchV2Error>
+) -> Result<Option<&'static str>, SearchError>
 where
-    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchV2Error>,
+    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchError>,
 {
     let profile = field(semantics, "source_claim_profile");
     let raw = field(source, "object");
@@ -238,21 +238,21 @@ fn operand<L>(
     source_graph: &str,
     lookup: &mut L,
     limits: JsonLimits,
-) -> Result<Operand, SearchV2Error>
+) -> Result<Operand, SearchError>
 where
-    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchV2Error>,
+    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchError>,
 {
     let claims = lookup(get(reference, "node_id").ok_or_else(corrupt)?)?;
     if claims.len() != 1 {
         return Err(err(
-            SearchV2ErrorCode::UnknownIdentifier,
+            SearchErrorCode::UnknownIdentifier,
             "expected one exact temporal Claim",
         ));
     }
     let claim = claims[0].clone();
     if field(&claim, "content_revision") != field(reference, "content_revision") {
         return Err(err(
-            SearchV2ErrorCode::StaleSelection,
+            SearchErrorCode::StaleSelection,
             "selected Claim content changed",
         ));
     }
@@ -475,13 +475,13 @@ pub(crate) fn project_temporal_claims<L>(
     mut lookup: L,
     limits: JsonLimits,
     max_members: usize,
-) -> Result<JsonValue, SearchV2Error>
+) -> Result<JsonValue, SearchError>
 where
-    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchV2Error>,
+    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchError>,
 {
     let invalid = || {
         err(
-            SearchV2ErrorCode::InvalidRequest,
+            SearchErrorCode::InvalidRequest,
             "invalid Claim projection request",
         )
     };
@@ -497,7 +497,7 @@ where
     }
     if members.len() > max_members {
         return Err(err(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "Claim projection member budget",
         ));
     }
@@ -546,7 +546,7 @@ where
     }
     if get(request, "source_revision") != Some(revision) {
         return Err(err(
-            SearchV2ErrorCode::StaleSelection,
+            SearchErrorCode::StaleSelection,
             "Claim projection source revision changed",
         ));
     }
@@ -590,7 +590,7 @@ where
 
 /// Maintained request validation before any carrier I/O. Revision equality
 /// remains a selected snapshot check in the comparator.
-pub fn validate_temporal_request(request: &JsonValue) -> Result<(), SearchV2Error> {
+pub fn validate_temporal_request(request: &JsonValue) -> Result<(), SearchError> {
     if !request.as_object().is_some_and(|fields| fields.len() == 4)
         || !["schema_version", "source_revision", "left", "right"]
             .iter()
@@ -599,7 +599,7 @@ pub fn validate_temporal_request(request: &JsonValue) -> Result<(), SearchV2Erro
         || !get(request, "source_revision").is_some_and(bare)
     {
         return Err(err(
-            SearchV2ErrorCode::InvalidRequest,
+            SearchErrorCode::InvalidRequest,
             "invalid temporal request",
         ));
     }
@@ -622,7 +622,7 @@ pub fn validate_temporal_request(request: &JsonValue) -> Result<(), SearchV2Erro
             || !get(reference, "content_revision").is_some_and(bare)
         {
             return Err(err(
-                SearchV2ErrorCode::InvalidRequest,
+                SearchErrorCode::InvalidRequest,
                 "invalid temporal operand reference",
             ));
         }
@@ -638,14 +638,14 @@ pub fn compare_temporal_operands<L>(
     claim_source_graph: &str,
     mut lookup: L,
     limits: JsonLimits,
-) -> Result<JsonValue, SearchV2Error>
+) -> Result<JsonValue, SearchError>
 where
-    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchV2Error>,
+    L: FnMut(&str) -> Result<Vec<JsonValue>, SearchError>,
 {
     validate_temporal_request(request)?;
     if get(request, "source_revision") != Some(revision) {
         return Err(err(
-            SearchV2ErrorCode::StaleSelection,
+            SearchErrorCode::StaleSelection,
             "temporal source revision changed",
         ));
     }
@@ -797,9 +797,9 @@ pub(crate) struct ClaimListRequest {
     pub after: Option<(String, i64)>,
     pub query_digest: String,
 }
-fn list_invalid() -> SearchV2Error {
+fn list_invalid() -> SearchError {
     err(
-        SearchV2ErrorCode::InvalidRequest,
+        SearchErrorCode::InvalidRequest,
         "invalid Claim list request or cursor",
     )
 }
@@ -810,7 +810,7 @@ pub(crate) fn parse_claim_list_request(
     max_rows: u64,
     limits: JsonLimits,
     temporal_budget: tos_foundation::temporal::TemporalBudget,
-) -> Result<ClaimListRequest, SearchV2Error> {
+) -> Result<ClaimListRequest, SearchError> {
     if !request.as_object().is_some_and(|o| o.len() == 6)
         || get(request, "schema_version") != Some("tos_claim_list_request_v1")
         || ![
@@ -828,7 +828,7 @@ pub(crate) fn parse_claim_list_request(
     }
     if get(request, "source_revision") != Some(binding.revision) {
         return Err(err(
-            SearchV2ErrorCode::StaleSelection,
+            SearchErrorCode::StaleSelection,
             "Claim list source revision changed",
         ));
     }
@@ -849,7 +849,7 @@ pub(crate) fn parse_claim_list_request(
                 | "source_publication_as_of"
         ) {
             return Err(err(
-                SearchV2ErrorCode::UnsupportedModel,
+                SearchErrorCode::UnsupportedModel,
                 "Claim list temporal or frozen source binding unavailable",
             ));
         }
@@ -873,7 +873,7 @@ pub(crate) fn parse_claim_list_request(
     // Each examined candidate costs one keyset row and one authenticated payload row.
     if page_size > max_matches || scan_limit > usize::try_from(max_rows / 2).unwrap_or(usize::MAX) {
         return Err(err(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "Claim list page or scan budget",
         ));
     }
@@ -903,14 +903,14 @@ pub(crate) fn parse_claim_list_request(
         ] {
             if get(cursor, key) != Some(expected) {
                 return Err(err(
-                    SearchV2ErrorCode::StaleSelection,
+                    SearchErrorCode::StaleSelection,
                     "Claim list cursor selection changed",
                 ));
             }
         }
         if get(cursor, "policy_sha256") != Some(binding.policy_digest) {
             return Err(err(
-                SearchV2ErrorCode::StalePolicy,
+                SearchErrorCode::StalePolicy,
                 "Claim list cursor policy changed",
             ));
         }
@@ -959,7 +959,7 @@ pub(crate) fn selected_claim_list_row(
     source_graph: &str,
     filter: &JsonValue,
     limits: JsonLimits,
-) -> Result<Option<JsonValue>, SearchV2Error> {
+) -> Result<Option<JsonValue>, SearchError> {
     if get(carrier, "id") != Some(id)
         || get(carrier, "source_graph") != Some(source_graph)
         || get(carrier, "kind_id").is_none()
@@ -1036,19 +1036,17 @@ pub(crate) fn selected_claim_list_row(
 
 pub(crate) fn claim_list_temporal_error(
     reason: tos_foundation::temporal::TemporalError,
-) -> SearchV2Error {
+) -> SearchError {
     use tos_foundation::temporal::TemporalError;
     match reason {
-        TemporalError::MalformedRequest(message) => err(SearchV2ErrorCode::InvalidRequest, message),
-        TemporalError::ResourceExhausted(message) => {
-            err(SearchV2ErrorCode::BudgetExceeded, message)
-        }
+        TemporalError::MalformedRequest(message) => err(SearchErrorCode::InvalidRequest, message),
+        TemporalError::ResourceExhausted(message) => err(SearchErrorCode::BudgetExceeded, message),
     }
 }
 fn list_exact_reference(
     value: &JsonValue,
     prefixed: bool,
-) -> Result<tos_foundation::ExactRecordRef, SearchV2Error> {
+) -> Result<tos_foundation::ExactRecordRef, SearchError> {
     let digest = get(value, "digest").ok_or_else(corrupt)?;
     Ok(tos_foundation::ExactRecordRef {
         id: tos_foundation::StableId::parse(get(value, "id").ok_or_else(corrupt)?)
@@ -1070,7 +1068,7 @@ pub(crate) fn evaluate_selected_claim_list_temporal(
     filter: &JsonValue,
     source_revision: tos_foundation::SourceRevision,
     budget: tos_foundation::temporal::TemporalBudget,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     use tos_foundation::temporal::{
         ClaimCarrierError, decode_claim_carrier, evaluate_claim_coordinate_filter,
     };
@@ -1088,7 +1086,7 @@ pub(crate) fn evaluate_selected_claim_list_temporal(
                 ClaimCarrierError::Unsupported(reason) => ("Unsupported", reason),
                 ClaimCarrierError::ResourceLimit => {
                     return Err(err(
-                        SearchV2ErrorCode::BudgetExceeded,
+                        SearchErrorCode::BudgetExceeded,
                         "Claim list source temporal carrier budget",
                     ));
                 }
@@ -1453,7 +1451,7 @@ mod tests {
             )
             .unwrap_err()
             .code,
-            SearchV2ErrorCode::UnknownIdentifier,
+            SearchErrorCode::UnknownIdentifier,
         );
         let stale = request_with_revision(CONTENT, "claim-left", "claim-right");
         assert_eq!(
@@ -1466,7 +1464,7 @@ mod tests {
             )
             .unwrap_err()
             .code,
-            SearchV2ErrorCode::StaleSelection,
+            SearchErrorCode::StaleSelection,
         );
     }
 
@@ -1493,7 +1491,7 @@ mod tests {
         ]);
         assert_eq!(
             validate_temporal_request(&malformed).unwrap_err().code,
-            SearchV2ErrorCode::InvalidRequest
+            SearchErrorCode::InvalidRequest
         );
 
         let (claim, _) = fixture("left", 1, 2);

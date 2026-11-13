@@ -84,7 +84,6 @@ const PAGE_COMMANDS: &[&str] = &[
 const ACCESS_SCHEMAS: &[&str] = &[
     "access/contracts/deployment-profile.v1.schema.json",
     "access/contracts/knowledge-graph.v1.schema.json",
-    "access/contracts/knowledge-search-indexed.v2.schema.json",
     "access/contracts/lens-spec.v1.schema.json",
     "access/contracts/lens-result.v1.schema.json",
     "access/contracts/temporal-comparison-request.v1.schema.json",
@@ -98,7 +97,6 @@ const ACCESS_SCHEMAS: &[&str] = &[
 const ALL_PROGRAM_SCHEMAS: &[&str] = &[
     "access/contracts/deployment-profile.v1.schema.json",
     "access/contracts/knowledge-graph.v1.schema.json",
-    "access/contracts/knowledge-search-indexed.v2.schema.json",
     "access/contracts/lens-spec.v1.schema.json",
     "access/contracts/lens-result.v1.schema.json",
     "access/contracts/temporal-comparison-request.v1.schema.json",

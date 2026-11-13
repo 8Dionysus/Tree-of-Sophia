@@ -25,9 +25,9 @@ own package.
 
 ## Indexed search V2
 
-`tos-query/src/search_v2.rs` defines typed requests, vocabulary and cursor behavior; the indexed executor and `indexed_cursor.rs` remain in the native source but native CLI, HTTP and MCP no longer dispatch them. The Worker calls `knowledgeSearchD1Indexed`. Prepared/D1 publishers supply indexed data. Three tracked JSON contract files mention `tos_knowledge_search_indexed_v2`. Inspect deployed capabilities, D1 and local publications, clients and unexpired cursors.
-
-**Removal condition:** A selected API implements accepted indexed semantics and rights, all clients and publications switch, and old cursor lifetimes expire or are migrated with tested continuation and rollback. **Package:** Offline export and consumer cutover; retain reusable V2 semantics in the chosen owner.
+The native indexed search V2 is retired. The intended preservation tag is
+[`retired/indexed-search-v2`](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/indexed-search-v2); the landing owner must establish and verify that
+tag and its data archive. The separate Worker/D1 retirement has its own package.
 
 ## Compressed search V3
 

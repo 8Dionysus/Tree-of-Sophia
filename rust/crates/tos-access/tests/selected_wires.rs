@@ -52,7 +52,7 @@ mod selected_knowledge {
     use tos_query::knowledge_exploration::{
         ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints,
     };
-    use tos_query::search_v2::SearchV2Error;
+    use tos_query::search::SearchError;
     use tos_query::{BoundCmpKnowledge, CatalogBudget, InspectBudget, bind_verified_knowledge};
     struct Executor {
         fixture: FullKnowledgeFixture,
@@ -521,8 +521,8 @@ mod selected_knowledge {
             .unwrap();
         assert!(matches!(
             store.load(cursor, revision),
-            Err(SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+            Err(SearchError {
+                code: tos_query::search::SearchErrorCode::Unavailable,
                 ..
             })
         ));
@@ -542,8 +542,8 @@ mod selected_knowledge {
                     &packet,
                     budgets().exploration
                 ),
-                Err(SearchV2Error {
-                    code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+                Err(SearchError {
+                    code: tos_query::search::SearchErrorCode::Unavailable,
                     ..
                 })
             ));
@@ -559,8 +559,8 @@ mod selected_knowledge {
             .unwrap();
         assert!(matches!(
             oversized.stage_response(b"{}"),
-            Err(SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded,
+            Err(SearchError {
+                code: tos_query::search::SearchErrorCode::BudgetExceeded,
                 ..
             })
         ));
@@ -574,8 +574,8 @@ mod selected_knowledge {
         small.max_checkpoint_bytes = 1;
         assert!(matches!(
             store.prepare(Some(cursor), revision, Some(&state), &first, small),
-            Err(SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded,
+            Err(SearchError {
+                code: tos_query::search::SearchErrorCode::BudgetExceeded,
                 ..
             })
         ));
@@ -585,15 +585,15 @@ mod selected_knowledge {
         ));
         assert!(matches!(
             store.load(cursor, "changed-selection"),
-            Err(SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::StaleContinuation,
+            Err(SearchError {
+                code: tos_query::search::SearchErrorCode::StaleContinuation,
                 ..
             })
         ));
         assert!(matches!(
             store.load("unknown-cursor", revision),
-            Err(SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::CursorExpired,
+            Err(SearchError {
+                code: tos_query::search::SearchErrorCode::CursorExpired,
                 ..
             })
         ));

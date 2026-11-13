@@ -8,7 +8,7 @@
 //! re-emitting JSON here would change lexical numeric sizes. Logical row/value
 //! work is bounded separately from the native VM or published D1 accounting.
 use crate::{
-    search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode, SearchKind},
     source_read_projection::{object, source_read_targets, text},
 };
 use std::collections::BTreeSet;
@@ -40,17 +40,17 @@ pub trait AbortProbe: Send + Sync {
     fn reason(&self) -> Option<AbortReason>;
 }
 
-fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn error(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
-fn corrupt() -> SearchV2Error {
+fn corrupt() -> SearchError {
     error(
-        SearchV2ErrorCode::CorruptSelectedCarrier,
+        SearchErrorCode::CorruptSelectedCarrier,
         "inspect producer closure invalid",
     )
 }
-fn budget_error() -> SearchV2Error {
-    error(SearchV2ErrorCode::BudgetExceeded, "inspect budget exceeded")
+fn budget_error() -> SearchError {
+    error(SearchErrorCode::BudgetExceeded, "inspect budget exceeded")
 }
 // Optional caller-owned fault slot; no plan fields or owned diagnostic buffers.
 pub(crate) type InspectBudgetFault = (&'static str, [Option<u64>; 4]);
@@ -58,19 +58,17 @@ fn observed_budget(
     fault: &mut Option<InspectBudgetFault>,
     site: &'static str,
     counts: [Option<u64>; 4],
-) -> SearchV2Error {
+) -> SearchError {
     if fault.is_none() {
         *fault = Some((site, counts));
     }
     budget_error()
 }
-fn check(probe: Option<&dyn AbortProbe>) -> Result<(), SearchV2Error> {
+fn check(probe: Option<&dyn AbortProbe>) -> Result<(), SearchError> {
     match probe.and_then(AbortProbe::reason) {
-        Some(AbortReason::Cancelled) => {
-            Err(error(SearchV2ErrorCode::Cancelled, "inspect cancelled"))
-        }
+        Some(AbortReason::Cancelled) => Err(error(SearchErrorCode::Cancelled, "inspect cancelled")),
         Some(AbortReason::DeadlineExceeded) => Err(error(
-            SearchV2ErrorCode::DeadlineExceeded,
+            SearchErrorCode::DeadlineExceeded,
             "inspect deadline exceeded",
         )),
         None => Ok(()),
@@ -94,7 +92,7 @@ impl InspectRequest {
         identifier: &str,
         relation_limit: usize,
         budget: InspectBudget,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         Self::new_observed(kind, identifier, relation_limit, budget, &mut None)
     }
     pub(crate) fn new_observed(
@@ -103,7 +101,7 @@ impl InspectRequest {
         relation_limit: usize,
         budget: InspectBudget,
         fault: &mut Option<InspectBudgetFault>,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         if identifier.len() as u64 > budget.max_decoded_bytes {
             return Err(observed_budget(
                 fault,
@@ -119,7 +117,7 @@ impl InspectRequest {
         let input_cap = usize::try_from(budget.max_decoded_bytes).unwrap_or(usize::MAX);
         let identifier = python_strip_unicode16_v1(identifier, input_cap).map_err(|_| {
             error(
-                SearchV2ErrorCode::InvalidRequest,
+                SearchErrorCode::InvalidRequest,
                 "inspect identifier exceeds character cap",
             )
         })?;
@@ -129,7 +127,7 @@ impl InspectRequest {
             || relation_limit > 1000
         {
             return Err(error(
-                SearchV2ErrorCode::InvalidRequest,
+                SearchErrorCode::InvalidRequest,
                 "invalid inspect identifier or relation limit",
             ));
         }
@@ -139,8 +137,8 @@ impl InspectRequest {
             relation_limit,
         })
     }
-    pub fn from_json(value: &JsonValue, budget: InspectBudget) -> Result<Self, SearchV2Error> {
-        let invalid = || error(SearchV2ErrorCode::InvalidRequest, "invalid inspect request");
+    pub fn from_json(value: &JsonValue, budget: InspectBudget) -> Result<Self, SearchError> {
+        let invalid = || error(SearchErrorCode::InvalidRequest, "invalid inspect request");
         let kind = match value.object_get("kind").and_then(JsonValue::as_str) {
             Some("node") => SearchKind::Nodes,
             Some("relation") => SearchKind::Relations,
@@ -193,7 +191,7 @@ impl InspectRequest {
 pub fn validate_inspect_request(
     value: &JsonValue,
     budget: InspectBudget,
-) -> Result<(), SearchV2Error> {
+) -> Result<(), SearchError> {
     InspectRequest::from_json(value, budget).map(|_| ())
 }
 #[derive(Clone, Debug)]
@@ -240,7 +238,7 @@ impl InspectPlan {
         revision: String,
         authority_boundary: JsonValue,
         budget: InspectBudget,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         Self::with_identity(
             request,
             InspectIdentity::Cut(revision),
@@ -254,7 +252,7 @@ impl InspectPlan {
         authority_boundary: JsonValue,
         budget: InspectBudget,
         fault: &mut Option<InspectBudgetFault>,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         Self::with_identity_observed(
             request,
             InspectIdentity::Cut(revision),
@@ -274,19 +272,19 @@ impl InspectPlan {
         bound: &crate::knowledge_binding::BoundCmpKnowledge<'_>,
         budget: InspectBudget,
         decoded: &mut u64,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         if header.object_get("schema").and_then(JsonValue::as_str)
             != Some(tos_compiler::managed_source::MANAGED_GRAPH_SCHEMA)
             || header.object_get("source_revision").is_some()
         {
             return Err(error(
-                SearchV2ErrorCode::CorruptSelectedCarrier,
+                SearchErrorCode::CorruptSelectedCarrier,
                 "managed inspect graph identity invalid",
             ));
         }
         let JsonValue::Object(mut fields) = header else {
             return Err(error(
-                SearchV2ErrorCode::CorruptSelectedCarrier,
+                SearchErrorCode::CorruptSelectedCarrier,
                 "managed inspect graph header invalid",
             ));
         };
@@ -295,7 +293,7 @@ impl InspectPlan {
             .position(|(key, _)| key.as_str() == Some("source_basis"))
             .ok_or_else(|| {
                 error(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "managed inspect basis absent",
                 )
             })?;
@@ -313,9 +311,9 @@ impl InspectPlan {
         .map_err(|reason| {
             error(
                 if reason.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-                    SearchV2ErrorCode::BudgetExceeded
+                    SearchErrorCode::BudgetExceeded
                 } else {
-                    SearchV2ErrorCode::CorruptSelectedCarrier
+                    SearchErrorCode::CorruptSelectedCarrier
                 },
                 "managed inspect basis cannot be admitted",
             )
@@ -333,7 +331,7 @@ impl InspectPlan {
             .position(|(key, _)| key.as_str() == Some("authority_boundary"))
             .ok_or_else(|| {
                 error(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "managed inspect authority boundary absent",
                 )
             })?;
@@ -350,7 +348,7 @@ impl InspectPlan {
         identity: InspectIdentity,
         authority_boundary: JsonValue,
         budget: InspectBudget,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         Self::with_identity_observed(request, identity, authority_boundary, budget, &mut None)
     }
     fn with_identity_observed(
@@ -359,7 +357,7 @@ impl InspectPlan {
         authority_boundary: JsonValue,
         budget: InspectBudget,
         fault: &mut Option<InspectBudgetFault>,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         if budget.max_matches == 0
             || budget.max_rows == 0
             || budget.max_read_vm_steps == 0
@@ -406,7 +404,7 @@ impl InspectPlan {
         bytes: u64,
         probe: Option<&dyn AbortProbe>,
         fault: &mut Option<InspectBudgetFault>,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         check(probe)?;
         self.rows = self
             .rows
@@ -459,7 +457,7 @@ impl InspectPlan {
         }
         Ok(())
     }
-    fn ids(values: &[JsonValue]) -> Result<Vec<String>, SearchV2Error> {
+    fn ids(values: &[JsonValue]) -> Result<Vec<String>, SearchError> {
         let mut seen = BTreeSet::new();
         values
             .iter()
@@ -481,7 +479,7 @@ impl InspectPlan {
         rows: Vec<JsonValue>,
         decoded_bytes: u64,
         probe: Option<&dyn AbortProbe>,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.resume_lookup_observed(rows, decoded_bytes, probe, &mut None)
     }
     pub(crate) fn resume_lookup_observed(
@@ -490,7 +488,7 @@ impl InspectPlan {
         decoded_bytes: u64,
         probe: Option<&dyn AbortProbe>,
         fault: &mut Option<InspectBudgetFault>,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         let Some(InspectNeed::Lookup {
             kind,
             selector,
@@ -529,7 +527,7 @@ impl InspectPlan {
                 "id" | "entity_id" => "native_id",
                 _ => {
                     return Err(error(
-                        SearchV2ErrorCode::UnknownIdentifier,
+                        SearchErrorCode::UnknownIdentifier,
                         "unknown ToS knowledge identifier",
                     ));
                 }
@@ -574,7 +572,7 @@ impl InspectPlan {
         rows: Vec<JsonValue>,
         decoded_bytes: u64,
         probe: Option<&dyn AbortProbe>,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.resume_incident_observed(total, rows, decoded_bytes, probe, &mut None)
     }
     pub(crate) fn resume_incident_observed(
@@ -584,7 +582,7 @@ impl InspectPlan {
         decoded_bytes: u64,
         probe: Option<&dyn AbortProbe>,
         fault: &mut Option<InspectBudgetFault>,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         let Some(InspectNeed::NodeIncident {
             ids,
             relation_limit,
@@ -619,7 +617,7 @@ impl InspectPlan {
         rows: Vec<JsonValue>,
         decoded_bytes: u64,
         probe: Option<&dyn AbortProbe>,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.resume_endpoints_observed(rows, decoded_bytes, probe, &mut None)
     }
     pub(crate) fn resume_endpoints_observed(
@@ -628,7 +626,7 @@ impl InspectPlan {
         decoded_bytes: u64,
         probe: Option<&dyn AbortProbe>,
         fault: &mut Option<InspectBudgetFault>,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         let Some(InspectNeed::RelationEndpoints { ids }) = &self.need else {
             return Err(corrupt());
         };
@@ -641,7 +639,7 @@ impl InspectPlan {
         self.need = None;
         Ok(())
     }
-    pub fn into_packet(self) -> Result<JsonValue, SearchV2Error> {
+    pub fn into_packet(self) -> Result<JsonValue, SearchError> {
         let limits = self.budget.json;
         self.into_packet_with_targets(|items, identity, managed| {
             if managed {
@@ -657,8 +655,8 @@ impl InspectPlan {
     }
     pub(crate) fn into_packet_with_targets(
         self,
-        targets: impl FnOnce(&[JsonValue], &str, bool) -> Result<JsonValue, SearchV2Error>,
-    ) -> Result<JsonValue, SearchV2Error> {
+        targets: impl FnOnce(&[JsonValue], &str, bool) -> Result<JsonValue, SearchError>,
+    ) -> Result<JsonValue, SearchError> {
         if self.need.is_some() {
             return Err(corrupt());
         }

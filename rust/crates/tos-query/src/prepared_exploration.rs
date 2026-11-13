@@ -13,11 +13,11 @@ use crate::{
         PreparedExplorationCheckpoint,
     },
     prepared_inspect::{budget, codec, corrupt, storage_error},
-    search_v2::{SearchKind, SearchV2Error},
+    search::{SearchError, SearchKind},
 };
 use tos_compiler::local_prepared::PreparedReadTransaction;
 use tos_foundation::{Digest256, JsonValue, emit_python_compact_json};
-type Result<T> = std::result::Result<T, SearchV2Error>;
+type Result<T> = std::result::Result<T, SearchError>;
 
 /// The host must stage the exact encoded response before disclosure and commit
 /// this preparation only after its final source/currentness check. Dropping an

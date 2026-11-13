@@ -3,10 +3,10 @@
 use crate::compressed_search_sqlite::Read;
 use crate::exploration_plan::{ExplorationNeed, ExplorationReply};
 use crate::prepared_inspect::{budget, codec, corrupt, full_row_with_size, storage_error, table};
-use crate::search_v2::{SearchKind, SearchV2Error};
+use crate::search::{SearchError, SearchKind};
 use rusqlite::{ToSql, types::Value};
 use tos_foundation::{JsonValue, emit_python_compact_json};
-type Result<T> = std::result::Result<T, SearchV2Error>;
+type Result<T> = std::result::Result<T, SearchError>;
 
 fn strings(values: &[String], cap: usize) -> Result<String> {
     let value = JsonValue::Array(

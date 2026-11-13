@@ -1,7 +1,7 @@
 //! Normalization and exact native LensSpec predicates. Registry semantics are
 //! supplied by the selected authored vocabulary, never by request metadata.
 use crate::{
-    search_v2::{SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode},
     source_read_projection::{object, text},
 };
 use std::{cmp::Ordering, collections::BTreeMap};
@@ -22,10 +22,10 @@ impl LensVocabulary {
     pub(crate) fn from_selected(
         bound: &crate::knowledge_binding::BoundCmpKnowledge<'_>,
         header: &JsonValue,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         Self::from_descriptor(bound.descriptor(), header)
     }
-    pub fn from_descriptor(d: &JsonValue, header: &JsonValue) -> Result<Self, SearchV2Error> {
+    pub fn from_descriptor(d: &JsonValue, header: &JsonValue) -> Result<Self, SearchError> {
         let sources = array(get(d, "sources"));
         let mut names = vec![];
         let mut priorities = BTreeMap::new();
@@ -79,7 +79,7 @@ impl LensVocabulary {
     /// The maintained published-v7 software law. The caller supplies property
     /// definitions from checksum-verified publication metadata, never from a
     /// request. This profile does not imply native descriptor admission.
-    pub fn from_published_metadata(metadata: &JsonValue) -> Result<Self, SearchV2Error> {
+    pub fn from_published_metadata(metadata: &JsonValue) -> Result<Self, SearchError> {
         let properties = get(metadata, "query_properties")
             .as_array()
             .filter(|values| values.len() <= 4096)
@@ -170,11 +170,11 @@ impl LensVocabulary {
 
 /// Shape normalization before publication I/O. Registry property definitions
 /// are deliberately bound only after the actual metadata is verified.
-pub fn normalize_published_lens_request(value: &JsonValue) -> Result<JsonValue, SearchV2Error> {
+pub fn normalize_published_lens_request(value: &JsonValue) -> Result<JsonValue, SearchError> {
     normalize_lens_spec(value, &LensVocabulary::published_shape())
 }
 
-pub fn validate_stored_lens_identifier(value: &JsonValue) -> Result<String, SearchV2Error> {
+pub fn validate_stored_lens_identifier(value: &JsonValue) -> Result<String, SearchError> {
     let identifier = value
         .as_str()
         .filter(|id| !id.is_empty() && id.chars().count() <= 128)
@@ -184,15 +184,15 @@ pub fn validate_stored_lens_identifier(value: &JsonValue) -> Result<String, Sear
 
 /// Selection from one caller-verified complete catalog; neither catalog
 /// custody nor publication/current grants are inferred from these bytes.
-pub fn stored_lens_spec(catalog: &JsonValue, identifier: &str) -> Result<JsonValue, SearchV2Error> {
+pub fn stored_lens_spec(catalog: &JsonValue, identifier: &str) -> Result<JsonValue, SearchError> {
     let lenses = get(catalog, "lenses")
         .as_array()
         .ok_or_else(|| corrupt("invalid stored lens catalog"))?;
     let mut matches = lenses
         .iter()
         .filter(|lens| get(lens, "lens_id").as_str() == Some(identifier));
-    let spec = matches.next().ok_or_else(|| SearchV2Error {
-        code: SearchV2ErrorCode::UnknownIdentifier,
+    let spec = matches.next().ok_or_else(|| SearchError {
+        code: SearchErrorCode::UnknownIdentifier,
         message: "unknown selected stored lens",
     })?;
     if matches.next().is_some() {
@@ -200,21 +200,21 @@ pub fn stored_lens_spec(catalog: &JsonValue, identifier: &str) -> Result<JsonVal
     }
     Ok(spec.clone())
 }
-pub(crate) fn invalid(message: &'static str) -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::InvalidRequest,
+pub(crate) fn invalid(message: &'static str) -> SearchError {
+    SearchError {
+        code: SearchErrorCode::InvalidRequest,
         message,
     }
 }
-pub(crate) fn budget() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+pub(crate) fn budget() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "lens execution budget exceeded",
     }
 }
-pub(crate) fn corrupt(message: &'static str) -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+pub(crate) fn corrupt(message: &'static str) -> SearchError {
+    SearchError {
+        code: SearchErrorCode::CorruptSelectedCarrier,
         message,
     }
 }
@@ -279,7 +279,7 @@ fn trimmed(v: &JsonValue) -> Option<&str> {
 fn strict<'a>(
     v: &'a JsonValue,
     allowed: &[&str],
-) -> Result<&'a [(tos_foundation::JsonString, JsonValue)], SearchV2Error> {
+) -> Result<&'a [(tos_foundation::JsonString, JsonValue)], SearchError> {
     if matches!(v, JsonValue::Null) {
         return Ok(&[]);
     }
@@ -391,7 +391,7 @@ fn bounded(
     min: usize,
     max: usize,
     strict_int: bool,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     if matches!(v, JsonValue::Null) {
         return Ok(number(default));
     }
@@ -426,7 +426,7 @@ fn bounded(
     }
     Ok(number(n as usize))
 }
-fn strings(v: &JsonValue, max: usize, unique: bool) -> Result<JsonValue, SearchV2Error> {
+fn strings(v: &JsonValue, max: usize, unique: bool) -> Result<JsonValue, SearchError> {
     if matches!(v, JsonValue::Null) {
         return Ok(JsonValue::Array(vec![]));
     }
@@ -447,14 +447,14 @@ fn strings(v: &JsonValue, max: usize, unique: bool) -> Result<JsonValue, SearchV
     }
     Ok(JsonValue::Array(out))
 }
-fn choice(v: &JsonValue, default: &str, values: &[&str]) -> Result<JsonValue, SearchV2Error> {
+fn choice(v: &JsonValue, default: &str, values: &[&str]) -> Result<JsonValue, SearchError> {
     let s = trimmed(v).unwrap_or(default);
     if !values.contains(&s) {
         return Err(invalid("invalid lens enum"));
     }
     Ok(text(s))
 }
-fn localized(v: &JsonValue, fallback: &str) -> Result<JsonValue, SearchV2Error> {
+fn localized(v: &JsonValue, fallback: &str) -> Result<JsonValue, SearchError> {
     let mut out = object(vec![
         ("default", text(fallback)),
         ("ru", JsonValue::Null),
@@ -505,7 +505,7 @@ fn localized(v: &JsonValue, fallback: &str) -> Result<JsonValue, SearchV2Error> 
     }
     Ok(out)
 }
-fn group(v: &JsonValue, node: bool) -> Result<JsonValue, SearchV2Error> {
+fn group(v: &JsonValue, node: bool) -> Result<JsonValue, SearchError> {
     strict(v, &["enabled", "match", "filters"])?;
     if v.object_get("match").is_some() && !matches!(string(get(v, "match")), "all" | "any") {
         return Err(invalid("invalid filter match"));
@@ -599,7 +599,7 @@ fn group(v: &JsonValue, node: bool) -> Result<JsonValue, SearchV2Error> {
         ("filters", JsonValue::Array(out)),
     ]))
 }
-fn sorts(v: &JsonValue, node: bool) -> Result<JsonValue, SearchV2Error> {
+fn sorts(v: &JsonValue, node: bool) -> Result<JsonValue, SearchError> {
     let default = || {
         JsonValue::Array(vec![object(vec![
             ("field", text("id")),
@@ -636,7 +636,7 @@ fn sorts(v: &JsonValue, node: bool) -> Result<JsonValue, SearchV2Error> {
 pub fn normalize_lens_spec(
     v: &JsonValue,
     vocabulary: &LensVocabulary,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     if v.as_object().is_none() {
         return Err(invalid("lens spec must be an object"));
     }
@@ -993,14 +993,14 @@ pub fn normalize_lens_spec(
 pub(crate) fn bind_plan_properties(
     spec: &JsonValue,
     vocabulary: &LensVocabulary,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     bind_property_definitions(spec, vocabulary, true)
 }
 fn bind_property_definitions(
     spec: &JsonValue,
     vocabulary: &LensVocabulary,
     indexed: bool,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let mut defs = BTreeMap::new();
     for (index, d) in vocabulary.query_properties.iter().enumerate() {
         let id = string(get(d, "property_id"));
@@ -1012,7 +1012,7 @@ fn bind_property_definitions(
         group: &mut JsonValue,
         defs: &BTreeMap<&str, (usize, &JsonValue)>,
         indexed: bool,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         let mut filters = array(get(group, "filters")).to_vec();
         for rule in &mut filters {
             let Some(id) = rule.object_get("property_id").and_then(JsonValue::as_str) else {
@@ -1286,7 +1286,7 @@ pub(crate) fn try_matches_group(
     item: &JsonValue,
     group: &JsonValue,
     vocabulary: &LensVocabulary,
-) -> Result<bool, SearchV2Error> {
+) -> Result<bool, SearchError> {
     let filters = array(get(group, "filters"));
     let mut all = true;
     let mut any = false;
@@ -1397,8 +1397,8 @@ pub(crate) fn sort_items(items: &mut [JsonValue], rules: &JsonValue) {
         *target = std::mem::replace(&mut values[source], JsonValue::Null);
     }
 }
-pub(crate) fn stable_digest(v: &JsonValue) -> Result<String, SearchV2Error> {
-    fn write(v: &JsonValue, h: &mut Digest256Hasher) -> Result<(), SearchV2Error> {
+pub(crate) fn stable_digest(v: &JsonValue) -> Result<String, SearchError> {
+    fn write(v: &JsonValue, h: &mut Digest256Hasher) -> Result<(), SearchError> {
         match v {
             JsonValue::Null => h.update(b"n;"),
             JsonValue::Bool(b) => h.update(if *b { b"b1;" } else { b"b0;" }),

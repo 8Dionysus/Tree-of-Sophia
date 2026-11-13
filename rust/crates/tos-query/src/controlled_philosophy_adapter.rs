@@ -1,21 +1,21 @@
 //! Maintained Philosophy Status over the authentic cold Original header.
 use crate::controlled_original_reader::{OriginalReadCharges, read_original};
 use crate::controlled_query_adapter::compiler_query_error;
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode};
 use crate::{BoundCmpKnowledge, InspectBudget, InspectCurrentAuthority};
 use tos_compiler::{
     ControlledKnowledgeModel, ControlledOriginalCollection, PhilosophyOriginalCollection,
 };
 use tos_foundation::{JsonString, JsonValue, OwnedState};
-fn budget() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+fn budget() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "controlled philosophy status budget exceeded",
     }
 }
-fn corrupt() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+fn corrupt() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::CorruptSelectedCarrier,
         message: "controlled philosophy status header differs",
     }
 }
@@ -28,8 +28,8 @@ pub fn execute_controlled_philosophy_status_response<
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     caps: InspectBudget,
-    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
-) -> Result<(), SearchV2Error> {
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchError>,
+) -> Result<(), SearchError> {
     execute_controlled_philosophy_status_response_render(
         model, bound, authority, caps, false, deliver,
     )
@@ -44,8 +44,8 @@ pub fn execute_controlled_philosophy_status_response_render<
     authority: &mut A,
     caps: InspectBudget,
     render: bool,
-    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
-) -> Result<(), SearchV2Error> {
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchError>,
+) -> Result<(), SearchError> {
     execute_controlled_philosophy_metadata_response_render(
         model,
         bound,
@@ -67,8 +67,8 @@ pub fn execute_controlled_philosophy_metadata_response_render<
     caps: InspectBudget,
     request: &crate::philosophy_read::PhilosophyReadRequest,
     render: bool,
-    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
-) -> Result<(), SearchV2Error> {
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchError>,
+) -> Result<(), SearchError> {
     if !matches!(
         request,
         crate::philosophy_read::PhilosophyReadRequest::Status
@@ -83,7 +83,7 @@ pub fn execute_controlled_philosophy_metadata_response_render<
         .map_err(compiler_query_error)?;
     let forecast = authority.disclosure_metadata_state_upper_bound()?;
     let frame = std::mem::size_of_val(&deliver)
-        .checked_add(std::mem::size_of::<crate::search_v2::CurrentPolicyBinding>())
+        .checked_add(std::mem::size_of::<crate::search::CurrentPolicyBinding>())
         .and_then(|n| n.checked_add(std::mem::size_of::<crate::IndexedDisclosureScope>()))
         .and_then(|n| n.checked_add(std::mem::size_of::<OriginalReadCharges>()))
         .ok_or_else(budget)?;
