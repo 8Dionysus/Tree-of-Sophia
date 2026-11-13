@@ -1262,7 +1262,11 @@ def cmd_accept(args):
             if issues:die('witness is not ready: '+'; '.join(issues))
             save(file+'.accepted',{'sha256':hashlib.sha256(Path(file).read_bytes()).hexdigest(),'date':today()})
     review=part(path,'review.json');reading=part(path,'reading.json');ev=evidence(path)
-    used={entry.get('transcription') for entry in ev['places'].values()};first=next((source['file'] for source in ev['sources'] if source['role']=='transcription'),None)
+    used={entry.get('transcription') for entry in ev['places'].values()}
+    places=part(path,'places.json') or {};entry=places.get('entry') or {};original=(entry.get('witnesses') or {}).get(entry.get('original')) or {}
+    licence_source=((original.get('licence_evidence') or {}).get('source') or {}).get('file')
+    if licence_source:used.add(licence_source)
+    first=next((source['file'] for source in ev['sources'] if source['role']=='transcription'),None)
     ev['sources']=[source for source in ev['sources'] if source['role']!='transcription' or source['file'] in used or (None in used and source['file']==first)];save(os.path.join(path,'evidence.json'),ev)   # a place that names no transcription was cut from the first
     basis=args.basis or f"Made by {reading['reader']['id']}; every conception and link read a second time by {review['reader']['id']}, who confirms each; the gate recomputed the comparison with the scan."
     save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[]))})

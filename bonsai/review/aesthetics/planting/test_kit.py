@@ -237,6 +237,22 @@ class LicensedOriginalTest(unittest.TestCase):
                 witness['edition']='A different edition'
                 self.assertTrue(kit.license_problems(witness,[source],lambda name:folder/name,review,'maker',True))
 
+class AcceptedLicenceEvidenceTest(unittest.TestCase):
+    def test_accept_keeps_the_transcription_used_to_prove_a_licence(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir()
+            entry={'original':'en','witnesses':{'en':{'licence_evidence':{'source':{'file':'publisher.xml'}}}}}
+            (path/'places.json').write_text(json.dumps({'entry':entry}))
+            (path/'evidence.json').write_text(json.dumps({'sources':[{'file':'text.txt','role':'transcription'},{'file':'publisher.xml','role':'transcription'}],'places':{'p':{'transcription':'text.txt'}}}))
+            (path/'reading.json').write_text(json.dumps({'reader':{'id':'maker'},'conceptions':[],'links':[],'left':[]}))
+            (path/'review.json').write_text(json.dumps({'reader':{'id':'second'}}))
+            args=argparse.Namespace(packet=str(path),offline=False,basis=None,by='test')
+            with patch.object(kit,'gate',return_value=([],'open')):kit.cmd_accept(args)
+            evidence=json.loads((path/'evidence.json').read_text())
+            self.assertEqual({source['file'] for source in evidence['sources']},{'text.txt','publisher.xml'})
+
 class LocatorEvidenceTest(unittest.TestCase):
     def test_locator_needs_a_documented_search_and_a_read_book(self):
         loc='Section p1'
