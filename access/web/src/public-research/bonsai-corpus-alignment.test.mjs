@@ -64,6 +64,9 @@ describe('the corpus alignment of the stands',()=>{
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],maxSourceSentences:7}]})).toContain('maxSourceSentences');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],translationStart:{unitId:'t',offset:-1}}]})).toContain('translationStart');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],handoverUnitIds:['u','u']}]})).toContain('handoverUnitIds');
+    expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],handoverUnitIds:['u'],completePreviousUnitIds:['other']}]})).toContain('completePreviousUnitIds');
+    const complete=module.scopes.find(scope=>scope.work==='theaetetus');
+    expect(translationScopesIssues({...module,scopes:[{...complete,localReferencePairs:[{originalUnitId:'u',translationUnitId:'t'}]}]})).toContain('completePreviousUnitIds');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],withheld:'yes'}]})).toContain('withheld');
   });
   it('withholds only an explicitly bound unreliable translation from cards',()=>{
@@ -183,6 +186,28 @@ describe('the corpus alignment of the stands',()=>{
       const text=matches.map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
       expect(text).toContain(expected);
     }
+  });
+  it('retains the start of a scoped sentence whose continuation is paired twice',()=>{
+    const original={language:'grc',units:[{id:'g1',reference:'1',text:'ἄλλο. ἐπιστήμη.'},{id:'g2',reference:'2',text:'λόγος τοῦτο. ἄλλο πρῶτον. φησὶ γὰρ πάντων μέτρον.'}]};
+    const translation={language:'ru',units:[{id:'r1',reference:'1',text:'Иная речь. Иная мысль. Ты сказал, должно быть, не маловажное положение'},{id:'r2',reference:'2',text:'о знании, а такое, которое объявлял и Протагор; только он то же самое высказал другим образом, ибо говорил, что человек есть мера всех вещей.'}]};
+    const spans=options=>{
+      const entry=alignVersion(original,translation,new Set(['g2']),options).entries.g2;
+      const targets=entry.pairs.find(([source])=>source.some(([a,b])=>a<49&&26<b))[1];
+      return targets.map(([i,a,b])=>Array.from(translation.units.find(unit=>unit.id===entry.u[i]).text).slice(a,b).join(''));
+    };
+    expect(spans({handoverUnitIds:['g2']})).toEqual([translation.units[1].text]);
+    expect(spans({handoverUnitIds:['g2'],completePreviousUnitIds:['g2']})).toEqual(['Ты сказал, должно быть, не маловажное положение',translation.units[1].text]);
+    expect(()=>spans({completePreviousUnitIds:['g2']})).toThrow(/preceding continuation scope/);
+    expect(translation.units[0].text).toMatch(/положение$/);
+  });
+  it.skipIf(!corpusFetched)('keeps the Russian sentence containing the Theaetetus measure quotation',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),work=module.works.theaetetus;
+    const version=read(work.documentId).versions.find(v=>v.id==='retained-theaetetus-ru-karpov1879-wikisource');
+    const entry=module.units['tos.text-unit.sid-e58e0cf5eda44f2b95ba3dfd9b58f887'].t[version.id];
+    const targets=entry.pairs.filter(([source])=>source.some(([a,b])=>a<244&&140<b)).flatMap(([,spans])=>spans);
+    const text=targets.map(([i,a,b])=>Array.from(version.units.find(unit=>unit.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+    expect(text).toMatch(/^Ты сказал, должно быть, не маловажное положение/);
+    expect(text).toContain('человек есть мера всех вещей');
   });
   it('can align a sentence across a translation reference inside a sentence',()=>{
     const original={language:'grc',units:[
