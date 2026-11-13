@@ -159,6 +159,25 @@
           "query": "contribution.agent.label:\"Bernays, Edward L.\"",
           "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Bernays%2C+Edward+L.%22&format=json&size=5",
           "result": "HTTP 200, 30 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API, priority candidates",
+          "query": [
+            "1939438837",
+            "9781939438805",
+            "9782355220012",
+            "1939438802",
+            "9781417915095"
+          ],
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/1939438837.json",
+          "urls": [
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/1939438837.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9781939438805.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9782355220012.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/1939438802.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9781417915095.json"
+          ],
+          "result": "1939438837: HTTP 200, no items; 9781939438805: HTTP 200, no items; 9782355220012: HTTP 200, no items; 1939438802: HTTP 200, no items; 9781417915095: HTTP 200, no items. ISBNs came from approximate Open Library work matches; editions and rights require separate validation. One group of ISBNs cannot establish absence elsewhere."
         }
       ]
     },
@@ -625,6 +644,25 @@
           "query": "contribution.agent.label:\"Kant, Immanuel\"",
           "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Kant%2C+Immanuel%22&format=json&size=5",
           "result": "HTTP 200, 3891 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API, priority candidates",
+          "query": [
+            "9571504815",
+            "9780872200258",
+            "9780760762028",
+            "0521344476",
+            "0192806173"
+          ],
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9571504815.json",
+          "urls": [
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9571504815.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780872200258.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780760762028.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/0521344476.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/0192806173.json"
+          ],
+          "result": "9571504815: HTTP 200, no items; 9780872200258: HTTP 200, no items; 9780760762028: HTTP 200, no items; 0521344476: HTTP 200, Limited (search-only); 0192806173: HTTP 200, no items. ISBNs came from approximate Open Library work matches; editions and rights require separate validation. One group of ISBNs cannot establish absence elsewhere."
         }
       ]
     },
@@ -774,6 +812,23 @@
           "query": "contribution.agent.label:\"Dewey, John\"",
           "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Dewey%2C+John%22&format=json&size=5",
           "result": "HTTP 200, 816 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API, priority candidates",
+          "query": [
+            "0399531971",
+            "9780399531972",
+            "0399500251",
+            "9780399500251"
+          ],
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/0399531971.json",
+          "urls": [
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/0399531971.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780399531972.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/0399500251.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780399500251.json"
+          ],
+          "result": "0399531971: HTTP 200, no items; 9780399531972: HTTP 200, no items; 0399500251: HTTP 200, no items; 9780399500251: HTTP 200, no items. ISBNs came from approximate Open Library work matches; editions and rights require separate validation. One group of ISBNs cannot establish absence elsewhere."
         }
       ]
     },
@@ -951,6 +1006,25 @@
           "query": "contribution.agent.label:\"Benjamin, Walter\"",
           "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Benjamin%2C+Walter%22&format=json&size=5",
           "result": "HTTP 200, 973 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API, priority candidates",
+          "query": [
+            "0141036192",
+            "3518000284",
+            "3518100289",
+            "9783518124246",
+            "1448670438"
+          ],
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/0141036192.json",
+          "urls": [
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/0141036192.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/3518000284.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/3518100289.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9783518124246.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/1448670438.json"
+          ],
+          "result": "0141036192: HTTP 200, no items; 3518000284: HTTP 200, no items; 3518100289: HTTP 200, no items; 9783518124246: HTTP 200, no items; 1448670438: HTTP 200, no items. ISBNs came from approximate Open Library work matches; editions and rights require separate validation. One group of ISBNs cannot establish absence elsewhere."
         }
       ]
     },
@@ -2586,6 +2660,25 @@
           "query": "contribution.agent.label:\"Collingwood, R. G.\"",
           "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Collingwood%2C+R.+G.%22&format=json&size=5",
           "result": "HTTP 200, 9 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API, priority candidates",
+          "query": [
+            "9785519521901",
+            "9781614275602",
+            "9786052499665",
+            "9780198241782",
+            "9786257307079"
+          ],
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9785519521901.json",
+          "urls": [
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9785519521901.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9781614275602.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9786052499665.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780198241782.json",
+            "https://catalog.hathitrust.org/api/volumes/brief/isbn/9786257307079.json"
+          ],
+          "result": "9785519521901: HTTP 200, no items; 9781614275602: HTTP 200, no items; 9786052499665: HTTP 200, no items; 9780198241782: HTTP 200, no items; 9786257307079: HTTP 200, no items. ISBNs came from approximate Open Library work matches; editions and rights require separate validation. One group of ISBNs cannot establish absence elsewhere."
         }
       ]
     },
@@ -10156,6 +10249,12 @@
       "service": "lobid German library catalog author search",
       "queries": "88 approximate inverted English author-name queries, recorded per work",
       "outcome": "87 requests HTTP 200, one initial connection failure retried HTTP 200. First five metadata results per query are in empty-lobid-author.json. Approximate name order may be wrong for multiword names; neither a hit nor zero determines edition, access, rights or absence."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "HathiTrust additional priority ISBNs",
+      "queries": "24 ISBNs from candidate Open Library works for Bernays, Kant, Dewey, Benjamin and Collingwood; recorded per work",
+      "outcome": "All HTTP 200; one ISBN returned an in-copyright search-only item and 23 returned no item. Bibliographic matches are approximate, include possible duplicate ISBNs, and do not determine identity, other editions or other jurisdictions. Raw metadata: empty-hathi-priority-isbns.json."
     }
   ]
 }
