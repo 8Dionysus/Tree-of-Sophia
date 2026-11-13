@@ -25,7 +25,12 @@ describe('territorial fragment rights',()=>{
     const module={schema:'tos.bonsai.fragments.v1',works:{w:{title:{ru:'Книга',en:'Book'},original:'en',witnesses:{en:witness('short-quotation')}}},places:{w:{p:{label:{ru:'с. 1',en:'p. 1'},texts:{en:'A'.repeat(901)}}}}};
     expect(externalPlacesIssues(module)).toContain('w p en quotation is longer than a short quotation');
     module.places.w.p.quotation_justification={en:'The complete sentence requires this length.'};
+    module.places.w.p.address={kind:'section',value:'III.2',url:'https://example.org/section'};
+    module.places.w.p.links={en:'https://example.org/section'};
     expect(externalPlacesIssues(module)).toEqual([]);
+    module.places.w.p.address.url='https://example.org/other';
+    expect(externalPlacesIssues(module)).toContain('w p has an invalid original source address');
+    module.places.w.p.address.url='https://example.org/section';
     module.works.w.witnesses.en.rights.usa=entry('locator-only');
     expect(externalPlacesIssues(module)).toContain('w p shows en text of a work cited by locator only');
     delete module.works.w.witnesses.en.rights.eu;

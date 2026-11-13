@@ -55,7 +55,8 @@ for(const [name,languages] of Object.entries(fragments.provenance.translation_pa
     if(previous.absent){work.absent??=[];if(!work.absent.some(item=>item.language===lang))work.absent.push(previous.absent);}
     if(previous.unsearched){work.unsearched??=[];if(!work.unsearched.some(item=>item.language===lang))work.unsearched.push(previous.unsearched);}
     for(const place of Object.values(fragments.places[name]??{})){
-      delete place.texts?.[lang];delete place.links?.[lang];delete place.quotation_justification?.[lang];
+      delete place.texts?.[lang];delete place.links?.[lang];delete place.addresses?.[lang];delete place.quotation_justification?.[lang];
+      if(place.addresses&&!Object.keys(place.addresses).length)delete place.addresses;
       if(place.refs)place.refs=place.refs.filter(ref=>ref[0]!==lang);
       if(place.quotation_justification&&!Object.keys(place.quotation_justification).length)delete place.quotation_justification;
     }
@@ -107,12 +108,14 @@ for(const name of packets){
     fragments.works[name].witnesses[lang]=record.witness;
     const absent=(fragments.works[name].absent??[]).find(item=>item.language===lang)??null;
     const unsearched=(fragments.works[name].unsearched??[]).find(item=>item.language===lang)??null;
-    (translationPackets[name]??={})[lang]={absent,unsearched};
+    const corrections=Object.entries(record.places??{}).flatMap(([loc,place])=>(place.corrections??[]).map(correction=>({loc,...correction})));
+    (translationPackets[name]??={})[lang]={absent,unsearched,record:`${path}/witnesses/${file}`,corrections};
     fragments.works[name].absent=(fragments.works[name].absent??[]).filter(item=>item.language!==lang);
     if(fragments.works[name].unsearched)fragments.works[name].unsearched=fragments.works[name].unsearched.filter(item=>item.language!==lang);
     for(const [loc,translated] of Object.entries(record.places??{})){
       const place=fragments.places[name]?.[loc];if(!place)fail(`packet ${name}: translation ${lang} names unknown place ${loc}`);
       place.texts[lang]=translated.text;place.links??={};place.links[lang]=translated.url;
+      if(translated.address){place.addresses??={};place.addresses[lang]=translated.address;}
       place.refs??=[];place.refs.push([lang,`${record.witness.edition}, ${translated.page}`]);
       if(translated.justification){place.quotation_justification??={};place.quotation_justification[lang]=translated.justification;}
     }

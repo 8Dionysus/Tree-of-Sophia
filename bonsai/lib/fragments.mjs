@@ -82,6 +82,9 @@ export function externalPlacesIssues(module){
       const witnessOf=language=>work.witnesses?.[place.witness?.[language]??language];
       for(const [language,name] of Object.entries(place.witness??{}))if(!work.witnesses?.[name])problems.push(`${id} ${loc} names an unknown ${language} witness ${name}`);
       for(const [language,url] of Object.entries(place.links??{}))if(!witnessOf(language)||!/^https:\/\//.test(url??''))problems.push(`${id} ${loc} links ${language} without a witness or a https URL`);
+      const validAddress=address=>['section','chapter','paragraph','folio','leaf','verse','manuscript'].includes(address?.kind)&&typeof address?.value==='string'&&address.value.trim()&&/^https:\/\//.test(address?.url??'');
+      if(place.address!==undefined&&(!validAddress(place.address)||place.links?.[work.original]!==place.address.url))problems.push(`${id} ${loc} has an invalid original source address`);
+      for(const [language,address] of Object.entries(place.addresses??{}))if(!witnessOf(language)||!validAddress(address)||place.links?.[language]!==address.url)problems.push(`${id} ${loc} has an invalid ${language} source address`);
       if(place.url!==undefined&&!/^https:\/\//.test(place.url))problems.push(`${id} ${loc} has a URL that is not https`);
       if(place.opens!==undefined&&!OPENS.includes(place.opens))problems.push(`${id} ${loc} opens ${place.opens}`);
       for(const [language,text] of Object.entries(place.texts??{})){
