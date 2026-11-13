@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import worker, { localizeHead } from "../src/public-research-entry.ts";
+import worker from "../src/public-research-entry.ts";
+import { localizeHead } from "../src/public-head.ts";
 
 function fixture(fetchAsset: (request: Request) => Promise<Response> | Response) {
   const paths: string[] = [];
@@ -48,28 +49,28 @@ test("research bundle and public corpus URLs lose only the public prefix", async
   }
 });
 
-test("unmatched paths reach the origin and www research redirects preserve path and query", async (t) => {
+test("retired routes return 404 without forwarding and www redirects preserve paths", async (t) => {
   const originRequests: Request[] = [];
   t.mock.method(globalThis, "fetch", async (request: Request) => { originRequests.push(request); return new Response("origin"); });
-  const app = fixture(request => new URL(request.url).pathname === "/missing.json"
-    ? new Response("not found", { status: 404 }) : new Response("unexpected"));
-  const response = await app.fetch(new Request("https://www.treeofsophia.com/antiquity/?lang=en"));
-  assert.equal(response.status, 308);
-  assert.equal(response.headers.get("Location"), "https://treeofsophia.com/antiquity/?lang=en");
-  const home = await app.fetch(new Request("https://www.treeofsophia.com/?lang=ru"));
-  assert.equal(home.status, 308);
-  assert.equal(home.headers.get("Location"), "https://treeofsophia.com/?lang=ru");
-  for (const path of ["/api/health", "/static/reader.js"]) {
-    const missing = await app.fetch(new Request(`https://treeofsophia.com${path}`));
-    assert.equal(await missing.text(), "origin");
+  const app = fixture(request => new URL(request.url).pathname === "/not-found/"
+    ? new Response("not found") : new Response("missing", { status: 404 }));
+  for (const path of ["/health", "/api/health", "/__edge/data.json", "/static/reader.js"]) {
+    for (const method of ["GET", "HEAD", "POST"]) {
+      for (const hostname of ["treeofsophia.com", "www.treeofsophia.com"]) {
+        const response = await app.fetch(new Request(`https://${hostname}${path}`, { method }));
+        assert.equal(response.status, 404, `${method} ${hostname}${path}`);
+        assert.match(response.headers.get("Content-Security-Policy") ?? "", /default-src 'self'/);
+        if (method === "HEAD") assert.equal(await response.text(), "");
+      }
+    }
   }
-  const post = new Request("https://treeofsophia.com/api/query?x=1", {method: "POST", body: "preserved"});
-  assert.equal(await (await app.fetch(post)).text(), "origin");
-  assert.equal(originRequests.at(-1), post);
-  assert.equal(await originRequests.at(-1)!.text(), "preserved");
-  assert.equal(app.paths.length, 0);
+  assert.equal(originRequests.length, 0);
+  for (const path of ["/antiquity/?lang=en", "/?lang=ru"]) {
+    const response = await app.fetch(new Request(`https://www.treeofsophia.com${path}`));
+    assert.equal(response.status, 308);
+    assert.equal(response.headers.get("Location"), `https://treeofsophia.com${path}`);
+  }
   assert.equal((await app.fetch(new Request("https://treeofsophia.com/__research/missing.json"))).status, 404);
-  assert.deepEqual(app.paths, ["/missing.json"]);
 });
 
 test("HEAD is preserved and writes are rejected", async () => {

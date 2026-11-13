@@ -12,6 +12,101 @@
       "lastUnitId": "tos.text-unit.sid-e80c62ac5d394eb4beb0e36cb6f61024",
       "source": "https://en.wikisource.org/wiki/The_Academic_Questions%2C_Treatise_De_Finibus%2C_and_Tusculan_Disputations/Academic_Questions/Book_1",
       "basis": "The translation contains the continuous Book I (§§1–46). The other original units are separately transmitted fragments and testimonia, which this witness does not provide."
+    },
+    {
+      "work": "ancient-medicine",
+      "translationVersionId": "retained-ancient-medicine-eng3-04ab4db8b597",
+      "translationRevision": "3994cc387bfb24b9cdf06769c926935d0ceea32f1afa2e5389617ac0dc1ead00",
+      "originalVersionId": "retained-ancient-medicine-grc2-87c2fd0da8d9",
+      "originalRevision": "10f2377b3abfbfbee918ed5027fe4aa2b5b0f9131beaef644ff7da6ce9fcdec5",
+      "firstUnitId": "tos.text-unit.sid-668129b8020446cfb85aa9ce0562c375",
+      "lastUnitId": "tos.text-unit.sid-decb12abb02945f4a86ceb54b68980d6",
+      "source": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/01b725d835e6e733062ffd79e0efdbae1ba06e5c/data/tlg0627/tlg001/tlg0627.tlg001.perseus-eng3.xml",
+      "basis": "The translation and original cover sections 1–24. Adams sometimes joins several Greek sentences into one English sentence, including in sections 9 and 20.",
+      "maxSourceSentences": 6
+    },
+    {
+      "work": "isagoge",
+      "translationVersionId": "retained-isagoge-en-owen1853-wikisource",
+      "translationRevision": "43f410659a436407997701637f4a3a7c76b37ec366fb78115d4f0d87e52b4729",
+      "originalVersionId": "retained-isagoge-tlg2034-tlg006-opp-grc1-6d1f2edc5db2",
+      "originalRevision": "31b953b1bac6b4b8504dd867abe44a2df3328a109d8f30dd7f77631b2580763d",
+      "firstUnitId": "tos.text-unit.sid-9c2f653ab2ef4d44bc4ae0e5218598b2",
+      "lastUnitId": "tos.text-unit.sid-c81d867100d84f48a4803217bd8848a0",
+      "source": "https://en.wikisource.org/w/index.php?title=Organon_%28Owen%29/The_Introduction_of_Porphyry&oldid=13969404",
+      "basis": "The retained English unit begins with a table of contents and introductory editorial notes before the translated work. Alignment starts at the opening words of Owen’s translation. Inline marginal notes elsewhere in this witness remain.",
+      "translationStart": {
+        "unitId": "tos.text-unit.sid-32d4a255f90f4b0581fece7b563b0a48",
+        "offset": 1217
+      }
+    },
+    {
+      "work": "theaetetus",
+      "translationVersionId": "retained-theaetetus-ru-karpov1879-wikisource",
+      "translationRevision": "f23c9b024326f5b216c8712e80e940e57807856c35924f6cb96ebbfd8975bf2d",
+      "originalVersionId": "retained-theaetetus-grc2-a1b54593888b",
+      "originalRevision": "250f50db15571e2296d82bb84f1f2165dbe2844fe91b9bf2384616bafc2793a1",
+      "firstUnitId": "tos.text-unit.sid-0679bb55f7f94dbcb6c3100b93ca351c",
+      "lastUnitId": "tos.text-unit.sid-cae0266b1a8f4e37b2dc401a96350695",
+      "source": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B5%D1%8D%D1%82%D0%B5%D1%82_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750940",
+      "basis": "At the selected original reference, Karpov’s Russian edition assigns one or more preceding sentences to the prior numbered unit. Offer those sentences to the aligner without changing the source text.",
+      "handoverUnitIds": [
+        "tos.text-unit.sid-c59e1c0e6c664c07a57375e0b80e661e"
+      ]
+    },
+    {
+      "work": "sophist",
+      "translationVersionId": "retained-sophist-ru-karpov1879-wikisource",
+      "translationRevision": "6685a5614ad1228382db9b1177ce9dc9074d175bed61cd1b6b0f71c9ca04ef50",
+      "originalVersionId": "retained-sophist-grc2-64eb0b7c9135",
+      "originalRevision": "bdae245b043162e3d7f373c9fbba82e963cad54120f74a4eb50672e35d42062c",
+      "firstUnitId": "tos.text-unit.sid-4a1ac404c14e45f98c52e453529a2a07",
+      "lastUnitId": "tos.text-unit.sid-3eb2eb7d67274fa6adb5721dc44c3ec5",
+      "source": "https://ru.wikisource.org/w/index.php?title=%D0%A1%D0%BE%D1%84%D0%B8%D1%81%D1%82_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3749414",
+      "basis": "At the selected original reference, Karpov’s Russian edition assigns one or more preceding sentences to the prior numbered unit. Offer those sentences to the aligner without changing the source text.",
+      "handoverUnitIds": [
+        "tos.text-unit.sid-ae6b9e92c7e5461eaac1d043657e491a"
+      ]
+    },
+    {
+      "work": "timaeus",
+      "translationVersionId": "retained-timaeus-ru-karpov1879-wikisource",
+      "translationRevision": "98c3cfce9dc2a99c0310efac2374809eca415c21e55e585ef14f1fcbbcd3ad95",
+      "originalVersionId": "retained-timaeus-grc2-f3362749372e",
+      "originalRevision": "edcb00a3dc4320431019938e133bbcc0f2a7db1cc2b4f378647a5631de185e1d",
+      "firstUnitId": "tos.text-unit.sid-4a8e1ff63ce04d18be71d1dbfdc2c9f5",
+      "lastUnitId": "tos.text-unit.sid-ba31c523510c434e9076a6a208c0337f",
+      "source": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959",
+      "basis": "At the selected original reference, Karpov’s Russian edition assigns one or more preceding sentences to the prior numbered unit. Offer those sentences to the aligner without changing the source text.",
+      "handoverUnitIds": [
+        "tos.text-unit.sid-de6d24a40cc94eaea05e72f156f8f84d"
+      ]
+    },
+    {
+      "work": "philebus",
+      "translationVersionId": "retained-philebus-ru-karpov1879-wikisource",
+      "translationRevision": "cdb323ce098c09976731cbbf0dc8bc63eedb09e9369d64c85173090b0f4de65b",
+      "originalVersionId": "retained-philebus-grc2-d082ba8a0f49",
+      "originalRevision": "347181d8bc8dcef0b56a7fdd134f0c1e4ddb081806482f42e90b0792d2322049",
+      "firstUnitId": "tos.text-unit.sid-402aedc671024a6390c1b184470bfa38",
+      "lastUnitId": "tos.text-unit.sid-18ae19eb3d054edbae7a94cc9503ec14",
+      "source": "https://ru.wikisource.org/w/index.php?title=%D0%A4%D0%B8%D0%BB%D0%B5%D0%B1_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3752857",
+      "basis": "At the selected original reference, Karpov’s Russian edition assigns one or more preceding sentences to the prior numbered unit. Offer those sentences to the aligner without changing the source text.",
+      "handoverUnitIds": [
+        "tos.text-unit.sid-1013ac2a211242f5b3cca1ebf8c1f5fe"
+      ]
+    },
+    {
+      "work": "enchiridion",
+      "translationVersionId": "retained-enchiridion-es-brum1888",
+      "translationRevision": "14e6c9afd9025e8f00e72b8e13f946474fad1e62fffc5def89bb58bdcbf97ead",
+      "originalVersionId": "retained-enchiridion-grc2-8142571a22ea",
+      "originalRevision": "b06f8d1933f11a0125ff59670da3c56baa924a1a61369e27016b716a323049fc",
+      "firstUnitId": "tos.text-unit.sid-28426296ab784fd6babdd15990300f38",
+      "lastUnitId": "tos.text-unit.sid-569b347a1bc1430da27726facf1dda46",
+      "source": "https://es.wikisource.org/wiki/Enquiridi%C3%B3n/M%C3%A1ximas",
+      "basis": "The automatic whole-work alignment gives unrelated Spanish passages for multiple cited Greek sections, including 30, 33, 46 and 52. Withhold this witness's card alignment until its differently numbered maxims and source text are aligned and reviewed; the public corpus witness remains available for reading.",
+      "withheld": true
     }
   ]
 }

@@ -224,6 +224,15 @@ translation versions and text-layer revisions, and first and last original unit 
 those bindings and aligns only that range; a cited fragment outside it has no
 counterpart in that witness. The range is an unreviewed source-bound proposal,
 not a manually chosen translation of each quotation.
+The same source-bound scope may cover the whole original where a translation
+joins unusually many source sentences into one. Its optional
+`maxSourceSentences` (4–6) lets the alignment mechanism consider those group
+shapes; it does not select a passage or assess the resulting correspondence.
+When review finds an alignment unreliable across a witness, the stand may set
+`withheld: true` on a scope bound to both exact revisions and the entire
+original. It records the reason and leaves the witness in the corpus, but
+offers no sentence pairs for that version in cards until the alignment is
+repaired and reviewed. Changed revisions invalidate the scope.
 
 ```sh
 node bonsai/lib/cli.mjs align-corpus antiquity          # align again, report whether the module matches

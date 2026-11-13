@@ -101,23 +101,27 @@ function pairsOf(S,T,groups,model){
 // sentences of a modern translation, as a verse line can.
 const PERIODS=new Set(['grc','la']),LONG_PERIOD=[[1,4],[1,5],[1,6]];
 
-export function alignVersion(original,translation,cited){
-  const beads=PERIODS.has(original.language)?LONG_PERIOD:[];
+// Some editions join several short original sentences into one long translation sentence. The scope may
+// opt into larger groups for that exact pair of revisions; the aligner still chooses every correspondence.
+export function alignVersion(original,translation,cited,{maxSourceSentences=3,handoverUnitIds=[]}={}){
+  if(!Number.isInteger(maxSourceSentences)||maxSourceSentences<3||maxSourceSentences>6)throw new Error('Invalid maximum source sentence group');
+  const beads=(PERIODS.has(original.language)?LONG_PERIOD:[]).concat(Array.from({length:Math.max(0,maxSourceSentences-3)},(_,i)=>[i+4,1]));
   const {how,map}=counterparts(original,translation),textOf=new Map(translation.units.map(unit=>[unit.id,unit.text]));
   const position=new Map(translation.units.map((unit,index)=>[unit.id,index])),whole=unit=>({id:unit.id,s:0,e:chars(unit.text).length});
   const textOfTarget=target=>chars(textOf.get(target.id)).slice(target.s,Math.min(target.e,textEnd(textOf.get(target.id)))).join('');
   // Where the translation's preceding unit hands over to a run: the original's unit before the run and
   // the run's own units are aligned by length, sentence by sentence, against the preceding unit and the
   // run's counterparts; the run takes the preceding unit from its first sentence paired with the run's
-  // original, and never more than the two closing sentences the cut can involve. With no original unit
-  // before the run, only the sentence the reference cuts is offered. Null when the preceding unit gives
-  // this run nothing.
+  // original, and ordinarily never more than the two closing sentences the cut can involve. A scoped
+  // edition may opt in specific units where complete sentences also cross references, allowing up to eight.
+  // With no original unit before the run, only the sentence the reference cuts is offered. Null when the
+  // preceding unit gives this run nothing.
   function handover(original,group,previous,priorText){
     const own=sentencesOf([{index:0,raw:priorText}],translation.language);
     if(!own.length)return null;
     const at=original.units.findIndex(unit=>unit.id===group.units[0].id),before=original.units[at-1];
     if(!before)return own.at(-1).id[1];
-    const bound=own[Math.max(0,own.length-2)].id[1];
+    const bound=own[Math.max(0,own.length-(handoverUnitIds.includes(group.units[0].id)?8:2))].id[1];
     const S=sentencesOf([before,...group.units].map((unit,index)=>({index,raw:chars(unit.text).slice(0,textEnd(unit.text)).join('')})),original.language);
     // The sentence the reference cuts is one sentence: its continuation in the run's first unit joins the
     // preceding unit's last sentence, so it is weighed whole against the original.
@@ -161,14 +165,14 @@ export function alignVersion(original,translation,cited){
       group.targets.sort((a,b)=>position.get(a.id)-position.get(b.id));
       // A source's printed reference can fall inside a sentence, and the two
       // editions need not place it at the same word. When the translation
-      // starts mid-sentence, offer this run the part of its preceding unit that
-      // belongs to it: the sentences the original's own preceding unit leaves
+      // starts mid-sentence (or the scoped edition cuts at a different sentence), offer this run the part
+      // of its preceding unit that belongs to it: the sentences the original's own preceding unit leaves
       // over (handover). A finished sentence that preceding unit accounts for
       // stays with it. Keep offsets in the original units: no source text moves.
       const first=group.targets[0],index=position.get(first?.id),previous=translation.units[index-1];
       const firstText=textOf.get(first?.id)??'',priorText=previous?chars(previous.text).slice(0,textEnd(previous.text)).join(''):'';
       if(previous&&first.s===0&&!group.targets.some(target=>target.id===previous.id)
-        &&continues(firstText)&&unfinished(priorText)){
+        &&(continues(firstText)&&unfinished(priorText)||handoverUnitIds.includes(group.units[0].id))){
         const start=handover(original,group,previous,priorText);
         if(start!==null)group.targets.unshift({id:previous.id,s:start,e:textEnd(previous.text)});
       }
@@ -249,7 +253,12 @@ export function alignCorpus(cited,works,read,scopes=[]){
     const key=`${scope.work}:${scope.translationVersionId}`,work=works[scope.work]&&read(works[scope.work]);
     const original=work?.versions.find(item=>item.id===scope.originalVersionId),translation=work?.versions.find(item=>item.id===scope.translationVersionId);
     const first=original?.units.findIndex(unit=>unit.id===scope.firstUnitId)??-1,last=original?.units.findIndex(unit=>unit.id===scope.lastUnitId)??-1;
-    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
+    const start=scope.translationStart,firstTarget=translation?.units[0];
+    const invalidStart=start!==undefined&&(!firstTarget||start?.unitId!==firstTarget.id||!Number.isInteger(start?.offset)||start.offset<1||start.offset>=chars(firstTarget.text).length);
+    const handovers=scope.handoverUnitIds;
+    const invalidHandovers=handovers!==undefined&&(!Array.isArray(handovers)||!handovers.length||new Set(handovers).size!==handovers.length||handovers.some(id=>{const i=original?.units.findIndex(unit=>unit.id===id)??-1;return typeof id!=='string'||i<=first||i>last;}));
+    const invalidWithheld=scope.withheld!==undefined&&(scope.withheld!==true||first!==0||last!==original?.units.length-1||typeof scope.basis!=='string'||!scope.basis.trim()||scope.maxSourceSentences!==undefined||start!==undefined||handovers!==undefined);
+    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))||invalidStart||invalidHandovers||invalidWithheld||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
     seenScopes.add(key);
   }
   const out={schema:CORPUS_ALIGNMENT_SCHEMA,mechanism:'bonsai/lib/corpus-align.mjs',review:'unreviewed',works:{},units:{},receipt:{}};
@@ -266,8 +275,20 @@ export function alignCorpus(cited,works,read,scopes=[]){
         if(scope.originalVersionId!==original.id||scope.originalRevision!==original.revision||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${key}: invalid or stale translation scope for ${version.id}`);
         source={...original,units:original.units.slice(first,last+1)};
       }
-      const {entries,receipt}=alignVersion(source,version,units);
-      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source};
+      // A reviewed quality finding may withhold this version's alignment without removing its corpus witness.
+      // The binding above requires the complete original and exact revisions, so a later source change fails closed.
+      if(scope?.withheld){
+        translations.push({...meta(version),coverage:null});
+        out.receipt[`${key}:${version.id}`]={how:'withheld',sourceScope:{firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source,basis:scope.basis,withheld:true}};
+        continue;
+      }
+      // Ignore a declared front matter prefix only while aligning; all returned offsets still address
+      // the unmodified, revision-bound corpus unit. Other annotations may remain within the text.
+      const start=scope?.translationStart;
+      const target=start?{...version,units:version.units.map(unit=>unit.id===start.unitId?{...unit,text:chars(unit.text).slice(start.offset).join('')}:unit)}:version;
+      const {entries,receipt}=alignVersion(source,target,units,{maxSourceSentences:scope?.maxSourceSentences??3,handoverUnitIds:scope?.handoverUnitIds??[]});
+      if(start)for(const entry of Object.values(entries))for(const [,targets] of entry.pairs)for(const span of targets)if(entry.u[span[0]]===start.unitId){span[1]+=start.offset;span[2]+=start.offset;}
+      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source,...(scope.maxSourceSentences!==undefined?{maxSourceSentences:scope.maxSourceSentences}:{}),...(start?{translationStart:start}:{}),...(scope.handoverUnitIds?{handoverUnitIds:scope.handoverUnitIds}:{})};
       translations.push({...meta(version),coverage:receipt.coverage,...(mixedNotes(version)>2?{notesInText:true}:{})});
       out.receipt[`${key}:${version.id}`]=receipt;
       for(const [unit,entry] of Object.entries(entries))(out.units[unit]??={w:key,t:{}}).t[version.id]=entry;
