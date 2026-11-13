@@ -54,6 +54,63 @@ const saveLives=()=>{
   writeFileSync(temporary,`${JSON.stringify(Object.fromEntries(Object.keys(lives).sort().map(key=>[key,lives[key]])),null,1)}\n`);
   renameSync(temporary,LIVES);
 };
+// Crossref can bind an exact publication and author to an ORCID; a unique
+// Wikidata P496 match then supplies the life rather than guessing by name.
+if(args.has('--fetch-queue-orcid')){
+  const byAuthor=new Map();
+  for(const work of layer('works'))for(const id of work.agents??[]){
+    if(!byAuthor.has(id))byAuthor.set(id,[]);byAuthor.get(id).push(work);
+  }
+  const fold=value=>String(value??'').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+  const request=async url=>{
+    await new Promise(resolve=>setTimeout(resolve,1100));
+    const response=await fetch(url,{headers:{'User-Agent':AGENT},signal:AbortSignal.timeout(30000)});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);return response.json();
+  };
+  let completed=0,identified=0;
+  for(const [id,works] of byAuthor){
+    if(lives[id]?.item||lives[id]?.orcid_search?.complete)continue;
+    const name=agents.get(id)?.name?.en,titles=[...new Set(works.flatMap(work=>[work.title?.original,work.title?.en]).filter(Boolean))].slice(0,3);
+    if(!name||!titles.length)continue;
+    try{
+      const orcids=new Map();
+      for(const title of titles){
+        const url=new URL('https://api.crossref.org/works');
+        for(const [key,value] of Object.entries({'query.title':title,rows:'5',select:'DOI,title,author'}))url.searchParams.set(key,value);
+        const found=await request(url);
+        for(const work of found.message?.items??[]){
+          if(!(work.title??[]).some(value=>fold(value)===fold(title))||!work.DOI)continue;
+          for(const author of work.author??[]){
+            if(fold(`${author.given??''} ${author.family??''}`)!==fold(name))continue;
+            const orcid=/^https:\/\/orcid\.org\/(\d{4}-\d{4}-\d{4}-[\dX]{4})$/.exec(author.ORCID??'')?.[1];
+            if(orcid)orcids.set(orcid,{doi:work.DOI,title});
+          }
+        }
+      }
+      const matches=new Map();
+      for(const [orcid,record] of orcids.size===1?orcids:[]){
+        const query=`SELECT DISTINCT ?person WHERE { ?person wdt:P496 ${JSON.stringify(orcid)}; wdt:P31 wd:Q5. } LIMIT 3`;
+        const url=new URL('https://query.wikidata.org/sparql');url.searchParams.set('query',query);url.searchParams.set('format','json');
+        const found=await request(url),ids=[...new Set((found.results?.bindings??[]).map(row=>row.person.value.split('/').at(-1)))];
+        if(ids.length===1)matches.set(ids[0],{orcid,...record});
+      }
+      const search={complete:true,titles,source:'https://api.crossref.org/',checked:new Date().toISOString().slice(0,10)};
+      if(matches.size===1){
+        const [qid,record]=[...matches][0],entity=(await request(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`)).entities?.[qid];
+        const labels=[...Object.values(entity?.labels??{}).map(value=>value.value),...Object.values(entity?.aliases??{}).flatMap(items=>items.map(value=>value.value))].map(fold);
+        if(entity&&labels.includes(fold(name))){
+          const times=property=>{const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));};
+          lives[id]={item:qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_orcid:{...record,source:`https://doi.org/${record.doi}`},orcid_search:search};
+          identified++;console.log(`${id}: ${qid}, ORCID ${record.orcid}, ${record.doi}`);
+        }
+      }
+      if(!lives[id]?.item)lives[id]={...(lives[id]??{item:null,label:agents.get(id)?.name??{},born:[],died:[]}),orcid_search:search};
+      completed++;saveLives();
+    }catch(error){console.error(`ORCID search stopped at ${id}: ${error}`);break;}
+  }
+  console.log(`queue ORCID: ${completed} searched, ${identified} identified`);
+}
+
 // Open Library can bridge a catalogued work and author to the author's
 // explicitly linked Wikidata item. Validate all three identities before use.
 if(args.has('--fetch-queue-catalogue')){
