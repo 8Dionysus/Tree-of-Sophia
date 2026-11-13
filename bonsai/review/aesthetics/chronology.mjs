@@ -71,7 +71,7 @@ if(args.has('--fetch-queue-catalogue')){
   };
   let completed=0,identified=0;
   for(const [id,works] of byAuthor){
-    if(lives[id]?.item||(lives[id]?.catalogue_search?.complete&&lives[id].catalogue_search.version==='authority-v2'))continue;
+    if(lives[id]?.item||(lives[id]?.catalogue_search?.complete&&lives[id].catalogue_search.version==='authority-v3'))continue;
     const agent=agents.get(id),name=agent?.name?.en;
     const titles=[...new Set(works.flatMap(work=>[work.title?.original,work.title?.en]).filter(Boolean))].slice(0,3);
     if(!name||!titles.length)continue;
@@ -97,24 +97,45 @@ if(args.has('--fetch-queue-catalogue')){
               const answer=await request(source),ids=[...new Set((answer.results?.bindings??[]).map(row=>row.person.value.split('/').at(-1)))];
               if(ids.length===1)qid=ids[0];
             }
+            let matchedYears=null;
+            if(!/^Q[1-9]\d*$/.test(qid??'')){
+              const exactYear=value=>{
+                const text=String(value??'');if(/(?:\bca\.?|\bcirca\b|\bapprox|[?~])/i.test(text))return null;
+                const years=[...text.matchAll(/\b(\d{4})\b/g)];return years.length===1?years[0][1]:null;
+              };
+              const born=exactYear(record.birth_date),died=exactYear(record.death_date);
+              if(born&&died){
+                const query=`SELECT DISTINCT ?person WHERE { ?person (rdfs:label|skos:altLabel) ${JSON.stringify(name)}@en; wdt:P31 wd:Q5; wdt:P569 ?born; wdt:P570 ?died. FILTER(YEAR(?born)=${born} && YEAR(?died)=${died}) } LIMIT 3`;
+                const source=new URL('https://query.wikidata.org/sparql');source.searchParams.set('query',query);source.searchParams.set('format','json');
+                const answer=await request(source),ids=[...new Set((answer.results?.bindings??[]).map(row=>row.person.value.split('/').at(-1)))];
+                if(ids.length===1){qid=ids[0];matchedYears={born:Number(born),died:Number(died)};}
+              }
+            }
             if(!/^Q[1-9]\d*$/.test(qid??''))continue;
             const entity=(await request(`https://www.wikidata.org/wiki/Special:EntityData/${qid}.json`)).entities?.[qid];
             if(!entity)continue;
             const labels=[...Object.values(entity.labels??{}).map(value=>value.value),...Object.values(entity.aliases??{}).flatMap(items=>items.map(value=>value.value))].filter(Boolean).map(fold);
             const human=(entity.claims?.P31??[]).some(claim=>claim.mainsnak?.datavalue?.value?.id==='Q5');
             if(!human||!labels.includes(fold(name)))continue;
-            choices.set(qid,{entity,author,work:work.key,title,authority});
+            if(matchedYears){
+              const agrees=(property,year)=>{
+                const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
+                return (preferred.length?preferred:claims).some(claim=>claim.mainsnak.datavalue.value.precision>=9&&Number(/^([+-]\d+)-/.exec(claim.mainsnak.datavalue.value.time)?.[1])===year);
+              };
+              if(!agrees('P569',matchedYears.born)||!agrees('P570',matchedYears.died))continue;
+            }
+            choices.set(qid,{entity,author,work:work.key,title,authority,matchedYears});
           }
         }
       }
-      const catalogue_search={complete:true,version:'authority-v2',titles,source:'https://openlibrary.org/',checked:new Date().toISOString().slice(0,10)};
+      const catalogue_search={complete:true,version:'authority-v3',titles,source:'https://openlibrary.org/',checked:new Date().toISOString().slice(0,10)};
       if(choices.size===1){
         const [qid,record]=[...choices][0],entity=record.entity;
         const times=property=>{
           const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
           return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
         };
-        lives[id]={item:qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_catalogue:{author:record.author,author_url:`https://openlibrary.org/authors/${record.author}`,work:record.work,work_url:`https://openlibrary.org${record.work}`,title:record.title,...(record.authority?{authority:record.authority}: {})},catalogue_search};
+        lives[id]={item:qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_catalogue:{author:record.author,author_url:`https://openlibrary.org/authors/${record.author}`,work:record.work,work_url:`https://openlibrary.org${record.work}`,title:record.title,...(record.authority?{authority:record.authority}: {}),...(record.matchedYears?{matched_years:record.matchedYears}: {})},catalogue_search};
         identified++;console.log(`${id}: ${qid}, Open Library ${record.author} ${record.work}`);
       }else lives[id]={...(lives[id]??{item:null,label:agent?.name??{},born:[],died:[]}),status:'unresolved',reason:choices.size?'multiple catalogued identities':'no unique catalogued identity in the listed works',catalogue_search};
       completed++;saveLives();
