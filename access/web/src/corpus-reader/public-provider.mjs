@@ -28,7 +28,7 @@ const AUTHOR_ALIASES={
   aristotle:'Аристотель', cicero:'Цицерон Марк Туллий', 'diogenes laertius':'Диоген Лаэртский',
   epictetus:'Эпиктет', 'friedrich nietzsche':'Фридрих Ницше', 'hippocratic corpus':'Гиппократ Гиппократов корпус',
   lucretius:'Лукреций', 'marcus aurelius':'Марк Аврелий', plato:'Платон', plotinus:'Плотин',
-  plutarch:'Плутарх', porphyry:'Порфирий', seneca:'Сенека',
+  plutarch:'Плутарх', porphyry:'Порфирий', seneca:'Сенека', xenophon:'Ксенофонт',
 };
 const authorSearchAliases=author=>typeof author==='string'?[AUTHOR_ALIASES[author.trim().toLowerCase()]||'',...PUBLIC_LOCALES.map(language=>localeText(author,language))].join(' '):'';
 
