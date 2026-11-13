@@ -917,16 +917,24 @@
   }
  },
  "anandavardhana": {
-  "item": null,
+  "item": "Q2551244",
   "label": {
-   "ru": "Анандавардхана",
-   "en": "Ānandavardhana"
+   "en": "Anandavardhana",
+   "ru": "Анандавардхана"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+0820-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "died": [
+   {
+    "time": "+0890-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "fetched": "2026-11-12",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -952,6 +960,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Dhvanyāloka",
+   "source": "https://sahitya-akademi.gov.in/pdf/Anandavardhana.pdf",
+   "person_url": "https://www.wikidata.org/wiki/Q2551244",
+   "basis": "Sahitya Akademi identifies Anandavardhana as the author of the work, while noting scholarly debate over attribution of its verses and commentary."
   }
  },
  "andras-angyal": {
@@ -10255,26 +10269,24 @@
   }
  },
  "mary-mothersill": {
-  "item": null,
+  "item": "Q24205767",
   "label": {
-   "ru": "Мэри Мазерсилл",
-   "en": "Mary Mothersill"
+   "en": "Mary Mothersill",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Mary Mothersill"
-   },
-   {
-    "kind": "work",
-    "query": "Beauty Restored"
+    "time": "+1923-00-00T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [
+   {
+    "time": "+2008-01-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-12",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -10300,6 +10312,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Beauty Restored",
+   "source": "https://collections.barnard.edu/public/repositories/2/resources/63",
+   "person_url": "https://www.wikidata.org/wiki/Q24205767",
+   "basis": "The Barnard collection identifies this philosopher and her Beauty Restored; the person article links the same individual to Wikidata."
   }
  },
  "massimiliano-di-luca": {
