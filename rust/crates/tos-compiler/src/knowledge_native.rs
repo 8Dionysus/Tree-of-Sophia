@@ -630,13 +630,13 @@ pub fn materialize_native_sources(
 
 // Fixed phase labels expose cumulative work without logging source content.
 struct MaterializePhases<'a> {
-    state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+    state: Option<&'a crate::public_capture::CreationState<'a>>,
     name: Option<&'static str>,
     started: std::time::Instant,
     work: u64,
 }
 impl<'a> MaterializePhases<'a> {
-    fn new(state: Option<&'a crate::d1_public_capture::CreationState<'a>>) -> Self {
+    fn new(state: Option<&'a crate::public_capture::CreationState<'a>>) -> Self {
         Self {
             state,
             name: None,

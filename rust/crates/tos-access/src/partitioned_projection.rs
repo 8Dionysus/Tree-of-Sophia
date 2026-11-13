@@ -5,29 +5,29 @@
 //! only collections requested by one access diagnostic.
 
 use std::{io, path::Path, time::Instant};
-use tos_compiler::d1_projection_snapshot::{
-    D1ProjectionAccounting, D1ProjectionLimits, D1ProjectionSnapshot,
+use tos_compiler::projection_snapshot::{
+    ProjectionAccounting, ProjectionLimits, ProjectionSnapshot,
 };
 
 pub(crate) fn materialize_collections(
     root_bytes: &[u8],
     root_path: &Path,
     collections: &[&str],
-    limits: D1ProjectionLimits,
+    limits: ProjectionLimits,
     deadline: Instant,
-) -> Result<(Vec<u8>, D1ProjectionAccounting), String> {
-    let snapshot = D1ProjectionSnapshot::new(root_bytes.to_vec(), root_path.to_owned())
+) -> Result<(Vec<u8>, ProjectionAccounting), String> {
+    let snapshot = ProjectionSnapshot::new(root_bytes.to_vec(), root_path.to_owned())
         .map_err(|error| format!("partitioned projection root refused: {error}"))?;
     let mut projection = snapshot
         .metadata()
         .map_err(|error| format!("partitioned projection header refused: {error}"))?;
-    let mut used = D1ProjectionAccounting::default();
+    let mut used = ProjectionAccounting::default();
 
     for name in collections {
         if Instant::now() >= deadline {
             return Err("partitioned projection deadline exceeded".into());
         }
-        let remaining = D1ProjectionLimits {
+        let remaining = ProjectionLimits {
             max_opened_parts: limits.max_opened_parts.saturating_sub(used.opened_parts),
             max_read_bytes: limits.max_read_bytes.saturating_sub(
                 used.stored_bytes
@@ -156,7 +156,7 @@ mod tests {
             &root_bytes,
             &root_path,
             &["nodes", "relations"],
-            D1ProjectionLimits::default(),
+            ProjectionLimits::default(),
             Instant::now() + Duration::from_secs(5),
         )
         .unwrap();

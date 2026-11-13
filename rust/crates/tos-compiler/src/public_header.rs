@@ -1,11 +1,11 @@
 //! Header for the disposable public graph. Counts describe exactly the
-//! path-adapted rows used by Catalog, Search and the D1 SQL transport.
+//! path-adapted rows used by the prepared catalog and search.
 
 use crate::{
     Error, KnowledgeRegistry, Result,
-    d1_public_capture::{CreationState, PublicCapture},
     knowledge_stage::{CoreRoots, KnowledgeStage},
     native_normalization_binding::NativeNormalizationBinding,
+    public_capture::{CreationState, PublicCapture},
 };
 use serde_json::{Value, json};
 use std::collections::BTreeMap;

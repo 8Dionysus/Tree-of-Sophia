@@ -26,16 +26,11 @@ remain separate; D1 export, domain transfer and cloud removal are operator steps
 
 ## Legacy knowledge search
 
-The native access legacy scan is removed. The intended preservation tag is
-`retired/legacy-search`; the tag and its data archive must be established and
-verified by the landing owner. The separate retired Worker is handled by its
-own package.
+The native access legacy scan is retired under [`retired/legacy-search`](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/legacy-search); the diagnostic query-store reader under [`retired/query-store`](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/query-store), with the demo query-store data in `/abyss/Backups/archive/project-copies/tos-retired-20261112/local-demos/`. The former Worker D1 reader and publication route are retired under [`retired/d1-publication`](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/d1-publication).
 
 ## Indexed search V2
 
-The native indexed search V2 is retired. The intended preservation tag is
-[`retired/indexed-search-v2`](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/indexed-search-v2); the landing owner must establish and verify that
-tag and its data archive. The separate Worker/D1 retirement has its own package.
+The native indexed search V2 is retired under [`retired/indexed-search-v2`](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/indexed-search-v2).
 
 ## Compressed search V3
 
@@ -45,9 +40,11 @@ tag and its data archive. The separate Worker/D1 retirement has its own package.
 
 ## Prepared local search publication
 
-`tos-compiler/src/local_prepared.rs`, `local_prepared_search.rs` and `d1.rs` publish prepared SQLite/D1 data; `tos-access/src/prepared_local.rs` and the Worker consume it. `tos_local_prepared_read_model_v1` occurs in two tracked JSON files, including one frozen fixture; actual publication counts are unknown. Inspect configured local publication roots, SQLite metadata and D1 deployment bindings.
+`tos-compiler/src/local_prepared.rs` and `local_prepared_search.rs` publish prepared SQLite data, consumed by `tos-access/src/prepared_local.rs`. `tos_local_prepared_read_model_v1` occurs in two tracked JSON files, including one frozen fixture; actual publication counts are unknown. Inspect configured local publication roots and SQLite metadata.
 
-**Removal condition:** Every selected local and D1 publication is rebuilt from the chosen export, verified for source revision, rights, search parity and restore, and every supported reader switches. **Package:** Offline export and prepared-publication retirement. Preserve the separate public D1 and private source-access boundaries.
+The D1 publisher and its offline capture are retired from the checkout; their last software revision is tagged [retired/d1-publication](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/d1-publication). The operator owns the D1 export and cloud retirement after merge. Archive and restore verification are separate operator evidence.
+
+**Removal condition:** Every selected local publication is rebuilt from the chosen export, verified for source revision, rights, search parity and restore, and every supported reader switches. **Package:** Offline export and prepared-publication retirement.
 
 ## Source-text search
 

@@ -4,41 +4,6 @@
 #[cfg(feature = "source-tools")]
 pub mod catalog;
 #[cfg(feature = "source-tools")]
-pub mod d1;
-#[cfg(feature = "source-tools")]
-pub mod d1_prepared_pair;
-#[cfg(feature = "source-tools")]
-pub mod d1_projection_snapshot;
-#[cfg(feature = "source-tools")]
-mod d1_public_baseline;
-#[cfg(feature = "source-tools")]
-mod d1_public_build;
-mod d1_public_capture;
-#[cfg(feature = "source-tools")]
-mod d1_public_delta;
-#[cfg(feature = "source-tools")]
-mod d1_public_graph;
-#[cfg(feature = "source-tools")]
-mod d1_public_header;
-#[cfg(feature = "source-tools")]
-mod d1_public_knowledge;
-#[cfg(feature = "source-tools")]
-mod d1_public_lens;
-#[cfg(feature = "source-tools")]
-mod d1_public_lens_specs;
-#[cfg(feature = "source-tools")]
-mod d1_public_metadata;
-#[cfg(feature = "source-tools")]
-mod d1_public_publication;
-mod d1_public_rows;
-#[cfg(feature = "source-tools")]
-mod d1_public_schema;
-#[cfg(feature = "source-tools")]
-mod d1_public_semantics;
-#[cfg(feature = "source-tools")]
-mod d1_public_sql;
-mod d1_public_static;
-#[cfg(feature = "source-tools")]
 pub mod epistemic_evidence;
 pub mod local_prepared;
 pub mod local_prepared_aux;
@@ -63,25 +28,34 @@ pub mod prepared_source_binding;
 #[cfg(feature = "source-tools")]
 pub mod private_tmpfs_stage;
 #[cfg(feature = "source-tools")]
+pub mod projection_snapshot;
+#[cfg(feature = "source-tools")]
+mod public_build;
+mod public_capture;
+#[cfg(feature = "source-tools")]
 pub mod public_corpus_snapshot;
+#[cfg(feature = "source-tools")]
+mod public_graph;
+#[cfg(feature = "source-tools")]
+mod public_header;
+#[cfg(feature = "source-tools")]
+mod public_lens;
+#[cfg(feature = "source-tools")]
+mod public_lens_specs;
+mod public_rows;
+#[cfg(feature = "source-tools")]
+mod public_semantics;
+#[cfg(feature = "source-tools")]
+mod public_stage;
 #[cfg(feature = "source-tools")]
 pub mod pwe_native;
 #[cfg(feature = "source-tools")]
-pub use d1_public_build::{
-    PublicD1Build, PublicD1BuildLimits, build_public_d1, portable_public_d1_limits,
-    public_d1_limits,
-};
-pub use d1_public_capture::{
+pub use public_build::{PublicBuildLimits, portable_public_limits, public_limits};
+pub use public_capture::{
     PublicCapture, PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureCreationUsage,
     RuntimeCaptureOwnedBudget, RuntimeCaptureProfile, RuntimeCaptureRole,
 };
-#[cfg(feature = "source-tools")]
-pub use d1_public_knowledge::project_private_knowledge_row;
-#[cfg(feature = "source-tools")]
-pub use d1_public_lens::project_private_lens_auxiliary_rows;
-#[cfg(feature = "source-tools")]
-pub use d1_public_rows::project_private_navigation_row;
-pub use d1_public_rows::project_private_philosophy_view_row;
+pub use public_rows::project_private_philosophy_view_row;
 #[cfg(feature = "source-tools")]
 mod knowledge_base;
 #[cfg(feature = "source-tools")]

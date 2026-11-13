@@ -1,6 +1,6 @@
 //! Original component assembly from the same immutable public capture used by
 //! the native snapshot. These projection bytes convey custody, not admission.
-use crate::d1_public_capture::PublicCapture;
+use crate::public_capture::PublicCapture;
 use crate::{
     CapturedCorpusOriginalPlan, CorpusOriginalSourceLimits, Error, NativeFamilyInputs,
     NativeProducerLimits, PhilosophyOriginalCollection, PhilosophyOriginalInput, QueryVocabulary,
@@ -54,7 +54,7 @@ impl OriginalPlans {
 
     pub(crate) fn borrowed_owned(
         &self,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<BorrowedOriginalPlans<'_>> {
         state.retain(
             (self.nodes.len()
@@ -115,7 +115,7 @@ fn navigation_original_plan(
     limits: crate::NavigationOriginalLimits,
     deadline: Instant,
     cancelled: &AtomicBool,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<Option<NavigationOriginalPlan>> {
     check(deadline, cancelled)?;
     limits.validate()?;
@@ -211,7 +211,7 @@ pub(crate) fn prepare_owned<'a>(
     limits: CorpusOriginalSourceLimits,
     deadline: Instant,
     cancelled: &'a AtomicBool,
-    state: &'a crate::d1_public_capture::CreationState<'a>,
+    state: &'a crate::public_capture::CreationState<'a>,
 ) -> Result<OriginalPlans> {
     prepare_inner(
         capture,
@@ -231,7 +231,7 @@ fn prepare_inner<'a>(
     limits: CorpusOriginalSourceLimits,
     deadline: Instant,
     cancelled: &'a AtomicBool,
-    state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+    state: Option<&'a crate::public_capture::CreationState<'a>>,
 ) -> Result<OriginalPlans> {
     check(deadline, cancelled)?;
     limits.originals.validate()?;
@@ -260,18 +260,26 @@ fn prepare_inner<'a>(
         Some(state) => {
             let mut fields = serde_json::Map::new();
             let mut slots = 0;
-            capture.visit_header_fields("philosophy", "", limits.originals.max_row_bytes, |name, raw| {
-                let next = crate::knowledge_normalization::serde_object_slots_upper(fields.len() + 1)?;
-                state.retain(8 * std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'_, '_>>())?;
-                header_holds.push(state.hold(next - slots + name.len())?);
-                slots = next;
-                let (value, hold) = state.serde_scoped_with_limits(raw, json_limits)?;
-                header_holds.push(hold);
-                if fields.insert(name.to_owned(), value).is_some() {
-                    return Err(Error::Invalid("public D1 duplicate header path"));
-                }
-                Ok(())
-            })?;
+            capture.visit_header_fields(
+                "philosophy",
+                "",
+                limits.originals.max_row_bytes,
+                |name, raw| {
+                    let next =
+                        crate::knowledge_normalization::serde_object_slots_upper(fields.len() + 1)?;
+                    state.retain(
+                        8 * std::mem::size_of::<crate::public_capture::CreationStateHold<'_, '_>>(),
+                    )?;
+                    header_holds.push(state.hold(next - slots + name.len())?);
+                    slots = next;
+                    let (value, hold) = state.serde_scoped_with_limits(raw, json_limits)?;
+                    header_holds.push(hold);
+                    if fields.insert(name.to_owned(), value).is_some() {
+                        return Err(Error::Invalid("public D1 duplicate header path"));
+                    }
+                    Ok(())
+                },
+            )?;
             serde_json::Value::Object(fields)
         }
         None => capture.header_object("philosophy", "", limits.originals.max_row_bytes)?,
@@ -338,7 +346,7 @@ fn prepare_inner<'a>(
                 .ok_or(Error::Budget("snapshot philosophy header collection"))?;
             let value = if let Some(state) = state {
                 state.retain(
-                    8 * std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'_, '_>>(),
+                    8 * std::mem::size_of::<crate::public_capture::CreationStateHold<'_, '_>>(),
                 )?;
                 header_holds.push(state.hold(4 * std::mem::size_of::<serde_json::Value>())?);
                 let (value, hold) = state.serde_scoped_with_limits(raw, json_limits)?;
@@ -357,7 +365,7 @@ fn prepare_inner<'a>(
                 .ok_or(Error::Invalid("snapshot philosophy header"))?
                 .len();
             state.retain(
-                4 * std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'_, '_>>(),
+                4 * std::mem::size_of::<crate::public_capture::CreationStateHold<'_, '_>>(),
             )?;
             header_holds.push(state.hold(
                 crate::knowledge_normalization::serde_object_slots_upper(count + 1)?
@@ -429,9 +437,7 @@ fn prepare_inner<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::d1_public_capture::{
-        PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureRole,
-    };
+    use crate::public_capture::{PublicCaptureInputPaths, PublicCaptureLimits, RuntimeCaptureRole};
     use std::{fs, sync::Arc, time::Duration};
 
     #[test]

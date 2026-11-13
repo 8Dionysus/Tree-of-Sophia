@@ -5,9 +5,9 @@
 //! indexed exact endpoint lookups. The caller still owns all-source coverage
 //! and missing-endpoint proof; this is a private dependency, never a graph.
 
-use crate::d1_public_capture::{CreationState, CreationStateHold};
 use crate::knowledge_normalization::{OwnedSourceRow, SourceRow};
 use crate::knowledge_stage::{KnowledgeStage, NormalizedLogical, WritePhase};
+use crate::public_capture::{CreationState, CreationStateHold};
 use crate::{Error, Result};
 use rusqlite::{OptionalExtension, params};
 use serde_json::Value;

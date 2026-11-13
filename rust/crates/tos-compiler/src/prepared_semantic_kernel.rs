@@ -39,13 +39,13 @@ pub(crate) trait SemanticLookup {
 /// Callers with compound owner input pass its original `JsonValue` instead.
 pub(crate) fn python_str(value: &Value) -> Result<String> {
     let raw = serde_json::to_vec(value).map_err(|error| Error::Source(error.to_string()))?;
-    let parsed = crate::d1_public_capture::json(&raw, raw.len().max(1))?;
+    let parsed = crate::public_capture::json(&raw, raw.len().max(1))?;
     crate::local_prepared::python_value_string(&parsed)
 }
 
 fn python_repr_value(value: &Value) -> Result<String> {
     let raw = serde_json::to_vec(value).map_err(|error| Error::Source(error.to_string()))?;
-    let parsed = crate::d1_public_capture::json(&raw, raw.len().max(1))?;
+    let parsed = crate::public_capture::json(&raw, raw.len().max(1))?;
     python_repr_raw(&parsed)
 }
 
@@ -2431,7 +2431,7 @@ fn exact_record_digest(value: Option<&Value>) -> Result<String> {
     let value = value.ok_or(Error::Invalid("semantic exact record"))?;
     let raw = serde_json::to_vec(value).map_err(|error| Error::Source(error.to_string()))?;
     let cap = raw.len().max(1);
-    let json = crate::d1_public_capture::json(&raw, cap)?;
+    let json = crate::public_capture::json(&raw, cap)?;
     // Exact source identity uses the owner profile, not insertion-ordered
     // publication framing. Cargo feature unification may enable preserve_order.
     let canonical = tos_foundation::canonical_bytes_v1(

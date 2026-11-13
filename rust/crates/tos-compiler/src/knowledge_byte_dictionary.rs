@@ -6,7 +6,7 @@ use crate::knowledge_stage::KnowledgePayloadLayout;
 mod v4;
 use crate::{
     Error, Result,
-    d1_public_capture::{CreationState, CreationStateHold},
+    public_capture::{CreationState, CreationStateHold},
 };
 use rusqlite::{Connection, types::ValueRef};
 use tos_foundation::Digest256;

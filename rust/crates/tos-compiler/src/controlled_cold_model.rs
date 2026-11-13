@@ -132,7 +132,7 @@ pub struct ControlledKnowledgeModel<'model, 'state, 'budget> {
     navigation_original: Option<&'model crate::NavigationOriginalReceipt>,
     philosophy_original: Option<&'model crate::PhilosophyOriginalReceipt>,
     corpus_original: Option<&'model crate::CorpusOriginalReceipt>,
-    identity: &'model crate::d1_public_capture::ControlledCaptureIdentity,
+    identity: &'model crate::public_capture::ControlledCaptureIdentity,
     open_vm_steps: u64,
     cold_digest_read_bytes: u64,
     cold_validation_charged_bytes: u64,
@@ -142,7 +142,7 @@ pub struct ControlledKnowledgeModel<'model, 'state, 'budget> {
 /// Dynamic, same-original-state holds for query-owned per-row retention.
 /// Each node admits itself and the exact caller-reported heap retained with it.
 struct ControlledQueryHoldNode<'state, 'budget> {
-    _hold: crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+    _hold: crate::public_capture::CreationStateHold<'state, 'budget>,
     next: Option<Box<ControlledQueryHoldNode<'state, 'budget>>>,
 }
 
@@ -150,7 +150,7 @@ struct ControlledQueryHoldNode<'state, 'budget> {
 /// original counters, deadline and aggregate ceilings remain private.
 pub struct ControlledQueryHeap<'context, 'state, 'budget> {
     context: &'context RuntimeKnowledgeReadContext<'state, 'budget>,
-    state: &'state crate::d1_public_capture::CreationState<'budget>,
+    state: &'state crate::public_capture::CreationState<'budget>,
     holds: Option<Box<ControlledQueryHoldNode<'state, 'budget>>>,
 }
 impl ControlledQueryHeap<'_, '_, '_> {
@@ -2090,19 +2090,19 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
         ColdOpenLimits,
         &NativeSnapshotOwnedReadLoan<'_, '_>,
         &RuntimeKnowledgeReadContext<'state, 'budget>,
-        &crate::d1_public_capture::CreationState<'budget>,
+        &crate::public_capture::CreationState<'budget>,
         ControlledKnowledgeModel<'_, 'state, 'budget>,
-        crate::d1_public_capture::ControlledCaptureIdentity,
+        crate::public_capture::ControlledCaptureIdentity,
         u64,
         crate::knowledge_payload_read::RuntimeKnowledgeSqlHook<'_, 'state, 'budget>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
         std::fs::Metadata,
         std::io::Result<std::fs::Metadata>,
         std::io::Result<()>,
         Result<()>,
         Result<()>,
         Result<bool>,
-        Result<crate::d1_public_capture::ControlledCaptureIdentity>,
+        Result<crate::public_capture::ControlledCaptureIdentity>,
         tos_source_store::PinnedSqliteConnection,
         Result<tos_source_store::PinnedSqliteConnection>,
         std::result::Result<tos_source_store::PinnedSqliteConnection, tos_source_store::StoreError>,
@@ -2139,7 +2139,7 @@ pub(crate) fn with_controlled_selected_knowledge_model<'state, 'budget>(
             u64,
             usize,
             usize,
-            crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+            crate::public_capture::CreationStateHold<'state, 'budget>,
         )>,
     )>()
     .checked_add(std::mem::size_of_val(&consume))
