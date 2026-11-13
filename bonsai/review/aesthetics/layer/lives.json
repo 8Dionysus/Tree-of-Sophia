@@ -5978,26 +5978,24 @@
   "fetched": "2026-11-13"
  },
  "guy-sircello": {
-  "item": null,
+  "item": "Q5622598",
   "label": {
-   "ru": "Гай Сирчелло",
-   "en": "Guy Sircello"
+   "en": "Guy Sircello",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Guy Sircello"
-   },
-   {
-    "kind": "work",
-    "query": "A New Theory of Beauty"
+    "time": "+1936-01-01T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [
+   {
+    "time": "+1992-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "fetched": "2026-11-12",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -6023,6 +6021,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "A New Theory of Beauty",
+   "source": "https://academic.oup.com/jaac/article-abstract/35/3/361/6337650",
+   "person_url": "https://www.wikidata.org/wiki/Q5622598",
+   "basis": "The review names the author and exact title; the linked philosopher’s article identifies this book."
   }
  },
  "hadrien-ceyte": {
@@ -16826,16 +16830,24 @@
   "fetched": "2026-11-13"
  },
  "victor-papanek": {
-  "item": null,
+  "item": "Q89542",
   "label": {
-   "ru": "Виктор Папанек",
-   "en": "Victor Papanek"
+   "en": "Victor Papanek",
+   "ru": "Виктор Папанек"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1923-11-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1998-01-14T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-12",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16861,6 +16873,16 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Design for the Real World",
+   "source": "https://papanek.org/archivelibrary/victor-papanek/",
+   "person_url": "https://www.wikidata.org/wiki/Q89542",
+   "basis": "The Papanek Foundation identifies this designer and the exact work; the linked person article corresponds to the Wikidata entry."
+  },
+  "date_note": {
+   "source": "https://en.wikipedia.org/wiki/Victor_Papanek",
+   "statement": "The linked biography gives 10 January 1998, while Wikidata gives 14 January 1998. Both agree on the year; the day is unresolved."
   }
  },
  "victor-turner": {
