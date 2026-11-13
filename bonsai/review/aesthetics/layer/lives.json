@@ -80,7 +80,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -114,7 +114,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -205,7 +205,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -296,16 +296,28 @@
   "checked": "2026-11-13"
  },
  "alois-riegl": {
-  "item": null,
+  "item": "Q692100",
   "label": {
-   "ru": "Алоиз Ригль",
-   "en": "Alois Riegl"
+   "en": "Alois Riegl",
+   "ru": "Алоиз Ригль"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1858-01-14T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1905-06-17T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1858,
+   "died": 1905
+  }
  },
  "amparo-caballero": {
   "item": null,
@@ -629,16 +641,28 @@
   "checked": "2026-11-13"
  },
  "benedetto-croce": {
-  "item": null,
+  "item": "Q192348",
   "label": {
-   "ru": "Бенедетто Кроче",
-   "en": "Benedetto Croce"
+   "en": "Benedetto Croce",
+   "ru": "Бенедетто Кроче"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1866-02-25T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1952-11-20T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1866,
+   "died": 1952
+  }
  },
  "benno-belke": {
   "item": null,
@@ -874,16 +898,28 @@
   "identity_work": "Q1192325"
  },
  "charles-sanders-peirce": {
-  "item": null,
+  "item": "Q187520",
   "label": {
-   "ru": "Чарльз Сандерс Пирс",
-   "en": "Charles Sanders Peirce"
+   "en": "Charles Sanders Peirce",
+   "ru": "Чарльз Сандерс Пирс"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1839-09-10T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1914-04-19T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1839,
+   "died": 1914
+  }
  },
  "charles-spence": {
   "item": null,
@@ -990,7 +1026,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -1049,16 +1085,32 @@
   "checked": "2026-11-13"
  },
  "clive-bell": {
-  "item": null,
+  "item": "Q684978",
   "label": {
-   "ru": "Клайв Белл",
-   "en": "Clive Bell"
+   "en": "Clive Bell",
+   "ru": "Клайв Белл"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1881-09-16T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1964-09-18T00:00:00Z",
+    "precision": 11
+   },
+   {
+    "time": "+1962-09-18T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1881,
+   "died": 1964
+  }
  },
  "colin-mcginn": {
   "item": null,
@@ -1073,16 +1125,28 @@
   "checked": "2026-11-13"
  },
  "colin-radford": {
-  "item": null,
+  "item": "Q16015106",
   "label": {
-   "ru": "Колин Рэдфорд",
-   "en": "Colin Radford"
+   "en": "Colin Radford",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1935-02-27T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2001-04-09T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1935,
+   "died": 2001
+  }
  },
  "confucius": {
   "item": null,
@@ -1141,7 +1205,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -1373,16 +1437,28 @@
   "checked": "2026-11-13"
  },
  "dick-higgins": {
-  "item": null,
+  "item": "Q1209700",
   "label": {
-   "ru": "Дик Хиггинс",
-   "en": "Dick Higgins"
+   "en": "Dick Higgins",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1938-03-15T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1998-10-25T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1938,
+   "died": 1998
+  }
  },
  "dominic-mciver-lopes": {
   "item": null,
@@ -1421,16 +1497,28 @@
   "checked": "2026-11-13"
  },
  "donald-davidson": {
-  "item": null,
+  "item": "Q311772",
   "label": {
-   "ru": "Дональд Дэвидсон",
-   "en": "Donald Davidson"
+   "en": "Donald Davidson",
+   "ru": "Дональд Дэвидсон"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1917-03-06T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2003-08-30T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1917,
+   "died": 2003
+  }
  },
  "dorothee-augustin": {
   "item": null,
@@ -1563,16 +1651,28 @@
   "fetched": "2026-11-12"
  },
  "edmund-husserl": {
-  "item": null,
+  "item": "Q58586",
   "label": {
-   "ru": "Эдмунд Гуссерль",
-   "en": "Edmund Husserl"
+   "en": "Edmund Husserl",
+   "ru": "Эдмунд Густав Альбрехт Гуссерль"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1859-04-08T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1938-04-27T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1859,
+   "died": 1938
+  }
  },
  "eduard-hanslick": {
   "item": "Q84246",
@@ -1867,16 +1967,28 @@
   "fetched": "2026-11-12"
  },
  "erwin-panofsky": {
-  "item": null,
+  "item": "Q57656",
   "label": {
-   "ru": "Эрвин Панофский",
-   "en": "Erwin Panofsky"
+   "en": "Erwin Panofsky",
+   "ru": "Эрвин Панофский"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1892-03-30T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1968-03-14T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1892,
+   "died": 1968
+  }
  },
  "esther-leslie": {
   "item": null,
@@ -1998,16 +2110,28 @@
   "fetched": "2026-11-12"
  },
  "frank-sibley": {
-  "item": null,
+  "item": "Q5489565",
   "label": {
-   "ru": "Фрэнк Сибли",
-   "en": "Frank Sibley"
+   "en": "Frank Sibley",
+   "ru": "Фрэнк Сибли"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1923-02-28T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1996-02-18T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1923,
+   "died": 1996
+  }
  },
  "frantz-fanon": {
   "item": "Q193670",
@@ -2043,16 +2167,28 @@
   "checked": "2026-11-13"
  },
  "fredric-jameson": {
-  "item": null,
+  "item": "Q347362",
   "label": {
-   "ru": "Фредрик Джеймисон",
-   "en": "Fredric Jameson"
+   "en": "Fredric Jameson",
+   "ru": "Фредрик Джеймисон"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1934-04-14T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2024-09-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1934,
+   "died": 2024
+  }
  },
  "friedrich-nietzsche": {
   "item": "Q9358",
@@ -2190,16 +2326,28 @@
   "checked": "2026-11-13"
  },
  "gaston-bachelard": {
-  "item": null,
+  "item": "Q270800",
   "label": {
-   "ru": "Гастон Башляр",
-   "en": "Gaston Bachelard"
+   "en": "Gaston Bachelard",
+   "ru": "Гастон Башляр"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1884-06-27T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1962-10-16T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1884,
+   "died": 1962
+  }
  },
  "geoff-f-kaufman": {
   "item": null,
@@ -2282,16 +2430,28 @@
   "checked": "2026-11-13"
  },
  "george-dickie": {
-  "item": null,
+  "item": "Q2743779",
   "label": {
-   "ru": "Джордж Дики",
-   "en": "George Dickie"
+   "en": "George Dickie",
+   "ru": "Джордж Дики"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1926-08-12T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2020-03-24T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1926,
+   "died": 2020
+  }
  },
  "george-kinnear": {
   "item": null,
@@ -2327,30 +2487,28 @@
   "identity_work": "Q7763293"
  },
  "georges-bataille": {
-  "item": null,
+  "item": "Q207359",
   "label": {
-   "ru": "Жорж Батай",
-   "en": "Georges Bataille"
+   "en": "Georges Bataille",
+   "ru": "Жорж Батай"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Georges Bataille"
-   },
-   {
-    "kind": "work",
-    "query": "Informe"
-   },
-   {
-    "kind": "work",
-    "query": "L’Érotisme"
+    "time": "+1897-09-10T00:00:00Z",
+    "precision": 11
    }
   ],
-  "checked": "2026-11-13"
+  "died": [
+   {
+    "time": "+1962-07-09T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1897,
+   "died": 1962
+  }
  },
  "gerhard-thonhauser": {
   "item": null,
@@ -2365,40 +2523,76 @@
   "checked": "2026-11-13"
  },
  "gernot-boehme": {
-  "item": null,
+  "item": "Q92276",
   "label": {
-   "ru": "Гернот Бёме",
-   "en": "Gernot Böhme"
+   "en": "Gernot Böhme",
+   "ru": "Гернот Бёме"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1937-01-03T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2022-01-20T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1937,
+   "died": 2022
+  }
  },
  "gian-carlo-rota": {
-  "item": null,
+  "item": "Q1522271",
   "label": {
-   "ru": "Джан-Карло Рота",
-   "en": "Gian-Carlo Rota"
+   "en": "Gian-Carlo Rota",
+   "ru": "Джан-Карло Рота"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1932-04-27T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1999-04-18T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1932,
+   "died": 1999
+  }
  },
  "gilles-deleuze": {
-  "item": null,
+  "item": "Q184226",
   "label": {
-   "ru": "Жиль Делёз",
-   "en": "Gilles Deleuze"
+   "en": "Gilles Deleuze",
+   "ru": "Жиль Делёз"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1925-01-18T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1995-11-04T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1925,
+   "died": 1995
+  }
  },
  "giorgio-agamben": {
   "item": null,
@@ -2614,16 +2808,28 @@
   "checked": "2026-11-13"
  },
  "harry-mcgurk": {
-  "item": null,
+  "item": "Q2784387",
   "label": {
-   "ru": "Гарри Мак-Гурк",
-   "en": "Harry McGurk"
+   "en": "Harry McGurk",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1936-02-23T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1998-04-17T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1936,
+   "died": 1998
+  }
  },
  "heinrich-woelfflin": {
   "item": "Q123466",
@@ -2699,16 +2905,28 @@
   "fetched": "2026-11-12"
  },
  "hermann-schmitz": {
-  "item": null,
+  "item": "Q112038",
   "label": {
-   "ru": "Герман Шмиц",
-   "en": "Hermann Schmitz"
+   "en": "Hermann Schmitz",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1928-05-16T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2021-05-05T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1928,
+   "died": 2021
+  }
  },
  "hiram-brownell": {
   "item": null,
@@ -2731,7 +2949,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -3085,16 +3303,28 @@
   "checked": "2026-11-13"
  },
  "jean-baudrillard": {
-  "item": null,
+  "item": "Q182847",
   "label": {
-   "ru": "Жан Бодрийяр",
-   "en": "Jean Baudrillard"
+   "en": "Jean Baudrillard",
+   "ru": "Жан Бодрийяр"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1929-07-27T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2007-03-06T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1929,
+   "died": 2007
+  }
  },
  "jean-francois-lyotard": {
   "item": null,
@@ -3190,16 +3420,28 @@
   "checked": "2026-11-13"
  },
  "johan-huizinga": {
-  "item": null,
+  "item": "Q276280",
   "label": {
-   "ru": "Йохан Хёйзинга",
-   "en": "Johan Huizinga"
+   "en": "Johan Huizinga",
+   "ru": "Йохан Хёйзинга"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1872-12-07T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1945-02-01T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1872,
+   "died": 1945
+  }
  },
  "johann-joachim-winckelmann": {
   "item": "Q57280",
@@ -3296,7 +3538,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -3625,7 +3867,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -3663,17 +3905,32 @@
   "checked": "2026-11-13"
  },
  "kazimir-malevich": {
-  "item": null,
+  "item": "Q130777",
   "label": {
-   "ru": "Казимир Малевич",
    "en": "Kazimir Malevich",
-   "original": "Казимир Северинович Малевич"
+   "ru": "Казимир Малевич"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1879-02-11T00:00:00Z",
+    "precision": 11
+   },
+   {
+    "time": "+1879-02-23T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1935-05-15T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1879,
+   "died": 1935
+  }
  },
  "kendall-l-walton": {
   "item": null,
@@ -3872,16 +4129,28 @@
   "fetched": "2026-11-12"
  },
  "leonard-b-meyer": {
-  "item": null,
+  "item": "Q6525088",
   "label": {
-   "ru": "Леонард Мейер",
-   "en": "Leonard B. Meyer"
+   "en": "Leonard B. Meyer",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1918-01-12T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2007-12-30T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1918,
+   "died": 2007
+  }
  },
  "lev-manovich": {
   "item": null,
@@ -4329,16 +4598,28 @@
   "identity_work": "Q2714332"
  },
  "max-black": {
-  "item": null,
+  "item": "Q687424",
   "label": {
-   "ru": "Макс Блэк",
-   "en": "Max Black"
+   "en": "Max Black",
+   "ru": "Макс Блэк"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1909-02-24T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1988-08-27T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1909,
+   "died": 1988
+  }
  },
  "max-horkheimer": {
   "item": null,
@@ -4413,16 +4694,28 @@
   "checked": "2026-11-13"
  },
  "meyer-schapiro": {
-  "item": null,
+  "item": "Q533444",
   "label": {
-   "ru": "Мейер Шапиро",
-   "en": "Meyer Schapiro"
+   "en": "Meyer Schapiro",
+   "ru": "Мейер Шапиро"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1904-09-23T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1996-03-03T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1904,
+   "died": 1996
+  }
  },
  "michael-squire": {
   "item": null,
@@ -4457,7 +4750,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -4503,7 +4796,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -6077,16 +6370,28 @@
   "checked": "2026-11-13"
  },
  "pierre-bourdieu": {
-  "item": null,
+  "item": "Q156268",
   "label": {
-   "ru": "Пьер Бурдьё",
-   "en": "Pierre Bourdieu"
+   "en": "Pierre Bourdieu",
+   "ru": "Пьер Бурдьё"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1930-08-01T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2002-01-23T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1930,
+   "died": 2002
+  }
  },
  "pierre-destree": {
   "item": null,
@@ -6222,16 +6527,28 @@
   "checked": "2026-11-13"
  },
  "r-g-collingwood": {
-  "item": null,
+  "item": "Q317075",
   "label": {
-   "ru": "Робин Джордж Коллингвуд",
-   "en": "R. G. Collingwood"
+   "en": "R. G. Collingwood",
+   "ru": "Робин Джордж Коллингвуд"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1889-02-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1943-01-09T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1889,
+   "died": 1943
+  }
  },
  "r-l-dyer": {
   "item": null,
@@ -6361,7 +6678,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -6387,16 +6704,28 @@
   "checked": "2026-11-13"
  },
  "richard-wollheim": {
-  "item": null,
+  "item": "Q614749",
   "label": {
-   "ru": "Ричард Воллхайм",
-   "en": "Richard Wollheim"
+   "en": "Richard Wollheim",
+   "ru": "Воллхайм Ричард"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1923-05-05T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2003-11-04T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1923,
+   "died": 2003
+  }
  },
  "robert-hopkins": {
   "item": null,
@@ -6435,16 +6764,28 @@
   "checked": "2026-11-13"
  },
  "roland-barthes": {
-  "item": null,
+  "item": "Q179109",
   "label": {
-   "ru": "Ролан Барт",
-   "en": "Roland Barthes"
+   "en": "Roland Barthes",
+   "ru": "Ролан Барт"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1915-11-12T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1980-03-26T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1915,
+   "died": 1980
+  }
  },
  "rolf-reber": {
   "item": null,
@@ -6771,7 +7112,7 @@
   "born": [],
   "died": [],
   "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
+  "reason": "exact work-to-author P50 match not found",
   "searched": [
    {
     "kind": "person",
@@ -7065,16 +7406,28 @@
   "checked": "2026-11-13"
  },
  "svetlana-boym": {
-  "item": null,
+  "item": "Q12293289",
   "label": {
-   "ru": "Светлана Бойм",
-   "en": "Svetlana Boym"
+   "en": "Svetlana Boym",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1959-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "died": [
+   {
+    "time": "+2015-08-05T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1959,
+   "died": 2015
+  }
  },
  "t-s-eliot": {
   "item": "Q37767",
@@ -7612,17 +7965,28 @@
   "checked": "2026-11-13"
  },
  "viktor-shklovsky": {
-  "item": null,
+  "item": "Q312467",
   "label": {
-   "ru": "Виктор Шкловский",
    "en": "Viktor Shklovsky",
-   "original": "Виктор Борисович Шкловский"
+   "ru": "Виктор Борисович Шкловский"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1893-01-12T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1984-12-05T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1893,
+   "died": 1984
+  }
  },
  "viktor-v-bychkov": {
   "item": null,
@@ -7747,16 +8111,28 @@
   "checked": "2026-11-13"
  },
  "walter-gropius": {
-  "item": null,
+  "item": "Q61071",
   "label": {
-   "ru": "Вальтер Гропиус",
-   "en": "Walter Gropius"
+   "en": "Walter Gropius",
+   "ru": "Вальтер Гропиус"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no exact work-author P50 match in the queried language labels",
-  "checked": "2026-11-13"
+  "born": [
+   {
+    "time": "+1883-05-18T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1969-07-05T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-13",
+  "identity_register": {
+   "born": 1883,
+   "died": 1969
+  }
  },
  "wassily-kandinsky": {
   "item": "Q61064",
