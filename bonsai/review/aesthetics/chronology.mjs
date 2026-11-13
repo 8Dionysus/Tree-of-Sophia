@@ -62,7 +62,8 @@ const timeRecord=claim=>{
     const entries=(claim.qualifiers?.[prop]??[]).map(item=>item.datavalue?.value).filter(item=>item?.time).map(item=>({time:item.time,precision:item.precision}));
     return entries.length?[[name,entries]]:[];
   }));
-  const uncertain=Object.keys(bounds).length>0||qualifiers.some(id=>!calendars.has(id))||!!value.before||!!value.after||(qualification.length>0&&(value.precision===9||/-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T/.test(value.time)));
+  const bounded=['P1319','P1326'].some(prop=>(claim.qualifiers?.[prop]??[]).length>0);
+  const uncertain=bounded||qualifiers.some(id=>!calendars.has(id))||!!value.before||!!value.after||(qualification.length>0&&(value.precision===9||/-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T/.test(value.time)));
   return {time:value.time,precision:value.precision,...(qualification.length?{qualifiers}:{}),...(Object.keys(bounds).length?{bounds}:{}),...(uncertain?{approximate:true}:{}),...(value.before?{before:value.before}:{}),...(value.after?{after:value.after}:{})};
 };
 // Refresh the qualified date claims for already identified people in bounded batches.
