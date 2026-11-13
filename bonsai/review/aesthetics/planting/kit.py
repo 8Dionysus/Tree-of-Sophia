@@ -1226,6 +1226,12 @@ def cmd_unblock(args):
     if not os.path.isfile(file):die('no block is recorded')
     os.unlink(file);print('block cleared; make the packet and run its gate')
 
+def cmd_witness_parent(args):
+    work=args.work;w=world()
+    if work not in w['fragments']['works']:die('the work must already be in fragments.json')
+    path=os.path.join(PACKETS,work);os.makedirs(path,exist_ok=True)
+    print(path)
+
 def cmd_witness_open(args):
     path=packet(args.packet);file=witness_file(path,args.language)
     if os.path.exists(file):die('witness already exists')
@@ -1374,6 +1380,9 @@ def witness_problems(path,lang,data,second=False,offline=False):
     if not any(p.get('role')=='translator' for p in people):add('translator is missing')
     if not any(p.get('role')=='author' for p in people):add('author is missing')
     original_authors=[p for p in (evidence(path).get('persons') or []) if p.get('role')=='author']
+    if not original_authors:
+        w=world();known=w.get('works',{}).get(work_of(path)) or {};agents=w.get('agents',{})
+        original_authors=[{'role':'author','name':agents[agent]['name']} for agent in known.get('agents',[]) if agent in agents]
     for author in original_authors:
         def same(p):
             if author.get('qid') and p.get('qid'):return author['qid']==p['qid']
@@ -1469,6 +1478,7 @@ def main():
     P=(('packet',),{})
     sub('extension-open',cmd_extension_open,P,(('name',),{}),(('--keys',),{'required':True}));
     sub('import',cmd_import,P,(('part',),{'choices':['places','reading','review','blocked']}),(('file',),{}));sub('unblock',cmd_unblock,P)
+    sub('witness-parent',cmd_witness_parent,(('work',),{}));
     sub('witness-open',cmd_witness_open,P,(('language',),{}),(('metadata',),{}))
     sub('witness-info',cmd_witness_info,P,(('language',),{}),(('file',),{}));
     sub('witness-rights',cmd_witness_rights,P,(('language',),{}),(('jurisdiction',),{'choices':JURISDICTIONS}),(('basis',),{'choices':sorted(BASES)}),(('law',),{}));

@@ -45,7 +45,7 @@ const fragments=existsSync(join(home,'fragments.json'))?json(join(home,'fragment
  *  reads one more packet as if it were accepted, so that a reader can try the planting before anyone accepts it. */
 const packetsDir=join(here,'planting','packets'),tried=process.argv.includes('--packet')?process.argv[process.argv.indexOf('--packet')+1]:null;
 const packets=(existsSync(packetsDir)?readdirSync(packetsDir,{withFileTypes:true}).filter(entry=>entry.isDirectory()).map(entry=>entry.name).sort():[])
-  .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried);
+  .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried||(()=>{const dir=join(packetsDir,name,'witnesses');return existsSync(dir)&&readdirSync(dir).some(file=>file.endsWith('.json.accepted'));})());
 const seconds=[],whole=[];
 // Remove the previous translation projection before rebuilding it from reviewed packets.
 for(const [name,languages] of Object.entries(fragments.provenance.translation_packets??{})){
@@ -85,9 +85,13 @@ for(const name of fragments.provenance.packets??[])if(!packets.includes(name)){
   fragments.provenance.corrections=fragments.provenance.corrections.filter(correction=>!correction.place.startsWith(`${name} `));
 }
 for(const name of packets){
-  const at=join(packetsDir,name),path=`bonsai/review/aesthetics/planting/packets/${name}`,places=json(join(at,'places.json'));
-  records.push({name:`planting/packets/${name}/reading.json`,path:`${path}/reading.json`,...json(join(at,'reading.json'))});
-  if(existsSync(join(at,'review.json'))){const {reader}=json(join(at,'review.json'));seconds.push({...reader,record:`${path}/review.json`});}
+  const at=join(packetsDir,name),path=`bonsai/review/aesthetics/planting/packets/${name}`;
+  const hasReading=existsSync(join(at,'accepted.json'))||name===tried;
+  const places=hasReading?json(join(at,'places.json')):{entry:null,places:{},corrections:[]};
+  if(hasReading){
+    records.push({name:`planting/packets/${name}/reading.json`,path:`${path}/reading.json`,...json(join(at,'reading.json'))});
+    if(existsSync(join(at,'review.json'))){const {reader}=json(join(at,'review.json'));seconds.push({...reader,record:`${path}/review.json`});}
+  }
   if(places.entry){fragments.works[name]=places.entry;whole.push(name);}
   if(!fragments.works[name])fail(`packet ${name}: no entry for a work the places module does not hold`);
   fragments.places[name]={...(places.entry?{}:fragments.places[name]),...places.places};
@@ -231,7 +235,7 @@ const participant=(person)=>{
   const life=lifeByItem.get(item);
   return {role:person.role,name:person.name??life?.label??null,...(item?{qid:item}:{}),
     source:person.source??(item?`https://www.wikidata.org/wiki/${item}`:null),
-    born:life?.born??(Number.isInteger(person.born)?[{year:person.born}]:[]),died:life?.died??(Number.isInteger(person.died)?[{year:person.died}]:[])};
+    born:life?.born?.length?life.born:(Number.isInteger(person.born)?[{year:person.born}]:[]),died:life?.died?.length?life.died:(Number.isInteger(person.died)?[{year:person.died}]:[])};
 };
 for(const name of packets){
   const file=join(packetsDir,name,'evidence.json'),work=fragments.works[name];
