@@ -3695,7 +3695,53 @@
       "areas": [
         "AE11"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Gary D. Sherman",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1037/a0014904"
+          ]
+        },
+        {
+          "name": "Jonathan Haidt",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1037/a0014904"
+          ]
+        },
+        {
+          "name": "James A. Coan",
+          "role": "coauthor",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.crossref.org/works/10.1037/a0014904"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Emotion 9(2), pp.282–286, 2009",
+          "doi": "10.1037/a0014904",
+          "url": "https://pubmed.ncbi.nlm.nih.gov/19348541/",
+          "status": "Europe PMC abstract personally read; full-text version and precise sentence pagination not inspected. Crossref supplies no licence; study abstract availability does not establish open reuse."
+        }
+      ],
+      "requested_places": [
+        "A:E169: abstract, two experiments and subsequent fine-motor task"
+      ],
+      "searches": [
+        {
+          "source": "Europe PMC and Crossref",
+          "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:10.1037/a0014904&format=json&resultType=core",
+          "result": "Abstract reports two experiments contrasting infant and adult animal images and a fine-motor task, limited to the stated experimental design; do not treat as universal effect. Europe PMC does not list an open licence."
+        }
+      ],
+      "remaining": "Find lawful full text, verify version, authors and dates, applicable quotation basis, exact place and all requested translations and sources; no absence inferred."
     },
     {
       "work": "george-kinnear.does-understanding-moderate-aesthetic-appraisals",
