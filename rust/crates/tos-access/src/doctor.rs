@@ -157,9 +157,9 @@ fn diagnostic_limits() -> source_diagnostic::Limits {
         max_work_steps: 1_000_000,
     }
 }
-fn partitioned_projection_limits() -> tos_compiler::d1_projection_snapshot::D1ProjectionLimits {
+fn partitioned_projection_limits() -> tos_compiler::projection_snapshot::ProjectionLimits {
     let limits = diagnostic_limits();
-    tos_compiler::d1_projection_snapshot::D1ProjectionLimits {
+    tos_compiler::projection_snapshot::ProjectionLimits {
         max_opened_parts: limits.max_work_steps,
         max_read_bytes: limits.max_input_bytes,
         max_stored_read_bytes: limits.max_input_bytes,

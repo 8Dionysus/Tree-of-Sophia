@@ -500,7 +500,7 @@ fn read_json(
             &bytes,
             &selected.path,
             collections,
-            tos_compiler::d1_projection_snapshot::D1ProjectionLimits {
+            tos_compiler::projection_snapshot::ProjectionLimits {
                 max_opened_parts: cap_bytes,
                 max_read_bytes: cap_bytes,
                 max_stored_read_bytes: cap_bytes,

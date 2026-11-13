@@ -1864,7 +1864,7 @@ fn execute_root(
             let remaining_input = fence.meter.remaining_input();
             let remaining_rows = fence.meter.max_rows.saturating_sub(fence.meter.rows);
             let remaining_state = fence.meter.max_state.saturating_sub(fence.meter.state);
-            let limits = tos_compiler::d1_projection_snapshot::D1ProjectionLimits {
+            let limits = tos_compiler::projection_snapshot::ProjectionLimits {
                 max_opened_parts: remaining_rows,
                 max_read_bytes: remaining_input,
                 max_stored_read_bytes: remaining_input,

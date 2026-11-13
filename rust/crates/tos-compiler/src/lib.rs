@@ -28,6 +28,8 @@ pub mod prepared_source_binding;
 #[cfg(feature = "source-tools")]
 pub mod private_tmpfs_stage;
 #[cfg(feature = "source-tools")]
+pub mod projection_snapshot;
+#[cfg(feature = "source-tools")]
 mod public_build;
 mod public_capture;
 #[cfg(feature = "source-tools")]
