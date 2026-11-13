@@ -39,6 +39,19 @@ export function translationScopesIssues(module){
   return issues;
 }
 const BASES=['public-domain','public-domain+licence','short-quotation','locator-only'];
+const JURISDICTIONS=['russia','usa','eu'];
+// Legacy witnesses predate territorial records; newer records must be complete.
+export function rightsBases(rights){
+  const entries=JURISDICTIONS.map(country=>rights?.[country]);
+  if(!entries.some(entry=>entry&&typeof entry==='object')&&BASES.includes(rights?.basis))return [rights.basis];
+  if(entries.some(entry=>!BASES.includes(entry?.basis)||typeof entry?.law!=='string'||!entry.law.trim()))return [];
+  return entries.map(entry=>entry.basis);
+}
+// Without a jurisdiction signal use the intersection of the three permissions.
+export function fragmentMayShow(witness){
+  const bases=rightsBases(witness?.rights);
+  return bases.length>0&&!bases.includes('locator-only');
+}
 // What a link opens: the whole work, the page a quotation is taken from, or where a book can be found.
 const OPENS=['work','quotation','book'];
 const bilingual=value=>typeof value?.ru==='string'&&value.ru.trim()&&typeof value?.en==='string'&&value.en.trim();
@@ -53,8 +66,9 @@ export function externalPlacesIssues(module){
     if(typeof work.original!=='string'||!work.original)problems.push(`work ${id} names no original language`);
     for(const [language,witness] of Object.entries(work.witnesses??{})){
       for(const field of ['edition','attribution'])if(!witness?.[field])problems.push(`work ${id} ${language} witness has no ${field}`);
-      if(!BASES.includes(witness?.rights?.basis))problems.push(`work ${id} ${language} witness has no rights basis`);
-      if(witness?.rights?.basis!=='locator-only'&&!/^https:\/\//.test(witness?.url??''))problems.push(`work ${id} ${language} witness has no source URL`);
+      const bases=rightsBases(witness?.rights);
+      if(!bases.length)problems.push(`work ${id} ${language} witness has no rights basis`);
+      if(bases.some(basis=>basis!=='locator-only')&&!/^https:\/\//.test(witness?.url??''))problems.push(`work ${id} ${language} witness has no source URL`);
       if(witness?.opens!==undefined&&!OPENS.includes(witness.opens))problems.push(`work ${id} ${language} witness opens ${witness.opens}`);
     }
   }
@@ -73,10 +87,12 @@ export function externalPlacesIssues(module){
       for(const [language,text] of Object.entries(place.texts??{})){
         if(text===null)continue;
         if(typeof text!=='string'||!text.trim())problems.push(`${id} ${loc} ${language} text is empty`);
-        const basis=witnessOf(language)?.rights?.basis;
-        if(!basis)problems.push(`${id} ${loc} has ${language} text without a witness`);
-        if(basis==='locator-only')problems.push(`${id} ${loc} shows ${language} text of a work cited by locator only`);
-        if(basis==='short-quotation'&&text.length>900)problems.push(`${id} ${loc} ${language} quotation is longer than a short quotation`);
+        const bases=rightsBases(witnessOf(language)?.rights);
+        if(!bases.length)problems.push(`${id} ${loc} has ${language} text without a witness`);
+        if(bases.length===1&&bases[0]==='locator-only')problems.push(`${id} ${loc} shows ${language} text of a work cited by locator only`);
+        const territorial=['russia','usa','eu'].some(country=>typeof witnessOf(language)?.rights?.[country]==='object');
+        const tooLong=Array.from(text).length>900||(territorial&&(text.match(/[.!?…]+[”»’"')\]]*(?=\s|$)/gu)??[]).length>3);
+        if(bases.includes('short-quotation')&&tooLong&&(!territorial||String(place.quotation_justification?.[language]??'').trim().length<30))problems.push(`${id} ${loc} ${language} quotation is longer than a short quotation`);
       }
     }
   }

@@ -105,7 +105,7 @@ describe('the Aesthetics field',()=>{
       const work=Object.keys(fragments.places).find(id=>place.startsWith(`${id} `)),text=fragments.places[work][place.slice(work.length+1)].texts[lang];
       expect(text,place).toContain(to);expect(text,place).not.toContain(from);
     }
-    for(const work of Object.values(fragments.works))for(const witness of Object.values(work.witnesses))expect(witness.rights.basis).toBe('public-domain');
+    for(const work of Object.values(fragments.works))for(const witness of Object.values(work.witnesses))expect(['russia','usa','eu'].every(country=>witness.rights[country]?.basis==='public-domain')).toBe(true);
   });
   it('holds back what its own reader made until another reader has read the place',()=>{
     const read=readField(field),division=field.conceptions.find(conception=>conception.id===`${KANT}:division-of-the-sublime`);

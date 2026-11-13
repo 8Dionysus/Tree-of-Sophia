@@ -83,3 +83,182 @@ class QuotedPlaceTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class JurisdictionDatesTest(unittest.TestCase):
+    def test_boundaries_are_relative_to_the_running_year(self):
+        self.assertEqual(kit.public_domain_by_dates([{'died': 1951}], 1930, 2026),
+                         {'russia': True, 'usa': True, 'eu': True})
+        self.assertEqual(kit.public_domain_by_dates([{'died': 1952}], 1931, 2026),
+                         {'russia': False, 'usa': False, 'eu': True})
+        self.assertTrue(kit.public_domain_by_dates([{'died': 1955, 'wartime': False}], 1930, 2026)['russia'])
+        self.assertFalse(kit.public_domain_by_dates([{'died': 1956, 'wartime': False}], 1930, 2026)['eu'])
+        self.assertTrue(all(kit.public_domain_by_dates([{'died': 1952}], 1931, 2027).values()))
+
+    def test_every_hand_and_rehabilitation_must_be_counted(self):
+        people = [{'died': 1900}, {'died': 1956}]
+        self.assertFalse(kit.public_domain_by_dates(people, 1900, 2026)['eu'])
+        self.assertFalse(kit.public_domain_by_dates([{'died': 1930, 'rehabilitated': 1990}], 1900, 2026)['russia'])
+        self.assertFalse(kit.public_domain_by_dates([{'died': None}], 1900, 2026)['russia'])
+        self.assertFalse(kit.public_domain_by_dates([], None, 2026)['usa'])
+
+class RussianSpellingTest(unittest.TestCase):
+    def test_real_old_spelling_and_original_wording(self):
+        self.assertEqual(kit.modern_russian('Ея бѣлый свѣтъ и безсильныя силы.'), 'Её белый свет и бессильные силы.')
+        self.assertEqual(kit.modern_russian('Історія великаго народа.'), 'История великого народа.')
+        self.assertEqual(kit.modern_russian('Ѵ'), 'И')
+        self.assertEqual(kit.modern_russian('История и свет.'), 'История и свет.')
+
+
+class QuotationEvidenceTest(unittest.TestCase):
+    def test_second_reader_must_read_same_image(self):
+        digest='a'*64
+        proof={'source':'https://example.org/page','page':'12','lines':'4–5','sha256':digest}
+        ev={'images':[{'sha256':digest,'by':'maker'}]}
+        self.assertEqual(kit.quotation_problems('p', 'A whole sentence.', proof, ev), [])
+        self.assertTrue(kit.quotation_problems('p', 'A whole sentence.', proof, ev, second=True))
+        ev['images'].append({'sha256':digest,'by':'second'})
+        self.assertEqual(kit.quotation_problems('p', 'A whole sentence.', proof, ev, second=True), [])
+        self.assertTrue(kit.quotation_problems('p', 'A. B. C. D.', proof, ev))
+
+class TranslationWitnessTest(unittest.TestCase):
+    def test_source_page_and_independent_second_reader_are_required(self):
+        import hashlib
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir()
+            cache=Path(tmp)/'cache'; cache.mkdir()
+            folder=cache/'work'/'witnesses'/'en';folder.mkdir(parents=True)
+            source=b'A whole sentence.';image=b'page image'
+            (folder/'text.txt').write_bytes(source);(folder/'page.jpg').write_bytes(image);(folder/'second.jpg').write_bytes(image)
+            digest=hashlib.sha256(image).hexdigest()
+            people=[{'role':'author','name':{'en':'Author'},'qid':'Q1','died':1800,'source':'https://www.wikidata.org/wiki/Q1'},
+                    {'role':'translator','name':{'en':'Translator'},'qid':'Q2','died':1800,'source':'https://www.wikidata.org/wiki/Q2'}]
+            import json
+            for person in people:
+                qid=person['qid']; filename=f'wikidata-{qid}.json'
+                entity={'entities':{qid:{'claims':{'P570':[{'mainsnak':{'datavalue':{'value':{'time':'+1800-01-01T00:00:00Z'}}}}]}}}}
+                raw=json.dumps(entity).encode();(folder/filename).write_bytes(raw)
+                person['evidence']={'file':filename,'sha256':hashlib.sha256(raw).hexdigest(),'url':f'https://www.wikidata.org/wiki/Special:EntityData/{qid}.json'}
+            rights={key:{'basis':'public-domain','law':'Public domain by the applicable law.'} for key in kit.JURISDICTIONS}
+            data={'language':'en','witness':{'maker':'maker','edition':'Book','attribution':'Author','licence':'Public domain','url':'https://example.org/book','year':1900,'persons':people,'rights':rights},
+                  'sources':[{'file':'text.txt','url':'https://example.org/text','sha256':hashlib.sha256(source).hexdigest()}],
+                  'images':[{'file':'page.jpg','url':'https://example.org/page','sha256':digest,'by':'maker'}, {'file':'second.jpg','url':'https://example.org/page','sha256':digest,'by':'second'}],
+                  'places':{'p':{'text':'A whole sentence.','source':'text.txt','page':'1','url':'https://example.org/page','image_sha256':digest,'alignment':'Corresponds to the complete original sentence.'}},
+                  'review':{'reader':'reader','model':'gpt-6.1-terra','date':'2026-11-12','places':{'p':{'reads':'as the packet','image_sha256':digest,'alignment':'This sentence matches the complete original.'}}}}
+            with patch.object(kit,'CACHE',str(cache)), patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
+                self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                data['review']['reader']='maker'
+                self.assertTrue(any('different second reader' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['review']['reader']='reader';(folder/'text.txt').write_bytes(b'Other words.')
+                self.assertTrue(any('changed' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+
+class LocatorEvidenceTest(unittest.TestCase):
+    def test_locator_needs_a_documented_search_and_a_read_book(self):
+        loc='Section p1'
+        proof={'url':'https://example.org/book','reference':'Book, p. 1','maker_read':'The reader examined this copy in a library.',
+               'searches':[{'site':site,'url':'https://example.org/search','outcome':'No readable copy was found.'} for site in kit.LOCATOR_SEARCHES]}
+        ev={'places':{loc:{'locator':proof}}};place={'url':proof['url']}
+        self.assertEqual(kit.locator_problems(loc,place,ev),[])
+        proof['searches'].pop()
+        self.assertTrue(any('search outcomes missing' in item for item in kit.locator_problems(loc,place,ev)))
+
+class RussianPageComparisonTest(unittest.TestCase):
+    def test_ocr_and_transcription_are_compared_in_modern_spelling(self):
+        o={'long_s':False,'words':['Ея','бѣлый','свѣтъ','.'], 'at':[0,4,11,16], 'starts':[0], 'printed':{0:'1'}}
+        result=kit.against_ocr('Её белый свет.',o,modern_ru=True)
+        self.assertEqual(result['share'],1.0)
+        self.assertEqual(result['differences'],[])
+        self.assertIsNone(kit.in_transcription('Её белый свет.',kit.modern_russian('Ея бѣлый свѣтъ.')))
+
+class ExtensionScopeTest(unittest.TestCase):
+    def test_extension_has_a_separate_cache_and_only_the_chosen_work(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp)/'work';ext=parent/'extensions'/'first';ext.mkdir(parents=True)
+            (ext/'scope.json').write_text('{"keys":["A:1"]}',encoding='utf8')
+            task={'readings':[{'key':'A:1'},{'key':'A:2'}],'links':[{'key':'L:1'}]}
+            self.assertEqual(kit.work_of(str(ext)),'work')
+            self.assertEqual(kit.packet_selector(str(ext)),'work/extensions/first')
+            scoped=kit.scoped_task(str(ext),task)
+            self.assertEqual([item['key'] for item in scoped['readings']],['A:1'])
+            self.assertEqual(scoped['links'],[])
+            self.assertEqual(len(task['readings']),2)
+
+class LawfulSourceTest(unittest.TestCase):
+    def test_named_shadow_libraries_are_not_accepted(self):
+        self.assertTrue(kit.lawful_url('https://www.wikidata.org/wiki/Q1'))
+        for url in ('https://libgen.rs/book','https://annas-archive.org/book','https://dokumen.pub/book','https://x.z-lib.org/book','http://example.org/book'):
+            self.assertFalse(kit.lawful_url(url),url)
+
+class ExtensionPlantingTest(unittest.TestCase):
+    def test_extension_planting_is_reversible_and_idempotent(self):
+        import copy
+        import json
+        import os
+        import shutil
+        import subprocess
+        import tempfile
+        from pathlib import Path
+        root=Path(kit.ROOT)
+        work='friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste'
+        source=Path(kit.PACKETS)/work
+        with tempfile.TemporaryDirectory() as tmp:
+            target=Path(tmp);review=target/'bonsai/review/aesthetics';review.mkdir(parents=True)
+            (target/'bonsai/lib').symlink_to(root/'bonsai/lib',target_is_directory=True)
+            for name in ('layer','inputs','readings'):(review/name).symlink_to(Path(kit.REVIEW)/name,target_is_directory=True)
+            (review/'formula-span.mjs').symlink_to(Path(kit.REVIEW)/'formula-span.mjs')
+            shutil.copy2(Path(kit.REVIEW)/'plant.mjs',review/'plant.mjs')
+            shutil.copytree(root/'bonsai/aesthetics',target/'bonsai/aesthetics')
+            (target/'ToS/source-witnesses').mkdir(parents=True)
+            (target/'ToS/source-witnesses/works').symlink_to(root/'ToS/source-witnesses/works',target_is_directory=True)
+            (target/'access/web/public').mkdir(parents=True)
+            (target/'access/web/public/public-corpus').symlink_to(root/'access/web/public/public-corpus',target_is_directory=True)
+            packets=review/'planting/packets';packets.mkdir(parents=True)
+            for child in Path(kit.PACKETS).iterdir():
+                if child.name!=work:(packets/child.name).symlink_to(child,target_is_directory=True)
+            parent=packets/work;parent.mkdir()
+            for name in ('places.json','reading.json','evidence.json','review.json','accepted.json'):(parent/name).symlink_to(source/name)
+            ext=parent/'extensions'/'test';ext.mkdir(parents=True)
+            reading=json.loads((source/'reading.json').read_text());reading['reader']['id']='test-extension-reader'
+            conception=copy.deepcopy(reading['conceptions'][0]);conception['id']=work+':test-extension';conception['formula']=[{'place':'Test p999'}]
+            reading['conceptions']=[conception];reading['links']=[];reading['left']=[]
+            base=json.loads((source/'places.json').read_text());place=copy.deepcopy(next(iter(base['places'].values())))
+            extension_places={'work':work,'places':{'Test p999':place},'corrections':[],'checked_on_the_page_image':['test page']}
+            (ext/'reading.json').write_text(json.dumps(reading,ensure_ascii=False))
+            (ext/'places.json').write_text(json.dumps(extension_places,ensure_ascii=False))
+            (ext/'review.json').write_text(json.dumps({'reader':{'id':'test-second','date':'2026-11-12','model':'test'}}))
+            (ext/'accepted.json').write_text('{}')
+            command=['node',str(review/'plant.mjs')]
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertIn('Test p999',projected['places'][work])
+            subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+            (ext/'accepted.json').unlink()
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertNotIn('Test p999',projected['places'][work])
+            subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+            import hashlib
+            witness_dir=parent/'witnesses';witness_dir.mkdir()
+            loc=next(iter(base['places']))
+            rights={country:{'basis':'public-domain','law':'Public domain according to the applicable law.'} for country in kit.JURISDICTIONS}
+            translated={'language':'es','witness':{'edition':'Test edition','attribution':'Test author','url':'https://example.org','rights':rights},
+                        'places':{loc:{'text':'Una frase completa.','url':'https://example.org/page','page':'1'}}}
+            raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'es.json').write_bytes(raw)
+            (witness_dir/'es.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
+            (witness_dir/'es.json').write_bytes(raw+b' ')
+            changed=subprocess.run(command,capture_output=True,text=True)
+            self.assertNotEqual(changed.returncode,0)
+            self.assertIn('changed since review',changed.stderr)
+            (witness_dir/'es.json').write_bytes(raw)
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertEqual(projected['places'][work][loc]['texts']['es'],'Una frase completa.')
+            subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+            (witness_dir/'es.json.accepted').unlink()
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertNotIn('es',projected['places'][work][loc]['texts'])
+            subprocess.run(command+['--check'],check=True,capture_output=True,text=True)

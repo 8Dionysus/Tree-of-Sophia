@@ -169,10 +169,7 @@ grown or left with a reason, that a thesis hedges or negates only where the
 place does, and that the planting goes through. A packet is planted when its
 gate is open and the second reader confirms every conception and link; what
 the second reader does not confirm after one return to the maker leaves the
-reading and stays under `left`, marked disputed, for a reader to take up. The
-first wave takes works printed by 1929 whose every hand died by 1942; the
-later ones wait for the locator and short-quotation form of the places
-module. Fetched files stay outside the checkout (`~/.cache/tos-planting`).
+reading and stays under `left`, marked disputed, for a reader to take up. The queue separates candidates free in all or some jurisdictions from quotation candidates. Each witness records the basis for each jurisdiction. Fetched files stay outside the checkout (`~/.cache/tos-planting`).
 
 ## Rebuilding the layer
 

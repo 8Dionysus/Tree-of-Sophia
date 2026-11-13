@@ -20,22 +20,95 @@ const layer=name=>read(join(here,'layer',`${name}.json`));
 const LIVES=join(here,'layer','lives.json'),OUT=join(root,'bonsai','aesthetics','chronology.json');
 const AGENT='ToS-bonsai/1 (+https://github.com/8Dionysus/Tree-of-Sophia)';
 // The authors read by hand before the planting line: the line's packets name the Wikidata item of every other author.
-const ITEMS={plato:'Q859',plotinus:'Q134189',aristotle:'Q868','immanuel-kant':'Q9312','edmund-burke':'Q165792','william-hogarth':'Q171344'};
+const ITEMS={'participant-Q77045':'Q77045','participant-Q6221660':'Q6221660',plato:'Q859',plotinus:'Q134189',aristotle:'Q868','immanuel-kant':'Q9312','edmund-burke':'Q165792','william-hogarth':'Q171344'};
 
 const library=read(join(root,'bonsai','aesthetics','library.json'));
 const packets=join(here,'planting','packets');
+const agents=new Map(layer('agents').map(agent=>[agent.id,agent]));
+const names=person=>[person?.name?.en,person?.name?.ru,person?.name?.original].filter(Boolean).map(value=>value.toLocaleLowerCase().normalize('NFKC').trim());
+const samePerson=(person,agent)=>names(person).some(name=>names(agent).includes(name));
 for(const name of existsSync(packets)?readdirSync(packets):[]){
-  const file=join(packets,name,'evidence.json');if(!existsSync(file))continue;
-  const item=(read(file).persons??[]).filter(person=>person.role==='author')
-    .map(person=>person.qid??/^https:\/\/www\.wikidata\.org\/wiki\/(Q[1-9]\d*)\/?$/.exec(person.source??'')?.[1]).find(Boolean);
-  const agent=(library.works[name]?.agents??[])[0];
-  if(item&&agent&&!ITEMS[agent])ITEMS[agent]=item;
+  const at=join(packets,name),file=join(at,'evidence.json');if(!existsSync(file))continue;
+  const persons=[...(read(file).persons??[])];
+  const witnessDir=join(at,'witnesses');
+  for(const witness of existsSync(witnessDir)?readdirSync(witnessDir).filter(file=>file.endsWith('.json')):[]){
+    if(existsSync(join(witnessDir,`${witness}.accepted`)))persons.push(...(read(join(witnessDir,witness)).witness?.persons??[]));
+  }
+  const authors=library.works[name]?.agents??[];
+  for(const person of persons){
+    const item=person.qid??/^https:\/\/www\.wikidata\.org\/wiki\/(Q[1-9]\d*)\/?$/.exec(person.source??'')?.[1];
+    if(!item)continue;
+    const matches=authors.filter(agent=>samePerson(person,agents.get(agent)));
+    if(person.role==='author'){
+      if(matches.length===1&&!ITEMS[matches[0]])ITEMS[matches[0]]=item;
+      else if(authors.length===1&&persons.filter(value=>value.role==='author').length===1&&!ITEMS[authors[0]])ITEMS[authors[0]]=item;
+    }
+    ITEMS[`participant-${item}`]=item;
+  }
 }
 
 const args=new Set(process.argv.slice(2));
 const lives=existsSync(LIVES)?read(LIVES):{};
+// Queue identities are admitted only when the exact Wikidata work links the
+// candidate by P50. A name search alone is not a disambiguation.
+if(args.has('--fetch-queue')){
+  const byAuthor=new Map();
+  for(const work of layer('works'))for(const agent of work.agents??[]){
+    if(!byAuthor.has(agent))byAuthor.set(agent,[]);byAuthor.get(agent).push(work);
+  }
+  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const request=async url=>{
+    await pause(1200);
+    const response=await fetch(url,{headers:{'User-Agent':AGENT},signal:AbortSignal.timeout(15000)});
+    if(response.status===429)throw new Error('Wikidata rate limit 429; stop and retry after the service recovers');
+    if(!response.ok)throw new Error(`Wikidata ${response.status}`);
+    return response;
+  };
+  const search=async text=>{
+    const url=new URL('https://www.wikidata.org/w/api.php');
+    for(const [key,value] of Object.entries({action:'wbsearchentities',search:text,language:'en',format:'json',limit:'8'}))url.searchParams.set(key,value);
+    const response=await request(url);
+    return (await response.json()).search??[];
+  };
+  const entity=async item=>{
+    const response=await request(`https://www.wikidata.org/wiki/Special:EntityData/${item}.json`);
+    return (await response.json()).entities[item];
+  };
+  const folded=value=>String(value??'').normalize('NFKC').toLocaleLowerCase().trim();
+  const unresolved=[];
+  for(const [id,works] of byAuthor){
+    if(lives[id])continue;
+    const agent=agents.get(id);if(!agent?.name?.en){unresolved.push({agent:id,reason:'no English name in the register'});continue;}
+    try{
+      const people=(await search(agent.name.en)).filter(item=>folded(item.label)===folded(agent.name.en));
+      let found=null;
+      for(const work of works.slice(0,3)){
+        const title=work.title?.en??work.title?.original;if(!title)continue;
+        const choices=(await search(title)).filter(item=>folded(item.label)===folded(title)).slice(0,4);
+        for(const choice of choices){
+          const item=await entity(choice.id),authors=(item.claims?.P50??[]).map(claim=>claim.mainsnak?.datavalue?.value?.id).filter(Boolean);
+          const matching=people.filter(person=>authors.includes(person.id));
+          if(matching.length===1){found={person:matching[0].id,work:choice.id};break;}
+        }
+        if(found)break;
+      }
+      if(!found){unresolved.push({agent:id,reason:'exact work-to-author P50 match not found'});continue;}
+      const person=await entity(found.person);
+      const times=property=>{
+        const claims=(person.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
+        return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+      };
+      lives[id]={item:found.person,label:{en:person.labels.en?.value??null,ru:person.labels.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_work:found.work};
+      console.log(`${id}: ${found.person}, evidenced by ${found.work}`);
+      writeFileSync(LIVES,`${JSON.stringify(Object.fromEntries(Object.keys(lives).sort().map(key=>[key,lives[key]])),null,1)}\n`);
+    }catch(error){unresolved.push({agent:id,reason:String(error)});if(String(error).includes('rate limit 429')){console.error(String(error));break;}}
+  }
+  writeFileSync(LIVES,`${JSON.stringify(Object.fromEntries(Object.keys(lives).sort().map(key=>[key,lives[key]])),null,1)}\n`);
+  console.log(`queue lives unresolved: ${unresolved.length}`);
+  for(const entry of unresolved)console.log(`${entry.agent}: ${entry.reason}`);
+}
 if(args.has('--fetch')){
-  for(const agent of Object.keys(library.agents)){
+  for(const agent of new Set([...Object.keys(library.agents),...Object.keys(ITEMS).filter(key=>key.startsWith('participant-'))])){
     if(lives[agent])continue;
     const item=ITEMS[agent];if(!item)throw new Error(`${agent}: no Wikidata item is named for this author`);
     const answer=await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${item}.json`,{headers:{'User-Agent':AGENT}});

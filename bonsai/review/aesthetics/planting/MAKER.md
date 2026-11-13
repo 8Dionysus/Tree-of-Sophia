@@ -19,8 +19,7 @@ you where to look and what to test. It is no ground: the place is.
 
 Find, by fetching pages (law 7):
 
-- the original-language text in a printing from 1929 or earlier, as a scan in
-  the Internet Archive, with page-indexed OCR where there is one;
+- the original-language text in a lawful scan or preview, with page-indexed OCR where there is one;
 - a transcription of the same text from a proofreading project (Wikisource
   with its scan, Project Gutenberg, Deutsches Textarchiv, Zeno.org, Gallica).
   For English before 1800 the Text Creation Partnership (ECCO-TCP, EEBO-TCP)
@@ -63,14 +62,15 @@ under that code:
   "sources": ["https://archive.org/details/ITEM", "https://www.gutenberg.org/ebooks/NNNN"],
   "licence": "Public domain book; scan in the Internet Archive. Project Gutenberg License for the transcription the words were taken from (public domain in the USA).",
   "attribution": "Author, Title (place: printer, year); words from …, compared with the scan …",
-  "rights": {"basis": "public-domain",
-    "reasoning": "Whose text; which transcription the words come from and which edition it follows; which scan they were compared with; what was normalised."}}},
-"absent": [{"language": "ru", "reason": "No Russian text is taken in this pass: the line plants the original first."}]
+  "rights": {"reasoning": "Whose text; which transcription the words come from and which edition it follows; which scan they were compared with; what was normalised."}}},
+"absent": []
 ```
 
-`K rights .` then writes the `russia`, `usa` and `eu` sentences from the dates;
-they are never written by hand. `absent` names `ru` and `en` unless one of
-them is the original. If the work
+`K rights .` writes the public-domain determinations supported by the dates.
+For a quotation, licence or locator, `K rights . --jurisdiction russia --basis
+short-quotation --law "…"` records that jurisdiction's basis and law. Repeat
+for all three. A language not searched is simply unsearched; `absent` records
+an actual search and its outcomes, not an omitted translation. If the work
 is already in the bonsai (`K task .` says so), `places.json` has no `entry`:
 read the same edition and add places beside the ones held.
 
@@ -235,3 +235,63 @@ Settle every line it prints and run it again, until it prints `gate: open`.
 Close with five lines: the state, the counts (places, conceptions, links,
 left), what was left and why, what you corrected against the page, what the
 second reader should look at first.
+
+## A separate translation
+
+An accepted work can take a partial translation as a separate file. Supply a
+JSON metadata object with `edition`, `year`, `url`, `licence`, `attribution`,
+`maker`, `persons` (all authors and translators with death years and source
+URLs), and `rights` with `{basis, law}` for `russia`, `usa`, and `eu`.
+Russian metadata also gives `normalization`. The commands write the packet:
+
+```sh
+K witness-open . ru /path/to/metadata.json
+K witness-person . ru author Q123
+K witness-person . ru translator Q456
+K witness-fetch . ru https://example.org/transcription --name text.txt
+K witness-image . ru https://example.org/page --name page.jpg
+K witness-cut . ru text.txt "opening" "closing." --loc "§1 p1" --page "p. 3" --image page.jpg --alignment "How these sentences correspond to the original."
+K witness-image . ru https://example.org/page --name second.jpg --by second
+K witness-review . ru "§1 p1" --reader another-reader --alignment "How the second reader verified the correspondence."
+K witness-gate . ru --second --accept
+```
+
+The reader opens each fetched image and checks the whole translated sentences
+against it and against the original; recording a review is not itself a page
+reading. A quotation also records `--lines`, and an exceptional longer place
+records `--justification` on `witness-cut`. The acceptance binds the exact file
+by SHA-256. Changes require a new independent reading and acceptance. Local
+source files and images stay in the kit cache outside Git. A partial witness
+leaves the other places without a translation.
+
+A prepared JSON object can be brought into a new, unaccepted packet with
+`K import . places FILE` or `K import . reading FILE`; the second reader can
+use `K import . review FILE`. `K import . blocked FILE` records a block and
+`K unblock .` clears it for another attempt. Import does not validate or
+accept the packet. The gate still checks the source files, page evidence and
+reading. Accepted packets cannot be replaced by these commands.
+
+## Continue an accepted reading
+
+Leave the accepted packet and its review intact. To work on specific waiting
+register keys, make an independent extension:
+
+```sh
+K extension-open . ae25 --keys D:KEY1,D:KEY2
+python3 ../../drive.py run WORK/extensions/ae25
+```
+
+The actual path printed by `extension-open` is
+`packets/WORK/extensions/ae25`; pass `WORK/extensions/ae25` to `drive.py run`.
+Inside the extension, K is `python3 ../../../../kit.py`. The extension records
+its own maker, source evidence and second reader; its gate checks the named
+scope without reopening unrelated disputed keys. Accepted extensions join the
+parent's places and readings at planting.
+
+A direction's prepared research JSON can be kept without admitting it with
+`K witness-candidate . ru FILE`. After fetching the actual transcription and
+page image, `K witness-cut-candidate . ru text.txt --loc '…' --page '…'
+--image page.jpg --alignment '…'` cuts the candidate's complete text out of
+that transcription. The original research note remains a candidate; the cut,
+page evidence, rights and independent review still go through the witness
+gate before acceptance.
