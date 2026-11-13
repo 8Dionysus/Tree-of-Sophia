@@ -2,7 +2,7 @@
 //! is request-local; only the separate ID/query state goes into checkpoints.
 use crate::knowledge_exploration::{self as rules, ExplorationBudget, ExplorationState};
 use crate::knowledge_lens_spec::{LensVocabulary, get, string};
-use crate::search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode, SearchKind};
 use crate::{AbortProbe, AbortReason, InspectBudget};
 use std::{
     cell::{Cell, RefCell},
@@ -77,26 +77,26 @@ pub struct PublishedExplorationBudget {
     pub max_cache_bytes: usize,
     pub max_cache_entries: usize,
 }
-fn corrupt(message: &'static str) -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+fn corrupt(message: &'static str) -> SearchError {
+    SearchError {
+        code: SearchErrorCode::CorruptSelectedCarrier,
         message,
     }
 }
-fn exhausted() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+fn exhausted() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "exploration source/state budget exceeded",
     }
 }
-fn check(probe: &dyn AbortProbe) -> Result<(), SearchV2Error> {
+fn check(probe: &dyn AbortProbe) -> Result<(), SearchError> {
     match probe.reason() {
-        Some(AbortReason::Cancelled) => Err(SearchV2Error {
-            code: SearchV2ErrorCode::Cancelled,
+        Some(AbortReason::Cancelled) => Err(SearchError {
+            code: SearchErrorCode::Cancelled,
             message: "exploration cancelled",
         }),
-        Some(AbortReason::DeadlineExceeded) => Err(SearchV2Error {
-            code: SearchV2ErrorCode::DeadlineExceeded,
+        Some(AbortReason::DeadlineExceeded) => Err(SearchError {
+            code: SearchErrorCode::DeadlineExceeded,
             message: "exploration deadline exceeded",
         }),
         None => Ok(()),
@@ -104,7 +104,7 @@ fn check(probe: &dyn AbortProbe) -> Result<(), SearchV2Error> {
 }
 struct Slot {
     need: Option<Rc<ExplorationNeed>>,
-    reply: Option<Result<ExplorationReply, SearchV2Error>>,
+    reply: Option<Result<ExplorationReply, SearchError>>,
     reply_bytes: usize,
     live: Rc<Cell<usize>>,
     budget: InspectBudget,
@@ -155,10 +155,10 @@ pub(crate) struct Rows {
     pub(crate) profile: ExplorationProfile,
 }
 impl Rows {
-    pub(crate) fn check(&self) -> Result<(), SearchV2Error> {
+    pub(crate) fn check(&self) -> Result<(), SearchError> {
         check(self.probe.as_ref())
     }
-    async fn read(&mut self, need: ExplorationNeed) -> Result<ExplorationReply, SearchV2Error> {
+    async fn read(&mut self, need: ExplorationNeed) -> Result<ExplorationReply, SearchError> {
         self.check()?;
         let mut need = Some(need);
         let slot = self.slot.clone();
@@ -181,7 +181,7 @@ impl Rows {
         kind: SearchKind,
         value: JsonValue,
         size: usize,
-    ) -> Result<Rc<RetainedRow>, SearchV2Error> {
+    ) -> Result<Rc<RetainedRow>, SearchError> {
         let id = string(get(&value, "id")).to_owned();
         if value.as_object().is_none() || id.is_empty() {
             return Err(corrupt("exploration row identity invalid"));
@@ -247,7 +247,7 @@ impl Rows {
         ids: &[String],
         allow_missing: bool,
         allow_ambiguous: bool,
-    ) -> Result<Vec<Rc<RetainedRow>>, SearchV2Error> {
+    ) -> Result<Vec<Rc<RetainedRow>>, SearchError> {
         let tag = if kind == SearchKind::Nodes { 0 } else { 1 };
         let mut result = BTreeMap::new();
         let mut missing = vec![];
@@ -302,29 +302,29 @@ impl Rows {
         &mut self,
         kind: SearchKind,
         id: &str,
-    ) -> Result<Option<Rc<RetainedRow>>, SearchV2Error> {
+    ) -> Result<Option<Rc<RetainedRow>>, SearchError> {
         Ok(self.load(kind, &[id.to_owned()], true, false).await?.pop())
     }
     pub(crate) async fn item_origin(
         &mut self,
         kind: SearchKind,
         id: &str,
-    ) -> Result<Option<Rc<RetainedRow>>, SearchV2Error> {
+    ) -> Result<Option<Rc<RetainedRow>>, SearchError> {
         Ok(self.load(kind, &[id.to_owned()], true, true).await?.pop())
     }
     pub(crate) async fn optional(
         &mut self,
         kind: SearchKind,
         ids: &[String],
-    ) -> Result<Vec<Rc<RetainedRow>>, SearchV2Error> {
+    ) -> Result<Vec<Rc<RetainedRow>>, SearchError> {
         self.load(kind, ids, true, false).await
     }
-    pub(crate) async fn node(&mut self, id: &str) -> Result<Rc<RetainedRow>, SearchV2Error> {
+    pub(crate) async fn node(&mut self, id: &str) -> Result<Rc<RetainedRow>, SearchError> {
         self.item(SearchKind::Nodes, id)
             .await?
             .ok_or_else(|| corrupt("exploration exact node missing"))
     }
-    pub(crate) async fn relation(&mut self, id: &str) -> Result<Rc<RetainedRow>, SearchV2Error> {
+    pub(crate) async fn relation(&mut self, id: &str) -> Result<Rc<RetainedRow>, SearchError> {
         self.item(SearchKind::Relations, id)
             .await?
             .ok_or_else(|| corrupt("exploration exact relation missing"))
@@ -335,7 +335,7 @@ impl Rows {
         sources: &[String],
         vocab: &LensVocabulary,
         max_matches: usize,
-    ) -> Result<Rc<RetainedRow>, SearchV2Error> {
+    ) -> Result<Rc<RetainedRow>, SearchError> {
         for field in ["id", "entity_id", "native_id"] {
             let limit = if self.profile == ExplorationProfile::PublishedD1 {
                 if field == "native_id" { 2 } else { 1 }
@@ -372,8 +372,8 @@ impl Rows {
                 && field == "native_id"
                 && matched > 1
             {
-                return Err(SearchV2Error {
-                    code: SearchV2ErrorCode::InvalidRequest,
+                return Err(SearchError {
+                    code: SearchErrorCode::InvalidRequest,
                     message: "ambiguous exploration native focus",
                 });
             }
@@ -397,8 +397,8 @@ impl Rows {
                 continue;
             }
             if field == "native_id" && scoped.len() > 1 {
-                return Err(SearchV2Error {
-                    code: SearchV2ErrorCode::InvalidRequest,
+                return Err(SearchError {
+                    code: SearchErrorCode::InvalidRequest,
                     message: "ambiguous exploration native focus",
                 });
             }
@@ -408,8 +408,8 @@ impl Rows {
             }
             return Ok(scoped.remove(0));
         }
-        Err(SearchV2Error {
-            code: SearchV2ErrorCode::InvalidRequest,
+        Err(SearchError {
+            code: SearchErrorCode::InvalidRequest,
             message: "unknown exploration focus",
         })
     }
@@ -421,7 +421,7 @@ impl Rows {
         sources: &[String],
         after: &str,
         limit: usize,
-    ) -> Result<Vec<String>, SearchV2Error> {
+    ) -> Result<Vec<String>, SearchError> {
         self.ids(
             ExplorationNeed::IdentityPage {
                 node_id: node.into(),
@@ -446,7 +446,7 @@ impl Rows {
         node: &str,
         after: &str,
         limit: usize,
-    ) -> Result<Vec<String>, SearchV2Error> {
+    ) -> Result<Vec<String>, SearchError> {
         self.ids(
             ExplorationNeed::AdjacencyPage {
                 node_id: node.into(),
@@ -463,7 +463,7 @@ impl Rows {
         need: ExplorationNeed,
         after: &str,
         limit: usize,
-    ) -> Result<Vec<String>, SearchV2Error> {
+    ) -> Result<Vec<String>, SearchError> {
         let reply = self.read(need).await?;
         let ExplorationReply::Ids(ids) = reply else {
             return Err(corrupt("exploration IDs reply expected"));
@@ -483,14 +483,14 @@ impl Rows {
         &mut self,
         kind: SearchKind,
         ids: &[String],
-    ) -> Result<Vec<Rc<RetainedRow>>, SearchV2Error> {
+    ) -> Result<Vec<Rc<RetainedRow>>, SearchError> {
         self.load(kind, ids, false, false).await
     }
 }
 
 pub struct ExplorationPlan {
     slot: Rc<RefCell<Slot>>,
-    execution: Option<Pin<Box<dyn Future<Output = Result<ExplorationOutput, SearchV2Error>>>>>,
+    execution: Option<Pin<Box<dyn Future<Output = Result<ExplorationOutput, SearchError>>>>>,
     output: Option<ExplorationOutput>,
     terminal: bool,
     probe: Rc<dyn AbortProbe>,
@@ -504,7 +504,7 @@ impl ExplorationPlan {
         authority_boundary: JsonValue,
         budget: PublishedExplorationBudget,
         probe: Rc<dyn AbortProbe>,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         if epoch > 9_007_199_254_740_991
             || !rules::bare(source_revision)
             || !rules::bare(data_revision)
@@ -541,7 +541,7 @@ impl ExplorationPlan {
         vocab: LensVocabulary,
         budget: ExplorationBudget,
         probe: Rc<dyn AbortProbe>,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         Self::new(
             input,
             revision,
@@ -567,7 +567,7 @@ impl ExplorationPlan {
         profile: ExplorationProfile,
         cache_limit: (usize, usize),
         probe: Rc<dyn AbortProbe>,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         rules::validate_budget(budget)?;
         check(probe.as_ref())?;
         let slot = Rc::new(RefCell::new(Slot {
@@ -605,8 +605,8 @@ impl ExplorationPlan {
                 }
                 ExplorationInput::Continue(state) => {
                     if state.snapshot_revision() != snapshot || state.profile() != profile {
-                        return Err(SearchV2Error {
-                            code: SearchV2ErrorCode::StaleContinuation,
+                        return Err(SearchError {
+                            code: SearchErrorCode::StaleContinuation,
                             message: "exploration continuation binding changed",
                         });
                     }
@@ -634,7 +634,7 @@ impl ExplorationPlan {
         })
     }
     /// One step to a concrete need or completion; never repoll without reply.
-    pub fn advance(&mut self) -> Result<bool, SearchV2Error> {
+    pub fn advance(&mut self) -> Result<bool, SearchError> {
         if self.terminal || self.slot.borrow().need.is_some() {
             return Err(corrupt("exploration plan is terminal or awaiting reply"));
         }
@@ -663,7 +663,7 @@ impl ExplorationPlan {
     pub fn need(&self) -> Option<Rc<ExplorationNeed>> {
         self.slot.borrow().need.clone()
     }
-    pub fn resume(&mut self, reply: ExplorationReply) -> Result<(), SearchV2Error> {
+    pub fn resume(&mut self, reply: ExplorationReply) -> Result<(), SearchError> {
         if self.terminal {
             return Err(corrupt("exploration plan already terminal"));
         }
@@ -719,7 +719,7 @@ impl ExplorationPlan {
         slot.reply = Some(Ok(reply));
         Ok(())
     }
-    pub fn finish(mut self) -> Result<ExplorationOutput, SearchV2Error> {
+    pub fn finish(mut self) -> Result<ExplorationOutput, SearchError> {
         self.output
             .take()
             .ok_or_else(|| corrupt("exploration plan not complete"))
@@ -748,7 +748,7 @@ fn row_bytes(
     rows: &[JsonValue],
     sizes: &[usize],
     budget: InspectBudget,
-) -> Result<usize, SearchV2Error> {
+) -> Result<usize, SearchError> {
     if rows.len() != sizes.len()
         || rows.len() as u64 > budget.max_rows
         || sizes

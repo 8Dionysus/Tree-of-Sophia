@@ -2,7 +2,7 @@
 //! The release owner supplies the complete declared subset and retains its
 //! current hold through flush. This kernel grants no arbitrary source access.
 use crate::knowledge_lens_spec::{py_string, truthy};
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode};
 use crate::source_read_projection::{object, text};
 use crate::{AbortProbe, AbortReason};
 use std::collections::BTreeSet;
@@ -32,10 +32,10 @@ pub struct SourceGapRequest {
 }
 impl SourceGapRequest {
     /// Typed MCP framing over the established public-ledger query rules.
-    pub fn from_json(value: &JsonValue) -> Result<Self, SearchV2Error> {
+    pub fn from_json(value: &JsonValue) -> Result<Self, SearchError> {
         let fields = value.as_object().ok_or_else(|| {
             error(
-                SearchV2ErrorCode::InvalidRequest,
+                SearchErrorCode::InvalidRequest,
                 "source-gap request must be an object",
             )
         })?;
@@ -44,7 +44,7 @@ impl SourceGapRequest {
             .any(|(key, _)| !matches!(key.as_str(), Some("query" | "limit")))
         {
             return Err(error(
-                SearchV2ErrorCode::InvalidRequest,
+                SearchErrorCode::InvalidRequest,
                 "unknown source-gap field",
             ));
         }
@@ -54,7 +54,7 @@ impl SourceGapRequest {
                 .as_str()
                 .ok_or_else(|| {
                     error(
-                        SearchV2ErrorCode::InvalidRequest,
+                        SearchErrorCode::InvalidRequest,
                         "source-gap query must be a string",
                     )
                 })?
@@ -69,13 +69,13 @@ impl SourceGapRequest {
                 .filter(|n| (1..=100).contains(n))
                 .ok_or_else(|| {
                     error(
-                        SearchV2ErrorCode::InvalidRequest,
+                        SearchErrorCode::InvalidRequest,
                         "source-gap limit must be 1..100",
                     )
                 })?,
             _ => {
                 return Err(error(
-                    SearchV2ErrorCode::InvalidRequest,
+                    SearchErrorCode::InvalidRequest,
                     "source-gap limit must be an integer",
                 ));
             }
@@ -89,18 +89,18 @@ pub struct SourceGapBudget {
     pub max_work_steps: u64,
     pub max_response_bytes: usize,
 }
-fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn error(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
-fn budget_error() -> SearchV2Error {
+fn budget_error() -> SearchError {
     error(
-        SearchV2ErrorCode::BudgetExceeded,
+        SearchErrorCode::BudgetExceeded,
         "source-gap budget exceeded",
     )
 }
-fn corrupt() -> SearchV2Error {
+fn corrupt() -> SearchError {
     error(
-        SearchV2ErrorCode::CorruptSelectedCarrier,
+        SearchErrorCode::CorruptSelectedCarrier,
         "selected public source-gap record invalid",
     )
 }
@@ -125,14 +125,14 @@ fn fallback(v: &JsonValue, default: &str) -> String {
         default.to_owned()
     }
 }
-fn check(probe: &dyn AbortProbe) -> Result<(), SearchV2Error> {
+fn check(probe: &dyn AbortProbe) -> Result<(), SearchError> {
     match probe.reason() {
         Some(AbortReason::Cancelled) => Err(error(
-            SearchV2ErrorCode::Cancelled,
+            SearchErrorCode::Cancelled,
             "source-gap query cancelled",
         )),
         Some(AbortReason::DeadlineExceeded) => Err(error(
-            SearchV2ErrorCode::DeadlineExceeded,
+            SearchErrorCode::DeadlineExceeded,
             "source-gap query deadline exceeded",
         )),
         None => Ok(()),
@@ -143,14 +143,14 @@ struct Work<'a> {
     probe: &'a dyn AbortProbe,
 }
 impl Work<'_> {
-    fn charge(&mut self, n: usize) -> Result<(), SearchV2Error> {
+    fn charge(&mut self, n: usize) -> Result<(), SearchError> {
         self.remaining = self
             .remaining
             .checked_sub(u64::try_from(n).map_err(|_| budget_error())?)
             .ok_or_else(budget_error)?;
         check(self.probe)
     }
-    fn fold(&mut self, s: &str, casefold: bool) -> Result<String, SearchV2Error> {
+    fn fold(&mut self, s: &str, casefold: bool) -> Result<String, SearchError> {
         let chars = s.chars().count();
         self.charge(chars)?;
         let out_chars = chars.checked_mul(3).ok_or_else(budget_error)?;
@@ -166,7 +166,7 @@ impl Work<'_> {
     }
     // The maintained _contains recurses over values only and lowers strings;
     // it does not casefold haystacks or match JSON keys/numbers/serialization.
-    fn contains(&mut self, v: &JsonValue, needle: &str) -> Result<bool, SearchV2Error> {
+    fn contains(&mut self, v: &JsonValue, needle: &str) -> Result<bool, SearchError> {
         self.charge(1)?;
         if let Some(s) = v.as_str() {
             return Ok(self.fold(s, false)?.contains(needle));
@@ -196,7 +196,7 @@ pub fn compute_source_gap_packet(
     request: &SourceGapRequest,
     budget: SourceGapBudget,
     probe: &dyn AbortProbe,
-) -> Result<Vec<u8>, SearchV2Error> {
+) -> Result<Vec<u8>, SearchError> {
     check(probe)?;
     if budget.max_work_steps == 0 || budget.max_response_bytes == 0 {
         return Err(budget_error());
@@ -210,7 +210,7 @@ pub fn compute_source_gap_packet(
         .map_err(|_| budget_error())?;
     if query.chars().count() > 256 || !(1..=100).contains(&request.limit) {
         return Err(error(
-            SearchV2ErrorCode::InvalidRequest,
+            SearchErrorCode::InvalidRequest,
             "invalid source-gap request",
         ));
     }

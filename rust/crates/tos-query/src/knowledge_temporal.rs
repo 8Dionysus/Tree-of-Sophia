@@ -5,7 +5,7 @@ use crate::{
     knowledge_inspect::{
         DisclosableInspect, InspectBudget, InspectCurrentAuthority, execute_selected_carrier_packet,
     },
-    search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode, SearchKind},
     temporal_comparison::{TEMPORAL_INTENDED_USE, TEMPORAL_OPERATION, compare_temporal_operands},
 };
 use tos_compiler::VerifiedKnowledgeModel;
@@ -16,12 +16,12 @@ pub fn execute_selected_temporal<'hold, A: InspectCurrentAuthority<'hold> + ?Siz
     authority: &mut A,
     request: &JsonValue,
     budget: InspectBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     bound.require_source_revision()?;
     let claim_source = bound
         .source_for_adapter("reified-bibliographic-claims-v1")
-        .ok_or(SearchV2Error {
-            code: SearchV2ErrorCode::Unavailable,
+        .ok_or(SearchError {
+            code: SearchErrorCode::Unavailable,
             message: "selected source Claim adapter unavailable",
         })?;
     execute_selected_carrier_packet(
@@ -51,15 +51,15 @@ pub fn execute_selected_claim_projection<'hold, A: InspectCurrentAuthority<'hold
     authority: &mut A,
     request: &JsonValue,
     budget: InspectBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     use crate::temporal_comparison::{
         CLAIM_PROJECTION_INTENDED_USE, CLAIM_PROJECTION_OPERATION, project_temporal_claims,
     };
     let revision = bound.require_source_revision()?;
     let claim_source = bound
         .source_for_adapter("reified-bibliographic-claims-v1")
-        .ok_or(SearchV2Error {
-            code: SearchV2ErrorCode::Unavailable,
+        .ok_or(SearchError {
+            code: SearchErrorCode::Unavailable,
             message: "selected source Claim adapter unavailable",
         })?;
     let mut limits = budget.json;
@@ -70,11 +70,11 @@ pub fn execute_selected_claim_projection<'hold, A: InspectCurrentAuthority<'hold
         tos_foundation::CanonicalProfile::SourceRecordDigestV1,
         limits,
     )
-    .map_err(|reason| SearchV2Error {
+    .map_err(|reason| SearchError {
         code: if reason.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-            SearchV2ErrorCode::BudgetExceeded
+            SearchErrorCode::BudgetExceeded
         } else {
-            SearchV2ErrorCode::InvalidRequest
+            SearchErrorCode::InvalidRequest
         },
         message: "Claim projection request exceeds JSON limits",
     })?;
@@ -108,7 +108,7 @@ pub fn execute_selected_claim_list<'hold, A: InspectCurrentAuthority<'hold> + ?S
     authority: &mut A,
     request: &JsonValue,
     budget: InspectBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     use crate::source_read_projection::{object, text};
     use crate::temporal_comparison::{
         CLAIM_LIST_INTENDED_USE, CLAIM_LIST_OPERATION, ClaimListBinding, claim_list_cursor,
@@ -120,18 +120,18 @@ pub fn execute_selected_claim_list<'hold, A: InspectCurrentAuthority<'hold> + ?S
     let revision = bound.require_source_revision()?;
     let source_graph = bound
         .source_for_adapter("reified-bibliographic-claims-v1")
-        .ok_or(SearchV2Error {
-            code: SearchV2ErrorCode::Unavailable,
+        .ok_or(SearchError {
+            code: SearchErrorCode::Unavailable,
             message: "selected source Claim adapter unavailable",
         })?;
     let mut limits = budget.json;
     limits.max_bytes = limits.max_bytes.min(budget.max_payload_bytes);
     canonical_bytes_v1(request, CanonicalProfile::SourceRecordDigestV1, limits).map_err(
-        |reason| SearchV2Error {
+        |reason| SearchError {
             code: if reason.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-                SearchV2ErrorCode::BudgetExceeded
+                SearchErrorCode::BudgetExceeded
             } else {
-                SearchV2ErrorCode::InvalidRequest
+                SearchErrorCode::InvalidRequest
             },
             message: "Claim list request exceeds JSON limits",
         },
@@ -150,8 +150,8 @@ pub fn execute_selected_claim_list<'hold, A: InspectCurrentAuthority<'hold> + ?S
             CanonicalProfile::SourceRecordDigestV1,
             budget.json,
         )
-        .map_err(|_| SearchV2Error {
-            code: SearchV2ErrorCode::BudgetExceeded,
+        .map_err(|_| SearchError {
+            code: SearchErrorCode::BudgetExceeded,
             message: "Claim list policy binding budget",
         })?,
     )
@@ -175,11 +175,9 @@ pub fn execute_selected_claim_list<'hold, A: InspectCurrentAuthority<'hold> + ?S
         max_pairings: default_temporal.max_pairings,
     };
     let source_revision =
-        tos_foundation::SourceRevision(Digest256::from_hex(revision).map_err(|_| {
-            SearchV2Error {
-                code: SearchV2ErrorCode::StaleSelection,
-                message: "Claim list source revision invalid",
-            }
+        tos_foundation::SourceRevision(Digest256::from_hex(revision).map_err(|_| SearchError {
+            code: SearchErrorCode::StaleSelection,
+            message: "Claim list source revision invalid",
         })?);
     let parsed = parse_claim_list_request(
         request,
@@ -202,8 +200,8 @@ pub fn execute_selected_claim_list<'hold, A: InspectCurrentAuthority<'hold> + ?S
                 .checked_mul(temporal_budget.max_pairings)
                 .is_none_or(|work| work > budget.json.max_visits)
         {
-            return Err(SearchV2Error {
-                code: SearchV2ErrorCode::BudgetExceeded,
+            return Err(SearchError {
+                code: SearchErrorCode::BudgetExceeded,
                 message: "Claim list whole-page temporal allowance insufficient",
             });
         }
@@ -229,20 +227,20 @@ pub fn execute_selected_claim_list<'hold, A: InspectCurrentAuthority<'hold> + ?S
             for (graph, position, id) in candidates {
                 read.check_interrupt()?;
                 if graph != source_graph {
-                    return Err(SearchV2Error {
-                        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+                    return Err(SearchError {
+                        code: SearchErrorCode::CorruptSelectedCarrier,
                         message: "Claim list candidate source differs",
                     });
                 }
                 let mut payloads = read.items(SearchKind::Nodes, "id", &id, 1, false)?;
                 if payloads.len() != 1 {
-                    return Err(SearchV2Error {
-                        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+                    return Err(SearchError {
+                        code: SearchErrorCode::CorruptSelectedCarrier,
                         message: "Claim list candidate payload absent",
                     });
                 }
-                let carrier = payloads.pop().ok_or(SearchV2Error {
-                    code: SearchV2ErrorCode::CorruptSelectedCarrier,
+                let carrier = payloads.pop().ok_or(SearchError {
+                    code: SearchErrorCode::CorruptSelectedCarrier,
                     message: "Claim list candidate payload absent",
                 })?;
                 let matched = selected_claim_list_row(
@@ -282,8 +280,8 @@ pub fn execute_selected_claim_list<'hold, A: InspectCurrentAuthority<'hold> + ?S
                             }
                             Some("Match") => {
                                 let JsonValue::Object(ref mut fields) = row else {
-                                    return Err(SearchV2Error {
-                                        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+                                    return Err(SearchError {
+                                        code: SearchErrorCode::CorruptSelectedCarrier,
                                         message: "Claim list row invalid",
                                     });
                                 };
@@ -293,8 +291,8 @@ pub fn execute_selected_claim_list<'hold, A: InspectCurrentAuthority<'hold> + ?S
                                 ));
                             }
                             _ => {
-                                return Err(SearchV2Error {
-                                    code: SearchV2ErrorCode::CorruptSelectedCarrier,
+                                return Err(SearchError {
+                                    code: SearchErrorCode::CorruptSelectedCarrier,
                                     message: "Claim list temporal result invalid",
                                 });
                             }
@@ -311,8 +309,8 @@ pub fn execute_selected_claim_list<'hold, A: InspectCurrentAuthority<'hold> + ?S
                 JsonValue::Null
             } else {
                 last.map(|p| claim_list_cursor(&binding, &parsed.query_digest, p))
-                    .ok_or(SearchV2Error {
-                        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+                    .ok_or(SearchError {
+                        code: SearchErrorCode::CorruptSelectedCarrier,
                         message: "Claim list continuation made no progress",
                     })?
             };

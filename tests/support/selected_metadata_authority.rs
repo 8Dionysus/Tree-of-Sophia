@@ -6,7 +6,7 @@ use std::sync::{
 };
 use tos_access::{KnowledgeOperation as O, KnowledgeRequest as R};
 use tos_foundation::Digest256;
-use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error};
+use tos_query::search::{CurrentPolicyBinding, SearchError};
 use tos_query::{
     AbortProbe, BoundCmpKnowledge, CatalogCurrentAuthority, CatalogDisclosureLease,
     CatalogDisclosureScope, CatalogError, IndexedDisclosureScope, InspectCurrentAuthority,
@@ -70,8 +70,8 @@ impl Drop for Lease {
     }
 }
 impl InspectDisclosureLease for Lease {
-    fn recheck(&mut self) -> Result<(), SearchV2Error> {
-        use tos_query::search_v2::SearchV2ErrorCode as Code;
+    fn recheck(&mut self) -> Result<(), SearchError> {
+        use tos_query::search::SearchErrorCode as Code;
         let code = if self.1.revoked.load(Ordering::SeqCst) {
             Some(Code::StalePolicy)
         } else if self.1.cancelled.load(Ordering::SeqCst) {
@@ -80,7 +80,7 @@ impl InspectDisclosureLease for Lease {
             None
         };
         match code {
-            Some(code) => Err(SearchV2Error {
+            Some(code) => Err(SearchError {
                 code,
                 message: "fixture disclosure withdrawn or cancelled",
             }),
@@ -223,10 +223,10 @@ impl<'hold> CatalogCurrentAuthority<'hold> for Authority {
     }
 }
 impl<'hold> InspectCurrentAuthority<'hold> for Authority {
-    fn disclosure_metadata_state_upper_bound(&self) -> Result<usize, SearchV2Error> {
+    fn disclosure_metadata_state_upper_bound(&self) -> Result<usize, SearchError> {
         use tos_foundation::OwnedState;
-        let overflow = || SearchV2Error {
-            code: tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded,
+        let overflow = || SearchError {
+            code: tos_query::search::SearchErrorCode::BudgetExceeded,
             message: "selected fixture disclosure state overflow",
         };
         // Same accounting boundary as ReferenceRootMetadataHold: the owned
@@ -262,7 +262,7 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         _: u64,
         _: Option<&str>,
         _: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         InspectCurrentAuthority::check_selected(self)?;
         assert_eq!(self.inspect.operation_id, O::CorpusSummary.id());
         self.corpus_granted = true;
@@ -275,7 +275,7 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         ordinal: u64,
         raw: &[u8],
         sha: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         assert_eq!(
             self.inspect.intended_use,
             tos_query::corpus_read::CORPUS_INTENDED_USE
@@ -316,7 +316,7 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         ordinal: u64,
         raw: &[u8],
         sha: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         use tos_compiler::PhilosophyOriginalCollection as C;
         assert_eq!(
             self.inspect.intended_use,
@@ -349,7 +349,7 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         ordinal: i64,
         raw: &[u8],
         sha: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         assert_eq!(self.inspect.operation_id, O::Dossier.id());
         assert!(ordinal >= -1);
         assert_eq!(Digest256::of_bytes(raw), sha);
@@ -360,7 +360,7 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         id: &str,
         raw: &[u8],
         sha: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         assert_eq!(self.inspect.operation_id, O::Contracts.id());
         assert_eq!(Digest256::of_bytes(raw), sha);
         let at = self
@@ -371,7 +371,7 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         self.registry_grants |= 1 << at;
         Ok(())
     }
-    fn authorize_catalog_current(&mut self, sha: Digest256) -> Result<(), SearchV2Error> {
+    fn authorize_catalog_current(&mut self, sha: Digest256) -> Result<(), SearchError> {
         assert_eq!(self.inspect.operation_id, O::StoredLens.id());
         assert_eq!(sha, self.catalog.catalog_packet_sha256);
         self.controls.catalog_grants.fetch_add(1, Ordering::SeqCst);
@@ -383,17 +383,17 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
     fn disclosure_scope(&self) -> IndexedDisclosureScope {
         self.inspect.clone()
     }
-    fn check_selected(&mut self) -> Result<(), SearchV2Error> {
+    fn check_selected(&mut self) -> Result<(), SearchError> {
         Ok(())
     }
-    fn authorize_current(&mut self, _: &InspectedCarrier) -> Result<(), SearchV2Error> {
+    fn authorize_current(&mut self, _: &InspectedCarrier) -> Result<(), SearchError> {
         Ok(())
     }
     fn acquire_disclosure(
         &mut self,
         scope: &IndexedDisclosureScope,
         observed: &[ObservedInspectCarrier],
-    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
+    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchError> {
         if self.inspect.intended_use == tos_query::corpus_read::CORPUS_INTENDED_USE {
             assert!(self.corpus_granted);
             assert!(observed.is_empty());
@@ -425,8 +425,8 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
                 || scope.policy_epoch != self.policy.policy_epoch
                 || scope.withdrawal_generation != self.policy.withdrawal_generation
             {
-                return Err(SearchV2Error {
-                    code: tos_query::search_v2::SearchV2ErrorCode::StalePolicy,
+                return Err(SearchError {
+                    code: tos_query::search::SearchErrorCode::StalePolicy,
                     message: "empty list disclosure scope or policy changed",
                 });
             }

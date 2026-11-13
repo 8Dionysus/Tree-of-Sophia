@@ -12,21 +12,21 @@ use tos_query::exploration_plan::{
 use tos_query::knowledge_exploration::{
     decode_published_exploration_state, published_exploration_snapshot, set_exploration_cursor,
 };
-use tos_query::search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode};
+use tos_query::search::{SearchError, SearchErrorCode, SearchKind};
 use tos_query::{AbortProbe, AbortReason};
 
-fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn error(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
-fn corrupt(message: &'static str) -> SearchV2Error {
-    error(SearchV2ErrorCode::CorruptSelectedCarrier, message)
+fn corrupt(message: &'static str) -> SearchError {
+    error(SearchErrorCode::CorruptSelectedCarrier, message)
 }
-fn writer_error(reason: tos_foundation::FoundationError, message: &'static str) -> SearchV2Error {
+fn writer_error(reason: tos_foundation::FoundationError, message: &'static str) -> SearchError {
     error(
         if reason.code == FoundationErrorCode::BudgetExceeded {
-            SearchV2ErrorCode::BudgetExceeded
+            SearchErrorCode::BudgetExceeded
         } else {
-            SearchV2ErrorCode::CorruptSelectedCarrier
+            SearchErrorCode::CorruptSelectedCarrier
         },
         message,
     )
@@ -58,12 +58,12 @@ impl AbortProbe for CooperativeHostAbort {
     }
 }
 
-fn parse(raw: &[u8], mode: JsonMode, limits: JsonLimits) -> Result<JsonValue, SearchV2Error> {
+fn parse(raw: &[u8], mode: JsonMode, limits: JsonLimits) -> Result<JsonValue, SearchError> {
     parse_json(raw, mode, limits)
         .map(|document| document.into_root())
         .map_err(|_| corrupt("exploration transport JSON invalid"))
 }
-fn ids(raw: &[u8], budget: PublishedExplorationBudget) -> Result<Vec<String>, SearchV2Error> {
+fn ids(raw: &[u8], budget: PublishedExplorationBudget) -> Result<Vec<String>, SearchError> {
     let value = parse(raw, JsonMode::PublishedStrict, metadata_limits(budget)?)?;
     let JsonValue::Array(items) = value else {
         return Err(corrupt("exploration ID transport not array"));
@@ -78,7 +78,7 @@ fn ids(raw: &[u8], budget: PublishedExplorationBudget) -> Result<Vec<String>, Se
         })
         .collect()
 }
-fn metadata_limits(budget: PublishedExplorationBudget) -> Result<JsonLimits, SearchV2Error> {
+fn metadata_limits(budget: PublishedExplorationBudget) -> Result<JsonLimits, SearchError> {
     // Only derived exact strings/IDs enter this bridge. JSON escaping can
     // expand a physically admitted source string by at most six bytes/unit.
     let max_bytes = usize::try_from(budget.exploration.read.max_decoded_bytes)
@@ -95,7 +95,7 @@ fn rows(
     raw: &[u8],
     sizes: &[u32],
     budget: PublishedExplorationBudget,
-) -> Result<Vec<JsonValue>, SearchV2Error> {
+) -> Result<Vec<JsonValue>, SearchError> {
     let read = budget.exploration.read;
     if sizes.len() as u64 > read.max_rows
         || sizes
@@ -110,7 +110,7 @@ fn rows(
         .ok_or_else(|| corrupt("exploration row size overflow"))?;
     if total as u64 > read.max_decoded_bytes {
         return Err(error(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "exploration row source bytes exceeded",
         ));
     }
@@ -159,7 +159,7 @@ impl ExplorationSession {
         top: &[u8],
         state: &[u8],
         budget: PublishedExplorationBudget,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         let request = parse_json(
             request,
             JsonMode::RequestLastWins,
@@ -170,7 +170,7 @@ impl ExplorationSession {
         )
         .map_err(|_| {
             error(
-                SearchV2ErrorCode::InvalidRequest,
+                SearchErrorCode::InvalidRequest,
                 "exploration request JSON invalid",
             )
         })?
@@ -221,7 +221,7 @@ impl ExplorationSession {
             budget,
         })
     }
-    pub fn need_bytes(&mut self) -> Result<Option<Vec<u8>>, SearchV2Error> {
+    pub fn need_bytes(&mut self) -> Result<Option<Vec<u8>>, SearchError> {
         if self.output.is_some() {
             return Ok(None);
         }
@@ -324,7 +324,7 @@ impl ExplorationSession {
         raw: &[u8],
         sizes: &[u32],
         ambiguous: &[u8],
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         let need = self
             .plan
             .as_ref()
@@ -351,7 +351,7 @@ impl ExplorationSession {
         matched: usize,
         raw: &[u8],
         sizes: &[u32],
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         let need = self
             .plan
             .as_ref()
@@ -373,13 +373,13 @@ impl ExplorationSession {
             .ok_or_else(|| corrupt("exploration session consumed"))?
             .resume(reply)
     }
-    pub fn resume_ids(&mut self, raw: &[u8]) -> Result<(), SearchV2Error> {
+    pub fn resume_ids(&mut self, raw: &[u8]) -> Result<(), SearchError> {
         self.plan
             .as_mut()
             .ok_or_else(|| corrupt("exploration session consumed"))?
             .resume(ExplorationReply::Ids(ids(raw, self.budget)?))
     }
-    pub fn paused(&self) -> Result<bool, SearchV2Error> {
+    pub fn paused(&self) -> Result<bool, SearchError> {
         let output = self
             .output
             .as_ref()
@@ -390,7 +390,7 @@ impl ExplorationSession {
             .and_then(JsonValue::as_str)
             == Some("paused"))
     }
-    pub fn state(&self) -> Result<Vec<u8>, SearchV2Error> {
+    pub fn state(&self) -> Result<Vec<u8>, SearchError> {
         self.output
             .as_ref()
             .ok_or_else(|| corrupt("exploration page incomplete"))?
@@ -400,7 +400,7 @@ impl ExplorationSession {
                 ..self.budget.exploration.read.json
             })
     }
-    pub fn finish(&mut self, cursor: Option<&str>) -> Result<Vec<u8>, SearchV2Error> {
+    pub fn finish(&mut self, cursor: Option<&str>) -> Result<Vec<u8>, SearchError> {
         let mut output = self
             .output
             .take()

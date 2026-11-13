@@ -4,10 +4,10 @@ use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::{
     knowledge_focus::normalize_published_focus_request,
     knowledge_lens_spec::{normalize_published_lens_request, validate_stored_lens_identifier},
-    search_v2::{SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode},
 };
 
-fn request_document(raw: &[u8], json: JsonLimits) -> Result<JsonValue, SearchV2Error> {
+fn request_document(raw: &[u8], json: JsonLimits) -> Result<JsonValue, SearchError> {
     parse_json(
         raw,
         JsonMode::RequestLastWins,
@@ -17,13 +17,13 @@ fn request_document(raw: &[u8], json: JsonLimits) -> Result<JsonValue, SearchV2E
         },
     )
     .map(|document| document.into_root())
-    .map_err(|_| SearchV2Error {
-        code: SearchV2ErrorCode::InvalidRequest,
+    .map_err(|_| SearchError {
+        code: SearchErrorCode::InvalidRequest,
         message: "published lens request JSON invalid",
     })
 }
 
-pub fn request(raw: &[u8], operation: &str, json: JsonLimits) -> Result<JsonValue, SearchV2Error> {
+pub fn request(raw: &[u8], operation: &str, json: JsonLimits) -> Result<JsonValue, SearchError> {
     let value = request_document(raw, json)?;
     match operation {
         "compile" => normalize_published_lens_request(&value),
@@ -32,8 +32,8 @@ pub fn request(raw: &[u8], operation: &str, json: JsonLimits) -> Result<JsonValu
             validate_stored_lens_identifier(&value)?;
             Ok(value)
         }
-        _ => Err(SearchV2Error {
-            code: SearchV2ErrorCode::InvalidRequest,
+        _ => Err(SearchError {
+            code: SearchErrorCode::InvalidRequest,
             message: "invalid published lens entry",
         }),
     }
@@ -49,10 +49,10 @@ use tos_query::{
         LensEndpoint, LensHeader, LensHeaderQuery, LensNeed, LensPlan, LensReply,
         LensRepresentation, LensStores, PublishedLensBudget,
     },
-    search_v2::SearchKind,
+    search::SearchKind,
 };
-fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn error(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
 fn text(value: &str) -> JsonValue {
     JsonValue::String(JsonString::from_utf8(value))
@@ -81,10 +81,10 @@ fn kind(value: SearchKind) -> JsonValue {
         "relation"
     })
 }
-fn corrupt(message: &'static str) -> SearchV2Error {
-    error(SearchV2ErrorCode::CorruptSelectedCarrier, message)
+fn corrupt(message: &'static str) -> SearchError {
+    error(SearchErrorCode::CorruptSelectedCarrier, message)
 }
-fn parse(raw: &[u8], max_bytes: usize, json: JsonLimits) -> Result<JsonValue, SearchV2Error> {
+fn parse(raw: &[u8], max_bytes: usize, json: JsonLimits) -> Result<JsonValue, SearchError> {
     parse_json(
         raw,
         JsonMode::PublishedStrict,
@@ -93,18 +93,18 @@ fn parse(raw: &[u8], max_bytes: usize, json: JsonLimits) -> Result<JsonValue, Se
     .map(|document| document.into_root())
     .map_err(|_| corrupt("published lens transport JSON invalid"))
 }
-fn string(value: &JsonValue) -> Result<String, SearchV2Error> {
+fn string(value: &JsonValue) -> Result<String, SearchError> {
     value
         .as_str()
         .map(str::to_owned)
         .ok_or_else(|| corrupt("published lens transport string invalid"))
 }
-fn field<'a>(value: &'a JsonValue, key: &str) -> Result<&'a JsonValue, SearchV2Error> {
+fn field<'a>(value: &'a JsonValue, key: &str) -> Result<&'a JsonValue, SearchError> {
     value
         .object_get(key)
         .ok_or_else(|| corrupt("published lens transport field missing"))
 }
-fn string_list(value: &JsonValue) -> Result<Vec<String>, SearchV2Error> {
+fn string_list(value: &JsonValue) -> Result<Vec<String>, SearchError> {
     value
         .as_array()
         .ok_or_else(|| corrupt("published lens transport list invalid"))?
@@ -211,7 +211,7 @@ impl LensSession {
         catalog: &[u8],
         publication: &[u8],
         budget: PublishedLensBudget,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         // Shape validation already ran before D1. Compile passes its owned raw
         // request directly to the metadata-bound shared normalizer; focus
         // requires the shared typed focus-to-spec constructor.
@@ -249,7 +249,7 @@ impl LensSession {
             budget,
         })
     }
-    fn transport_limits(&self) -> Result<JsonLimits, SearchV2Error> {
+    fn transport_limits(&self) -> Result<JsonLimits, SearchError> {
         // JSON escaping of already admitted D1 text can use six bytes for one
         // control code point. This bounds transport encoding, not source bytes.
         let max_bytes = usize::try_from(self.budget.lens.inspect.max_decoded_bytes)
@@ -257,7 +257,7 @@ impl LensSession {
             .and_then(|n| n.checked_mul(6))
             .ok_or_else(|| {
                 error(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "lens transport byte limit overflow",
                 )
             })?;
@@ -266,7 +266,7 @@ impl LensSession {
             ..self.budget.lens.inspect.json
         })
     }
-    pub fn need_bytes(&mut self) -> Result<Option<Vec<u8>>, SearchV2Error> {
+    pub fn need_bytes(&mut self) -> Result<Option<Vec<u8>>, SearchError> {
         if self.plan.advance()? {
             return Ok(None);
         }
@@ -430,12 +430,12 @@ impl LensSession {
             .map(Some)
             .map_err(|_| {
                 error(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "lens need emission refused",
                 )
             })
     }
-    pub fn resume_rows(&mut self, raw: &[u8], sizes: &[u32]) -> Result<(), SearchV2Error> {
+    pub fn resume_rows(&mut self, raw: &[u8], sizes: &[u32]) -> Result<(), SearchError> {
         let row_limit = usize::try_from(self.budget.lens.inspect.max_rows)
             .map_err(|_| corrupt("lens row limit invalid"))?;
         if sizes.len() > row_limit
@@ -451,7 +451,7 @@ impl LensSession {
             .ok_or_else(|| corrupt("lens row bytes overflow"))?;
         if total as u64 > self.budget.lens.inspect.max_decoded_bytes {
             return Err(error(
-                SearchV2ErrorCode::BudgetExceeded,
+                SearchErrorCode::BudgetExceeded,
                 "lens row byte budget",
             ));
         }
@@ -499,14 +499,14 @@ impl LensSession {
             raw_bytes: sizes.iter().map(|size| *size as usize).collect(),
         })
     }
-    fn reply(&self, raw: &[u8]) -> Result<JsonValue, SearchV2Error> {
+    fn reply(&self, raw: &[u8]) -> Result<JsonValue, SearchError> {
         parse(
             raw,
             self.transport_limits()?.max_bytes,
             self.budget.lens.inspect.json,
         )
     }
-    pub fn resume_candidates(&mut self, raw: &[u8]) -> Result<(), SearchV2Error> {
+    pub fn resume_candidates(&mut self, raw: &[u8]) -> Result<(), SearchError> {
         let value = self.reply(raw)?;
         let rows = value
             .as_array()
@@ -519,15 +519,15 @@ impl LensSession {
                     position: None,
                 })
             })
-            .collect::<Result<_, SearchV2Error>>()?;
+            .collect::<Result<_, SearchError>>()?;
         self.plan
             .resume(LensReply::Candidates(LensCandidatePage { rows }))
     }
-    pub fn resume_ids(&mut self, raw: &[u8]) -> Result<(), SearchV2Error> {
+    pub fn resume_ids(&mut self, raw: &[u8]) -> Result<(), SearchError> {
         let value = self.reply(raw)?;
         self.plan.resume(LensReply::Ids(string_list(&value)?))
     }
-    pub fn resume_headers(&mut self, raw: &[u8]) -> Result<(), SearchV2Error> {
+    pub fn resume_headers(&mut self, raw: &[u8]) -> Result<(), SearchError> {
         let value = self.reply(raw)?;
         let rows = value
             .as_array()
@@ -541,10 +541,10 @@ impl LensSession {
                     to_id: string(field(row, "to_id")?)?,
                 })
             })
-            .collect::<Result<_, SearchV2Error>>()?;
+            .collect::<Result<_, SearchError>>()?;
         self.plan.resume(LensReply::Headers(rows))
     }
-    pub fn resume_sources(&mut self, raw: &[u8]) -> Result<(), SearchV2Error> {
+    pub fn resume_sources(&mut self, raw: &[u8]) -> Result<(), SearchError> {
         let value = self.reply(raw)?;
         let rows = value
             .as_array()
@@ -557,19 +557,19 @@ impl LensSession {
                     .ok_or_else(|| corrupt("lens source pair invalid"))?;
                 Ok((string(&values[0])?, string(&values[1])?))
             })
-            .collect::<Result<_, SearchV2Error>>()?;
+            .collect::<Result<_, SearchError>>()?;
         self.plan.resume(LensReply::Sources(rows))
     }
-    pub fn resume_count(&mut self, count: u64) -> Result<(), SearchV2Error> {
+    pub fn resume_count(&mut self, count: u64) -> Result<(), SearchError> {
         self.plan.resume(LensReply::Count(count))
     }
-    pub fn resume_stores(&mut self, compact: bool, membership: bool) -> Result<(), SearchV2Error> {
+    pub fn resume_stores(&mut self, compact: bool, membership: bool) -> Result<(), SearchError> {
         self.plan.resume(LensReply::Stores(LensStores {
             compact,
             membership,
         }))
     }
-    pub fn finish(&mut self) -> Result<Vec<u8>, SearchV2Error> {
+    pub fn finish(&mut self) -> Result<Vec<u8>, SearchError> {
         let packet = self.plan.finish()?;
         emit_ordered_compact_json_v1(
             &packet,
@@ -581,9 +581,9 @@ impl LensSession {
         .map_err(|reason| {
             error(
                 if reason.code == FoundationErrorCode::BudgetExceeded {
-                    SearchV2ErrorCode::BudgetExceeded
+                    SearchErrorCode::BudgetExceeded
                 } else {
-                    SearchV2ErrorCode::CorruptSelectedCarrier
+                    SearchErrorCode::CorruptSelectedCarrier
                 },
                 "lens packet emission refused",
             )

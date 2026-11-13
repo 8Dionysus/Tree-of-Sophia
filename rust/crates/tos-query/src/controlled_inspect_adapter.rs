@@ -1,7 +1,7 @@
 //! The maintained InspectPlan driven by authentic controlled carrier rows.
 //! No connection, model constructor, source path or independent clock enters.
 use crate::controlled_query_adapter::compiler_query_error;
-use crate::search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode, SelectedQueryVocabulary};
+use crate::search::{SearchError, SearchErrorCode, SearchKind, SelectedQueryVocabulary};
 use crate::{
     BoundCmpKnowledge, InspectBudget, InspectCurrentAuthority, InspectNeed, InspectPlan,
     InspectRequest, ObservedInspectCarrier,
@@ -11,15 +11,15 @@ use tos_compiler::{
 };
 use tos_foundation::{JsonString, JsonValue};
 
-fn budget() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+fn budget() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "controlled inspect budget exceeded",
     }
 }
-fn corrupt() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+fn corrupt() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::CorruptSelectedCarrier,
         message: "controlled inspect selected carrier differs",
     }
 }
@@ -40,7 +40,7 @@ fn collect<'hold, 'model, 'state, 'budget, A: InspectCurrentAuthority<'hold> + ?
     charges: &mut Charges,
     consulted: &mut Vec<ObservedInspectCarrier>,
     heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
-) -> Result<Vec<JsonValue>, SearchV2Error> {
+) -> Result<Vec<JsonValue>, SearchError> {
     collect_with_sizes(
         model, authority, sources, kind, selected, caps, charges, consulted, heap,
     )
@@ -63,7 +63,7 @@ pub(crate) fn collect_with_sizes<
     charges: &mut Charges,
     consulted: &mut Vec<ObservedInspectCarrier>,
     heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
-) -> Result<Vec<(JsonValue, usize)>, SearchV2Error> {
+) -> Result<Vec<(JsonValue, usize)>, SearchError> {
     let mut values = Vec::new();
     let rows = caps.max_rows.checked_sub(charges.rows).ok_or_else(budget)?;
     let decoded = caps
@@ -149,7 +149,7 @@ pub(crate) fn collect_with_sizes<
                 )
                 .map_err(compiler_query_error)?;
                 values.push((value.clone(), raw_bytes));
-                Ok::<(), SearchV2Error>(())
+                Ok::<(), SearchError>(())
             },
         )
         .map_err(compiler_query_error)??;
@@ -172,8 +172,8 @@ pub fn execute_controlled_inspect_response<'hold, A: InspectCurrentAuthority<'ho
     identifier: &str,
     relation_limit: usize,
     caps: InspectBudget,
-    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
-) -> Result<(), SearchV2Error> {
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchError>,
+) -> Result<(), SearchError> {
     if caps.max_rows == 0
         || caps.max_matches == 0
         || caps.max_read_vm_steps == 0

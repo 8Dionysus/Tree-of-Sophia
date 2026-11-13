@@ -19,7 +19,6 @@ pub mod edge_offline_capture;
 pub mod edge_sql;
 pub mod exploration_checkpoints;
 pub mod exploration_contracts;
-mod indexed_cursor;
 pub mod knowledge;
 pub mod managed_local;
 #[cfg(not(target_arch = "wasm32"))]
@@ -88,11 +87,10 @@ pub mod source_text_search;
 pub mod standalone_validation;
 
 pub use common::{
-    AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
-    IndexedSearchParams, NoOwner, Params, PreparedHealth, PreparedPacket, QuerySession,
-    RegisteredOperation, SEARCH_OPERATION_ID, SOURCE_TEXT_SEARCH_HTTP_PATH,
-    SOURCE_TEXT_SEARCH_MCP_TOOL, SOURCE_TEXT_SEARCH_OPERATION_ID, ScopedAccessExecutor,
-    checked_execute, descriptor, registered_operations,
+    AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence, NoOwner, Params,
+    PreparedHealth, PreparedPacket, QuerySession, RegisteredOperation, SEARCH_OPERATION_ID,
+    SOURCE_TEXT_SEARCH_HTTP_PATH, SOURCE_TEXT_SEARCH_MCP_TOOL, SOURCE_TEXT_SEARCH_OPERATION_ID,
+    ScopedAccessExecutor, checked_execute, descriptor, registered_operations,
 };
 
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]

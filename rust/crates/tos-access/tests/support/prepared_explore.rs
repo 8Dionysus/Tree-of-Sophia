@@ -462,7 +462,7 @@ fn prepared_explore_native_rows_pages_replay_and_current_fence() {
         match result {
             Err(error) => assert_eq!(
                 error.code,
-                tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded
+                tos_query::search::SearchErrorCode::BudgetExceeded
             ),
             Ok(_) => panic!("successor larger than the checkpoint cap was admitted"),
         }

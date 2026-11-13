@@ -1,6 +1,6 @@
 //! Selected-source text search semantics shared by native and WASM consumers.
 //!
-//! This operation is deliberately separate from indexed-v2/compressed-v3
+//! This operation is deliberately separate from compressed graph
 //! knowledge search. The adapter supplies one bounded, complete candidate set
 //! from its selected source-text profile while its own currentness and rights
 //! fence is held. This module ranks only those candidates; it grants no source

@@ -7,14 +7,14 @@ use crate::compressed_search_sqlite::Read;
 use crate::knowledge_lens::LensBudget;
 use crate::lens_plan::*;
 use crate::prepared_inspect::{budget, codec, corrupt, full_row_with_size, storage_error, table};
-use crate::search_v2::{SearchKind, SearchV2Error};
+use crate::search::{SearchError, SearchKind};
 use rusqlite::{ToSql, types::Value};
 use tos_compiler::local_prepared::PreparedReadTransaction;
 use tos_foundation::{
     Digest256, JsonMode, JsonValue, emit_ordered_compact_json_v1, parse_json,
     python_lower_unicode16_v1,
 };
-type Result<T> = std::result::Result<T, SearchV2Error>;
+type Result<T> = std::result::Result<T, SearchError>;
 
 pub(crate) fn lens(
     read: &mut Read<'_>,

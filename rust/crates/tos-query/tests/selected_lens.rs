@@ -24,18 +24,18 @@ use tos_query::{
         STORED_LENS_INTENDED_USE, STORED_LENS_OPERATION, execute_selected_focus,
         execute_selected_lens, execute_selected_stored_lens, lens_continuation_binding,
     },
-    search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode},
+    search::{CurrentPolicyBinding, SearchError, SearchErrorCode},
 };
 
-fn withdrawal() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::StalePolicy,
+fn withdrawal() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::StalePolicy,
         message: "synthetic lens withdrawal",
     }
 }
 struct Lease(Arc<AtomicBool>);
 impl InspectDisclosureLease for Lease {
-    fn recheck(&mut self) -> Result<(), SearchV2Error> {
+    fn recheck(&mut self) -> Result<(), SearchError> {
         if self.0.load(Ordering::SeqCst) {
             Err(withdrawal())
         } else {
@@ -109,11 +109,11 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         ordinal: u64,
         raw: &[u8],
         sha: tos_foundation::Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.check_selected()?;
         if self.originals_denied {
-            return Err(SearchV2Error {
-                code: SearchV2ErrorCode::Unavailable,
+            return Err(SearchError {
+                code: SearchErrorCode::Unavailable,
                 message: "synthetic corpus original grant unavailable",
             });
         }
@@ -137,11 +137,11 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         ordinal: u64,
         raw: &[u8],
         sha: tos_foundation::Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.check_selected()?;
         if self.originals_denied {
-            return Err(SearchV2Error {
-                code: SearchV2ErrorCode::Unavailable,
+            return Err(SearchError {
+                code: SearchErrorCode::Unavailable,
                 message: "synthetic philosophy original grant unavailable",
             });
         }
@@ -165,11 +165,11 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         ordinal: i64,
         raw: &[u8],
         sha: tos_foundation::Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.check_selected()?;
         if self.originals_denied {
-            return Err(SearchV2Error {
-                code: SearchV2ErrorCode::Unavailable,
+            return Err(SearchError {
+                code: SearchErrorCode::Unavailable,
                 message: "synthetic original grant unavailable",
             });
         }
@@ -192,11 +192,11 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         _: &str,
         raw: &[u8],
         sha: tos_foundation::Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.check_selected()?;
         if self.registry_denied {
-            return Err(SearchV2Error {
-                code: SearchV2ErrorCode::Unavailable,
+            return Err(SearchError {
+                code: SearchErrorCode::Unavailable,
                 message: "synthetic registry grant unavailable",
             });
         }
@@ -210,14 +210,14 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
     fn disclosure_scope(&self) -> IndexedDisclosureScope {
         self.scope.clone()
     }
-    fn check_selected(&mut self) -> Result<(), SearchV2Error> {
+    fn check_selected(&mut self) -> Result<(), SearchError> {
         if self.withdrawn.load(Ordering::SeqCst) {
             Err(withdrawal())
         } else {
             Ok(())
         }
     }
-    fn authorize_current(&mut self, carrier: &InspectedCarrier) -> Result<(), SearchV2Error> {
+    fn authorize_current(&mut self, carrier: &InspectedCarrier) -> Result<(), SearchError> {
         self.check_selected()?;
         self.consulted.push(carrier.id.clone());
         Ok(())
@@ -225,11 +225,11 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
     fn authorize_catalog_current(
         &mut self,
         _: tos_foundation::Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.check_selected()?;
         if self.catalog_denied {
-            return Err(SearchV2Error {
-                code: SearchV2ErrorCode::PolicyBindingUnavailable,
+            return Err(SearchError {
+                code: SearchErrorCode::PolicyBindingUnavailable,
                 message: "synthetic catalog denial",
             });
         }
@@ -240,7 +240,7 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         &mut self,
         _: &IndexedDisclosureScope,
         consulted: &[ObservedInspectCarrier],
-    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
+    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchError> {
         self.check_selected()?;
         if self.scope.operation_id == STORED_LENS_OPERATION {
             assert_eq!(self.catalog_consulted, 1);
@@ -373,11 +373,6 @@ const DECLARED_PROGRAM_CONTRACTS: &[(&str, &str, &[u8])] = &[
         "knowledge_graph",
         "access/contracts/knowledge-graph.v1.schema.json",
         include_bytes!("../../../../access/contracts/knowledge-graph.v1.schema.json"),
-    ),
-    (
-        "knowledge_search_indexed",
-        "access/contracts/knowledge-search-indexed.v2.schema.json",
-        include_bytes!("../../../../access/contracts/knowledge-search-indexed.v2.schema.json"),
     ),
     (
         "readable_context",
@@ -1950,11 +1945,11 @@ fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_d
         };
         if let Some(error) = case.object_get("error") {
             let expected = if error.as_str() == Some("unknown") {
-                SearchV2ErrorCode::UnknownIdentifier
+                SearchErrorCode::UnknownIdentifier
             } else if error.as_str() == Some("stale") {
-                SearchV2ErrorCode::StaleSelection
+                SearchErrorCode::StaleSelection
             } else {
-                SearchV2ErrorCode::InvalidRequest
+                SearchErrorCode::InvalidRequest
             };
             assert!(
                 matches!(result, Err(ref error) if error.code == expected),
@@ -1974,8 +1969,8 @@ fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_d
         assert!(
             matches!(
                 result.recheck(),
-                Err(SearchV2Error {
-                    code: SearchV2ErrorCode::StalePolicy,
+                Err(SearchError {
+                    code: SearchErrorCode::StalePolicy,
                     ..
                 })
             ),
@@ -1994,8 +1989,8 @@ fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_d
     );
     assert!(matches!(
         execute_selected_focus(&mut model, &bound, &mut wrong_scope, &focus, budget()),
-        Err(SearchV2Error {
-            code: SearchV2ErrorCode::PolicyBindingUnavailable,
+        Err(SearchError {
+            code: SearchErrorCode::PolicyBindingUnavailable,
             ..
         })
     ));
@@ -2011,8 +2006,8 @@ fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_d
             "fixture-absent-lens",
             budget()
         ),
-        Err(SearchV2Error {
-            code: SearchV2ErrorCode::PolicyBindingUnavailable,
+        Err(SearchError {
+            code: SearchErrorCode::PolicyBindingUnavailable,
             ..
         })
     ));
@@ -2039,8 +2034,8 @@ fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_d
                 field(continuation, "spec"),
                 budget()
             ),
-            Err(SearchV2Error {
-                code: SearchV2ErrorCode::StaleSelection,
+            Err(SearchError {
+                code: SearchErrorCode::StaleSelection,
                 ..
             })
         ));
@@ -2084,8 +2079,8 @@ fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_d
         let mut authority = Authority::new(&bound);
         assert!(matches!(
             execute_selected_lens(&mut model, &bound, &mut authority, spec, small),
-            Err(SearchV2Error {
-                code: SearchV2ErrorCode::BudgetExceeded,
+            Err(SearchError {
+                code: SearchErrorCode::BudgetExceeded,
                 ..
             })
         ));
@@ -2106,8 +2101,8 @@ fn normalized_selected_lenses_match_frozen_historical_outputs_and_hold_current_d
                 ..budget()
             }
         ),
-        Err(SearchV2Error {
-            code: SearchV2ErrorCode::BudgetExceeded,
+        Err(SearchError {
+            code: SearchErrorCode::BudgetExceeded,
             ..
         })
     ));
@@ -2227,21 +2222,21 @@ fn normalized_selected_contracts_require_exact_registry_carriers_and_current_hol
         canonical(&oracle)
     );
     granted.withdrawn.store(true, Ordering::SeqCst);
-    assert!(matches!(result.recheck(),Err(ref e) if e.code==SearchV2ErrorCode::StalePolicy));
+    assert!(matches!(result.recheck(),Err(ref e) if e.code==SearchErrorCode::StalePolicy));
     let mut denied = authority(false);
     assert!(
-        matches!(execute_selected_knowledge_contracts(&mut model,&bound,&mut denied,raw,contract_budget,budget().inspect),Err(ref e) if e.code==SearchV2ErrorCode::Unavailable)
+        matches!(execute_selected_knowledge_contracts(&mut model,&bound,&mut denied,raw,contract_budget,budget().inspect),Err(ref e) if e.code==SearchErrorCode::Unavailable)
     );
     let mut changed = raw[0].to_vec();
     changed.push(b' ');
     let mut a = authority(true);
     assert!(
-        matches!(execute_selected_knowledge_contracts(&mut model,&bound,&mut a,[&changed,raw[1]],contract_budget,budget().inspect),Err(ref e) if e.code==SearchV2ErrorCode::StaleSelection)
+        matches!(execute_selected_knowledge_contracts(&mut model,&bound,&mut a,[&changed,raw[1]],contract_budget,budget().inspect),Err(ref e) if e.code==SearchErrorCode::StaleSelection)
     );
     assert!(a.registry_consulted.is_empty());
     let mut a = authority(true);
     assert!(
-        matches!(execute_selected_knowledge_contracts(&mut model,&bound,&mut a,raw,KnowledgeContractBudget {max_registry_bytes:1,..contract_budget},budget().inspect),Err(ref e) if e.code==SearchV2ErrorCode::BudgetExceeded)
+        matches!(execute_selected_knowledge_contracts(&mut model,&bound,&mut a,raw,KnowledgeContractBudget {max_registry_bytes:1,..contract_budget},budget().inspect),Err(ref e) if e.code==SearchErrorCode::BudgetExceeded)
     );
 }
 
@@ -2304,7 +2299,7 @@ fn normalized_selected_dossiers_match_frozen_historical_packets_and_hold_rights(
         authority.withdrawn.store(true, Ordering::SeqCst);
         assert_eq!(
             packet.recheck().unwrap_err().code,
-            SearchV2ErrorCode::StalePolicy
+            SearchErrorCode::StalePolicy
         );
     }
     assert!(cold.navigation_original_available());
@@ -2336,7 +2331,7 @@ fn normalized_selected_dossiers_match_frozen_historical_packets_and_hold_rights(
         authority.withdrawn.store(true, Ordering::SeqCst);
         assert_eq!(
             packet.recheck().unwrap_err().code,
-            SearchV2ErrorCode::StalePolicy
+            SearchErrorCode::StalePolicy
         );
         drop(packet);
         let mut denied = descent_authority();
@@ -2353,7 +2348,7 @@ fn normalized_selected_dossiers_match_frozen_historical_packets_and_hold_rights(
             .err()
             .unwrap()
             .code,
-            SearchV2ErrorCode::Unavailable
+            SearchErrorCode::Unavailable
         );
         assert_eq!(
             execute_selected_source_navigation_descend(
@@ -2367,7 +2362,7 @@ fn normalized_selected_dossiers_match_frozen_historical_packets_and_hold_rights(
             .err()
             .unwrap()
             .code,
-            SearchV2ErrorCode::BudgetExceeded
+            SearchErrorCode::BudgetExceeded
         );
     }
     let case = &field(&oracle, "cases").as_array().unwrap()[0];
@@ -2379,7 +2374,7 @@ fn normalized_selected_dossiers_match_frozen_historical_packets_and_hold_rights(
             .err()
             .unwrap()
             .code,
-        SearchV2ErrorCode::Unavailable
+        SearchErrorCode::Unavailable
     );
     let mut tiny = caps;
     tiny.inspect.max_rows = 1;
@@ -2388,7 +2383,7 @@ fn normalized_selected_dossiers_match_frozen_historical_packets_and_hold_rights(
             .err()
             .unwrap()
             .code,
-        SearchV2ErrorCode::BudgetExceeded
+        SearchErrorCode::BudgetExceeded
     );
 }
 
@@ -2461,7 +2456,7 @@ fn normalized_selected_dossiers_preserve_shared_file_membership_rights_controls(
             current.withdrawn.store(true, Ordering::SeqCst);
             assert_eq!(
                 packet.recheck().unwrap_err().code,
-                SearchV2ErrorCode::StalePolicy
+                SearchErrorCode::StalePolicy
             );
         }
     }
@@ -2536,7 +2531,7 @@ fn normalized_selected_dossiers_preserve_remaining_source_navigation_boundaries(
             current.withdrawn.store(true, Ordering::SeqCst);
             assert_eq!(
                 packet.recheck().unwrap_err().code,
-                SearchV2ErrorCode::StalePolicy
+                SearchErrorCode::StalePolicy
             );
         }
     }
@@ -2868,7 +2863,7 @@ fn selected_philosophy_variant_parity(
             .err()
             .unwrap()
             .code,
-        SearchV2ErrorCode::Unavailable
+        SearchErrorCode::Unavailable
     );
     let mut tiny = caps;
     tiny.inspect.max_rows = 1;
@@ -2877,7 +2872,7 @@ fn selected_philosophy_variant_parity(
             .err()
             .unwrap()
             .code,
-        SearchV2ErrorCode::BudgetExceeded
+        SearchErrorCode::BudgetExceeded
     );
     let mut authority = current(request);
     let mut held =
@@ -2885,7 +2880,7 @@ fn selected_philosophy_variant_parity(
     authority.withdrawn.store(true, Ordering::SeqCst);
     assert_eq!(
         held.recheck().unwrap_err().code,
-        SearchV2ErrorCode::StalePolicy
+        SearchErrorCode::StalePolicy
     );
 }
 
@@ -3036,7 +3031,7 @@ fn released_public_source_gap_packets_match_frozen_historical_outputs_without_so
         )
         .unwrap_err()
         .code,
-        SearchV2ErrorCode::Cancelled
+        SearchErrorCode::Cancelled
     );
     let mut tiny = caps;
     tiny.max_work_steps = 1;
@@ -3044,7 +3039,7 @@ fn released_public_source_gap_packets_match_frozen_historical_outputs_without_so
         compute_source_gap_packet(&records, &request, tiny, &Probe(None))
             .unwrap_err()
             .code,
-        SearchV2ErrorCode::BudgetExceeded
+        SearchErrorCode::BudgetExceeded
     );
     let original = field(&oracle, "records").as_array().unwrap()[0]
         .object_get("raw")
@@ -3073,7 +3068,7 @@ fn released_public_source_gap_packets_match_frozen_historical_outputs_without_so
         compute_source_gap_packet(&unsafe_members, &request, caps, &Probe(None))
             .unwrap_err()
             .code,
-        SearchV2ErrorCode::CorruptSelectedCarrier
+        SearchErrorCode::CorruptSelectedCarrier
     );
 }
 
@@ -3332,7 +3327,7 @@ fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
         authority.withdrawn.store(true, Ordering::SeqCst);
         assert_eq!(
             held.recheck().unwrap_err().code,
-            SearchV2ErrorCode::StalePolicy
+            SearchErrorCode::StalePolicy
         );
         drop(held);
         tiny.inspect.max_rows -= 1;
@@ -3348,7 +3343,7 @@ fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
             .err()
             .unwrap()
             .code,
-            SearchV2ErrorCode::BudgetExceeded
+            SearchErrorCode::BudgetExceeded
         );
         let mut denied = current(&request);
         denied.originals_denied = true;
@@ -3357,7 +3352,7 @@ fn captured_selected_corpus_reads_match_frozen_packets_and_addressed_cost() {
                 .err()
                 .unwrap()
                 .code,
-            SearchV2ErrorCode::Unavailable
+            SearchErrorCode::Unavailable
         );
         drop(cold);
         // An outer model rehash must not make a changed addressed index key

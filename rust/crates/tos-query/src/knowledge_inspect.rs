@@ -2,8 +2,8 @@
 //! Alias sets are complete or refused; no prefix stands in for all matches.
 use crate::{
     knowledge_binding::BoundCmpKnowledge,
-    knowledge_packet::IndexedDisclosureScope,
-    search_v2::{CurrentPolicyBinding, SearchKind, SearchV2Error, SearchV2ErrorCode},
+    knowledge_scope::IndexedDisclosureScope,
+    search::{CurrentPolicyBinding, SearchError, SearchErrorCode, SearchKind},
     source_read_projection::text,
 };
 use rusqlite::{ErrorCode, params};
@@ -26,16 +26,16 @@ use tos_foundation::{
 pub const NODE_INSPECT_OPERATION: &str = "tos.knowledge.node.inspect";
 pub const RELATION_INSPECT_OPERATION: &str = "tos.knowledge.relation.inspect";
 pub const INSPECT_INTENDED_USE: &str = "read_only_public_knowledge_inspect_v1";
-fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn error(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
-fn corrupt(message: &'static str) -> SearchV2Error {
-    error(SearchV2ErrorCode::CorruptSelectedCarrier, message)
+fn corrupt(message: &'static str) -> SearchError {
+    error(SearchErrorCode::CorruptSelectedCarrier, message)
 }
-fn budget_error() -> SearchV2Error {
-    error(SearchV2ErrorCode::BudgetExceeded, "inspect budget exceeded")
+fn budget_error() -> SearchError {
+    error(SearchErrorCode::BudgetExceeded, "inspect budget exceeded")
 }
-fn sql_error(reason: rusqlite::Error) -> SearchV2Error {
+fn sql_error(reason: rusqlite::Error) -> SearchError {
     if matches!(reason,rusqlite::Error::SqliteFailure(failure,_) if failure.code==ErrorCode::OperationInterrupted)
     {
         budget_error()
@@ -48,7 +48,7 @@ fn sql_error(reason: rusqlite::Error) -> SearchV2Error {
 fn sql_error_observed<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     authority: &A,
     reason: rusqlite::Error,
-) -> SearchV2Error {
+) -> SearchError {
     if matches!(&reason, rusqlite::Error::SqliteFailure(failure, _) if failure.code == ErrorCode::OperationInterrupted)
     {
         authority.observe_inspect_budget(
@@ -241,7 +241,7 @@ pub struct ObservedInspectCarrier {
     pub payload_sha256: Digest256,
 }
 pub trait InspectDisclosureLease: Send {
-    fn recheck(&mut self) -> Result<(), SearchV2Error>;
+    fn recheck(&mut self) -> Result<(), SearchError>;
 }
 /// The hold lifetime comes from the owner, not the temporary adapter borrow.
 /// Owned providers may support 'static; a scoped managed provider supports
@@ -259,9 +259,9 @@ pub trait InspectCurrentAuthority<'hold> {
 
     /// Forecast owned policy/scope clone metadata from the already-held source,
     /// before the state-aware carrier path calls either owned-return method.
-    fn disclosure_metadata_state_upper_bound(&self) -> Result<usize, SearchV2Error> {
+    fn disclosure_metadata_state_upper_bound(&self) -> Result<usize, SearchError> {
         Err(error(
-            SearchV2ErrorCode::Unavailable,
+            SearchErrorCode::Unavailable,
             "selected disclosure state forecast unavailable",
         ))
     }
@@ -273,18 +273,18 @@ pub trait InspectCurrentAuthority<'hold> {
     fn authorize_managed_source_current(
         &mut self,
         _: &tos_compiler::ManagedSourceProofV1,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         Err(error(
-            SearchV2ErrorCode::Unavailable,
+            SearchErrorCode::Unavailable,
             "managed selected source authorization unavailable",
         ))
     }
     fn authorize_managed_source_v2_current(
         &mut self,
         _: &tos_compiler::ManagedSourceProofV2,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         Err(error(
-            SearchV2ErrorCode::Unavailable,
+            SearchErrorCode::Unavailable,
             "managed selected source authorization unavailable",
         ))
     }
@@ -297,9 +297,9 @@ pub trait InspectCurrentAuthority<'hold> {
         _: u64,
         _: &[u8],
         _: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         Err(error(
-            SearchV2ErrorCode::Unavailable,
+            SearchErrorCode::Unavailable,
             "selected corpus original authorization unavailable",
         ))
     }
@@ -311,9 +311,9 @@ pub trait InspectCurrentAuthority<'hold> {
         _: u64,
         _: Option<&str>,
         _: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         Err(error(
-            SearchV2ErrorCode::Unavailable,
+            SearchErrorCode::Unavailable,
             "selected corpus view identity authorization unavailable",
         ))
     }
@@ -326,9 +326,9 @@ pub trait InspectCurrentAuthority<'hold> {
         _: u64,
         _: &[u8],
         _: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         Err(error(
-            SearchV2ErrorCode::Unavailable,
+            SearchErrorCode::Unavailable,
             "selected philosophy original authorization unavailable",
         ))
     }
@@ -341,9 +341,9 @@ pub trait InspectCurrentAuthority<'hold> {
         _: i64,
         _: &[u8],
         _: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         Err(error(
-            SearchV2ErrorCode::Unavailable,
+            SearchErrorCode::Unavailable,
             "selected navigation original authorization unavailable",
         ))
     }
@@ -354,17 +354,17 @@ pub trait InspectCurrentAuthority<'hold> {
         _: &str,
         _: &[u8],
         _: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         Err(error(
-            SearchV2ErrorCode::Unavailable,
+            SearchErrorCode::Unavailable,
             "selected registry authorization unavailable",
         ))
     }
     /// Stored-lens discovery consults the exact selected public catalog.
     /// The acquired disclosure lease must also cover this catalog grant.
-    fn authorize_catalog_current(&mut self, _: Digest256) -> Result<(), SearchV2Error> {
+    fn authorize_catalog_current(&mut self, _: Digest256) -> Result<(), SearchError> {
         Err(error(
-            SearchV2ErrorCode::Unavailable,
+            SearchErrorCode::Unavailable,
             "selected catalog authorization unavailable",
         ))
     }
@@ -374,8 +374,8 @@ pub trait InspectCurrentAuthority<'hold> {
     }
     fn policy_binding(&self) -> CurrentPolicyBinding;
     fn disclosure_scope(&self) -> IndexedDisclosureScope;
-    fn check_selected(&mut self) -> Result<(), SearchV2Error>;
-    fn authorize_current(&mut self, carrier: &InspectedCarrier) -> Result<(), SearchV2Error>;
+    fn check_selected(&mut self) -> Result<(), SearchError>;
+    fn authorize_current(&mut self, carrier: &InspectedCarrier) -> Result<(), SearchError>;
     /// Borrowed selected-row authorization avoids retaining a second parsed
     /// payload tree. The temporary clone stays under the caller's same-state
     /// workspace hold.
@@ -386,7 +386,7 @@ pub trait InspectCurrentAuthority<'hold> {
         position: u64,
         payload_sha256: Digest256,
         payload: &JsonValue,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         let carrier = InspectedCarrier {
             kind,
             id: id.to_owned(),
@@ -400,7 +400,7 @@ pub trait InspectCurrentAuthority<'hold> {
         &mut self,
         scope: &IndexedDisclosureScope,
         consulted: &[ObservedInspectCarrier],
-    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error>;
+    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchError>;
 }
 pub struct DisclosableInspect<'hold> {
     body: Vec<u8>,
@@ -424,12 +424,12 @@ impl<'hold> DisclosableInspect<'hold> {
     pub fn into_parts(self) -> (Vec<u8>, Box<dyn InspectDisclosureLease + 'hold>) {
         (self.body, self.lease)
     }
-    pub fn recheck(&mut self) -> Result<(), SearchV2Error> {
+    pub fn recheck(&mut self) -> Result<(), SearchError> {
         self.lease.recheck()
     }
 }
 
-pub(crate) fn scope_owned_state(scope: &IndexedDisclosureScope) -> Result<usize, SearchV2Error> {
+pub(crate) fn scope_owned_state(scope: &IndexedDisclosureScope) -> Result<usize, SearchError> {
     let IndexedDisclosureScope {
         operation_id,
         carrier_layer,
@@ -471,12 +471,12 @@ struct InspectWorkspace {
     retained: usize,
 }
 impl InspectWorkspace {
-    fn available(&self) -> Result<usize, SearchV2Error> {
+    fn available(&self) -> Result<usize, SearchError> {
         self.limit
             .checked_sub(self.retained)
             .ok_or_else(budget_error)
     }
-    fn retain(&mut self, bytes: usize) -> Result<(), SearchV2Error> {
+    fn retain(&mut self, bytes: usize) -> Result<(), SearchError> {
         self.retained = self
             .retained
             .checked_add(bytes)
@@ -508,7 +508,7 @@ pub(crate) struct Reader<'a, 'b, A: ?Sized> {
     visit_meter: Option<&'a mut InspectVisitMeter>,
 }
 impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
-    fn observed_budget(&self, site: &'static str, counts: [Option<u64>; 4]) -> SearchV2Error {
+    fn observed_budget(&self, site: &'static str, counts: [Option<u64>; 4]) -> SearchError {
         self.authority.observe_inspect_budget("fault", site, counts);
         budget_error()
     }
@@ -535,14 +535,14 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             None => canonical_bytes_v1(value, profile, limits),
         }
     }
-    fn charge_state_work(&mut self, visits: usize) -> Result<(), SearchV2Error> {
+    fn charge_state_work(&mut self, visits: usize) -> Result<(), SearchError> {
         let remaining = self.work_remaining.as_mut().ok_or_else(budget_error)?;
         *remaining = remaining
             .checked_sub(u64::try_from(visits).map_err(|_| budget_error())?)
             .ok_or_else(budget_error)?;
         Ok(())
     }
-    fn state_json_limits(&self) -> Result<JsonLimits, SearchV2Error> {
+    fn state_json_limits(&self) -> Result<JsonLimits, SearchError> {
         let mut limits = self.budget.json;
         limits.max_visits = limits.max_visits.min(
             usize::try_from(self.work_remaining.ok_or_else(budget_error)?)
@@ -553,10 +553,10 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         }
         Ok(limits)
     }
-    pub(crate) fn reserve_state(&mut self, bytes: usize) -> Result<(), SearchV2Error> {
+    pub(crate) fn reserve_state(&mut self, bytes: usize) -> Result<(), SearchError> {
         self.state.as_mut().ok_or_else(budget_error)?.retain(bytes)
     }
-    pub(crate) fn parse_state_packet(&mut self, raw: &[u8]) -> Result<JsonValue, SearchV2Error> {
+    pub(crate) fn parse_state_packet(&mut self, raw: &[u8]) -> Result<JsonValue, SearchError> {
         let available = self.state.as_ref().ok_or_else(budget_error)?.available()?;
         let document = parse_json_with_state_budget(
             raw,
@@ -570,7 +570,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         self.reserve_state(value.retained_storage_bytes().map_err(|_| budget_error())?)?;
         Ok(value)
     }
-    fn original_error(reason: tos_compiler::Error) -> SearchV2Error {
+    fn original_error(reason: tos_compiler::Error) -> SearchError {
         match reason {
             tos_compiler::Error::Budget(_) | tos_compiler::Error::SqliteVmBudget { .. } => {
                 budget_error()
@@ -578,13 +578,13 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
             _ => corrupt("selected navigation original read failed"),
         }
     }
-    pub(crate) fn external_projection_bytes(&mut self, bytes: usize) -> Result<(), SearchV2Error> {
+    pub(crate) fn external_projection_bytes(&mut self, bytes: usize) -> Result<(), SearchError> {
         if bytes == 0 || bytes > self.budget.max_payload_bytes {
             return Err(budget_error());
         }
         self.charge_original(1, bytes as u64)
     }
-    fn charge_original(&mut self, rows: usize, bytes: u64) -> Result<(), SearchV2Error> {
+    fn charge_original(&mut self, rows: usize, bytes: u64) -> Result<(), SearchError> {
         self.rows = self
             .rows
             .checked_add(rows as u64)
@@ -597,17 +597,17 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     }
     pub(crate) fn original_receipt(
         &mut self,
-    ) -> Result<tos_compiler::NavigationOriginalReceipt, SearchV2Error> {
+    ) -> Result<tos_compiler::NavigationOriginalReceipt, SearchError> {
         self.check_interrupt()?;
         if !self.model.navigation_original_available() {
             return Err(error(
-                SearchV2ErrorCode::Unavailable,
+                SearchErrorCode::Unavailable,
                 "selected navigation originals unavailable",
             ));
         }
         self.model.check_pin().map_err(|_| {
             error(
-                SearchV2ErrorCode::StaleSelection,
+                SearchErrorCode::StaleSelection,
                 "selected navigation pin changed",
             )
         })?;
@@ -635,17 +635,17 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     }
     pub(crate) fn philosophy_receipt(
         &mut self,
-    ) -> Result<tos_compiler::PhilosophyOriginalReceipt, SearchV2Error> {
+    ) -> Result<tos_compiler::PhilosophyOriginalReceipt, SearchError> {
         self.check_interrupt()?;
         if !self.model.philosophy_original_available() {
             return Err(error(
-                SearchV2ErrorCode::Unavailable,
+                SearchErrorCode::Unavailable,
                 "selected philosophy originals unavailable",
             ));
         }
         self.model.check_pin().map_err(|_| {
             error(
-                SearchV2ErrorCode::StaleSelection,
+                SearchErrorCode::StaleSelection,
                 "selected philosophy pin changed",
             )
         })?;
@@ -673,11 +673,11 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     }
     pub(crate) fn corpus_receipt(
         &mut self,
-    ) -> Result<tos_compiler::CorpusOriginalReceipt, SearchV2Error> {
+    ) -> Result<tos_compiler::CorpusOriginalReceipt, SearchError> {
         self.check_interrupt()?;
         if !self.model.corpus_original_available() {
             return Err(error(
-                SearchV2ErrorCode::Unavailable,
+                SearchErrorCode::Unavailable,
                 "selected corpus originals unavailable",
             ));
         }
@@ -708,7 +708,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         &mut self,
         receipt: &tos_compiler::CorpusOriginalReceipt,
         after: Option<u64>,
-    ) -> Result<Option<tos_compiler::CorpusOriginalViewIdentity>, SearchV2Error> {
+    ) -> Result<Option<tos_compiler::CorpusOriginalViewIdentity>, SearchError> {
         self.check_interrupt()?;
         if self.rows >= self.budget.max_rows {
             return Err(budget_error());
@@ -756,7 +756,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         collection: tos_compiler::CorpusOriginalCollection,
         selector: &tos_compiler::CorpusOriginalSelector,
         after: Option<u64>,
-    ) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
+    ) -> Result<Option<(u64, JsonValue)>, SearchError> {
         self.check_interrupt()?;
         if self.state.is_some() {
             if self.rows >= self.budget.max_rows {
@@ -880,7 +880,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         receipt: &tos_compiler::PhilosophyOriginalReceipt,
         collection: tos_compiler::PhilosophyOriginalCollection,
         after: Option<u64>,
-    ) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
+    ) -> Result<Option<(u64, JsonValue)>, SearchError> {
         self.check_interrupt()?;
         if self.rows >= self.budget.max_rows {
             return Err(budget_error());
@@ -930,7 +930,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         &mut self,
         receipt: &tos_compiler::NavigationOriginalReceipt,
         after: Option<i64>,
-    ) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
+    ) -> Result<Option<(i64, JsonValue)>, SearchError> {
         self.check_interrupt()?;
         if self.rows >= self.budget.max_rows {
             return Err(budget_error());
@@ -969,7 +969,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         &mut self,
         collection: &str,
         after: Option<&str>,
-    ) -> Result<Option<tos_compiler::NavigationOriginalMember>, SearchV2Error> {
+    ) -> Result<Option<tos_compiler::NavigationOriginalMember>, SearchError> {
         self.check_interrupt()?;
         if self.rows >= self.budget.max_rows {
             return Err(budget_error());
@@ -991,7 +991,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         id: &str,
         raw: &[u8],
         sha: Digest256,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         self.check_interrupt()?;
         self.rows = self.rows.checked_add(1).ok_or_else(budget_error)?;
         self.decoded = self
@@ -1005,7 +1005,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         self.check_interrupt()
     }
     /// Use the same transport probe between bounded non-SQL work units.
-    pub(crate) fn check_interrupt(&mut self) -> Result<(), SearchV2Error> {
+    pub(crate) fn check_interrupt(&mut self) -> Result<(), SearchError> {
         match self
             .authority
             .abort_probe()
@@ -1013,13 +1013,13 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         {
             Some(crate::AbortReason::Cancelled) => {
                 return Err(error(
-                    SearchV2ErrorCode::Cancelled,
+                    SearchErrorCode::Cancelled,
                     "selected knowledge query cancelled",
                 ));
             }
             Some(crate::AbortReason::DeadlineExceeded) => {
                 return Err(error(
-                    SearchV2ErrorCode::DeadlineExceeded,
+                    SearchErrorCode::DeadlineExceeded,
                     "selected knowledge query deadline exceeded",
                 ));
             }
@@ -1040,7 +1040,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         &mut self,
         receipt: &tos_compiler::NavigationOriginalReceipt,
         source: &str,
-    ) -> Result<(InspectBudget, usize, u64), SearchV2Error> {
+    ) -> Result<(InspectBudget, usize, u64), SearchError> {
         self.check_interrupt()?;
         self.model
             .check_pin()
@@ -1111,7 +1111,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     }
     /// Apply the response share derived from the original operation's held
     /// retention allowance. It can only narrow the existing response limit.
-    pub(crate) fn limit_navigation_response(&mut self, bytes: usize) -> Result<(), SearchV2Error> {
+    pub(crate) fn limit_navigation_response(&mut self, bytes: usize) -> Result<(), SearchError> {
         self.check_interrupt()?;
         if bytes == 0 || bytes > self.budget.max_response_bytes {
             return Err(budget_error());
@@ -1125,7 +1125,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         &mut self,
         kind: SearchKind,
         sources: &[String],
-    ) -> Result<u64, SearchV2Error> {
+    ) -> Result<u64, SearchError> {
         self.authority.check_selected()?;
         let list = JsonValue::Array(sources.iter().map(|source| text(source)).collect());
         let encoded = self
@@ -1175,14 +1175,14 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         }
         if count != sources.iter().collect::<BTreeSet<_>>().len() {
             return Err(error(
-                SearchV2ErrorCode::IndexIncomplete,
+                SearchErrorCode::IndexIncomplete,
                 "selected source scope metadata incomplete",
             ));
         }
         Ok(total)
     }
     /// Digest-bound selected graph metadata, including exact property grammar.
-    pub(crate) fn header(&mut self) -> Result<JsonValue, SearchV2Error> {
+    pub(crate) fn header(&mut self) -> Result<JsonValue, SearchError> {
         self.authority.check_selected()?;
         let mut statement=self.model.connection().prepare_cached("SELECT packet_len,CASE WHEN typeof(packet_sha256)='blob' AND length(packet_sha256)=32 THEN packet_sha256 END,CASE WHEN typeof(packet)='blob' AND packet_len BETWEEN 0 AND ?1 AND length(packet)=packet_len THEN packet END FROM graph_header WHERE singleton=1").map_err(|reason| sql_error_observed(&*self.authority, reason))?;
         let mut rows = statement
@@ -1232,7 +1232,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
     pub(crate) fn catalog_packet(
         &mut self,
         bound: &BoundCmpKnowledge<'_>,
-    ) -> Result<JsonValue, SearchV2Error> {
+    ) -> Result<JsonValue, SearchError> {
         self.authority.check_selected()?;
         self.authority
             .authorize_catalog_current(bound.selection().catalog_packet_sha256)?;
@@ -1300,7 +1300,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         sources: &[String],
         after: Option<(&str, i64)>,
         limit: usize,
-    ) -> Result<Vec<(String, i64, String)>, SearchV2Error> {
+    ) -> Result<Vec<(String, i64, String)>, SearchError> {
         if limit == 0 || limit > self.budget.max_rows as usize || limit > i64::MAX as usize {
             return Err(self.observed_budget(
                 "rows",
@@ -1419,7 +1419,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         node: &str,
         after: &str,
         limit: usize,
-    ) -> Result<Vec<String>, SearchV2Error> {
+    ) -> Result<Vec<String>, SearchError> {
         if limit == 0 || limit > self.budget.max_rows as usize || limit > i64::MAX as usize {
             return Err(budget_error());
         }
@@ -1465,7 +1465,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         sources: &[String],
         after: &str,
         limit: usize,
-    ) -> Result<Vec<String>, SearchV2Error> {
+    ) -> Result<Vec<String>, SearchError> {
         if limit == 0 || limit > self.budget.max_rows as usize || limit > i64::MAX as usize {
             return Err(budget_error());
         }
@@ -1524,7 +1524,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         id: &str,
         limit: usize,
         ordered_id: bool,
-    ) -> Result<Vec<JsonValue>, SearchV2Error> {
+    ) -> Result<Vec<JsonValue>, SearchError> {
         Ok(self
             .items_with_sizes(kind, field, id, limit, ordered_id)?
             .into_iter()
@@ -1538,17 +1538,14 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         id: &str,
         limit: usize,
         ordered_id: bool,
-    ) -> Result<Vec<(JsonValue, usize)>, SearchV2Error> {
+    ) -> Result<Vec<(JsonValue, usize)>, SearchError> {
         if limit == 0 {
             return Ok(vec![]);
         }
         self.authority.check_selected()?;
-        self.model.check_pin().map_err(|_| {
-            error(
-                SearchV2ErrorCode::StaleSelection,
-                "inspect selection changed",
-            )
-        })?;
+        self.model
+            .check_pin()
+            .map_err(|_| error(SearchErrorCode::StaleSelection, "inspect selection changed"))?;
         let table = if kind == SearchKind::Nodes {
             "knowledge_nodes"
         } else {
@@ -1702,7 +1699,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> Reader<'_, '_, A> {
         &mut self,
         matches: &[String],
         limit: usize,
-    ) -> Result<(u64, Vec<JsonValue>), SearchV2Error> {
+    ) -> Result<(u64, Vec<JsonValue>), SearchError> {
         let ids = JsonValue::Array(matches.iter().map(|value| text(value)).collect());
         let encoded = self
             .canonical_bytes(
@@ -1772,7 +1769,7 @@ pub fn execute_selected_inspect<'hold, A: InspectCurrentAuthority<'hold> + ?Size
     identifier: &str,
     relation_limit: usize,
     budget: InspectBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     let mut fault = None;
     let request =
         crate::InspectRequest::new_observed(kind, identifier, relation_limit, budget, &mut fault);
@@ -1899,9 +1896,9 @@ pub(crate) fn execute_selected_carrier_packet<
     intended_use: &str,
     budget: InspectBudget,
     compute: F,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error>
+) -> Result<DisclosableInspect<'hold>, SearchError>
 where
-    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchError>,
 {
     execute_selected_carrier_packet_observed(
         model,
@@ -1929,9 +1926,9 @@ pub(crate) fn execute_selected_carrier_packet_with_state<
     available: usize,
     max_work_steps: u64,
     compute: F,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error>
+) -> Result<DisclosableInspect<'hold>, SearchError>
 where
-    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchError>,
 {
     execute_selected_carrier_packet_observed_with_meter(
         model,
@@ -1964,10 +1961,10 @@ pub(crate) fn execute_selected_carrier_packet_observed<
     budget: InspectBudget,
     compute: F,
     observe: O,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error>
+) -> Result<DisclosableInspect<'hold>, SearchError>
 where
-    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
-    O: FnOnce(&[u8]) -> Result<(), SearchV2Error>,
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchError>,
+    O: FnOnce(&[u8]) -> Result<(), SearchError>,
 {
     execute_selected_carrier_packet_observed_with_meter(
         model,
@@ -1996,9 +1993,9 @@ pub(crate) fn execute_selected_carrier_packet_with_optional_meter<
     budget: InspectBudget,
     visit_meter: Option<&mut InspectVisitMeter>,
     compute: F,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error>
+) -> Result<DisclosableInspect<'hold>, SearchError>
 where
-    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchError>,
 {
     execute_selected_carrier_packet_observed_with_meter(
         model,
@@ -2030,10 +2027,10 @@ fn execute_selected_carrier_packet_observed_with_meter<
     available_state: Option<(usize, u64)>,
     compute: F,
     observe: O,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error>
+) -> Result<DisclosableInspect<'hold>, SearchError>
 where
-    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchV2Error>,
-    O: FnOnce(&[u8]) -> Result<(), SearchV2Error>,
+    F: FnOnce(&mut Reader<'_, '_, A>) -> Result<JsonValue, SearchError>,
+    O: FnOnce(&[u8]) -> Result<(), SearchError>,
 {
     if budget.max_open_vm_steps == 0
         || model.open_vm_steps() > budget.max_open_vm_steps
@@ -2086,12 +2083,12 @@ where
     let policy = authority.policy_binding();
     let abort = authority.abort_probe();
     let check_abort = || match abort.as_ref().and_then(|probe| probe.reason()) {
-        Some(crate::AbortReason::Cancelled) => Err(SearchV2Error {
-            code: SearchV2ErrorCode::Cancelled,
+        Some(crate::AbortReason::Cancelled) => Err(SearchError {
+            code: SearchErrorCode::Cancelled,
             message: "selected knowledge query cancelled",
         }),
-        Some(crate::AbortReason::DeadlineExceeded) => Err(SearchV2Error {
-            code: SearchV2ErrorCode::DeadlineExceeded,
+        Some(crate::AbortReason::DeadlineExceeded) => Err(SearchError {
+            code: SearchErrorCode::DeadlineExceeded,
             message: "selected knowledge query deadline exceeded",
         }),
         None => Ok(()),
@@ -2129,7 +2126,7 @@ where
                 || observed.fetch_add(1, Ordering::Relaxed) >= cap
         }),
     );
-    let result: Result<DisclosableInspect<'hold>, SearchV2Error> = (|| {
+    let result: Result<DisclosableInspect<'hold>, SearchError> = (|| {
         let mut read = Reader {
             model,
             authority,
@@ -2207,7 +2204,7 @@ where
         );
         return Err(budget_error());
     }
-    if matches!(&result, Err(reason) if reason.code == SearchV2ErrorCode::BudgetExceeded) {
+    if matches!(&result, Err(reason) if reason.code == SearchErrorCode::BudgetExceeded) {
         // Do not infer VM exhaustion when the existing counter did not exceed
         // its limit. The owner recorder preserves any earlier specific fault.
         authority.observe_inspect_budget("fallback", "unclassified_native_budget", [None; 4]);
@@ -2223,7 +2220,7 @@ pub fn execute_selected_knowledge_header<'hold, A: InspectCurrentAuthority<'hold
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     budget: InspectBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     execute_selected_carrier_packet(
         model,
         bound,

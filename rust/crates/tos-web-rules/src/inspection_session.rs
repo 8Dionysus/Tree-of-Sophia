@@ -4,15 +4,15 @@ use tos_foundation::{
     FoundationErrorCode, JsonLimits, JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue,
     emit_ordered_compact_json_v1, parse_json,
 };
-use tos_query::search_v2::SearchKind;
-use tos_query::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use tos_query::search::SearchKind;
+use tos_query::search::{SearchError, SearchErrorCode};
 use tos_query::{InspectBudget, InspectNeed, InspectPlan, InspectRequest};
 
-fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn error(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
 
-pub fn request(raw: &[u8], budget: InspectBudget) -> Result<InspectRequest, SearchV2Error> {
+pub fn request(raw: &[u8], budget: InspectBudget) -> Result<InspectRequest, SearchError> {
     let document = parse_json(
         raw,
         JsonMode::RequestLastWins,
@@ -23,7 +23,7 @@ pub fn request(raw: &[u8], budget: InspectBudget) -> Result<InspectRequest, Sear
     )
     .map_err(|_| {
         error(
-            SearchV2ErrorCode::InvalidRequest,
+            SearchErrorCode::InvalidRequest,
             "inspection request JSON invalid",
         )
     })?;
@@ -41,7 +41,7 @@ impl InspectionSession {
         revision: String,
         top: &[u8],
         budget: InspectBudget,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         let request = request(raw, budget)?;
         let document = parse_json(
             top,
@@ -53,7 +53,7 @@ impl InspectionSession {
         )
         .map_err(|_| {
             error(
-                SearchV2ErrorCode::CorruptSelectedCarrier,
+                SearchErrorCode::CorruptSelectedCarrier,
                 "inspection publication header invalid",
             )
         })?;
@@ -64,7 +64,7 @@ impl InspectionSession {
             != Some(revision.as_str())
         {
             return Err(error(
-                SearchV2ErrorCode::CorruptSelectedCarrier,
+                SearchErrorCode::CorruptSelectedCarrier,
                 "inspection publication revision differs",
             ));
         }
@@ -74,7 +74,7 @@ impl InspectionSession {
             .cloned()
             .ok_or_else(|| {
                 error(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "inspection publication boundary missing",
                 )
             })?;
@@ -84,16 +84,16 @@ impl InspectionSession {
         })
     }
 
-    pub fn need(&self) -> Result<Option<&InspectNeed>, SearchV2Error> {
+    pub fn need(&self) -> Result<Option<&InspectNeed>, SearchError> {
         self.plan.as_ref().map(InspectPlan::need).ok_or_else(|| {
             error(
-                SearchV2ErrorCode::NonMonotoneProgress,
+                SearchErrorCode::NonMonotoneProgress,
                 "inspection session complete",
             )
         })
     }
 
-    pub fn need_bytes(&self) -> Result<Option<Vec<u8>>, SearchV2Error> {
+    pub fn need_bytes(&self) -> Result<Option<Vec<u8>>, SearchError> {
         let Some(need) = self.need()? else {
             return Ok(None);
         };
@@ -148,20 +148,20 @@ impl InspectionSession {
             .map(Some)
             .map_err(|_| {
                 error(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "inspection physical need emission refused",
                 )
             })
     }
 
-    fn rows(&self, raw: &[u8]) -> Result<Vec<JsonValue>, SearchV2Error> {
+    fn rows(&self, raw: &[u8]) -> Result<Vec<JsonValue>, SearchError> {
         let document =
             parse_json(raw, JsonMode::PublishedStrict, self.budget.json).map_err(|reason| {
                 error(
                     if reason.code == FoundationErrorCode::BudgetExceeded {
-                        SearchV2ErrorCode::BudgetExceeded
+                        SearchErrorCode::BudgetExceeded
                     } else {
-                        SearchV2ErrorCode::CorruptSelectedCarrier
+                        SearchErrorCode::CorruptSelectedCarrier
                     },
                     "inspection carrier batch invalid",
                 )
@@ -169,55 +169,55 @@ impl InspectionSession {
         match document.root() {
             JsonValue::Array(rows) => Ok(rows.clone()),
             _ => Err(error(
-                SearchV2ErrorCode::CorruptSelectedCarrier,
+                SearchErrorCode::CorruptSelectedCarrier,
                 "inspection carrier batch is not an array",
             )),
         }
     }
 
-    pub fn resume_lookup(&mut self, raw: &[u8]) -> Result<(), SearchV2Error> {
+    pub fn resume_lookup(&mut self, raw: &[u8]) -> Result<(), SearchError> {
         let rows = self.rows(raw)?;
         self.plan
             .as_mut()
             .ok_or_else(|| {
                 error(
-                    SearchV2ErrorCode::NonMonotoneProgress,
+                    SearchErrorCode::NonMonotoneProgress,
                     "inspection session complete",
                 )
             })?
             .resume_lookup(rows, raw.len() as u64, None)
     }
-    pub fn resume_incident(&mut self, total: u64, raw: &[u8]) -> Result<(), SearchV2Error> {
+    pub fn resume_incident(&mut self, total: u64, raw: &[u8]) -> Result<(), SearchError> {
         let rows = self.rows(raw)?;
         self.plan
             .as_mut()
             .ok_or_else(|| {
                 error(
-                    SearchV2ErrorCode::NonMonotoneProgress,
+                    SearchErrorCode::NonMonotoneProgress,
                     "inspection session complete",
                 )
             })?
             .resume_incident(total, rows, raw.len() as u64, None)
     }
-    pub fn resume_endpoints(&mut self, raw: &[u8]) -> Result<(), SearchV2Error> {
+    pub fn resume_endpoints(&mut self, raw: &[u8]) -> Result<(), SearchError> {
         let rows = self.rows(raw)?;
         self.plan
             .as_mut()
             .ok_or_else(|| {
                 error(
-                    SearchV2ErrorCode::NonMonotoneProgress,
+                    SearchErrorCode::NonMonotoneProgress,
                     "inspection session complete",
                 )
             })?
             .resume_endpoints(rows, raw.len() as u64, None)
     }
-    pub fn finish(&mut self) -> Result<Vec<u8>, SearchV2Error> {
+    pub fn finish(&mut self) -> Result<Vec<u8>, SearchError> {
         let packet = self
             .plan
             .take()
             .ok_or_else(|| {
                 error(
-                    SearchV2ErrorCode::NonMonotoneProgress,
+                    SearchErrorCode::NonMonotoneProgress,
                     "inspection session complete",
                 )
             })?
@@ -232,9 +232,9 @@ impl InspectionSession {
         .map_err(|reason| {
             error(
                 if reason.code == FoundationErrorCode::BudgetExceeded {
-                    SearchV2ErrorCode::BudgetExceeded
+                    SearchErrorCode::BudgetExceeded
                 } else {
-                    SearchV2ErrorCode::CorruptSelectedCarrier
+                    SearchErrorCode::CorruptSelectedCarrier
                 },
                 "inspection packet emission refused",
             )

@@ -308,7 +308,7 @@ mod wasm {
             max_cache_entries: cap("max_cache_entries")?,
         })
     }
-    fn lens_error(error: tos_query::search_v2::SearchV2Error) -> JsValue {
+    fn lens_error(error: tos_query::search::SearchError) -> JsValue {
         JsValue::from_str(&format!("{:?}", error.code))
     }
 
@@ -448,7 +448,7 @@ mod wasm {
             max_cache_entries: cap("max_cache_entries")?,
         })
     }
-    fn exploration_error(error: tos_query::search_v2::SearchV2Error) -> JsValue {
+    fn exploration_error(error: tos_query::search::SearchError) -> JsValue {
         JsValue::from_str(&format!("{:?}", error.code))
     }
     #[wasm_bindgen]
