@@ -1,0 +1,42 @@
+{
+  "status": "research-candidate; not admitted; independent review and rights assessment pending",
+  "work": "oscar-wilde.preface-to-the-picture-of-dorian-gray",
+  "language": "es",
+  "edition_candidate": "Oscar Wilde, El retrato de Dorian Gray, translated and introduced by Mauro Armiño, Grupo Planeta Spain, 2012, ebook, Prefacio.",
+  "transcription": "https://books.google.com/books?id=WgjF3t3vunIC&pg=PP16",
+  "persons": [
+    {
+      "name": "Oscar Wilde",
+      "died": 1900
+    },
+    {
+      "name": "Mauro Armiño",
+      "died": null,
+      "role": "translator",
+      "source": "https://id.loc.gov/authorities/names/n79135111.html",
+      "note": "Google Books edition metadata names Armiño as translator; date of death not established."
+    }
+  ],
+  "rights": "Consider short quotation from publisher-authorized preview; translator dates, jurisdiction, purpose and extent require assessment. Do not assume public domain from original author death.",
+  "method": "Maker compared complete sentences to images of Prefacio in Google Books; ebook excerpt has no visible printed page number, so structural locator is recorded.",
+  "places": {
+    "Preface p6a": {
+      "text": "No hay nada parecido a libro moral o inmoral. Los libros están bien escritos o mal escritos. Eso es todo.",
+      "address_kind": "section",
+      "address_value": "Prefacio",
+      "scan_images": [
+        "https://books.google.com/books?id=WgjF3t3vunIC&pg=PP16"
+      ],
+      "verification": "maker compared publisher-authorized preview; independent reader and rights pending"
+    },
+    "Preface p6b": {
+      "text": "La vida moral del hombre forma parte de los temas del artista, pero la moralidad del arte consiste en el empleo perfecto de un medio imperfecto.",
+      "address_kind": "section",
+      "address_value": "Prefacio",
+      "scan_images": [
+        "https://books.google.com/books?id=WgjF3t3vunIC&pg=PP16"
+      ],
+      "verification": "maker compared publisher-authorized preview; independent reader and rights pending"
+    }
+  }
+}
