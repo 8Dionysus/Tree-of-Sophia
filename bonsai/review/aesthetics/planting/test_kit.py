@@ -541,6 +541,8 @@ class WikidataDatePrecisionTest(unittest.TestCase):
         self.assertEqual(kit.entity_year({'claims':{'P570':[calendar]}},'P570'),1910)
         calendar['mainsnak']['datavalue']['value']['time']='+1910-12-25T00:00:00Z'
         self.assertIsNone(kit.entity_year({'claims':{'P570':[calendar]}},'P570'))
+        calendar['mainsnak']['datavalue']['value'].update({'time':'+1910-01-01T00:00:00Z','precision':9})
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[calendar]}},'P570'))
         self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951)]}},'P570'))
         self.assertEqual(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951,11,'preferred')]}},'P570'),1951)
 

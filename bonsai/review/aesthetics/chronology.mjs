@@ -58,7 +58,7 @@ const saveLives=()=>{
 const timeRecord=claim=>{
   const value=claim.mainsnak.datavalue.value,qualification=claim.qualifiers?.P1480??[],qualifiers=qualification.map(item=>item.datavalue?.value?.id??null);
   const calendars=new Set(['Q38173183','Q26877143','Q26877139','Q27055388']);
-  const uncertain=qualifiers.some(id=>!calendars.has(id))||!!value.before||!!value.after||(qualification.length>0&&/-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T/.test(value.time));
+  const uncertain=qualifiers.some(id=>!calendars.has(id))||!!value.before||!!value.after||(qualification.length>0&&(value.precision===9||/-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T/.test(value.time)));
   return {time:value.time,precision:value.precision,...(qualification.length?{qualifiers}:{}),...(uncertain?{approximate:true}:{}),...(value.before?{before:value.before}:{}),...(value.after?{after:value.after}:{})};
 };
 // Refresh the qualified date claims for already identified people in bounded batches.
