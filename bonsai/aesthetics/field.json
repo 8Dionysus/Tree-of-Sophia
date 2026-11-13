@@ -66,6 +66,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-10-hogarth.json"
   },
   {
+   "id": "codex-2026-11-12-poetics-forms",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Aristotle, Poetics XI and XXI–XXII, in the Greek text of the public corpus, beside the registers' readings.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-poetics-forms.json"
+  },
+  {
    "id": "codex-2026-11-12-poetics",
    "model": "gpt-6",
    "date": "2026-11-12",
@@ -11105,6 +11112,132 @@
    "admission": "map",
    "grew_from": [
     "A:E015"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:reversal-of-action",
+   "type": "tos.entity.conception",
+   "of": [
+    "peripeteia",
+    "plot"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "11, 1452a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-5f1ad0eb50dc4bb08d4d427ed89b998d",
+       "tos.text-unit.sid-5f1ad0eb50dc4bb08d4d427ed89b998d"
+      ],
+      "s": 2,
+      "e": 415
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Перипетия — переход совершаемого к противоположному по вероятности или необходимости; в «Эдипе» вестник, желавший обрадовать героя, добивается противоположного.",
+    "en": "Reversal is a change of the action to its opposite according to probability or necessity; in Oedipus the messenger who intended to cheer the hero achieves the opposite."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-forms",
+    "verdict": "revise",
+    "note": "The register also discusses recognition; this conception follows the definition and examples of reversal."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E075"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:suffering-in-the-plot",
+   "type": "tos.entity.conception",
+   "of": [
+    "suffering",
+    "the-tragic"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "11, 1452b",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-5f1ad0eb50dc4bb08d4d427ed89b998d",
+       "tos.text-unit.sid-5f1ad0eb50dc4bb08d4d427ed89b998d"
+      ],
+      "s": 1328,
+      "e": 1582
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Наряду с перипетией и узнаванием часть фабулы составляет страдание — гибельное или болезненное действие, например смерть на сцене, мучение или рана.",
+    "en": "Alongside reversal and recognition, suffering is a part of the plot: a destructive or painful action, such as a death on stage, agony or a wound."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-forms",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E076"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:clarity-of-diction",
+   "type": "tos.entity.conception",
+   "of": [
+    "artistic-language"
+   ],
+   "areas": [
+    "area-style-and-artistic-language"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "22, 1458a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-6e55043d0f8044eca285f6fc5181b422",
+       "tos.text-unit.sid-6e55043d0f8044eca285f6fc5181b422"
+      ],
+      "s": 2,
+      "e": 160
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Достоинство речи — быть ясной и не низменной; речь из обычных слов яснее всего, но низменна.",
+    "en": "The excellence of diction is to be clear and not low; diction made of ordinary words is clearest, but low."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-forms",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:A-I081"
    ]
   },
   {
