@@ -736,6 +736,34 @@ pub(crate) struct FoundationExecutionLimits {
     selected_ticket_id: Option<u64>,
 }
 
+// Schema work is also performed inside the serial default-rules and persisted
+// catalog windows. In that mode select_window has cleared every other slot;
+// use the actual open window rather than the now-empty standalone schema slot.
+fn schema_worker_reservation(
+    reservations: FoundationPhaseReservations,
+    selected_window: bool,
+) -> Result<FoundationPhaseReservation> {
+    if !selected_window {
+        return Ok(reservations.schema);
+    }
+    let mut candidates = [
+        reservations.schema,
+        reservations.default_rules,
+        reservations.catalog_and_persisted,
+    ]
+    .into_iter()
+    .filter(|reservation| *reservation != FoundationPhaseReservation::default());
+    let selected = candidates
+        .next()
+        .ok_or(Error::Unsupported("foundation schema worker window absent"))?;
+    if candidates.next().is_some() {
+        return Err(Error::Unsupported(
+            "foundation schema worker window ambiguous",
+        ));
+    }
+    Ok(selected)
+}
+
 impl FoundationExecutionLimits {
     /// Validate the explicit phase reservations before cloning the selected
     /// worker path or beginning source work. Invocation and executable hashing
@@ -1764,11 +1792,9 @@ impl FoundationExecutionLimits {
         max_total_report_bytes: usize,
         mut batch: BatchBudget,
     ) -> Result<SourceFoundationSchemaLimits> {
-        ensure_subreservation(
-            work,
-            self.reservations.schema,
-            "foundation schema worker slice",
-        )?;
+        let worker_ceiling =
+            schema_worker_reservation(self.reservations, self.selected_ticket_id.is_some())?;
+        ensure_subreservation(work, worker_ceiling, "foundation schema worker slice")?;
         let max_work_state = work.state_bytes;
         let max_resource_read = as_usize(
             resources.source_read_bytes,
@@ -2057,6 +2083,54 @@ fn checked_sum_usize(values: [usize; 11]) -> Option<usize> {
 mod classified_io_tests {
     use super::*;
     use std::sync::atomic::AtomicBool;
+
+    #[test]
+    fn schema_worker_uses_the_open_serial_window_and_keeps_its_ceiling() {
+        let ceiling = FoundationPhaseReservation {
+            source_read_bytes: 64,
+            worker_wire_bytes: 32,
+            state_bytes: 128,
+            issue_count: 8,
+            output_bytes: 16,
+            worker_cpu_seconds: 2,
+            worker_cpu_micros: 2_000_000,
+            tmpfs_bytes: 64,
+            tmpfs_inodes: 4,
+        };
+        let mut windows = FoundationPhaseReservations {
+            default_rules: ceiling,
+            ..FoundationPhaseReservations::default()
+        };
+        assert_eq!(schema_worker_reservation(windows, true).unwrap(), ceiling);
+        ensure_subreservation(
+            ceiling,
+            schema_worker_reservation(windows, true).unwrap(),
+            "schema",
+        )
+        .unwrap();
+        let oversized = FoundationPhaseReservation {
+            state_bytes: 129,
+            ..ceiling
+        };
+        assert!(
+            ensure_subreservation(
+                oversized,
+                schema_worker_reservation(windows, true).unwrap(),
+                "schema"
+            )
+            .is_err()
+        );
+        assert_eq!(
+            schema_worker_reservation(windows, false).unwrap(),
+            FoundationPhaseReservation::default()
+        );
+        windows.catalog_and_persisted = ceiling;
+        assert!(schema_worker_reservation(windows, true).is_err());
+        windows.default_rules = FoundationPhaseReservation::default();
+        assert_eq!(schema_worker_reservation(windows, true).unwrap(), ceiling);
+        windows.catalog_and_persisted = FoundationPhaseReservation::default();
+        assert!(schema_worker_reservation(windows, true).is_err());
+    }
 
     #[test]
     fn shared_read_phases_use_one_pool_and_keep_metadata_out_of_payload_returns() {
