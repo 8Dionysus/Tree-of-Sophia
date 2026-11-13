@@ -63,6 +63,7 @@ describe('the corpus alignment of the stands',()=>{
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],translationRevision:'stale'}]})).toContain('translationRevision');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],maxSourceSentences:7}]})).toContain('maxSourceSentences');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],translationStart:{unitId:'t',offset:-1}}]})).toContain('translationStart');
+    expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],handoverUnitIds:['u','u']}]})).toContain('handoverUnitIds');
   });
   it('skips declared translation front matter while retaining original unit offsets',()=>{
     const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s',reference:'§1',text:'λόγος.'}]};
@@ -81,6 +82,15 @@ describe('the corpus alignment of the stands',()=>{
     const text=entry.pairs.filter(([spans])=>spans.some(([a,b])=>a<607&&b>0)).flatMap(([,targets])=>targets).map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
     expect(text).toContain('Since it is necessary, Chrysaorius');
     expect(text).not.toContain('Contents');
+  });
+  it.skipIf(!corpusFetched)('finds Russian Plato sentences retained in the preceding translated reference',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),scopes=json('bonsai/antiquity/translation-scopes.json').scopes;
+    for(const [key,start,end,expected] of [['theaetetus',6,294,'Нет, так-то устно'],['sophist',6,298,'Что же такое теперь'],['philebus',76,222,'Ведь если и то и это'],['timaeus',6,181,'Бог устроил из видимого одно животное']]){
+      const scope=scopes.find(s=>s.work===key&&s.handoverUnitIds),work=read(module.works[key].documentId),version=work.versions.find(v=>v.id===scope.translationVersionId),unit=scope.handoverUnitIds[0],entry=module.units[unit].t[version.id];
+      const text=entry.pairs.filter(([spans])=>spans.some(([a,b])=>a<end&&start<b)).flatMap(([,targets])=>targets).map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+      expect(text,key).toContain(expected);
+      expect(()=>alignCorpus(new Map([[key,{original:scope.originalVersionId,units:new Set([unit])}]]),{[key]:work.id},()=>work,[{...scope,handoverUnitIds:[scope.firstUnitId]}])).toThrow(/invalid or stale translation scope/);
+    }
   });
   it('allows a source-bound translation to join six original sentences into one',()=>{
     const original={id:'greek',language:'grc',revision:'g',units:[{id:'s',reference:'§1',text:['λόγος δὲ τὸ πρῶτον','δεύτερος δὲ λόγος','τρίτος δὲ λόγος','τέταρτος δὲ λόγος','πέμπτος δὲ λόγος','ἕκτος δὲ λόγος'].join('. ')+'.'}]};

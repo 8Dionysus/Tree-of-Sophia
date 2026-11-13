@@ -36,7 +36,7 @@ Stable foundations preserve identity and make later growth tractable. Numerical 
 
 ## Consequences
 
-Capacity work names objectives and measurements. Deployment profiles own operational limits. Transitional work names its removal condition, and maintainers keep governance documents directly.
+Capacity work names objectives and measurements in the [capacity profile](../CAPACITY.md). Its proposed values await owner approval. Deployment profiles own operational limits. Transitional work names its removal condition, and maintainers keep governance documents directly.
 
 ## Source Surfaces
 
