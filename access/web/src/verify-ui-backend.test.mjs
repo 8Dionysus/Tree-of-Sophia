@@ -12,7 +12,7 @@ test('compares compressed CLI and HTTP packets on the selected prepared pair', a
   const executable = join(dir, 'native');
   const model = join(dir, 'prepared.sqlite');
   const binding = join(dir, 'binding.json');
-  const packet = {source_revision: 'revision', schema: 'test', nodes: [{id: 'node'}], relations: [],
+  const packet = {source_revision: 'revision', schema: 'test', nodes: [{id: 'node'}], relations: [], work: {read_vm_steps: 100},
     page: {has_more: true, next_cursor: 'cli-token'}};
   await writeFile(executable, `#!/usr/bin/env node\nconst a=process.argv.slice(2);\n`+
     `if(JSON.stringify(a.slice(0,4))!==JSON.stringify(['--prepared-read-model',${JSON.stringify(model)},'--prepared-binding',${JSON.stringify(binding)}])) process.exit(2);\n`+
@@ -24,7 +24,7 @@ test('compares compressed CLI and HTTP packets on the selected prepared pair', a
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
     const response = url.pathname === '/api/knowledge/catalog' ? {source_revision: 'revision', schema: 'catalog'}
-      : {...packet, nodes: [{id: mismatch ? 'different' : 'node'}], page: {...packet.page, next_cursor: 'http-token'}};
+      : {...packet, nodes: [{id: mismatch ? 'different' : 'node'}], work: {read_vm_steps: 200}, page: {...packet.page, next_cursor: 'http-token'}};
     if (url.pathname !== '/api/knowledge/catalog') {
       assert.equal(url.pathname, '/api/knowledge/search');
       assert.equal(url.searchParams.get('mode'), 'compressed');

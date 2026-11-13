@@ -78,16 +78,17 @@ async function main() {
     const cli = nativePacket(executable, model, binding, request.command);
     const http = await httpPacket(base, request.path);
     if (request.name === 'compressed-search') {
-      // Continuation tokens can differ between processes. Compare their shape
-      // and availability while retaining every other packet field.
+      // Tokens and physical-work observations belong to each process, not
+      // the semantic result shared by the two transports.
       for (const packet of [cli, http]) {
         assert.equal(typeof packet.page?.has_more, 'boolean');
         assert.ok(packet.page.has_more
           ? typeof packet.page.next_cursor === 'string' && packet.page.next_cursor.length > 0
           : packet.page.next_cursor === null, 'invalid continuation token');
+        assert.ok(packet.work && typeof packet.work === 'object' && !Array.isArray(packet.work), 'work observation missing');
+        delete packet.work;
+        delete packet.page.next_cursor;
       }
-      delete cli.page.next_cursor;
-      delete http.page.next_cursor;
     }
     assert.equal(canonical(http), canonical(cli), `${request.name} differs between installed CLI and live HTTP`);
     assert.ok(typeof cli.source_revision === 'string' && cli.source_revision.length > 0, 'source revision missing');
