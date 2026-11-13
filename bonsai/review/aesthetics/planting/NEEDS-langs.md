@@ -26,3 +26,19 @@ the original cut, exact correction, justification and source page, and bind
 second review to the corrected text), analogous to the original packet’s
 correction route. Do not silently treat a corrected local file as unmodified
 remote source. Existing candidate files record such discrepancies explicitly.
+
+## Separately evidence anonymous publication
+
+Several Schiller essays have an 1875 George Bell printing whose title page says
+“newly translated from the German” but does not name the translator; the
+identity is still under research. Please consider an explicit, reviewed
+anonymous-publication route distinct from an identified person with an unknown
+death year. EU Directive 2006/116/EC art. 1(3) uses 70 years from lawful public
+availability for anonymous works, subject to the provision on an identity
+revealed during that term; the Russian anonymous-work rule also requires its
+own evidence and jurisdictional review. A missing name on one title page alone
+must not establish that the work was lawfully published anonymously, that the
+identity remained undisclosed in the relevant term, or that another printing
+is the same text. Existing candidates stay unadmitted while those facts are
+investigated. Official EU text:
+https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006L0116
