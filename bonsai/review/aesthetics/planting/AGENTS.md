@@ -28,6 +28,10 @@ read again by another (the second reader). `kit.py` is the line's one tool;
    transcription holds the passage, out of the scan's own OCR. It is never typed,
    recalled, translated, modernised or mended by hand. Where the printed page
    reads otherwise, `kit.py correct` changes the text and records the change.
+   A translation witness with no usable transcription may instead use
+   `witness-transcribe-page`: it identifies a human reading of the exact page
+   image, which a different reader must independently read against the text.
+   It is never represented as a downloaded transcription.
    In a print with the long s, ſ is s and ſs is the print's ß.
 2. **The page decides.** `kit.py compare` sets every place beside the scan.
    Every difference is looked at on the page image, then judged with
