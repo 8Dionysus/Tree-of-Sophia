@@ -274,6 +274,28 @@ class ExtensionPlantingTest(unittest.TestCase):
             self.assertEqual(projected['provenance']['translation_packets'][work]['ru']['corrections'][0]['loc'],loc)
             self.assertFalse(any(item['language']=='ru' for item in projected['works'][work].get('unsearched',[])))
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+            # Parent translations may refer to newly introduced extension places;
+            # accepted witnesses inside that extension must also be projected.
+            (ext/'accepted.json').write_text('{}')
+            (ext/'evidence.json').write_text(json.dumps({'places':{'Test p999':{'quotation':{'justification':'This longer quotation is necessary to retain the complete argument.'}}}}))
+            translated['places']['Test p999']={'text':'Второе предложение.','url':'https://example.org/page2','page':'2'}
+            raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'ru.json').write_bytes(raw)
+            (witness_dir/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
+            ext_witness=ext/'witnesses';ext_witness.mkdir()
+            spanish=copy.deepcopy(translated);spanish['language']='es'
+            spanish['places']={'Test p999':{'text':'Una frase completa.','url':'https://example.org/es','page':'3'}}
+            raw_es=json.dumps(spanish,ensure_ascii=False).encode();(ext_witness/'es.json').write_bytes(raw_es)
+            (ext_witness/'es.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw_es).hexdigest()}))
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertEqual(projected['places'][work]['Test p999']['texts']['ru'],'Второе предложение.')
+            self.assertEqual(projected['places'][work]['Test p999']['texts']['es'],'Una frase completa.')
+            self.assertIn('/extensions/test/witnesses/es.json',projected['provenance']['translation_packets'][work]['es']['record'])
+            self.assertIn('complete argument',projected['places'][work]['Test p999']['quotation_justification'][base['entry']['original']])
+            subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+            (ext/'accepted.json').unlink()
+            translated['places'].pop('Test p999');raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'ru.json').write_bytes(raw)
+            (witness_dir/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
             (witness_dir/'ru.json.accepted').unlink()
             subprocess.run(command,check=True,capture_output=True,text=True)
             projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
