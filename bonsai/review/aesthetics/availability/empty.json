@@ -97,6 +97,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Propaganda%22+AND+creator%3A%22Bernays%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 22 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Бернейс Пропаганда",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "560 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -173,6 +180,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Criteria+of+Negro+Art%22+AND+creator%3A%22Bois%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Дюбуа Критерии афроамериканского искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "334 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -215,6 +229,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Die+Geburt+der+Trag%C3%B6die+aus+dem+Geiste+der+Musik%22+AND+creator%3A%22Nietzsche%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Ницше Рождение трагедии из духа музыки",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "23385 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -257,6 +278,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Decorative+Arts%3A+Their+Relation+to+Modern+Life+and+Progress%22+AND+creator%3A%22Morris%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Моррис Декоративные искусства / Малые искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "6565 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -309,6 +337,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Kritik+der+Urteilskraft%22+AND+creator%3A%22Kant%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 6 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Кант Критика способности суждения",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "65965 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -364,6 +399,10 @@
         {
           "url": "https://www.google.com.mx/books/edition/Art_as_Experience_by_John_Dewey/FCeEtAEACAAJ",
           "observation": "In-app browser: Google Books identifies Minton, Balch and Company, 1934, English, 355 pages; the page says preview and search in this book are unavailable. A separate 2005 edition has a limited image preview; its requested passages and pagination are not yet verified."
+        },
+        {
+          "url": "https://search.rsl.ru/ru/record/01013215970",
+          "observation": "RSL public search catalog identifies Russian edition Iskusstvo kak opyt, trans. D. Yu. Kralechkin, scientific editor M. A. Chernova, Moscow Delo RANEPA 2023, ISBN 978-5-85006-490-7. Catalog metadata only; no passage, contributor dates or rights have been verified."
         }
       ],
       "participants_incomplete": true,
@@ -396,6 +435,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Art+as+Experience%22+AND+creator%3A%22Dewey%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 4 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Дьюи Искусство как опыт",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "21057 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -511,6 +557,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Das+Kunstwerk+im+Zeitalter+seiner+technischen+Reproduzierbarkeit%22+AND+creator%3A%22Benjamin%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Беньямин Произведение искусства в эпоху его технической воспроизводимости",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "2285 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -564,6 +617,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Languages+of+Art%22+AND+creator%3A%22Goodman%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 3 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Гудмен Языки искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "2871 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -616,6 +676,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Wahrheit+und+Methode%22+AND+creator%3A%22Gadamer%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 3 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Гадамер Истина и метод",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "16009 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -667,6 +734,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Transformative+Power+of+Performance%3A+A+New+Aesthetics%22+AND+creator%3A%22Fischer-Lichte%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Фишер-Лихте Трансформирующая сила перформанса",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "180 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -732,6 +806,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Der+Ursprung+des+Kunstwerkes%22+AND+creator%3A%22Heidegger%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Хайдеггер Исток художественного творения",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "19365 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -782,6 +863,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22La+Distinction%3A+Critique+sociale+du+jugement%22+AND+creator%3A%22Bourdieu%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Бурдьё Различение: социальная критика суждения вкуса; глава «Аристократия культуры»",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "1560 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -831,6 +919,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Everyday+Aesthetics%22+AND+creator%3A%22Saito%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Сайто Эстетика повседневности",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "167 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -919,6 +1014,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Conservation+Esthetic%22+AND+creator%3A%22Leopold%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Леопольд Эстетика охраны природы",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "6398 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -985,6 +1087,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Artworld%22+AND+creator%3A%22Danto%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Данто Мир искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "1262 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1035,6 +1144,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Oppositional+Gaze%3A+Black+Female+Spectators%22+AND+creator%3A%22hooks%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "хукс Оппозиционный взгляд: чёрные зрительницы",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "1 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1090,6 +1206,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Le+partage+du+sensible%22+AND+creator%3A%22Ranci%C3%A8re%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Рансьер Разделяя чувственное: политика эстетики",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "440 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1165,6 +1288,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Traditional+Ecological+Knowledge+and+the+Aesthetic+Appreciation+of+Nature%3A+Lessons+from+Gilbbesj%C3%A1vri+and+Guovdageaidnu%22+AND+creator%3A%22Mikkonen%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Микконен Традиционное экологическое знание и эстетическая оценка природы: уроки Гилббесъяври и Гувдагайдну",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1214,6 +1344,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Id%C3%A9ologie+et+appareils+id%C3%A9ologiques+d%E2%80%99%C3%89tat%22+AND+creator%3A%22Althusser%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Альтюссер Идеология и идеологические аппараты государства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "2099 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1257,6 +1394,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Sein+und+Zeit%22+AND+creator%3A%22Heidegger%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 6 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Хайдеггер Бытие и время",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "36305 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1341,6 +1485,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Principles+of+Art%22+AND+creator%3A%22Collingwood%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 16 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Коллингвуд Принципы искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "3210 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1390,6 +1541,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22After+Walker+Evans%3A+4%22+AND+creator%3A%22Levine%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Левин После Уокера Эванса: 4",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "757 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1462,6 +1620,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Aesthetics+and+Anaesthetics%3A+Walter+Benjamin%E2%80%99s+Artwork+Essay+Reconsidered%22+AND+creator%3A%22Buck-Morss%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Бак-Морс Эстетика и анестетика: новое прочтение эссе Беньямина о произведении искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "6 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1511,6 +1676,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Notes+on+%E2%80%9CCamp%E2%80%9D%22+AND+creator%3A%22Sontag%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Зонтаг Заметки о кэмпе",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "124 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1561,6 +1733,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Aesthetics+of+the+Everyday%22+AND+creator%3A%22Saito%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Сайто Эстетика повседневности",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "167 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1628,6 +1807,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Scenic+National+Landscapes%3A+Common+Themes+in+Japan+and+the+United+States%22+AND+creator%3A%22Saito%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Сайто Национальные живописные ландшафты: общие темы Японии и США",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "194 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1677,6 +1863,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Appreciation+and+the+Natural+Environment%22+AND+creator%3A%22Carlson%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Карлсон Эстетическое восприятие природной среды",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "4056 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1726,6 +1919,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Coloniality+of+Power%2C+Eurocentrism%2C+and+Latin+America%22+AND+creator%3A%22Quijano%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Кихано Колониальность власти, евроцентризм и Латинская Америка",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "3 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1775,6 +1975,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Aesthetics+and+Environment%3A+Variations+on+a+Theme%22+AND+creator%3A%22Berleant%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Берлиант Эстетика и окружающая среда: вариации на тему",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1825,6 +2032,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Art+Museums+and+the+Ritual+of+Citizenship%22+AND+creator%3A%22Duncan%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Дункан Художественные музеи и ритуал гражданственности",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "530 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1875,6 +2089,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Feminist+Aesthetics%22+AND+creator%3A%22Korsmeyer%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Корсмейер Феминистская эстетика",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "2 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1939,6 +2160,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Antagonism+and+Relational+Aesthetics%22+AND+creator%3A%22Bishop%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Бишоп Антагонизм и реляционная эстетика",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "33 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -1989,6 +2217,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Avant-Garde+and+Kitsch%22+AND+creator%3A%22Greenberg%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Гринберг Авангард и китч",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "412 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2039,6 +2274,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Intermedia%22+AND+creator%3A%22Higgins%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Хиггинс Интермедиа",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "36 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2088,6 +2330,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Design+of+Everyday+Things%3A+Revised+and+Expanded+Edition%22+AND+creator%3A%22Norman%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Норман Дизайн привычных вещей",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "6315 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2137,6 +2386,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Orientalism%22+AND+creator%3A%22Said%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 5 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Саид Ориентализм",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "1591 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2187,6 +2443,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Mother+Camp%3A+Female+Impersonators+in+America%22+AND+creator%3A%22Newton%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Ньютон Мать кэмпа: женские имперсонаторы в Америке",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2237,6 +2500,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Defining+Art%22+AND+creator%3A%22Dickie%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Дики Определение искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "277672 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2286,6 +2556,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Diff%C3%A9rence+et+r%C3%A9p%C3%A9tition%22+AND+creator%3A%22Deleuze%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Делёз Различие и повторение",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "3124 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2335,6 +2612,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Environmental+Aesthetics%22+AND+creator%3A%22Parsons%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Парсонс Эстетика окружающей среды",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "10274 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2384,6 +2668,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Does+Aesthetic+Appreciation+of+Landscapes+Need+to+Be+Science-Based%3F%22+AND+creator%3A%22III%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "III Нужно ли эстетической оценке ландшафта опираться на науку?",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "60 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2448,6 +2739,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Art+as+Collective+Action%22+AND+creator%3A%22Becker%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Беккер Искусство как коллективное действие",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "19805 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2511,6 +2809,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Politics+and+Aesthetics%3A+An+Interview%22+AND+creator%3A%22Ranci%C3%A8re%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Рансьер Политика и эстетика: интервью",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "427 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2561,6 +2866,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Creative+Process%22+AND+creator%3A%22Baldwin%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Болдуин Творческий процесс",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "7454 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2610,6 +2922,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Simulacres+et+Simulation%3A+%E2%80%9CLa+pr%C3%A9cession+des+simulacres%E2%80%9D%22+AND+creator%3A%22Baudrillard%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Бодрийяр Симулякры и симуляция: «Прецессия симулякров»",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "92 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2665,6 +2984,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Defining+Art+Historically%22+AND+creator%3A%22Levinson%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Левинсон Историческое определение искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "10615 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2731,6 +3057,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Consuming+Hygge+at+Home%3A+Perception%2C+Representation%2C+Practice%22+AND+creator%3A%22Bean%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Бин Потребление hygge дома: восприятие, представление, практика",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "19 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2793,6 +3126,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Performative+Acts+and+Gender+Constitution%3A+An+Essay+in+Phenomenology+and+Feminist+Theory%22+AND+creator%3A%22Butler%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Батлер Перформативные акты и конституирование гендера",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "154 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2843,6 +3183,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Philosophy+of+Digital+Art%22+AND+creator%3A%22Thomson-Jones%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Томсон-Джонс Философия цифрового искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "849 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2892,6 +3239,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Visual+Pleasure+and+Narrative+Cinema%22+AND+creator%3A%22Mulvey%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Малви Визуальное удовольствие и нарративное кино",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "139 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -2947,6 +3301,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22New+Media%3A+a+User%E2%80%99s+Guide%22+AND+creator%3A%22Manovich%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Манович Новые медиа: руководство пользователя",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "1400 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3005,6 +3366,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Post-media+Aesthetics%22+AND+creator%3A%22Manovich%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Манович Постмедийная эстетика",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "8 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3055,6 +3423,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Why+Have+There+Been+No+Great+Women+Artists%3F%22+AND+creator%3A%22Nochlin%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Нохлин Почему не было великих художниц?",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "72 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3104,6 +3479,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Bauen+Wohnen+Denken%22+AND+creator%3A%22Heidegger%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Хайдеггер Строить, обитать, мыслить",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "9559 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3154,6 +3536,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Kulturindustrie.+Aufkl%C3%A4rung+als+Massenbetrug%22+AND+creator%3A%22Horkheimer%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Хоркхаймер Культурная индустрия: Просвещение как обман масс",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "1516 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3216,6 +3605,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Symbolic+Meanings+of+Prices%3A+Constructing+the+Value+of+Contemporary+Art+in+Amsterdam+and+New+York+Galleries%22+AND+creator%3A%22Velthuis%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Велтхейс Символические значения цен",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3266,6 +3662,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Le+mythe%2C+aujourd%E2%80%99hui%22+AND+creator%3A%22Barthes%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Барт Миф сегодня",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "27451 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3316,6 +3719,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Death+of+the+Author%22+AND+creator%3A%22Barthes%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Барт Смерть автора",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "37749 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3365,6 +3775,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Cultural+Identity+and+Diaspora%22+AND+creator%3A%22Hall%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Холл Культурная идентичность и диаспора",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "4136 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3414,6 +3831,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Notes+on+Deconstructing+%E2%80%9Cthe+Popular%E2%80%9D%22+AND+creator%3A%22Hall%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Холл Заметки о деконструкции популярного",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "2377 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3464,6 +3888,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22R%C3%A9sum%C3%A9+%C3%BCber+Kulturindustrie%22+AND+creator%3A%22Adorno%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Адорно Культурная индустрия: пересмотр",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "3684 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3514,6 +3945,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Definition+of+Art%22+AND+creator%3A%22Adajian%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Ададжян Определение искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3563,6 +4001,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Everyday+Surface+Aesthetic+Qualities%3A+%E2%80%9CNeat%2C%E2%80%9D+%E2%80%9CMessy%2C%E2%80%9D+%E2%80%9CClean%2C%E2%80%9D+%E2%80%9CDirty%E2%80%9D%22+AND+creator%3A%22Leddy%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Ледди Обычные поверхностные эстетические качества: «аккуратное», «неопрятное», «чистое», «грязное»",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "1062 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3613,6 +4058,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Exhibitionary+Complex%22+AND+creator%3A%22Bennett%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Беннетт Выставочный комплекс",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "804 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3685,6 +4137,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Aiesthesis+decolonial%22+AND+creator%3A%22Mignolo%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Миньоло Деколониальная айстезис",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3756,6 +4215,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Everyday+Aesthetics+and+World-Making%22+AND+creator%3A%22Saito%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Сайто Эстетика повседневности и создание мира",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "165 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3826,6 +4292,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22How+Could+Anybody+Ever+Feel+at+Home%3F+Aesthetic+Familiarity%2C+Epistemic+Comfort%2C+and+Displacement%22+AND+creator%3A%22Nomikos%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Номикос Как вообще можно чувствовать себя дома? Эстетическая привычность, эпистемический комфорт и вытеснение",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "0 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3875,6 +4348,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Aesthetic+Value%2C+Art%2C+and+Food%22+AND+creator%3A%22Korsmeyer%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Корсмейер Эстетическая ценность, искусство и пища",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "12 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3949,6 +4429,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Fashion+as+an+Aesthetic+Form+of+Life%3A+A+Wittgensteinian+Interpretation%22+AND+creator%3A%22Abate%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Абате Мода как эстетическая форма жизни: витгенштейновская интерпретация",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "57 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -3998,6 +4485,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Food+as+Art%22+AND+creator%3A%22Telfer%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Телфер Еда как искусство — глава из «Пища для размышления»",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "23 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4047,6 +4541,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Imagination+and+the+Aesthetic+Appreciation+of+Nature%22+AND+creator%3A%22Brady%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Брэди Воображение и эстетическая оценка природы",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "209 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4096,6 +4597,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Political+Aesthetics%22+AND+creator%3A%22Leslie%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Лесли Политическая эстетика",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "3177 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4145,6 +4653,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Peau+noire%2C+masques+blancs%22+AND+creator%3A%22Fanon%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 6 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Фанон Чёрная кожа, белые маски",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "70 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4207,6 +4722,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Aesthetics+of+Fashion%22+AND+creator%3A%22Matteucci%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Маттеуччи Эстетика моды",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "31 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4256,6 +4778,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Functional+Beauty%22+AND+creator%3A%22Parsons%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Парсонс Функциональная красота",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "12210 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4305,6 +4834,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Appendix+to+%E2%80%9CIntermedia%E2%80%9D%22+AND+creator%3A%22Higgins%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Хиггинс Приложение к «Интермедиа»",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "28 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4367,6 +4903,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Indigenous+and+Local+Knowledge+and+Aesthetics%3A+Towards+an+Intergenerational+Aesthetics+of+Nature%22+AND+creator%3A%22Jarosz%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Ярош Коренное и локальное знание и эстетика: к межпоколенческой эстетике природы",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "50 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4416,6 +4959,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Aesthetics+and+Apparent+Usability%3A+Empirically+Assessing+Cultural+and+Methodological+Issues%22+AND+creator%3A%22Tractinsky%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Трактински Эстетика и кажущаяся удобность: эмпирическая оценка культурных и методологических вопросов",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "1 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4494,6 +5044,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22What+Is+Beautiful+Is+Usable%22+AND+creator%3A%22Tractinsky%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Трактински Красивое — значит удобное",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "11 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4565,6 +5122,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22A+Semiotics+of+Coziness+and+Disappearing+Night%22+AND+creator%3A%22Journey%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Джерни Семиотика уюта и исчезающая ночь",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "4 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4614,6 +5178,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Das+literarische+Kunstwerk%22+AND+creator%3A%22Ingarden%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 1 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Ингарден Литературное произведение искусства",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "1874 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4663,6 +5234,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Contemporary+Aesthetics+and+the+Neglect+of+Natural+Beauty%22+AND+creator%3A%22Hepburn%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Хепберн Современная эстетика и пренебрежение природной красотой",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "201 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4712,6 +5290,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Nature+Humanised%3A+Nature+Respected%22+AND+creator%3A%22Hepburn%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Хепберн Очеловеченная природа: природа, которую уважают",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "48 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4782,6 +5367,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Link+Between+Aesthetic+Appreciation+and+the+Preservation+Imperative%22+AND+creator%3A%22Lintott%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Линтотт Связь эстетической оценки и императива сохранения",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "8 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4831,6 +5423,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Getting+to+Grips+with+Classical+Art%3A+Rethinking+the+Haptics+of+Graeco-Roman+Visual+Culture%22+AND+creator%3A%22Platt%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Платт Взяться за классическое искусство: переосмысление гаптики греко-римской визуальной культуры",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "9 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4880,6 +5479,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Design+for+the+Real+World%3A+Human+Ecology+and+Social+Change%22+AND+creator%3A%22Papanek%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 4 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Папанек Дизайн для реального мира: человеческая экология и социальные изменения",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "262 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -4938,6 +5544,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22The+Trouble+with+Wilderness%3B+or%2C+Getting+Back+to+the+Wrong+Nature%22+AND+creator%3A%22Cronon%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Кронон Проблема дикой природы, или возвращение к неправильной природе",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "32 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     },
@@ -5001,6 +5614,13 @@
           "site": "Internet Archive Advanced Search",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%22Appreciating+Nature+on+Its+Own+Terms%22+AND+creator%3A%22Saito%22+AND+mediatype%3Atexts&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=year&fl%5B%5D=language&fl%5B%5D=collection&rows=8&output=json",
           "observation": "Bounded title search; candidate identity requires verification, HTTP 200; 0 candidates returned in this bounded query. Candidates, not absence or rights determinations."
+        },
+        {
+          "service": "Russian State Library public catalog",
+          "query": "Сайто Восприятие природы на ее собственных условиях",
+          "url": "https://search.rsl.ru/ru/search",
+          "http": 200,
+          "result": "842 broad matching records; up to five descriptions retained in operator search output, identity and requested passage not assumed. Other names, languages and catalogs remain to be searched."
         }
       ]
     }
@@ -5284,6 +5904,12 @@
         "De Gruyter Benjamin 10.1515/9783839437322-042"
       ],
       "outcome": "Opened each queued page; verified edition metadata and access limits, publisher/author text where displayed, and terms stated at the site. Requested exact passage page checks remain incomplete where the source provides no page mapping or preview is restricted."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "Russian State Library public catalog",
+      "queries": "88 title/author queries, recorded per work",
+      "outcome": "All returned HTTP 200. Result counts are often broad; top-five catalog descriptions retained in empty-rsl-search.json. Catalog hits do not establish access, translation rights or absence."
     }
   ]
 }
