@@ -1263,8 +1263,12 @@ def cmd_settle(args):
     for name,value in(('reading.json',reading),('places.json',places),('evidence.json',ev)):save(os.path.join(path,name),value)
     print(f"settled: {len(gone)} conceptions left the reading; {len(reading['conceptions'])} conceptions, {len(reading['links'])} links, {len(places['places'])} places stay")
 
-def witness_conflict(path,language):
-    """Do not sign a translation that the current projection cannot admit."""
+def same_witness(a,b):
+    """Same edition, participants and rights; each part may have a different maker."""
+    return {k:v for k,v in a.items() if k not in ('maker','participants')}=={k:v for k,v in b.items() if k not in ('maker','participants')}
+
+def witness_conflict(path,language,data):
+    """Only disjoint reviewed places of the same accepted edition may be combined."""
     work=work_of(path);current=Path(witness_file(path,language));directory=Path(path)
     parent=directory.parent.parent if directory.parent.name=='extensions' else directory
     candidates=[parent/'witnesses'/f'{language}.json']
@@ -1272,13 +1276,23 @@ def witness_conflict(path,language):
     if extensions.is_dir():
         candidates.extend(extension/'witnesses'/f'{language}.json' for extension in extensions.iterdir()
                           if extension.is_dir() and (extension/'accepted.json').is_file())
-    if any(file!=current and Path(str(file)+'.accepted').is_file() for file in candidates):
-        return f'{language}: an accepted witness already exists for this work; extend that witness after the shared-edition route lands'
+    known=[]
+    for file in candidates:
+        receipt=Path(str(file)+'.accepted')
+        if file==current or not receipt.is_file():continue
+        try:
+            raw=file.read_bytes();signed=load(receipt)
+            if signed.get('sha256')!=hashlib.sha256(raw).hexdigest():return f'{language}: existing witness changed since acceptance'
+            known.append(json.loads(raw))
+        except (OSError,ValueError,TypeError):return f'{language}: existing witness evidence is invalid'
+    for previous in known:
+        if not same_witness(previous.get('witness') or {},data.get('witness') or {}):return f'{language}: existing witness is a different edition or rights record'
+        if set(previous.get('places') or {}) & set(data.get('places') or {}):return f'{language}: an existing witness already covers one of these places'
     fragments=world()['fragments'];work_entry=(fragments.get('works') or {}).get(work) or {}
     if language in (work_entry.get('witnesses') or {}):
         record=(((fragments.get('provenance') or {}).get('translation_packets') or {}).get(work) or {}).get(language) or {}
-        if not str(record.get('record','')).endswith(f"/{packet_selector(path)}/witnesses/{language}.json"):
-            return f'{language}: an existing witness already occupies this language'
+        if not record or (not known and not str(record.get('record','')).endswith(f"/{packet_selector(path)}/witnesses/{language}.json")):
+            return f'{language}: an existing witness cannot be extended without its reviewed source packet'
     return None
 
 def cmd_accept(args):
@@ -1292,9 +1306,9 @@ def cmd_accept(args):
         pending=[os.path.join(directory,name) for name in os.listdir(directory) if name.endswith('.json') and not os.path.isfile(os.path.join(directory,name+'.accepted'))]
         if pending and args.offline:die('accepting a new witness requires the online second gate')
         for file in pending:
-            conflict=witness_conflict(path,Path(file).stem)
+            data=load(file);conflict=witness_conflict(path,Path(file).stem,data)
             if conflict:die(conflict)
-            data=load(file);issues=witness_problems(path,Path(file).stem,data,second=True,offline=False)
+            issues=witness_problems(path,Path(file).stem,data,second=True,offline=False)
             if issues:die('witness is not ready: '+'; '.join(issues))
         for file in pending:save(file+'.accepted',{'sha256':hashlib.sha256(Path(file).read_bytes()).hexdigest(),'date':today()})
     review=part(path,'review.json');reading=part(path,'reading.json');ev=evidence(path)
@@ -1719,7 +1733,7 @@ def cmd_witness_gate(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     problems=witness_problems(path,args.language,data,second=args.second,offline=args.offline)
     if args.accept and args.second and not args.offline:
-        conflict=witness_conflict(path,args.language)
+        conflict=witness_conflict(path,args.language,data)
         if conflict:problems.append(conflict)
     for problem in problems:print(problem)
     print('gate: '+('shut' if problems else 'open'))

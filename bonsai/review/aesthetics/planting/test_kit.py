@@ -278,6 +278,23 @@ class DuplicateWitnessAcceptanceTest(unittest.TestCase):
                 with self.assertRaises(SystemExit):kit.cmd_witness_gate(args)
             self.assertFalse(Path(str(file)+'.accepted').exists())
 
+    def test_same_edition_adds_only_new_places(self):
+        import hashlib, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp)/'work';extension=parent/'extensions'/'new';(extension/'witnesses').mkdir(parents=True)
+            (parent/'witnesses').mkdir();file=parent/'witnesses/ru.json'
+            original={'language':'ru','witness':{'edition':'Same book','url':'https://example.org','maker':'first'},'places':{'old':{'text':'Оригинал.'}}}
+            raw=json.dumps(original).encode();file.write_bytes(raw);Path(str(file)+'.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
+            data={'language':'ru','witness':{'edition':'Same book','url':'https://example.org','maker':'second'},'places':{'new':{'text':'Новое.'}}}
+            fragments={'works':{'work':{'witnesses':{'ru':original['witness']}}},'provenance':{'translation_packets':{'work':{'ru':{'record':'parent'}}}}}
+            with patch.object(kit,'world',return_value={'fragments':fragments}):
+                self.assertIsNone(kit.witness_conflict(str(extension),'ru',data))
+                data['places']['old']={'text':'Другое.'}
+                self.assertIn('already covers',kit.witness_conflict(str(extension),'ru',data))
+                data['places'].pop('old');data['witness']['edition']='Other book'
+                self.assertIn('different edition',kit.witness_conflict(str(extension),'ru',data))
+
     def test_packet_signs_no_witness_if_a_later_witness_conflicts(self):
         import argparse, json, tempfile
         from pathlib import Path
@@ -414,6 +431,12 @@ class ExtensionPlantingTest(unittest.TestCase):
             raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'ru.json').write_bytes(raw)
             (witness_dir/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
             ext_witness=ext/'witnesses';ext_witness.mkdir()
+            extension_places['places']['Test p1000']=copy.deepcopy(place)
+            (ext/'places.json').write_text(json.dumps(extension_places,ensure_ascii=False))
+            russian_extra=copy.deepcopy(translated);russian_extra['witness']['maker']='another maker'
+            russian_extra['places']={'Test p1000':{'text':'Третье предложение.','url':'https://example.org/page3','page':'3'}}
+            raw_extra=json.dumps(russian_extra,ensure_ascii=False).encode();(ext_witness/'ru.json').write_bytes(raw_extra)
+            (ext_witness/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw_extra).hexdigest()}))
             spanish=copy.deepcopy(translated);spanish['language']='es'
             spanish['places']={'Test p999':{'text':'Una frase completa.','url':'https://example.org/es','page':'3'}}
             raw_es=json.dumps(spanish,ensure_ascii=False).encode();(ext_witness/'es.json').write_bytes(raw_es)
@@ -421,6 +444,8 @@ class ExtensionPlantingTest(unittest.TestCase):
             subprocess.run(command,check=True,capture_output=True,text=True)
             projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
             self.assertEqual(projected['places'][work]['Test p999']['texts']['ru'],'Второе предложение.')
+            self.assertEqual(projected['places'][work]['Test p1000']['texts']['ru'],'Третье предложение.')
+            self.assertEqual(len(projected['provenance']['translation_packets'][work]['ru']['records']),2)
             self.assertEqual(projected['places'][work]['Test p999']['texts']['es'],'Una frase completa.')
             self.assertIn('/extensions/test/witnesses/es.json',projected['provenance']['translation_packets'][work]['es']['record'])
             self.assertIn('complete argument',projected['places'][work]['Test p999']['quotation_justification'][base['entry']['original']])

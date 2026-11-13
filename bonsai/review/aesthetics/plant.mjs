@@ -16,6 +16,7 @@
 
 import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {isDeepStrictEqual} from 'node:util';
 import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {corpusReader} from '../../lib/corpus-align.mjs';
@@ -63,6 +64,7 @@ for(const [name,languages] of Object.entries(fragments.provenance.translation_pa
   }
 }
 const translationPackets={};
+const sameWitness=(a,b)=>{const strip=value=>Object.fromEntries(Object.entries(value??{}).filter(([key])=>!['maker','participants'].includes(key)));return isDeepStrictEqual(strip(a),strip(b));};
 // Extension-only places are rebuilt from the accepted extension packets.
 for(const [name,places] of Object.entries(fragments.provenance.extension_places??{})){
   for(const [loc,previous] of Object.entries(places)){
@@ -139,16 +141,20 @@ for(const name of packets){
     if(!existsSync(accept))continue;
     const raw=readFileSync(full),record=JSON.parse(raw),receipt=json(accept),lang=file.slice(0,-5);
     if(receipt.sha256!==createHash('sha256').update(raw).digest('hex')||record.language!==lang)fail(`packet ${name}: ${lang} witness changed since review`);
-    if(lang===fragments.works[name].original||fragments.works[name].witnesses?.[lang])fail(`packet ${name}: witness ${lang} already exists`);
-    fragments.works[name].witnesses[lang]=record.witness;
+    const previous=translationPackets[name]?.[lang],existing=fragments.works[name].witnesses?.[lang];
+    if(lang===fragments.works[name].original||(existing&&(!previous||!sameWitness(existing,record.witness))))fail(`packet ${name}: witness ${lang} is a different or untracked edition`);
+    if(!existing)fragments.works[name].witnesses[lang]=record.witness;
     const absent=(fragments.works[name].absent??[]).find(item=>item.language===lang)??null;
     const unsearched=(fragments.works[name].unsearched??[]).find(item=>item.language===lang)??null;
     const corrections=Object.entries(record.places??{}).flatMap(([loc,place])=>(place.corrections??[]).map(correction=>({loc,...correction})));
-    (translationPackets[name]??={})[lang]={absent,unsearched,record:`${witnessPath}/witnesses/${file}`,corrections};
+    const sourceRecord=`${witnessPath}/witnesses/${file}`;
+    if(previous){previous.records??=[previous.record];previous.records.push(sourceRecord);previous.corrections.push(...corrections);}
+    else (translationPackets[name]??={})[lang]={absent,unsearched,record:sourceRecord,corrections};
     fragments.works[name].absent=(fragments.works[name].absent??[]).filter(item=>item.language!==lang);
     if(fragments.works[name].unsearched)fragments.works[name].unsearched=fragments.works[name].unsearched.filter(item=>item.language!==lang);
     for(const [loc,translated] of Object.entries(record.places??{})){
       const place=fragments.places[name]?.[loc];if(!place)fail(`packet ${name}: translation ${lang} names unknown place ${loc}`);
+      if(place.texts?.[lang])fail(`packet ${name}: translation ${lang} duplicates place ${loc}`);
       place.texts[lang]=translated.text;place.links??={};place.links[lang]=translated.url;
       if(translated.address){place.addresses??={};place.addresses[lang]=translated.address;}
       place.refs??=[];place.refs.push([lang,`${record.witness.edition}, ${translated.page}`]);
