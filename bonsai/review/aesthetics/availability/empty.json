@@ -569,8 +569,16 @@
       ],
       "queue_wave": "later",
       "register_year": 2025,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author",
+          "name": "Jukka Mikkonen",
+          "orcid": "https://orcid.org/0000-0003-0436-8526",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.1177/09632719251326132"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -578,14 +586,28 @@
         "mx": "unverified"
       },
       "witnesses": {
-        "original": "unverified",
+        "original": "candidate: English CC BY 4.0 version of record identified; JYX version identity needs comparison and page-level review",
         "ru": "unverified",
         "en": "unverified",
         "es": "unverified",
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.1177/09632719251326132",
+          "observation": "Crossref identifies the author and article, publication date 2025-03-14 and CC BY 4.0 for the version of record; this does not establish the rights of translations or third-party images."
+        },
+        {
+          "url": "https://jyx.jyu.fi/bitstreams/5e963490-bc1a-4917-b2ec-312638e19a33/download",
+          "observation": "University repository PDF returned HTTP 200, 2,751,812 bytes, SHA-256 dbba228b1533e5da7c5a99a3f9148bd02c58ff5459e18c73c92b66ea31381118. Its cover says published version and CC BY 4.0, while warning that self-archive pagination or typography may differ. Text contains both register sections. Verify each passage on the PDF and record printed and PDF page coordinates."
+        },
+        {
+          "url": "https://api.openalex.org/works/https://doi.org/10.1177/09632719251326132",
+          "observation": "OpenAlex identifies publisher and institutional locations; its record calls the JYX copy submittedVersion, unlike the JYX PDF cover, which says published version. Resolve this discrepancy by comparing text and edition before planting."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "louis-althusser.ideologie-et-appareils-ideologiques-d-etat",
@@ -1882,8 +1904,15 @@
       ],
       "queue_wave": "later",
       "register_year": 2021,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author",
+          "name": "Elena Abate",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.52685/cjp.21.1.4"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -1898,7 +1927,21 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.52685/cjp.21.1.4",
+          "observation": "Crossref identifies Elena Abate, Fashion as an Aesthetic Form of Life, 2021; its record has no license field."
+        },
+        {
+          "url": "https://content.ifzg.hr/cjp/2021/2021-CJP61.pdf",
+          "observation": "Publisher journal issue PDF returned HTTP 200; 862,012 bytes; SHA-256 f425a923dff6dafd93da3276bac74c5b185e79b899ec29cbadb6bc2baecf096c. OCR extraction includes section 5 at printed pp. 63–66. Publisher reuse permission and page-image comparison remain unverified."
+        },
+        {
+          "url": "https://api.openalex.org/works/https://doi.org/10.52685/cjp.21.1.4",
+          "observation": "OpenAlex lists the work as open access, but reports no license. Open access alone does not establish reuse permission."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "elizabeth-telfer.food-as-art",
@@ -2157,8 +2200,16 @@
       ],
       "queue_wave": "later",
       "register_year": 2025,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author",
+          "name": "Rebecca Journey",
+          "orcid": "https://orcid.org/0000-0002-9469-9187",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.1017/sas.2025.10030"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -2166,14 +2217,24 @@
         "mx": "unverified"
       },
       "witnesses": {
-        "original": "unverified",
+        "original": "candidate: English publisher PDF states CC BY 4.0; page-level review and third-party material assessment pending",
         "ru": "unverified",
         "en": "unverified",
         "es": "unverified",
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.1017/sas.2025.10030",
+          "observation": "Crossref identifies Rebecca Journey, 2025-10-08 and a CC BY 4.0 license with unspecified content version."
+        },
+        {
+          "url": "https://www.cambridge.org/core/services/aop-cambridge-core/content/view/200EDEB94B167C15CCD5097B67B0DD81/S2326448925100305a.pdf/div-class-title-a-semiotics-of-coziness-and-disappearing-night-div.pdf",
+          "observation": "Publisher PDF returned HTTP 200; 1,860,519 bytes; SHA-256 28e9a2fce4b516b36f7a0bfc851705ecd1264449fcf07b50c597bc269a1658e1. The article states CC BY 4.0 and the PDF text contains the registered sections Permanent Daylight and Ontologies of Coziness. Compare quotations on the page and assess any third-party material separately."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "roman-ingarden.das-literarische-kunstwerk",
@@ -2477,6 +2538,27 @@
         "Das Kunstwerk im Zeitalter seiner technischen Reproduzierbarkeit Benjamin"
       ],
       "outcome": "Each returned HTTP 429; no conclusion about titles or previews. Browser requests for Dewey and Collingwood recorded in empty-browser.md."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "OpenAlex search and DOI lookup; Crossref DOI record; Jyväskylä repository PDF",
+      "queries": [
+        "Traditional ecological knowledge and the aesthetic appreciation of nature",
+        "10.1177/09632719251326132"
+      ],
+      "outcome": "Exact Mikkonen article located; Crossref licenses the published version CC BY 4.0 and the JYX PDF cover identifies itself as published CC BY 4.0, while OpenAlex calls that repository copy submittedVersion. Version comparison and rights for translations remain pending."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "OpenAlex title searches, Crossref DOI records, publisher PDFs",
+      "queries": [
+        "Indigenous and Local Knowledge and Aesthetics Towards an Intergenerational Aesthetics of Nature",
+        "How Could Anybody Ever Feel at Home Aesthetic Familiarity Epistemic Comfort and Displacement",
+        "Fashion as an Aesthetic Form of Life A Wittgensteinian Interpretation",
+        "Everyday Aesthetics and World-Making",
+        "A Semiotics of Coziness and Disappearing Night"
+      ],
+      "outcome": "Abate and Journey exact matches found and publisher PDFs fetched; Crossref and the Journey PDF identify CC BY 4.0. No reuse licence has been established for Abate. Other three searches returned HTTP 429 and remain unverified."
     }
   ]
 }
