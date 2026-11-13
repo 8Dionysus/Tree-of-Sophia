@@ -110,6 +110,9 @@ class RussianSpellingTest(unittest.TestCase):
         self.assertEqual(kit.modern_russian('Ея книга.'), 'Её книга.')
         self.assertEqual(kit.modern_russian('Безсильная речь.'), 'Бессильная речь.')
         self.assertEqual(kit.modern_russian('великаго мудреца.'), 'великого мудреца.')
+        self.assertEqual(kit.modern_russian('Великаго мудреца.',old_source=True), 'Великого мудреца.')
+        self.assertFalse(kit.old_russian_source('Современная история.'))
+        self.assertTrue(kit.old_russian_source('Бѣлый свѣтъ.'))
 
 
 class SentenceBoundaryTest(unittest.TestCase):
@@ -133,7 +136,7 @@ class RussianExtensionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             parent=Path(tmp)/'work';path=parent/'extensions'/'first';path.mkdir(parents=True)
             cache=Path(tmp)/'cache';folder=cache/'work'/'extensions'/'first';folder.mkdir(parents=True)
-            (folder/'source.txt').write_text('Бѣлый свѣтъ.',encoding='utf8')
+            (folder/'source.txt').write_text('Бѣлый свѣтъ. Великаго мудреца.',encoding='utf8')
             (path/'places.json').write_text(json.dumps({'work':'work','places':{}}))
             (path/'evidence.json').write_text(json.dumps({'sources':[{'file':'source','text':'source.txt','role':'transcription'}],'places':{}}))
             parent_witness={'edition':'Existing Russian edition','rights':{'reasoning':'original record'}}
@@ -144,6 +147,11 @@ class RussianExtensionTest(unittest.TestCase):
             self.assertEqual(place['texts']['ru'],'Белый свет.')
             self.assertEqual(place['normalization']['ru']['source_text'],'Бѣлый свѣтъ.')
             self.assertEqual(parent_witness['rights']['reasoning'],'original record')
+            args.open='Великаго';args.close='мудреца.';args.loc='p2'
+            with patch.object(kit,'CACHE',str(cache)),patch.object(kit,'world',return_value=world):kit.cmd_cut(args)
+            second=json.loads((path/'places.json').read_text())['places']['p2']
+            self.assertEqual(second['texts']['ru'],'Великого мудреца.')
+            self.assertEqual(second['normalization']['ru']['source_text'],'Великаго мудреца.')
 
 class QuotationEvidenceTest(unittest.TestCase):
     def test_second_reader_must_read_same_image(self):
