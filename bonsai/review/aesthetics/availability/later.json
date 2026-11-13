@@ -1424,7 +1424,84 @@
         "AE18",
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "fr",
+      "people": [
+        {
+          "name": "Jean-Paul Sartre",
+          "role": "author",
+          "birth": 1905,
+          "death": 1980,
+          "evidence": [
+            "https://openlibrary.org/works/OL4489225W"
+          ]
+        },
+        {
+          "name": "Jonathan Webber",
+          "role": "English translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://api.pageplace.de/preview/DT0400.9781134445035_A25023385/preview-9781134445035_A25023385.pdf"
+          ]
+        },
+        {
+          "name": "М. И. Бекетова",
+          "role": "Russian translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://fantlab.ru/edition416830"
+          ]
+        },
+        {
+          "name": "Manuel Lamana",
+          "role": "Spanish translator",
+          "dates_status": "not established",
+          "evidence": [
+            "https://editoriallosada.com/libro/lo-imaginario/"
+          ]
+        },
+        {
+          "name": "褚朔维",
+          "role": "Chinese translator candidate",
+          "dates_status": "not established",
+          "evidence": [
+            "https://book.douban.com/subject/2286376/"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "L’Imaginaire, Gallimard, 1940",
+          "status": "Original text and requested exact places not yet verified; distinguish L’Imagination (1936), a different work."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "The Imaginary, translated Jonathan Webber, Routledge 2004",
+          "url": "https://api.pageplace.de/preview/DT0400.9781134445035_A25023385/preview-9781134445035_A25023385.pdf",
+          "status": "Publisher sample contains title, copyright and contents, but requested pp.8–10, 63–64, 188–190 not available in this sample."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "想象心理学, 光明日报出版社 1988, translated 褚朔维, ISBN 9787800140884",
+          "url": "https://book.douban.com/subject/2286376/",
+          "status": "Catalog suggests translation via earlier English edition; contents begin corresponding sections pp.25, 98 and 284. Exact passage, underlying edition, rights and script require confirmation in lawful copy."
+        }
+      ],
+      "requested_places": [
+        "B:D-I051: English Webber 2004 pp.8–10",
+        "B:D-I050: English Webber 2004 pp.63–64",
+        "B:D-I077: English Webber 2004 pp.188–190"
+      ],
+      "searches": [
+        {
+          "source": "Publisher sample and catalogs",
+          "url": "https://api.pageplace.de/preview/DT0400.9781134445035_A25023385/preview-9781134445035_A25023385.pdf",
+          "result": "Found Russian Бекетова, Spanish Lamana and Chinese 褚朔维 candidates; German translator of the specific edition is not established. Requested sentences have not yet been checked in lawfully accessible text."
+        }
+      ],
+      "remaining": "Verify original and translation witnesses, exact places, dates, rights and all required search routes. Do not treat partial catalog search as proof of absence."
     },
     {
       "work": "john-morreall.philosophy-of-humor",
@@ -1587,7 +1664,69 @@
       "areas": [
         "AE31"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "undetermined: German 1957 publication; French manuscript/edition history needs review",
+      "people": [
+        {
+          "name": "Mircea Eliade",
+          "role": "author",
+          "birth": 1907,
+          "death": 1986,
+          "evidence": [
+            "https://id.loc.gov/authorities/names/n79060746.html"
+          ]
+        },
+        {
+          "name": "Willard Ropes Trask",
+          "role": "English translator",
+          "birth": 1900,
+          "death": 1980,
+          "evidence": [
+            "https://id.loc.gov/authorities/names/n83180289.html",
+            "https://openlibrary.org/books/OL28663783M"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Das Heilige und das Profane, Rowohlt 1957",
+          "url": "https://openlibrary.org/books/OL16531492M",
+          "status": "Early German publication; source manuscript language and translator must be established. English 1959 says translated from French; BnF describes French 1965 book as translated from German. These observations do not determine composition history."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "The Sacred and the Profane, Trask translation, Harcourt 1959",
+          "url": "https://books.google.com.mx/books?id=zBzzv977CLgC&pg=PA68",
+          "status": "Houghton Mifflin Harcourt-authorized Google Books preview; personally viewed p.68, Sacred Time and Myths, introducing sacred and profane time. Other required passages not yet confirmed in authorized preview."
+        },
+        {
+          "language": "de",
+          "edition": "Insel 1998, translation Eva Moldenhauer",
+          "url": "https://books.google.com/books?vid=ISBN9783458339427",
+          "status": "Metadata for this edition; cannot transfer translator to 1957 printing without evidence."
+        },
+        {
+          "language": "es",
+          "edition": "Lo sagrado y lo profano, Austral 2018",
+          "url": "https://books.google.com/books?vid=ISBN9788408180241",
+          "status": "Catalog names Luis Gil Fernández and Ramón Alfonso Díez Aragón; roles and exact pages require checking."
+        }
+      ],
+      "requested_places": [
+        "D:B-I005: English pp.11–13, hierophany; authorized copy and original correspondence pending",
+        "D:B-I144: English pp.23–24, profane space; authorized copy and original correspondence pending",
+        "D:B-I006: English pp.68–69 and 95–98, sacred time and myth; p.68 preview visually inspected"
+      ],
+      "searches": [
+        {
+          "source": "Google Books authorized preview and BnF",
+          "url": "https://catalogue.bnf.fr/ark:/12148/cb32992659v",
+          "result": "English p.68 directly read; French 1965 bibliographic source language German contrasts with 1959 English title-page description of translation from French. Resolve edition history before aligning."
+        }
+      ],
+      "remaining": "Complete mandatory search, exact primary and translated sentences, provenance and separate copyright decisions; Russian and simplified Chinese not yet located, not declared absent."
     },
     {
       "work": "noel-carroll.the-paradox-of-suspense",
