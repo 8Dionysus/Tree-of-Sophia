@@ -69,6 +69,13 @@ identify the exact source revision, logical path, size, SHA-256, private access,
 `tos-source-bytes` bucket and content-addressed key. Earlier source-rights
 records and provenance remain separate from this custody designation.
 
+The paragraph alignment and the parallel lexical candidates keep three small
+files in git: `manifest.v1.json`, `coverage-receipt.v1.json` and
+`summary.v1.json`. Edition curations pin the manifest and the coverage receipt
+as frozen evidence, and the curation tests read all three. The bucket also
+holds these bytes, so each present file is checked in full against its custody
+entry.
+
 `node bonsai/lib/private-custody.mjs check` validates those manifests and hashes
 any locally present files. Missing bytes are reported as not hydrated; that
 result does not establish that the objects exist in R2. An authorized operator
