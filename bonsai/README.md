@@ -182,8 +182,7 @@ translations, each witness with its edition, the URL its text was taken from,
 licence, attribution and rights basis: public domain, public domain with a
 licence of the digital copy, a short quotation of a protected work under the
 quotation right, or the locator alone where no exact text can be shown
-lawfully. The rights record names the law of each jurisdiction (`russia`,
-`usa`, `eu`) and the reasoning. A place may link its own page in a witness
+lawfully. The rights record names a separate `{basis, law}` for each jurisdiction (`russia`, `usa`, `eu`) and the reasoning. Older witnesses carry a shared `basis` and jurisdictional statements. With no jurisdiction signal the reader shows text only when all three bases permit text. A place may link its own page in a witness
 (`links`, by language) or a page where a work cited by locator alone can be
 found (`url`), and a link says what it opens (`opens`: the whole work, the
 page a quotation is taken from, or where the book can be found). A place may

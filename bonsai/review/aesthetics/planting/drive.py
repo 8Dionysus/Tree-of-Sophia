@@ -2,7 +2,7 @@
 """Runs the readers of the planting line. The operator's tool: a reader never starts it.
 
   drive.py run WORK                 one work from start to accepted, blocked or stuck
-  drive.py line [--max 2] [--works a,b] [--count N] [--wave first]
+  drive.py line [--max 2] [--works a,b] [--count N] [--wave free-all]
                                     works of the queue, several at a time, until the queue, the count or the usage limit ends
 
 One work, one fresh Codex session as the maker; the gate decides whether the maker is done, and while the gate is
@@ -40,6 +40,9 @@ def kit(*args):
 def codex(work,role,prompt,resume=None):
     """One codex exec turn in the packet directory. Returns the thread, whether the usage limit ended it, and its tokens."""
     st=state(work);n=len(st['sessions'])+1;log=out(work,f'{n:02d}-{role}.jsonl');last=out(work,f'{n:02d}-{role}.md')
+    if '/extensions/' in work:
+        prompt=prompt.replace('../../AGENTS.md','../../../../AGENTS.md').replace('../../MAKER.md','../../../../MAKER.md').replace('../../SECOND-READER.md','../../../../SECOND-READER.md').replace('../../kit.py','../../../../kit.py')
+        prompt+='\n\nThis is an extension directory: the K command in the guides means python3 ../../../../kit.py. Read and change this extension only; the accepted parent stays intact.'
     command=[CODEX,'exec']+(['resume',resume] if resume else [])+['--json','-m',MODEL,'-c',f'model_reasoning_effort={EFFORT}','--dangerously-bypass-approvals-and-sandbox','--skip-git-repo-check','-o',last,prompt]
     started=now()
     with open(log,'w') as file:
@@ -150,6 +153,7 @@ def roomy():
         time.sleep(30)
 
 def line(args):
+    if not 1<=args.max<=3:raise SystemExit('--max must be between 1 and 3')
     kit('queue');queue=json.load(open(os.path.join(HERE,'queue.json')))['works']
     works=args.works.split(',') if args.works else [row['work'] for row in queue if row['wave']==args.wave]
     works=[work for work in works if args.retake or (not have(work,'accepted.json') and not have(work,'blocked.json'))][:args.count or None]
@@ -173,7 +177,7 @@ def line(args):
 def main():
     p=argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter);s=p.add_subparsers(dest='cmd',required=True)
     q=s.add_parser('run');q.add_argument('work');q.add_argument('--retake',action='store_true')
-    q=s.add_parser('line');q.add_argument('--max',type=int,default=2);q.add_argument('--works');q.add_argument('--count',type=int);q.add_argument('--wave',default='first');q.add_argument('--retake',action='store_true',help='run the named works again and take up what was left disputed')
+    q=s.add_parser('line');q.add_argument('--max',type=int,default=2);q.add_argument('--works');q.add_argument('--count',type=int);q.add_argument('--wave',default='free-all');q.add_argument('--retake',action='store_true',help='run the named works again and take up what was left disputed')
     args=p.parse_args()
     if args.cmd=='run':print(run(args.work,retake=args.retake))
     else:line(args)

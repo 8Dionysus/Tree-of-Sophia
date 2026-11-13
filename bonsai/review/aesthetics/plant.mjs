@@ -15,11 +15,12 @@
 // its places into fragments.json; `--dry [--packet NAME]` builds everything, checks it and writes nothing.
 
 import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {corpusReader} from '../../lib/corpus-align.mjs';
 import {FIELD_SCHEMA,LIBRARY_SCHEMA,fieldIssues,libraryIssues} from '../../lib/field.mjs';
-import {externalPlacesIssues} from '../../lib/fragments.mjs';
+import {externalPlacesIssues,rightsBases} from '../../lib/fragments.mjs';
 import {formulaSpan} from './formula-span.mjs';
 
 const here=dirname(fileURLToPath(import.meta.url)),root=join(here,'..','..','..'),home=join(root,'bonsai','aesthetics');
@@ -46,6 +47,38 @@ const packetsDir=join(here,'planting','packets'),tried=process.argv.includes('--
 const packets=(existsSync(packetsDir)?readdirSync(packetsDir,{withFileTypes:true}).filter(entry=>entry.isDirectory()).map(entry=>entry.name).sort():[])
   .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried);
 const seconds=[],whole=[];
+// Remove the previous translation projection before rebuilding it from reviewed packets.
+for(const [name,languages] of Object.entries(fragments.provenance.translation_packets??{})){
+  const work=fragments.works[name];if(!work)continue;
+  for(const [lang,previous] of Object.entries(languages)){
+    delete work.witnesses?.[lang];
+    if(previous.absent){work.absent??=[];if(!work.absent.some(item=>item.language===lang))work.absent.push(previous.absent);}
+    if(previous.unsearched){work.unsearched??=[];if(!work.unsearched.some(item=>item.language===lang))work.unsearched.push(previous.unsearched);}
+    for(const place of Object.values(fragments.places[name]??{})){
+      delete place.texts?.[lang];delete place.links?.[lang];delete place.quotation_justification?.[lang];
+      if(place.refs)place.refs=place.refs.filter(ref=>ref[0]!==lang);
+      if(place.quotation_justification&&!Object.keys(place.quotation_justification).length)delete place.quotation_justification;
+    }
+  }
+}
+const translationPackets={};
+// Extension-only places are rebuilt from the accepted extension packets.
+for(const [name,places] of Object.entries(fragments.provenance.extension_places??{})){
+  for(const [loc,previous] of Object.entries(places)){
+    if(previous===null)delete fragments.places?.[name]?.[loc];
+    else if(fragments.places?.[name])fragments.places[name][loc]=previous;
+  }
+}
+const extensionPlaces={};
+for(const correction of fragments.provenance.extension_corrections??[]){
+  const at=fragments.provenance.corrections.findIndex(item=>JSON.stringify(item)===JSON.stringify(correction));
+  if(at>=0)fragments.provenance.corrections.splice(at,1);
+}
+for(const [name,previous] of Object.entries(fragments.provenance.extension_checked??{})){
+  if(previous===null)delete fragments.provenance.checked_on_the_page_image[name];
+  else fragments.provenance.checked_on_the_page_image[name]=previous;
+}
+const extensionCorrections=[],extensionChecked={};
 // A work a packet brought whole leaves the places module again when that packet is no longer accepted.
 for(const name of fragments.provenance.packets??[])if(!packets.includes(name)){
   delete fragments.works[name];delete fragments.places[name];delete fragments.provenance.checked_on_the_page_image[name];
@@ -58,11 +91,57 @@ for(const name of packets){
   if(places.entry){fragments.works[name]=places.entry;whole.push(name);}
   if(!fragments.works[name])fail(`packet ${name}: no entry for a work the places module does not hold`);
   fragments.places[name]={...(places.entry?{}:fragments.places[name]),...places.places};
+  // Each accepted translation is an independent source record; the acceptance digest
+  // binds the second reader's decision to the exact file consumed here.
+  const witnessesDir=join(at,'witnesses');
+  for(const file of existsSync(witnessesDir)?readdirSync(witnessesDir).filter(file=>file.endsWith('.json')).sort():[]){
+    const full=join(witnessesDir,file),accept=`${full}.accepted`;
+    if(!existsSync(accept))continue;
+    const raw=readFileSync(full),record=JSON.parse(raw),receipt=json(accept),lang=file.slice(0,-5);
+    if(receipt.sha256!==createHash('sha256').update(raw).digest('hex')||record.language!==lang)fail(`packet ${name}: ${lang} witness changed since review`);
+    if(lang===fragments.works[name].original||fragments.works[name].witnesses?.[lang])fail(`packet ${name}: witness ${lang} already exists`);
+    fragments.works[name].witnesses[lang]=record.witness;
+    const absent=(fragments.works[name].absent??[]).find(item=>item.language===lang)??null;
+    const unsearched=(fragments.works[name].unsearched??[]).find(item=>item.language===lang)??null;
+    (translationPackets[name]??={})[lang]={absent,unsearched};
+    fragments.works[name].absent=(fragments.works[name].absent??[]).filter(item=>item.language!==lang);
+    if(fragments.works[name].unsearched)fragments.works[name].unsearched=fragments.works[name].unsearched.filter(item=>item.language!==lang);
+    for(const [loc,translated] of Object.entries(record.places??{})){
+      const place=fragments.places[name]?.[loc];if(!place)fail(`packet ${name}: translation ${lang} names unknown place ${loc}`);
+      place.texts[lang]=translated.text;place.links??={};place.links[lang]=translated.url;
+      place.refs??=[];place.refs.push([lang,`${record.witness.edition}, ${translated.page}`]);
+      if(translated.justification){place.quotation_justification??={};place.quotation_justification[lang]=translated.justification;}
+    }
+  }
   const own=new Set(Object.keys(places.places).map(loc=>`${name} ${loc}`)),seen=fragments.provenance.checked_on_the_page_image;
   fragments.provenance.corrections=[...fragments.provenance.corrections.filter(correction=>!own.has(correction.place)),...(places.corrections??[])];
   if(places.checked_on_the_page_image?.length)seen[name]=[...new Set([...(places.entry?[]:seen[name]??[]),...places.checked_on_the_page_image])];
+  const extensionsDir=join(at,'extensions');
+  for(const extension of existsSync(extensionsDir)?readdirSync(extensionsDir,{withFileTypes:true}).filter(item=>item.isDirectory()).map(item=>item.name).sort():[]){
+    const ext=join(extensionsDir,extension),selector=`${name}/extensions/${extension}`;
+    if(!existsSync(join(ext,'accepted.json'))&&tried!==selector)continue;
+    const extensionPath=`${path}/extensions/${extension}`,extensionPlacesFile=json(join(ext,'places.json'));
+    if(extensionPlacesFile.work!==name||extensionPlacesFile.entry)fail(`extension ${selector}: wrong work or duplicate entry`);
+    records.push({name:`planting/packets/${selector}/reading.json`,path:`${extensionPath}/reading.json`,...json(join(ext,'reading.json'))});
+    if(existsSync(join(ext,'review.json'))){const {reader}=json(join(ext,'review.json'));seconds.push({...reader,record:`${extensionPath}/review.json`});}
+    for(const [loc,value] of Object.entries(extensionPlacesFile.places??{})){
+      const existing=fragments.places[name]?.[loc],lang=fragments.works[name].original;
+      if(existing&&existing.texts?.[lang]!==value.texts?.[lang])fail(`extension ${selector}: ${loc} changes an existing original place`);
+      if(!existing){(extensionPlaces[name]??={})[loc]=null;fragments.places[name][loc]=value;}
+    }
+    fragments.provenance.corrections.push(...(extensionPlacesFile.corrections??[]));
+    extensionCorrections.push(...(extensionPlacesFile.corrections??[]));
+    if(extensionPlacesFile.checked_on_the_page_image?.length){
+      if(!(name in extensionChecked))extensionChecked[name]=seen[name]?[...seen[name]]:null;
+      seen[name]=[...new Set([...(seen[name]??[]),...extensionPlacesFile.checked_on_the_page_image])];
+    }
+  }
 }
 if(whole.length||fragments.provenance.packets)fragments.provenance.packets=whole;
+if(Object.keys(translationPackets).length)fragments.provenance.translation_packets=translationPackets;else delete fragments.provenance.translation_packets;
+if(Object.keys(extensionPlaces).length)fragments.provenance.extension_places=extensionPlaces;else delete fragments.provenance.extension_places;
+if(extensionCorrections.length)fragments.provenance.extension_corrections=extensionCorrections;else delete fragments.provenance.extension_corrections;
+if(Object.keys(extensionChecked).length)fragments.provenance.extension_checked=extensionChecked;else delete fragments.provenance.extension_checked;
 
 /** The citation of a formula: the unit a record names by its reference and the span between the opening and closing words. */
 function cite(record,conception,formula,libraryWork){
@@ -70,7 +149,12 @@ function cite(record,conception,formula,libraryWork){
   if(libraryWork.places==='fragments'){
     const text=fragments?.places?.[conception.work]?.[formula.place]?.texts?.[libraryWork.original];
     if(fragments?.works?.[conception.work]?.original!==libraryWork.original)fail(`${at}: fragments.json does not hold ${conception.work} in ${libraryWork.original}`);
-    if(typeof text!=='string')fail(`${at}: fragments.json holds no place ${JSON.stringify(formula.place)} of ${conception.work} in the original`);
+    if(typeof text!=='string'){
+      const place=fragments?.places?.[conception.work]?.[formula.place],witness=fragments?.works?.[conception.work]?.witnesses?.[libraryWork.original];
+      const bases=rightsBases(witness?.rights);
+      if(place?.url&&bases.length===3&&bases.every(basis=>basis==='locator-only'))return {w:conception.work,loc:formula.place};
+      fail(`${at}: fragments.json holds no place ${JSON.stringify(formula.place)} of ${conception.work} in the original`);
+    }
     if(!/^[\p{Lu}„“"(]/u.test(text)||!/[.!?][)”"]?$/u.test(text.trimEnd()))fail(`${at}: the place ${formula.place} does not run over whole sentences`);
     return {w:conception.work,loc:formula.place};
   }
@@ -139,6 +223,51 @@ function treePath(tree){
 }
 const stored=existsSync(join(home,'identities.json'))?json(join(home,'identities.json')).checked:null;
 identities.checked=stored??{tree_revision:null,date:null,basis:{ru:'Записи ToS/source-witnesses на этой ревизии: «resolved» — Древо уже держит эту идентичность, «to-mint» — её пришлось бы создать маршрутом владельца источника.',en:'ToS/source-witnesses records at this revision: resolved means the Tree already holds the identity; to-mint means its source-owner route would have to create it.'}};
+
+// Participant lives are source data from the recorded Wikidata identities.
+const lives=layer('lives'),lifeByItem=new Map(Object.values(lives).map(life=>[life.item,life]));
+const participant=(person)=>{
+  const item=person.qid??/^https:\/\/www\.wikidata\.org\/wiki\/(Q[1-9]\d*)\/?$/.exec(person.source??'')?.[1];
+  const life=lifeByItem.get(item);
+  return {role:person.role,name:person.name??life?.label??null,...(item?{qid:item}:{}),
+    source:person.source??(item?`https://www.wikidata.org/wiki/${item}`:null),
+    born:life?.born??(Number.isInteger(person.born)?[{year:person.born}]:[]),died:life?.died??(Number.isInteger(person.died)?[{year:person.died}]:[])};
+};
+for(const name of packets){
+  const file=join(packetsDir,name,'evidence.json'),work=fragments.works[name];
+  if(!work||!existsSync(file))continue;
+  const people=json(file).persons??[],original=work.witnesses?.[work.original];
+  if(original&&people.length)original.participants=people.map(participant);
+}
+const manualHands={
+  'immanuel-kant.kritik-der-urteilskraft':{de:[['author','Q9312'],['editor','Q77045']],en:[['author','Q9312'],['translator','Q6221660']]},
+  'edmund-burke.a-philosophical-enquiry-into-the-origin-of-our':{en:[['author','Q165792']]},
+  'william-hogarth.the-analysis-of-beauty':{en:[['author','Q171344']]},
+};
+for(const [name,languages] of Object.entries(manualHands))for(const [lang,hands] of Object.entries(languages)){
+  const witness=fragments.works[name]?.witnesses?.[lang];if(witness)witness.participants=hands.map(([role,qid])=>participant({role,qid}));
+}
+for(const work of Object.values(fragments.works))for(const witness of Object.values(work.witnesses??{})){
+  if(witness.persons)witness.participants=witness.persons.map(participant);
+}
+
+// Upgrade legacy display rights without rewriting the signed reader packets.
+// An omitted translation is not evidence of an unsuccessful search.
+for(const work of Object.values(fragments.works)){
+  for(const witness of Object.values(work.witnesses??{})){
+    const rights=witness.rights??{};
+    if(rights.basis&&['russia','usa','eu'].every(country=>typeof rights[country]==='string')){
+      for(const country of ['russia','usa','eu'])rights[country]={basis:rights.basis,law:rights[country]};
+      delete rights.basis;
+    }
+  }
+  const notSearched=(work.absent??[]).filter(item=>!item.tried);
+  if(notSearched.length){
+    work.unsearched??=[];
+    for(const item of notSearched)if(!work.unsearched.some(entry=>entry.language===item.language))work.unsearched.push(item);
+    work.absent=(work.absent??[]).filter(item=>item.tried);
+  }
+}
 
 const files={'field.json':field,'library.json':library,'identities.json':identities,'fragments.json':fragments};
 if(process.argv.includes('--dry')){
