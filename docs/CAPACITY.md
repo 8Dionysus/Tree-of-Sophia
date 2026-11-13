@@ -35,8 +35,8 @@ carriers as independent copies of the corpus without establishing overlap.
 Binary-source volume and rights distribution remain unknown.
 
 For each stage, **proposed** fixture sizes are 90% at 1,000 bytes, 9% at
-10,000 bytes and 1% at 220,000 bytes: a **derived** mean of 4,090 bytes,
-rounded to 4,000 for the estimate above. Include eight revisions for 10% of
+10,000 bytes and 1% at 220,000 bytes: a **derived** mean of 4,000 bytes,
+used for the estimate above. Include eight revisions for 10% of
 records, access checks and removal from projections after rights changes. At
 target, include a node with 100,000 relations and rights changes affecting 10%
 of records. Compare with real distributions when available. The existing
