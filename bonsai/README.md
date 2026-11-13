@@ -219,8 +219,8 @@ counterpart shown may be the neighbouring sentence; the parallel reading of
 the whole place shows the context.
 
 When a translation covers only part of a corpus work, a stand may declare its
-`translation-scopes.json` entry with the source URL and exact original
-version, text-layer revision and first and last unit IDs. The mechanism checks
+`translation-scopes.json` entry with the source URL, exact original and
+translation versions and text-layer revisions, and first and last original unit IDs. The mechanism checks
 those bindings and aligns only that range; a cited fragment outside it has no
 counterpart in that witness. The range is an unreviewed source-bound proposal,
 not a manually chosen translation of each quotation.

@@ -249,7 +249,7 @@ export function alignCorpus(cited,works,read,scopes=[]){
     const key=`${scope.work}:${scope.translationVersionId}`,work=works[scope.work]&&read(works[scope.work]);
     const original=work?.versions.find(item=>item.id===scope.originalVersionId),translation=work?.versions.find(item=>item.id===scope.translationVersionId);
     const first=original?.units.findIndex(unit=>unit.id===scope.firstUnitId)??-1,last=original?.units.findIndex(unit=>unit.id===scope.lastUnitId)??-1;
-    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||scope.originalRevision!==original.revision||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
+    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
     seenScopes.add(key);
   }
   const out={schema:CORPUS_ALIGNMENT_SCHEMA,mechanism:'bonsai/lib/corpus-align.mjs',review:'unreviewed',works:{},units:{},receipt:{}};
@@ -267,7 +267,7 @@ export function alignCorpus(cited,works,read,scopes=[]){
         source={...original,units:original.units.slice(first,last+1)};
       }
       const {entries,receipt}=alignVersion(source,version,units);
-      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,source:scope.source};
+      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source};
       translations.push({...meta(version),coverage:receipt.coverage,...(mixedNotes(version)>2?{notesInText:true}:{})});
       out.receipt[`${key}:${version.id}`]=receipt;
       for(const [unit,entry] of Object.entries(entries))(out.units[unit]??={w:key,t:{}}).t[version.id]=entry;

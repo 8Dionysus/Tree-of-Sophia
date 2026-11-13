@@ -27,7 +27,7 @@ export function translationScopesIssues(module){
   for(const scope of module.scopes){
     if(!scope||typeof scope!=='object'){issues.push('scope');continue;}
     for(const field of ['work','translationVersionId','originalVersionId','firstUnitId','lastUnitId','basis'])if(typeof scope[field]!=='string'||!scope[field].trim())issues.push(`${field} missing`);
-    if(!/^[a-f0-9]{64}$/.test(scope.originalRevision??''))issues.push('originalRevision');
+    for(const field of ['originalRevision','translationRevision'])if(!/^[a-f0-9]{64}$/.test(scope[field]??''))issues.push(field);
     if(!/^https:\/\//.test(scope.source??''))issues.push('source');
     const key=`${scope.work}:${scope.translationVersionId}`;if(seen.has(key))issues.push(`duplicate ${key}`);seen.add(key);
   }
