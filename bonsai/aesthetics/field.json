@@ -66,6 +66,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-10-hogarth.json"
   },
   {
+   "id": "codex-2026-11-12-ion",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Plato, Ion 533d–536a, in the Greek text of the public corpus, beside the registers' readings.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-ion.json"
+  },
+  {
    "id": "codex-2026-11-12-plotinus",
    "model": "gpt-6",
    "date": "2026-11-12",
@@ -11119,6 +11126,99 @@
    "admission": "map",
    "grew_from": [
     "A:E015"
+   ]
+  },
+  {
+   "id": "plato.ion:muse-and-magnetic-chain",
+   "type": "tos.entity.conception",
+   "of": [
+    "inspiration"
+   ],
+   "areas": [
+    "area-creation-and-mastery"
+   ],
+   "work": "plato.ion",
+   "agents": [
+    "plato"
+   ],
+   "voice": {
+    "ru": "Сократ",
+    "en": "Socrates"
+   },
+   "locus": "533d–e",
+   "formula": {
+    "cite": [
+     {
+      "w": "plato.ion",
+      "u": [
+       "tos.text-unit.sid-d58c2558ebaa4f19ba49cce25166fd81",
+       "tos.text-unit.sid-d58c2558ebaa4f19ba49cce25166fd81"
+      ],
+      "s": 1401,
+      "e": 2018
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Сократ уподобляет вдохновение цепи железных колец: муза вдохновляет одних, через них вдохновляются другие.",
+    "en": "Socrates likens inspiration to a chain of iron rings: the Muse inspires some, and through them others become inspired."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-ion",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:B-I003"
+   ]
+  },
+  {
+   "id": "plato.ion:spectator-last-ring",
+   "type": "tos.entity.conception",
+   "of": [
+    "inspiration",
+    "the-spectator"
+   ],
+   "areas": [
+    "area-creation-and-mastery",
+    "area-play-performance-and-participation"
+   ],
+   "work": "plato.ion",
+   "agents": [
+    "plato"
+   ],
+   "voice": {
+    "ru": "Сократ",
+    "en": "Socrates"
+   },
+   "locus": "535e–536a",
+   "formula": {
+    "cite": [
+     {
+      "w": "plato.ion",
+      "u": [
+       "tos.text-unit.sid-a19f5ae3bf384c18825d48d17eab87c3",
+       "tos.text-unit.sid-a19f5ae3bf384c18825d48d17eab87c3"
+      ],
+      "s": 6,
+      "e": 322
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Сократ называет зрителя последним кольцом, рапсода и исполнителя — средним, поэта — первым; бог через них влечёт человеческую душу.",
+    "en": "Socrates calls the spectator the last ring, the rhapsode and performer the middle one, and the poet the first; through them the god draws the human soul."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-ion",
+    "verdict": "revise",
+    "note": "The register lists rhapsode and actor as separate links. Socrates addresses Ion as the rhapsode and performer together, the middle ring."
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:B-I034"
    ]
   },
   {
