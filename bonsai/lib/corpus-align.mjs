@@ -103,8 +103,9 @@ const PERIODS=new Set(['grc','la']),LONG_PERIOD=[[1,4],[1,5],[1,6]];
 
 // Some editions join several short original sentences into one long translation sentence. The scope may
 // opt into larger groups for that exact pair of revisions; the aligner still chooses every correspondence.
-export function alignVersion(original,translation,cited,{maxSourceSentences=3,handoverUnitIds=[]}={}){
+export function alignVersion(original,translation,cited,{maxSourceSentences=3,handoverUnitIds=[],completePreviousUnitIds=[]}={}){
   if(!Number.isInteger(maxSourceSentences)||maxSourceSentences<3||maxSourceSentences>6)throw new Error('Invalid maximum source sentence group');
+  if(!Array.isArray(completePreviousUnitIds)||new Set(completePreviousUnitIds).size!==completePreviousUnitIds.length||completePreviousUnitIds.some(id=>!handoverUnitIds.includes(id)))throw new Error('Invalid preceding continuation scope');
   const beads=(PERIODS.has(original.language)?LONG_PERIOD:[]).concat(Array.from({length:Math.max(0,maxSourceSentences-3)},(_,i)=>[i+4,1]));
   const {how,map}=counterparts(original,translation),textOf=new Map(translation.units.map(unit=>[unit.id,unit.text]));
   const position=new Map(translation.units.map((unit,index)=>[unit.id,index])),whole=unit=>({id:unit.id,s:0,e:chars(unit.text).length});
@@ -209,6 +210,20 @@ export function alignVersion(original,translation,cited,{maxSourceSentences=3,ha
         const sentence=sentencesOf([{index:j+1,raw:chars(nextText).slice(0,textEnd(nextText)).join('')}],translation.language)[0];
         if(sentence&&!t.some(([k,a,b])=>k===j+1&&a<=sentence.id[1]&&b>=sentence.id[2]))t.push(sentence.id);
       }
+      // A scoped handover can also pair only the continuation of a sentence
+      // with a later original sentence. Keep the beginning in its own unit.
+      if(run.units.some(unit=>completePreviousUnitIds.includes(unit.id))){
+        for(const [j,start,end] of targets){
+          const current=run.targets[j],previous=run.targets[j-1];
+          if(!previous||position.get(current.id)!==position.get(previous.id)+1||current.s!==0)continue;
+          const currentText=textOf.get(current.id),previousText=textOf.get(previous.id);
+          if(previous.e!==textEnd(previousText)||!unfinished(previousText)||!continues(currentText))continue;
+          const first=sentencesOf([{index:j,raw:chars(currentText).slice(0,Math.min(current.e,textEnd(currentText))).join('')}],translation.language)[0];
+          const prior=sentencesOf([{index:j-1,raw:chars(previousText).slice(previous.s,previous.e).join('')}],translation.language).at(-1);
+          if(first&&prior&&start<=first.id[1]&&end>=first.id[2]&&!t.some(([k,a,b])=>k===j-1&&a<=prior.id[1]&&b>=prior.id[2]))t.push(prior.id);
+        }
+        t.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+      }
       for(const index of new Set(s.map(([unit])=>unit))){
         const unit=run.units[index].id;if(!cited.has(unit))continue;
         const entry=entries[unit]??={u:[],pairs:[]};
@@ -265,8 +280,10 @@ export function alignCorpus(cited,works,read,scopes=[]){
       const invalidContinuation=continuation!==undefined&&(continuation!==true||!to||!next||!unfinished(chars(to.text).slice(0,textEnd(to.text)).join(''))||!continues(next.text)||!sentencesOf([{index:0,raw:chars(next.text).slice(0,textEnd(next.text)).join('')}],translation.language).length);
       return i<first||i>last||!to||!a.length||!b.length||a.at(-1)!==b.at(-1)||invalidContinuation;
     }));
-    const invalidWithheld=scope.withheld!==undefined&&(scope.withheld!==true||first!==0||last!==original?.units.length-1||typeof scope.basis!=='string'||!scope.basis.trim()||scope.maxSourceSentences!==undefined||start!==undefined||handovers!==undefined||locals!==undefined);
-    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))||invalidStart||invalidHandovers||invalidLocals||invalidWithheld||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
+    const complete=scope.completePreviousUnitIds;
+    const invalidComplete=complete!==undefined&&(!Array.isArray(complete)||!complete.length||!Array.isArray(handovers)||locals!==undefined||new Set(complete).size!==complete.length||complete.some(id=>!handovers.includes(id)));
+    const invalidWithheld=scope.withheld!==undefined&&(scope.withheld!==true||first!==0||last!==original?.units.length-1||typeof scope.basis!=='string'||!scope.basis.trim()||scope.maxSourceSentences!==undefined||start!==undefined||handovers!==undefined||locals!==undefined||complete!==undefined);
+    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))||invalidStart||invalidHandovers||invalidLocals||invalidComplete||invalidWithheld||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
     seenScopes.add(key);
   }
   const out={schema:CORPUS_ALIGNMENT_SCHEMA,mechanism:'bonsai/lib/corpus-align.mjs',review:'unreviewed',works:{},units:{},receipt:{}};
@@ -294,7 +311,7 @@ export function alignCorpus(cited,works,read,scopes=[]){
       // the unmodified, revision-bound corpus unit. Other annotations may remain within the text.
       const start=scope?.translationStart;
       const target=start?{...version,units:version.units.map(unit=>unit.id===start.unitId?{...unit,text:chars(unit.text).slice(start.offset).join('')}:unit)}:version;
-      const {entries,receipt}=alignVersion(source,target,units,{maxSourceSentences:scope?.maxSourceSentences??3,handoverUnitIds:scope?.handoverUnitIds??[]});
+      const {entries,receipt}=alignVersion(source,target,units,{maxSourceSentences:scope?.maxSourceSentences??3,handoverUnitIds:scope?.handoverUnitIds??[],completePreviousUnitIds:scope?.completePreviousUnitIds??[]});
       // Some editions label the same numbered place differently. For explicitly
       // reviewed, revision-bound units, align both complete units independently;
       // the sentence aligner still selects all text and original offsets remain intact.
@@ -310,7 +327,7 @@ export function alignCorpus(cited,works,read,scopes=[]){
         localReceipts.push({...pair,...local.receipt});
       }
       if(start)for(const entry of Object.values(entries))for(const [,targets] of entry.pairs)for(const span of targets)if(entry.u[span[0]]===start.unitId){span[1]+=start.offset;span[2]+=start.offset;}
-      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source,...(scope.maxSourceSentences!==undefined?{maxSourceSentences:scope.maxSourceSentences}:{}),...(start?{translationStart:start}:{}),...(scope.handoverUnitIds?{handoverUnitIds:scope.handoverUnitIds}:{}),...(localReceipts.length?{localReferenceAlignments:localReceipts}:{})};
+      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source,...(scope.maxSourceSentences!==undefined?{maxSourceSentences:scope.maxSourceSentences}:{}),...(start?{translationStart:start}:{}),...(scope.handoverUnitIds?{handoverUnitIds:scope.handoverUnitIds}:{}),...(localReceipts.length?{localReferenceAlignments:localReceipts}:{}),...(scope.completePreviousUnitIds?{completePreviousUnitIds:scope.completePreviousUnitIds}:{})};
       translations.push({...meta(version),coverage:receipt.coverage,...(mixedNotes(version)>2?{notesInText:true}:{})});
       out.receipt[`${key}:${version.id}`]=receipt;
       for(const [unit,entry] of Object.entries(entries))(out.units[unit]??={w:key,t:{}}).t[version.id]=entry;
