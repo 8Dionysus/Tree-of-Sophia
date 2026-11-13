@@ -264,6 +264,31 @@ class AcceptedLicenceEvidenceTest(unittest.TestCase):
             evidence=json.loads((path/'evidence.json').read_text())
             self.assertEqual({source['file'] for source in evidence['sources']},{'text.txt','publisher.xml'})
 
+class DuplicateWitnessAcceptanceTest(unittest.TestCase):
+    def test_extension_cannot_sign_language_already_accepted_by_parent(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp)/'work';extension=parent/'extensions'/'new';(extension/'witnesses').mkdir(parents=True)
+            (parent/'witnesses').mkdir();(parent/'witnesses/ru.json').write_text('{}')
+            (parent/'witnesses/ru.json.accepted').write_text('{}')
+            file=extension/'witnesses/ru.json';file.write_text(json.dumps({'language':'ru','witness':{}}))
+            args=argparse.Namespace(packet=str(extension),language='ru',second=True,offline=False,accept=True)
+            with patch.object(kit,'witness_problems',return_value=[]):
+                with self.assertRaises(SystemExit):kit.cmd_witness_gate(args)
+            self.assertFalse(Path(str(file)+'.accepted').exists())
+
+    def test_packet_signs_no_witness_if_a_later_witness_conflicts(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
+            for lang in ('ru','es'):(path/'witnesses'/f'{lang}.json').write_text(json.dumps({'language':lang}))
+            args=argparse.Namespace(packet=str(path),offline=False,basis=None,by='test')
+            with patch.object(kit,'gate',return_value=([],'open')),patch.object(kit,'witness_problems',return_value=[]),patch.object(kit,'witness_conflict',side_effect=[None,'conflict']):
+                with self.assertRaises(SystemExit):kit.cmd_accept(args)
+            self.assertEqual(list((path/'witnesses').glob('*.accepted')),[])
+
 class LocatorEvidenceTest(unittest.TestCase):
     def test_locator_needs_a_documented_search_and_a_read_book(self):
         loc='Section p1'

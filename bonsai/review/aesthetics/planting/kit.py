@@ -1255,6 +1255,24 @@ def cmd_settle(args):
     for name,value in(('reading.json',reading),('places.json',places),('evidence.json',ev)):save(os.path.join(path,name),value)
     print(f"settled: {len(gone)} conceptions left the reading; {len(reading['conceptions'])} conceptions, {len(reading['links'])} links, {len(places['places'])} places stay")
 
+def witness_conflict(path,language):
+    """Do not sign a translation that the current projection cannot admit."""
+    work=work_of(path);current=Path(witness_file(path,language));directory=Path(path)
+    parent=directory.parent.parent if directory.parent.name=='extensions' else directory
+    candidates=[parent/'witnesses'/f'{language}.json']
+    extensions=parent/'extensions'
+    if extensions.is_dir():
+        candidates.extend(extension/'witnesses'/f'{language}.json' for extension in extensions.iterdir()
+                          if extension.is_dir() and (extension/'accepted.json').is_file())
+    if any(file!=current and Path(str(file)+'.accepted').is_file() for file in candidates):
+        return f'{language}: an accepted witness already exists for this work; extend that witness after the shared-edition route lands'
+    fragments=world()['fragments'];work_entry=(fragments.get('works') or {}).get(work) or {}
+    if language in (work_entry.get('witnesses') or {}):
+        record=(((fragments.get('provenance') or {}).get('translation_packets') or {}).get(work) or {}).get(language) or {}
+        if not str(record.get('record','')).endswith(f"/{packet_selector(path)}/witnesses/{language}.json"):
+            return f'{language}: an existing witness already occupies this language'
+    return None
+
 def cmd_accept(args):
     path=packet(args.packet);problems,state=gate(path,second=True,offline=args.offline)
     if problems:
@@ -1266,9 +1284,11 @@ def cmd_accept(args):
         pending=[os.path.join(directory,name) for name in os.listdir(directory) if name.endswith('.json') and not os.path.isfile(os.path.join(directory,name+'.accepted'))]
         if pending and args.offline:die('accepting a new witness requires the online second gate')
         for file in pending:
+            conflict=witness_conflict(path,Path(file).stem)
+            if conflict:die(conflict)
             data=load(file);issues=witness_problems(path,Path(file).stem,data,second=True,offline=False)
             if issues:die('witness is not ready: '+'; '.join(issues))
-            save(file+'.accepted',{'sha256':hashlib.sha256(Path(file).read_bytes()).hexdigest(),'date':today()})
+        for file in pending:save(file+'.accepted',{'sha256':hashlib.sha256(Path(file).read_bytes()).hexdigest(),'date':today()})
     review=part(path,'review.json');reading=part(path,'reading.json');ev=evidence(path)
     used={entry.get('transcription') for entry in ev['places'].values()}
     places=part(path,'places.json') or {};entry=places.get('entry') or {};original=(entry.get('witnesses') or {}).get(entry.get('original')) or {}
@@ -1690,12 +1710,15 @@ def witness_problems(path,lang,data,second=False,offline=False):
 def cmd_witness_gate(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     problems=witness_problems(path,args.language,data,second=args.second,offline=args.offline)
+    if args.accept and args.second and not args.offline:
+        conflict=witness_conflict(path,args.language)
+        if conflict:problems.append(conflict)
     for problem in problems:print(problem)
     print('gate: '+('shut' if problems else 'open'))
     if problems:sys.exit(1)
     if args.accept:
         if not args.second or args.offline:die('accept requires the online second gate')
-        file=witness_file(path,args.language);raw=open(file,'rb').read()
+        file=witness_file(path,args.language);raw=Path(file).read_bytes()
         save(file+'.accepted',{'sha256':hashlib.sha256(raw).hexdigest(),'date':today()})
         print('witness accepted')
 
