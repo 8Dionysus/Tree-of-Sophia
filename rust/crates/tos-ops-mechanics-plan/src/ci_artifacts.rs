@@ -829,7 +829,6 @@ fn package_limits(root: &Path, images: &Path, b: &Budget<'_>) -> io::Result<Stri
     for n in COMMANDS {
         files.push(images.join(n));
     }
-    walk(0, &root.join("access/web/dist"), false, &mut files, b)?;
     let mut access = Vec::new();
     for folder in ["access/contracts", "access/profiles"] {
         walk(0, &root.join(folder), true, &mut access, b)?;
@@ -1177,10 +1176,10 @@ mod tests {
         assert!(package_limits(&root, &images, &b).is_err());
         fs::write(&selected, b"{}").unwrap();
         // Past the member cap, in directories each within the directory bound.
-        for i in 700..SOFTWARE_MEMBERS {
-            let dir = root.join(format!("access/web/dist/part-{}", i / 500));
+        for i in 0..SOFTWARE_MEMBERS / 2 {
+            let dir = root.join(format!("access/contracts/part-{}", i / 500));
             fs::create_dir_all(&dir).unwrap();
-            fs::write(dir.join(format!("{i}.js")), b"web").unwrap();
+            fs::write(dir.join(format!("{i}.json")), b"{}").unwrap();
         }
         let refused = package_limits(&root, &images, &b).unwrap_err();
         assert!(refused.to_string().contains("member"), "{refused}");

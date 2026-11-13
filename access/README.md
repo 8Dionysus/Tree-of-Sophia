@@ -32,8 +32,7 @@ tos --root /absolute/selected-data mcp
 
 HTTP binds to loopback by default. MCP uses stdio unless a loopback-only
 Streamable HTTP transport is selected explicitly. `--root` or `TOS_DATA_ROOT`
-selects data; neither changes the installed software, browser assets, or API
-schemas. No command searches a parent directory or neighboring checkout for
+selects data; neither changes the installed software or API schemas. No command searches a parent directory or neighboring checkout for
 another dataset. `--release-root` selects an already admitted managed release;
 it does not install software or build data.
 
@@ -75,7 +74,7 @@ Managed data is selected separately with `--release-root`.
 
 Use `tos-access software build`, `software verify`, `software extract`, and
 `software install` for the code-only archive. The archive contains the native
-entrypoint and its software-owned browser assets, not corpus data. Build inputs,
+entrypoint and runtime contracts, not browser assets or corpus data. Build inputs,
 budgets, archive verification and official release steps are in
 [`docs/RELEASING.md`](../docs/RELEASING.md).
 
@@ -356,9 +355,8 @@ caller retains its separate borrowed-custody contract.
 
 ## Browser application and WebMCP
 
-The web client is the human presentation of the same selected, bounded read
-products. It supports source-linked search, evidence and route inspection,
-bounded lens construction, and a browser-local research workspace. Workspace
+The public research site presents the Zarathustra and Antiquity stands and a
+browser-local research workspace. Workspace
 hypotheses and proposals remain local, visibly unreviewed, and outside ToS
 source, review ledger, candidate intake and canon. Export is the handoff.
 Feature-specific behavior and development commands are in the

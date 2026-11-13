@@ -6,7 +6,7 @@ entry. The existing node/relation reader remains the contextual inspection view.
 The constructor demo, its supplied fragments and its localStorage namespaces
 are unchanged.
 
-The assembled research entry is `/static/research.html`
+The public research entries are `/zarathustra/` and `/antiquity/`
 (`research.mjs` → `mountLiveResearch`). The corpus fixture page remains a
 development-only harness and is never the production provider.
 
@@ -98,7 +98,7 @@ adapter and conflict contract.
 ## Verification route
 
 Run the focused `src/corpus-reader` Vitest tests and the web typecheck. The
-browser route `/static/fixtures/corpus-reader.html` mounts the same reader and
+browser route `/__research/fixtures/corpus-reader.html` mounts the same reader and
 constructor sky with explicitly artificial data. It provides:
 
 - a 10,000-work lazy catalog and a 100,000-unit first work;
