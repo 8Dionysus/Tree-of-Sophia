@@ -810,8 +810,17 @@
       ],
       "queue_wave": "later",
       "register_year": 2002,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author",
+          "name": "Yuriko Saito",
+          "dates": "unverified",
+          "source": "https://api.openalex.org/works/https://doi.org/10.4324/9781315237541-18",
+          "born": 1953,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q8061670.json"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -826,7 +835,17 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://www.pdcnet.org/collection/fshow?file_type=pdf&id=eip_2002_0003_0001_0001_0021&pdfname=eip_2002_0003_0001_0003_0023.pdf",
+          "observation": "Publisher-hosted PDF returned HTTP 200; 793,812 bytes; SHA-256 feda6d45d758c4726acfbf500c563cac61607d01639e4767b959a5f480832069. Text identifies Essays in Philosophy vol. 3 no. 1 and copyright 2002 Humboldt State University; it contains the registered sections. Page-level comparison and reuse permission remain unverified."
+        },
+        {
+          "url": "https://api.openalex.org/works/https://doi.org/10.4324/9781315237541-18",
+          "observation": "OpenAlex reports a repository location and CC BY for a submitted version; the linked Pacific University page returned HTTP 404. This metadata does not establish a license for the PDCnet PDF."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "allen-carlson.appreciation-and-the-natural-environment",
@@ -963,8 +982,15 @@
       ],
       "queue_wave": "later",
       "register_year": 2004,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author_in_crossref",
+          "name": "Claire Bishop",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.1162/0162287042379810"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -979,7 +1005,13 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.1162/0162287042379810",
+          "observation": "Crossref reports title Antagonism and Relational Aesthetics, author(s) Claire Bishop and publication date 2004-10. This is a bibliographic candidate; verify edition, access and the registered passages. The Crossref record has no license field."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "clement-greenberg.avant-garde-and-kitsch",
@@ -1242,8 +1274,15 @@
       ],
       "queue_wave": "later",
       "register_year": 2003,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author_in_crossref",
+          "name": "Jacques Rancie`re",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.1080/0969725032000162657"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -1258,7 +1297,13 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.1080/0969725032000162657",
+          "observation": "Crossref reports title Politics and aesthetics an interview, author(s) Jacques Rancie`re and publication date 2003-8. This is a bibliographic candidate; verify edition, access and the registered passages. The Crossref record has no license field."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "james-baldwin.the-creative-process",
@@ -1344,8 +1389,15 @@
       ],
       "queue_wave": "later",
       "register_year": 2011,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author",
+          "name": "Jonathan Yorke Bean",
+          "dates": "unverified",
+          "source": "https://escholarship.org/uc/item/4d79b4kf"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -1360,7 +1412,13 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://escholarship.org/uc/item/4d79b4kf",
+          "observation": "OpenAlex identifies this author and work as a repository thesis. Direct HTTP to item page returned 202 and to alternate PDF 403; access and licence need further verification. Browser request recorded separately."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "judith-butler.performative-acts-and-gender-constitution",
@@ -1573,8 +1631,15 @@
       ],
       "queue_wave": "later",
       "register_year": 2003,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author_in_crossref",
+          "name": "Olav Velthuis",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.1023/a:1023995520369"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -1589,7 +1654,13 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.1023/a:1023995520369",
+          "observation": "Crossref reports title Symbolic meanings of prices: Constructing the value of contemporary art in Amsterdam and New York galleries, author(s) Olav Velthuis and publication date 2003-4. This is a bibliographic candidate; verify edition, access and the registered passages. Its listed license URL(s) refer to text and data mining; they are not evidence of general permission to reproduce or translate."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "roland-barthes.le-mythe-aujourd-hui",
@@ -1804,8 +1875,17 @@
       ],
       "queue_wave": "later",
       "register_year": 2010,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author",
+          "name": "Walter D. Mignolo",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.14483/21450706.1224",
+          "born": 1941,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q497968.json"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -1820,7 +1900,21 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://revistas.udistrital.edu.co/index.php/c14/article/download/1224/1634",
+          "observation": "Publisher PDF returned HTTP 200; 363,147 bytes; SHA-256 4c7d24b504978a408cbfaf02f62f982541db4c5dc1fd0583b7f442e93a6e886a. It names Calle 14 volume 4 number 4, January–June 2010; Crossref gives 2011-05-04. It contains separately copyrighted images; assess those independently."
+        },
+        {
+          "url": "https://revistas.udistrital.edu.co/index.php/c14/article/view/1224",
+          "observation": "Publisher page identifies this article and describes different current and historical licenses. It says 2007–2018 used attribution, noncommercial, no derivatives 2.5 Colombia, but links to a CC BY 2.5 URL; Crossref instead lists CC BY-NC-SA 4.0. The conflict and whether later terms apply to this article must be resolved before reuse or translation."
+        },
+        {
+          "url": "https://api.crossref.org/works/10.14483/21450706.1224",
+          "observation": "Crossref identifies Mignolo, 2011-05-04 and a CC BY-NC-SA 4.0 license with unspecified content version, which conflicts with publisher historical-license wording."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "yuriko-saito.everyday-aesthetics-and-world-making",
@@ -1829,8 +1923,17 @@
       ],
       "queue_wave": "later",
       "register_year": 2020,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author",
+          "name": "Yuriko Saito",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.24310/contrastescontrastes.v25i3.11567",
+          "born": 1953,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q8061670.json"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -1838,14 +1941,28 @@
         "mx": "unverified"
       },
       "witnesses": {
-        "original": "unverified",
+        "original": "candidate: publisher English article page states CC BY-NC-SA 4.0; page-level review and attribution and share-alike/noncommercial constraints remain",
         "ru": "unverified",
         "en": "unverified",
         "es": "unverified",
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://revistas.uma.es/index.php/contrastes/article/view/11567",
+          "observation": "Publisher article page identifies Saito, issue volume 25 no. 3 (2020), online publication 2021-01-19, and states CC BY-NC-SA 4.0 for its published content. It separately requires author permissions for copyrighted images."
+        },
+        {
+          "url": "https://revistas.uma.es/index.php/contrastes/article/download/11567/11930",
+          "observation": "Publisher PDF returned HTTP 200; 356,304 bytes; SHA-256 80ab5b81a04ca1c94c11f007426a8a6f0337cce67f83719b75b2c89758ef2774. It identifies the 2020 issue and contains the English article; page-level review and separate translation rights remain pending."
+        },
+        {
+          "url": "https://api.crossref.org/works/10.24310/contrastescontrastes.v25i3.11567",
+          "observation": "Crossref identifies 2021-01-19 publication and has no license field; publisher page is the observed source of license information."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "ariane-nomikos.how-could-anybody-ever-feel-at-home-aesthetic",
@@ -1854,8 +1971,15 @@
       ],
       "queue_wave": "later",
       "register_year": 2024,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author",
+          "name": "Ariane Nomikos",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.62729/6a2ae4d48e9aa"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -1870,7 +1994,17 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://digitalcommons.risd.edu/liberalarts_contempaesthetics/vol22/iss1/11",
+          "observation": "Repository landing page returned HTTP 200 and identifies the author and title; its PDF endpoint returned HTTP 403. Reuse license not verified."
+        },
+        {
+          "url": "https://api.crossref.org/works/10.62729/6a2ae4d48e9aa",
+          "observation": "Crossref identifies Ariane Nomikos and 2024-07-28; no license field. Identity of its registered text with the full cited places remains to be checked."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "carolyn-korsmeyer.aesthetic-value-art-and-food",
@@ -2050,8 +2184,15 @@
       ],
       "queue_wave": "later",
       "register_year": 2022,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author_in_crossref",
+          "name": "Giovanni Matteucci",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.4324/9780429264405-2"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -2066,7 +2207,13 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.4324/9780429264405-2",
+          "observation": "Crossref reports title Aesthetics of fashion, author(s) Giovanni Matteucci and publication date 2021-8-10. This is a bibliographic candidate; verify edition, access and the registered passages. The Crossref record has no license field."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "glenn-parsons.functional-beauty",
@@ -2125,8 +2272,15 @@
       ],
       "queue_wave": "later",
       "register_year": 2023,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author_in_crossref",
+          "name": "Nanda Jarosz",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.3197/096327122x16491521047053"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -2141,7 +2295,13 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.3197/096327122x16491521047053",
+          "observation": "Crossref reports title Indigenous and Local Knowledge and Aesthetics: Towards an Intergenerational Aesthetics of Nature, author(s) Nanda Jarosz and publication date 2023-4. This is a bibliographic candidate; verify edition, access and the registered passages. Its listed license URL(s) refer to text and data mining; they are not evidence of general permission to reproduce or translate."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "noam-tractinsky.aesthetics-and-apparent-usability",
@@ -2175,8 +2335,27 @@
       ],
       "queue_wave": "later",
       "register_year": 2000,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author_in_crossref",
+          "name": "N Tractinsky",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.1016/s0953-5438(00)00031-x"
+        },
+        {
+          "role": "author_in_crossref",
+          "name": "A.S Katz",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.1016/s0953-5438(00)00031-x"
+        },
+        {
+          "role": "author_in_crossref",
+          "name": "D Ikar",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.1016/s0953-5438(00)00031-x"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -2191,7 +2370,13 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.1016/s0953-5438(00)00031-x",
+          "observation": "Crossref reports title What is beautiful is usable, author(s) N Tractinsky, A.S Katz, D Ikar and publication date 2000-12. This is a bibliographic candidate; verify edition, access and the registered passages. The Crossref record has no license field."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "rebecca-journey.a-semiotics-of-coziness-and-disappearing-night",
@@ -2318,8 +2503,21 @@
       ],
       "queue_wave": "later",
       "register_year": 2013,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author_in_crossref",
+          "name": "Sheila Lintott",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.1007/978-94-007-7470-4_10"
+        },
+        {
+          "role": "author_in_crossref",
+          "name": "Allen Carlson",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.1007/978-94-007-7470-4_10"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -2334,7 +2532,13 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.1007/978-94-007-7470-4_10",
+          "observation": "Crossref reports title The Link Between Aesthetic Appreciation and the Preservation Imperative, author(s) Sheila Lintott, Allen Carlson and publication date 2013. This is a bibliographic candidate; verify edition, access and the registered passages. Its listed license URL(s) refer to text and data mining; they are not evidence of general permission to reproduce or translate."
+        }
+      ],
+      "participants_incomplete": true
     },
     {
       "work": "verity-platt.getting-to-grips-with-classical-art",
@@ -2418,8 +2622,17 @@
       ],
       "queue_wave": "later",
       "register_year": 2004,
-      "research_status": "not_started",
-      "participants": [],
+      "research_status": "in_progress",
+      "participants": [
+        {
+          "role": "author_in_crossref",
+          "name": "Yuriko Saito",
+          "dates": "unverified",
+          "source": "https://api.crossref.org/works/10.5840/enviroethics199820228",
+          "born": 1953,
+          "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q8061670.json"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -2434,7 +2647,13 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": []
+      "candidates": [
+        {
+          "url": "https://api.crossref.org/works/10.5840/enviroethics199820228",
+          "observation": "Crossref reports title Appreciating Nature on Its Own Terms, author(s) Yuriko Saito and publication date 1998. This is a bibliographic candidate; verify edition, access and the registered passages. The Crossref record has no license field."
+        }
+      ],
+      "participants_incomplete": true
     }
   ],
   "additional_priority": [
@@ -2559,6 +2778,12 @@
         "A Semiotics of Coziness and Disappearing Night"
       ],
       "outcome": "Abate and Journey exact matches found and publisher PDFs fetched; Crossref and the Journey PDF identify CC BY 4.0. No reuse licence has been established for Abate. Other three searches returned HTTP 429 and remain unverified."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "OpenAlex title searches and Crossref DOI records",
+      "queries": "33 register titles with years 2000 or later",
+      "outcome": "32 OpenAlex responses HTTP 200 and one HTTP 429. Results were matched manually by title and author; matches with conflicting authors were rejected. Eight exact Crossref bibliographic candidates were recorded. No closed or rate-limited result is treated as proof of absence; text-and-data-mining terms are not treated as a reuse licence."
     }
   ]
 }
