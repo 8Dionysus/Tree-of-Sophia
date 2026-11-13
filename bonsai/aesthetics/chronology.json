@@ -280,6 +280,16 @@
    "title": "Hogarth. The Analysis of Beauty, 1753",
    "url": "https://www.metmuseum.org/art/collection/search/894326"
   },
+  "register-b-b-s002": {
+   "short": "Aristotle",
+   "title": "Aristotle: Selections, trans. Lynn Sawlivich, rev. Gregory Nagy",
+   "url": "https://kosmossociety.org/aristotle-selections/"
+  },
+  "register-c-a-s002": {
+   "short": "Платон",
+   "title": "Платон. Софист",
+   "url": "https://classics.mit.edu/Plato/sophist.html"
+  },
   "register-b-c-s007": {
    "short": "Aesthetica, §14, Latin–German critical e",
    "title": "Aesthetica, §14, Latin–German critical edition, ed. Hans Rudolf Schweizer",
@@ -583,6 +593,8 @@
    "immanuel-kant.kritik-der-urteilskraft": "tos.historical-process.immanuel-kant.kritik-der-urteilskraft-dating",
    "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our": "tos.historical-process.edmund-burke.a-philosophical-enquiry-into-the-origin-of-our-dating",
    "william-hogarth.the-analysis-of-beauty": "tos.historical-process.william-hogarth.the-analysis-of-beauty-dating",
+   "aristotle.politics": "tos.historical-process.aristotle.politics-dating",
+   "plato.sophist": "tos.historical-process.plato.sophist-dating",
    "alexander-gottlieb-baumgarten.aesthetica": "tos.historical-process.alexander-gottlieb-baumgarten.aesthetica-dating",
    "arthur-schopenhauer.die-welt-als-wille-und-vorstellung": "tos.historical-process.arthur-schopenhauer.die-welt-als-wille-und-vorstellung-dating",
    "baruch-spinoza.ethics": "tos.historical-process.baruch-spinoza.ethics-dating",
@@ -2330,6 +2342,70 @@
    ],
    "footing": "medium",
    "epistemic": "reported"
+  },
+  "tos.historical-process.aristotle.politics-dating": {
+   "type": "historical-process",
+   "work": "aristotle.politics",
+   "label": {
+    "ru": "Датировка: «Политика»",
+    "en": "Dating: Politics"
+   },
+   "dating": {
+    "kind": "relative-order",
+    "role": "historical-time",
+    "calendar": null,
+    "year_numbering": null,
+    "certainty": "approximate",
+    "relative": {
+     "relation": "during",
+     "anchor_ref": "tos.biographical-phase.aristotle.lifetime"
+    },
+    "source_wording": {
+     "text": "IV век до н. э.",
+     "language": "ru"
+    }
+   },
+   "statement": {
+    "ru": "Реестр бонсая датирует произведение: IV век до н. э.. Источник реестра: Aristotle: Selections, trans. Lynn Sawlivich, rev. Gregory Nagy.",
+    "en": "The bonsai’s register dates the work within the life of Aristotle. The register’s source: Aristotle: Selections, trans. Lynn Sawlivich, rev. Gregory Nagy."
+   },
+   "sources": [
+    "register-b-b-s002"
+   ],
+   "footing": "medium",
+   "epistemic": "inferred"
+  },
+  "tos.historical-process.plato.sophist-dating": {
+   "type": "historical-process",
+   "work": "plato.sophist",
+   "label": {
+    "ru": "Датировка: «Софист»",
+    "en": "Dating: Sophist"
+   },
+   "dating": {
+    "kind": "relative-order",
+    "role": "historical-time",
+    "calendar": null,
+    "year_numbering": null,
+    "certainty": "approximate",
+    "relative": {
+     "relation": "during",
+     "anchor_ref": "tos.biographical-phase.plato.lifetime"
+    },
+    "source_wording": {
+     "text": "IV век до н. э.",
+     "language": "ru"
+    }
+   },
+   "statement": {
+    "ru": "Реестр бонсая датирует произведение: IV век до н. э.. Источник реестра: Платон. Софист.",
+    "en": "The bonsai’s register dates the work within the life of Plato. The register’s source: Платон. Софист."
+   },
+   "sources": [
+    "register-c-a-s002"
+   ],
+   "footing": "medium",
+   "epistemic": "inferred"
   },
   "tos.historical-process.alexander-gottlieb-baumgarten.aesthetica-dating": {
    "type": "historical-process",
