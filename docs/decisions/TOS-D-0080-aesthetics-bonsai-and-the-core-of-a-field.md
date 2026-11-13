@@ -98,6 +98,6 @@ exports nothing.
 `bonsai-field.test.mjs` covers the field's contract against the Tree's
 registries, the refusals, the reading of every formula in the original where
 the corpus is fetched, and the equality of the stored modules with what the
-planting tool gives. `check_layer.py` reads the layer against the register
-rows. `node bonsai/lib/cli.mjs check aesthetics` passes with the corpus
-fetched.
+planting tool gives. `node bonsai/lib/cli.mjs check aesthetics` reads the
+review layer against the register rows; with the corpus fetched it also checks
+the places.
