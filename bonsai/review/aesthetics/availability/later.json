@@ -1468,6 +1468,13 @@
           "doi": "10.1017/CBO9781107295599.020",
           "pages": "section pp112–115; precise cited sentence pages not yet established",
           "status": "publisher preview contains starts relevant to both readings; access is not a reuse licence"
+        },
+        {
+          "edition": "A Mathematician’s Apology, Cambridge University Press, February 1941 reprint",
+          "catalogue": "https://catalog.hathitrust.org/Record/102100625",
+          "witness": "https://babel.hathitrust.org/cgi/pt?id=uva.x001445931&seq=8",
+          "pages": "pp. 53–54, scans 65–66",
+          "status": "Title and verso identify 1941 reprint of November 1940 first edition. Scans 65–66 visually inspected: theorems and proofs p.53, chess problem p.54. Hathi marks In Copyright in the United States; browser full view from current location is not a reuse licence or proof of first printing pagination."
         }
       ],
       "translation_candidates": [
@@ -1520,13 +1527,18 @@
         },
         {
           "source": "Hathi bibliographic API",
-          "result": "1940 copy is search-only, not full view",
+          "result": "API labelled 1940 copy search-only; browser full view from current location shows 1941 reprint, not verified 1940 first printing. Hathi marks in copyright in the US.",
           "url": "https://catalog.hathitrust.org/api/volumes/brief/oclc/880626.json"
         },
         {
           "source": "Biblioteca Nacional de España catalog, viewed in browser",
           "result": "Nivola 1999 identifies Jesús Fernández as translator and 136 pages; physical copy. Capitán Swing 2019 EPUB is restricted to BNE and conservation centres; its record does not identify a translator. No target pages examined.",
           "url": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991061098969208606&context=L&vid=34BNE_INST:CATALOGO"
+        },
+        {
+          "source": "HathiTrust viewer, direct inspection",
+          "result": "1941 reprint rather than an independently verified 1940 printing: title scan 7, verso scan 8, proof unexpectedness/inevitability/economy p.53 scan 65 and chess comparison p.54 scan 66. Full view observed; Hathi rights label In Copyright in the United States.",
+          "url": "https://babel.hathitrust.org/cgi/pt?id=uva.x001445931&seq=65"
         }
       ],
       "remaining": "Obtain exact lawful pages in each language, verify all contributors, legal rights and complete required searches. No conclusion of absence has been made."
