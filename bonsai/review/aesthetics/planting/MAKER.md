@@ -358,3 +358,8 @@ a documented search for that particular missing place. For a partial witness,
 search, edition and book locator required for a missing language; a later cut
 of that location replaces the gap. Accepted older works may still add a
 partial witness and retain their existing coverage debt.
+
+An extension may add translated places to an already accepted language when
+its witness records the same edition, participants, rights and source metadata;
+the maker may differ. Each extension is independently reviewed and signed.
+An overlapping place or a different edition is refused before acceptance.
