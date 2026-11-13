@@ -9,7 +9,7 @@
 // work is the register's own: its wording, the year the layer reads in it, and the source the register names for the
 // work. A work the register dates by a century stands inside its author's life and is no firmer than that life.
 
-import {readFileSync,writeFileSync,readdirSync,existsSync} from 'node:fs';
+import {readFileSync,writeFileSync,renameSync,readdirSync,existsSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chronologyIssues} from '../../lib/chronology.mjs';
@@ -28,8 +28,8 @@ const agents=new Map(layer('agents').map(agent=>[agent.id,agent]));
 const names=person=>[person?.name?.en,person?.name?.ru,person?.name?.original].filter(Boolean).map(value=>value.toLocaleLowerCase().normalize('NFKC').trim());
 const samePerson=(person,agent)=>names(person).some(name=>names(agent).includes(name));
 for(const name of existsSync(packets)?readdirSync(packets):[]){
-  const at=join(packets,name),file=join(at,'evidence.json');if(!existsSync(file))continue;
-  const persons=[...(read(file).persons??[])];
+  const at=join(packets,name),file=join(at,'evidence.json');
+  const persons=existsSync(file)?[...(read(file).persons??[])]:[];
   const witnessDir=join(at,'witnesses');
   for(const witness of existsSync(witnessDir)?readdirSync(witnessDir).filter(file=>file.endsWith('.json')):[]){
     if(existsSync(join(witnessDir,`${witness}.accepted`)))persons.push(...(read(join(witnessDir,witness)).witness?.persons??[]));
@@ -49,6 +49,73 @@ for(const name of existsSync(packets)?readdirSync(packets):[]){
 
 const args=new Set(process.argv.slice(2));
 const lives=existsSync(LIVES)?read(LIVES):{};
+const saveLives=()=>{
+  const temporary=`${LIVES}.tmp-${process.pid}`;
+  writeFileSync(temporary,`${JSON.stringify(Object.fromEntries(Object.keys(lives).sort().map(key=>[key,lives[key]])),null,1)}\n`);
+  renameSync(temporary,LIVES);
+};
+// Batch the same exact work/author relationship against Wikidata's graph. A
+// unique matching P50 identity is still required before any life is admitted.
+if(args.has('--fetch-queue-batch')){
+  const pairs=[],owners=new Map(),hits=new Map(),pending=new Set();
+  for(const work of layer('works'))for(const id of work.agents??[]){
+    if(lives[id]?.item)continue;
+    const name=agents.get(id)?.name?.en,title=work.title?.en??work.title?.original;
+    if(!name||!title)continue;
+    const key=JSON.stringify([name,title]);
+    if(!owners.has(key)){owners.set(key,[]);pairs.push([name,title]);}
+    owners.get(key).push(id);pending.add(id);
+    if(!lives[id])lives[id]={item:null,label:agents.get(id)?.name??{},born:[],died:[],status:'unsearched'};
+  }
+  saveLives();
+  let complete=true;
+  for(let start=0;start<pairs.length;start+=15){
+    const batch=pairs.slice(start,start+15),values=batch.flatMap(([name,title])=>['en','de','fr','es','it','la','ru'].map(language=>`(${JSON.stringify(name)}@en ${JSON.stringify(title)}@${language})`)).join(' ');
+    const query=`SELECT DISTINCT ?name ?title ?person ?work WHERE { VALUES (?name ?title) { ${values} } ?work rdfs:label ?title; wdt:P50 ?person. ?person rdfs:label ?name. }`;
+    const body=new URLSearchParams({query,format:'json'});
+    try{
+      const response=await fetch('https://query.wikidata.org/sparql',{method:'POST',body,headers:{'User-Agent':AGENT,'Accept':'application/sparql-results+json','Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(45000)});
+      if(!response.ok)throw new Error(`SPARQL ${response.status}`);
+      for(const row of (await response.json()).results.bindings){
+        const key=JSON.stringify([row.name.value,row.title.value]),qid=row.person.value.split('/').at(-1),work=row.work.value.split('/').at(-1);
+        if(!/^Q[1-9]\d*$/.test(qid)||!/^Q[1-9]\d*$/.test(work))continue;
+        for(const id of owners.get(key)??[]){if(!hits.has(id))hits.set(id,new Map());hits.get(id).set(qid,work);}
+      }
+      console.log(`queue batch ${Math.floor(start/15)+1}/${Math.ceil(pairs.length/15)}: ${hits.size} candidate identities`);
+    }catch(error){console.error(`queue batch stopped: ${error}`);complete=false;break;}
+    await new Promise(resolve=>setTimeout(resolve,1000));
+  }
+  // A partial traversal cannot establish that a name has only one match.
+  if(complete){
+    const unique=[...hits].filter(([,choices])=>choices.size===1).map(([id,choices])=>({id,qid:[...choices.keys()][0],work:[...choices.values()][0]}));
+    for(let start=0;start<unique.length;start+=25){
+      const batch=unique.slice(start,start+25),url=new URL('https://www.wikidata.org/w/api.php');
+      for(const [key,value] of Object.entries({action:'wbgetentities',ids:batch.map(item=>item.qid).join('|'),props:'labels|claims',format:'json'}))url.searchParams.set(key,value);
+      try{
+        const response=await fetch(url,{headers:{'User-Agent':AGENT},signal:AbortSignal.timeout(30000)});
+        if(!response.ok)throw new Error(`Wikidata ${response.status}`);
+        const entities=(await response.json()).entities??{};
+        for(const item of batch){
+          const entity=entities[item.qid];if(!entity||entity.missing!==undefined)continue;
+          const times=property=>{
+            const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
+            return (preferred.length?preferred:claims).map(claim=>({time:claim.mainsnak.datavalue.value.time,precision:claim.mainsnak.datavalue.value.precision}));
+          };
+          lives[item.id]={item:item.qid,label:{en:entity.labels?.en?.value??null,ru:entity.labels?.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_work:item.work};
+        }
+        saveLives();
+      }catch(error){console.error(`queue entity batch stopped: ${error}`);complete=false;break;}
+      await new Promise(resolve=>setTimeout(resolve,1000));
+    }
+  }
+  if(complete){
+    for(const id of pending)if(!lives[id]?.item){
+      const choices=hits.get(id);lives[id]={...lives[id],status:'unresolved',reason:choices?.size>1?'multiple exact work-author identities':'no exact work-author P50 match in the queried language labels',checked:new Date().toISOString().slice(0,10)};
+    }
+    saveLives();
+  }
+  console.log(`queue batch: ${[...pending].filter(id=>lives[id]?.item).length} identities established, complete=${complete}`);
+}
 // Queue identities are admitted only when the exact Wikidata work links the
 // candidate by P50. A name search alone is not a disambiguation.
 if(args.has('--fetch-queue')){
@@ -76,14 +143,19 @@ if(args.has('--fetch-queue')){
   };
   const folded=value=>String(value??'').normalize('NFKC').toLocaleLowerCase().trim();
   const unresolved=[];
+  for(const [id] of byAuthor)if(!lives[id])lives[id]={item:null,label:agents.get(id)?.name??{},born:[],died:[],status:'unsearched'};
+  saveLives();
   for(const [id,works] of byAuthor){
-    if(lives[id])continue;
-    const agent=agents.get(id);if(!agent?.name?.en){unresolved.push({agent:id,reason:'no English name in the register'});continue;}
+    if(lives[id]?.item||(lives[id]?.status==='unresolved'&&!args.has('--retry-unresolved')))continue;
+    const agent=agents.get(id);if(!agent?.name?.en){lives[id].status='unresolved';lives[id].reason='no English name in the register';unresolved.push({agent:id,reason:lives[id].reason});saveLives();continue;}
+    const searched=[];
     try{
+      searched.push({kind:'person',query:agent.name.en});
       const people=(await search(agent.name.en)).filter(item=>folded(item.label)===folded(agent.name.en));
       let found=null;
       for(const work of works.slice(0,3)){
         const title=work.title?.en??work.title?.original;if(!title)continue;
+        searched.push({kind:'work',query:title});
         const choices=(await search(title)).filter(item=>folded(item.label)===folded(title)).slice(0,4);
         for(const choice of choices){
           const item=await entity(choice.id),authors=(item.claims?.P50??[]).map(claim=>claim.mainsnak?.datavalue?.value?.id).filter(Boolean);
@@ -92,7 +164,7 @@ if(args.has('--fetch-queue')){
         }
         if(found)break;
       }
-      if(!found){unresolved.push({agent:id,reason:'exact work-to-author P50 match not found'});continue;}
+      if(!found){lives[id]={...lives[id],status:'unresolved',reason:'exact work-to-author P50 match not found',searched,checked:new Date().toISOString().slice(0,10)};unresolved.push({agent:id,reason:lives[id].reason});saveLives();continue;}
       const person=await entity(found.person);
       const times=property=>{
         const claims=(person.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');
@@ -100,16 +172,16 @@ if(args.has('--fetch-queue')){
       };
       lives[id]={item:found.person,label:{en:person.labels.en?.value??null,ru:person.labels.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10),identity_work:found.work};
       console.log(`${id}: ${found.person}, evidenced by ${found.work}`);
-      writeFileSync(LIVES,`${JSON.stringify(Object.fromEntries(Object.keys(lives).sort().map(key=>[key,lives[key]])),null,1)}\n`);
-    }catch(error){unresolved.push({agent:id,reason:String(error)});if(String(error).includes('rate limit 429')){console.error(String(error));break;}}
+      saveLives();
+    }catch(error){lives[id]={...lives[id],status:'unsearched',last_error:String(error)};unresolved.push({agent:id,reason:String(error)});saveLives();if(String(error).includes('rate limit 429')){console.error(String(error));break;}}
   }
-  writeFileSync(LIVES,`${JSON.stringify(Object.fromEntries(Object.keys(lives).sort().map(key=>[key,lives[key]])),null,1)}\n`);
+  saveLives();
   console.log(`queue lives unresolved: ${unresolved.length}`);
   for(const entry of unresolved)console.log(`${entry.agent}: ${entry.reason}`);
 }
 if(args.has('--fetch')){
   for(const agent of new Set([...Object.keys(library.agents),...Object.keys(ITEMS).filter(key=>key.startsWith('participant-'))])){
-    if(lives[agent])continue;
+    if(lives[agent]?.item)continue;
     const item=ITEMS[agent];if(!item)throw new Error(`${agent}: no Wikidata item is named for this author`);
     const answer=await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${item}.json`,{headers:{'User-Agent':AGENT}});
     if(!answer.ok)throw new Error(`${agent}: Wikidata answers ${answer.status} for ${item}`);
@@ -121,7 +193,7 @@ if(args.has('--fetch')){
     lives[agent]={item,label:{en:entity.labels.en?.value??null,ru:entity.labels.ru?.value??null},born:times('P569'),died:times('P570'),fetched:new Date().toISOString().slice(0,10)};
     await new Promise(resolve=>setTimeout(resolve,400));
   }
-  writeFileSync(LIVES,`${JSON.stringify(Object.fromEntries(Object.keys(lives).sort().map(key=>[key,lives[key]])),null,1)}\n`);
+  saveLives();
 }
 
 // Wikidata writes a year before the era without a year zero; the Tree counts astronomically (1 BCE = 0).
@@ -139,15 +211,19 @@ const dating=(more)=>({role:'historical-time',calendar:null,year_numbering:'astr
 
 const sources={},situations={},lifeOf={},workOf={};
 for(const [agent,entry] of Object.entries(library.agents)){
-  const life=lives[agent];if(!life)throw new Error(`${agent}: no life in layer/lives.json (run with --fetch)`);
+  const life=lives[agent];if(!life?.item)throw new Error(`${agent}: no verified Wikidata identity in layer/lives.json (resolve it before fetching)`);
   const born=life.born.map(item=>yearOf(item.time)),died=life.died.map(item=>yearOf(item.time));
-  if(!born.length||!died.length)throw new Error(`${agent}: Wikidata ${life.item} gives no year of birth or of death`);
-  const exact=new Set(born).size===1&&new Set(died).size===1&&[...life.born,...life.died].every(item=>item.precision>=9);
+  const complete=born.length>0&&died.length>0;
+  const exact=complete&&new Set(born).size===1&&new Set(died).size===1&&[...life.born,...life.died].every(item=>item.precision>=9);
   const id=`tos.biographical-phase.${agent}.lifetime`,source=`wikidata-${agent}`;
+  const wording=complete?between(born,died,'en'):born.length?`born ${spoken(born,'en')}; no death year recorded`:died.length?`death ${spoken(died,'en')}; no birth year recorded`:'no birth or death year recorded';
+  const russian=complete?between(born,died,'ru'):born.length?`год рождения ${spoken(born,'ru')}; год смерти не указан`:died.length?`год смерти ${spoken(died,'ru')}; год рождения не указан`:'годы рождения и смерти не указаны';
   sources[source]={short:'Wikidata',title:`${life.label.en??entry.name.en} (${life.item})`,url:`https://www.wikidata.org/wiki/${life.item}`};
+  const lifeDating=complete?{kind:'interval-assertion',...dating({certainty:exact?'exact':'approximate',interval:{start:lexeme(Math.min(...born)),end:lexeme(Math.max(...died))},source_wording:{text:wording,language:'en'}})}
+    :{kind:'unknown-date',...dating({certainty:'unknown',source_wording:{text:wording,language:'en'}})};
   situations[id]={type:'biographical-phase',subject:agent,label:{ru:`${entry.name.ru}: годы жизни`,en:`${entry.name.en}: lifetime`},
-    dating:{kind:'interval-assertion',...dating({certainty:exact?'exact':'approximate',interval:{start:lexeme(Math.min(...born)),end:lexeme(Math.max(...died))},source_wording:{text:between(born,died,'en'),language:'en'}})},
-    statement:{ru:`Викиданные: ${entry.name.ru}, ${between(born,died,'ru')}.`,en:`Wikidata: ${entry.name.en}, ${between(born,died,'en')}.`},
+    dating:lifeDating,
+    statement:{ru:`Викиданные: ${entry.name.ru}, ${russian}.`,en:`Wikidata: ${entry.name.en}, ${wording}.`},
     sources:[source],footing:'medium',epistemic:'reported'};
   lifeOf[agent]=id;
 }
@@ -163,6 +239,7 @@ for(const [work,entry] of Object.entries(library.works)){
   const year=record.year,found=/(\d{4})\s*[–-]\s*(\d{4})/.exec(wording),span=found&&Number(found[1])===year?found:null;
   const when=span?{kind:'interval-assertion',...dating({certainty:wording.trim()===span[0]?'exact':'approximate',interval:{start:span[1],end:span[2]},source_wording:{text:wording,language:'ru'}})}
     :Number.isInteger(year)?{kind:'date-assertion',...dating({certainty:wording.trim()===String(year)?'exact':'approximate',value:lexeme(year),source_wording:{text:wording,language:'ru'}})}
+    :situations[lifeOf[agent]]?.dating?.kind==='unknown-date'?{kind:'unknown-date',...dating({certainty:'unknown',source_wording:{text:wording||'Date not recorded',language:'ru'}})}
     :{kind:'relative-order',role:'historical-time',calendar:null,year_numbering:null,certainty:'approximate',relative:{relation:'during',anchor_ref:lifeOf[agent]},source_wording:{text:wording,language:'ru'}};
   const title={ru:entry.title.ru,en:entry.title.en??entry.title.original??entry.title.ru};
   const said=span?`${span[1]}–${span[2]}`:Number.isInteger(year)?String(year):`within the life of ${library.agents[agent].name.en}`;
@@ -173,7 +250,7 @@ for(const [work,entry] of Object.entries(library.works)){
   workOf[work]=id;
 }
 
-const checked=Object.values(lives).map(life=>life.fetched).sort().at(-1);
+const checked=Object.values(lives).map(life=>life.fetched).filter(Boolean).sort().at(-1);
 const module={schema:'tos.bonsai.chronology.v1',bonsai:'aesthetics',checked,
   posture:{ru:'Годы жизни авторов и датировки произведений в грамматике дат Древа. Жизнь прочитана в Викиданных; датировка произведения — слова реестра бонсая и источник, который реестр называет. Это предложение стенда.',
     en:'The lives of the authors and the datings of the works in the Tree’s date grammar. A life is read from Wikidata; the dating of a work is the wording of the bonsai’s register and the source the register names. It is the stand’s proposal.'},

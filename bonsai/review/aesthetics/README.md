@@ -193,3 +193,13 @@ work itself and stands as a citation of that place; the registers' paraphrases
 then remain here as the record of where the reading came from. The media
 workbooks' own content — works of art, reproductions, bindings — is not in the
 layer; it is read when the bonsai's media are planted.
+
+`chronology.mjs --fetch` fetches the Wikidata identities explicitly named by
+packet participants. `chronology.mjs --fetch-queue` inventories the layer's
+work authors and looks for a Wikidata work whose author (`P50`) identifies an
+exactly named candidate. `lives.json` keeps unsearched and unresolved people
+explicitly; an unresolved name is not a Wikidata identification. A rate limit
+stops the search and retains completed entries. Resume with the same command;
+`--retry-unresolved` also revisits names for which the earlier bounded search
+found no link. `--fetch-queue-batch` checks exact author and work labels in
+Wikidata SPARQL before admitting any unique P50-linked identity. A known birth without a death is not treated as a closed life.

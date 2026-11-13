@@ -267,6 +267,21 @@ class ExtensionPlantingTest(unittest.TestCase):
             self.assertNotIn('ru',projected['places'][work][loc]['texts'])
             self.assertTrue(any(item['language']=='ru' for item in projected['works'][work].get('unsearched',[])))
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+            manual='immanuel-kant.kritik-der-urteilskraft'
+            manual_dir=packets/manual/'witnesses';manual_dir.mkdir(parents=True)
+            manual_loc=next(iter(projected['places'][manual]))
+            translated['places']={manual_loc:{'text':'Русское предложение.','url':'https://example.org/page','page':'1'}}
+            raw=json.dumps(translated,ensure_ascii=False).encode();(manual_dir/'ru.json').write_bytes(raw)
+            (manual_dir/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertEqual(projected['places'][manual][manual_loc]['texts']['ru'],'Русское предложение.')
+            subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+            (manual_dir/'ru.json.accepted').unlink()
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertNotIn('ru',projected['places'][manual][manual_loc]['texts'])
+            subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
 
 class CandidatePrivacyTest(unittest.TestCase):
     def test_unreviewed_research_text_stays_in_local_cache(self):
@@ -283,3 +298,26 @@ class CandidatePrivacyTest(unittest.TestCase):
                 stored=(path/'witnesses/en.json').read_text()
                 self.assertNotIn('Unreviewed source words.',stored)
                 self.assertTrue((Path(tmp)/'cache/work/witnesses/en/research-candidate.json').exists())
+
+class LivingAuthorChronologyTest(unittest.TestCase):
+    def test_known_birth_without_death_remains_an_unknown_lifetime(self):
+        import json
+        import shutil
+        import subprocess
+        import tempfile
+        from pathlib import Path
+        root=Path(kit.ROOT); original=Path(kit.REVIEW)
+        with tempfile.TemporaryDirectory() as tmp:
+            target=Path(tmp);review=target/'bonsai/review/aesthetics';layer=review/'layer';layer.mkdir(parents=True)
+            (target/'bonsai/lib').symlink_to(root/'bonsai/lib',target_is_directory=True)
+            (review/'planting/packets').mkdir(parents=True)
+            shutil.copy2(original/'chronology.mjs',review/'chronology.mjs')
+            for name in ('agents','works','sources'):(layer/(name+'.json')).symlink_to(original/'layer'/(name+'.json'))
+            lives=json.loads((original/'layer/lives.json').read_text());lives['immanuel-kant']['died']=[]
+            (layer/'lives.json').write_text(json.dumps(lives,ensure_ascii=False))
+            home=target/'bonsai/aesthetics';home.mkdir();shutil.copy2(root/'bonsai/aesthetics/library.json',home/'library.json')
+            subprocess.run(['node',str(review/'chronology.mjs')],check=True,capture_output=True,text=True)
+            result=json.loads((home/'chronology.json').read_text());life=result['situations'][result['lives']['immanuel-kant']]
+            self.assertEqual(life['dating']['kind'],'unknown-date')
+            self.assertIn('born',life['dating']['source_wording']['text'])
+            self.assertIn('no death year recorded',life['dating']['source_wording']['text'])

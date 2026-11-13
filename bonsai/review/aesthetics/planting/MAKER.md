@@ -303,3 +303,8 @@ sets one jurisdiction at a time. For a person without a usable Wikidata item,
 fetches a trusted reference and records its digest. A missing death year stays
 unknown and cannot establish public domain by dates. Every metadata change
 requires a fresh independent reading before acceptance.
+
+For a work already in `fragments.json` that predates the line and has no
+packet, run `K witness-parent WORK` first. It creates a witness-only parent;
+it does not manufacture a reading or an acceptance. Open and review the
+language in that parent with the same witness commands above.
