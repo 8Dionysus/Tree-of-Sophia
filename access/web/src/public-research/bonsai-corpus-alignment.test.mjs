@@ -61,6 +61,29 @@ describe('the corpus alignment of the stands',()=>{
     expect(translationScopesIssues({...module,scopes:[...module.scopes,module.scopes[0]]})).toContain(`duplicate academica:${module.scopes[0].translationVersionId}`);
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],originalRevision:'stale'}]})).toContain('originalRevision');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],translationRevision:'stale'}]})).toContain('translationRevision');
+    expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],maxSourceSentences:7}]})).toContain('maxSourceSentences');
+  });
+  it('allows a source-bound translation to join six original sentences into one',()=>{
+    const original={id:'greek',language:'grc',revision:'g',units:[{id:'s',reference:'§1',text:['λόγος δὲ τὸ πρῶτον','δεύτερος δὲ λόγος','τρίτος δὲ λόγος','τέταρτος δὲ λόγος','πέμπτος δὲ λόγος','ἕκτος δὲ λόγος'].join('. ')+'.'}]};
+    const translation={id:'english',language:'en',revision:'e',units:[{id:'t',reference:'§1',text:'The first statement, and the second statement, and the third statement, and the fourth statement, and the fifth statement, and the sixth statement all belong to one continuous English sentence.'}]};
+    const read=()=>({id:'work',versions:[original,translation]}),works={a:'work'},cited=new Map([['a',{original:'greek',units:new Set(['s'])}]]);
+    const scope={work:'a',translationVersionId:'english',translationRevision:'e',originalVersionId:'greek',originalRevision:'g',firstUnitId:'s',lastUnitId:'s',source:'https://example.test/book',maxSourceSentences:6};
+    const result=alignCorpus(cited,works,read,[scope]);
+    expect(result.receipt['a:english'].sourceScope.maxSourceSentences).toBe(6);
+    expect(result.units.s.t.english.pairs[0][0]).toHaveLength(6);
+    expect(alignVersion(original,translation,new Set(['s'])).entries.s.pairs[0][0]).toHaveLength(3);
+    expect(()=>alignCorpus(cited,works,read,[{...scope,maxSourceSentences:7}])).toThrow(/invalid or stale translation scope/);
+  });
+  it.skipIf(!corpusFetched)('keeps the English passage about measurement and cheese with its Greek citation',()=>{
+    const module=json('bonsai/antiquity/alignment.json'),work=read(module.works['ancient-medicine'].documentId);
+    const original=work.versions.find(v=>v.id===module.works['ancient-medicine'].original.versionId);
+    const version=work.versions.find(v=>v.id==='retained-ancient-medicine-eng3-04ab4db8b597');
+    for(const [ref,start,end,expected] of [['§9',789,860,'wherefore it is a task'],['§20',1593,1789,'For cheese']]){
+      const source=original.units.find(u=>u.reference===ref),entry=module.units[source.id].t[version.id];
+      const matches=entry.pairs.filter(([spans])=>spans.some(([a,b])=>a<end&&start<b)).flatMap(([,targets])=>targets);
+      const text=matches.map(([i,a,b])=>Array.from(version.units.find(u=>u.id===entry.u[i]).text).slice(a,b).join('')).join(' ');
+      expect(text).toContain(expected);
+    }
   });
   it('can align a sentence across a translation reference inside a sentence',()=>{
     const original={language:'grc',units:[
