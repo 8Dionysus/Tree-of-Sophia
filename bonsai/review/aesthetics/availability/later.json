@@ -680,7 +680,49 @@
         "AE24",
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Kendall L. Walton",
+          "role": "author",
+          "birth": 1939,
+          "death_status": "not established; 2013 in imported register conflicts with university CV listing teaching 2015–2019",
+          "evidence": [
+            "https://sites.lsa.umich.edu/kendallwalton/wp-content/uploads/sites/225/2025/10/Kendall-Walton-CV.pdf",
+            "https://lsa.umich.edu/philosophy/people/emeritus-faculty/klwalton.html"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Categories of Art, The Philosophical Review 79(3), 1970, pp.334–367",
+          "doi": "10.2307/2183933",
+          "catalogue": "https://www.pdcnet.org/phr/content/phr_1970_0079_0003_0334_0367",
+          "status": "Publisher platform reports subscription or purchase; exact pages have not been examined through this access."
+        }
+      ],
+      "requested_places": [
+        "B:C-I023",
+        "B:C-I049",
+        "C:A-I103",
+        "C:A-I104",
+        "D:B-I123",
+        "D:B-I122"
+      ],
+      "searches": [
+        {
+          "source": "PDC, Crossref, OpenAlex and Unpaywall",
+          "result": "Exact 1970 article and journal pages identified; indexes report closed, not proof there is no legal copy elsewhere.",
+          "url": "https://www.pdcnet.org/phr/content/phr_1970_0079_0003_0334_0367"
+        },
+        {
+          "source": "University of Michigan Walton profile and CV",
+          "result": "Profile identifies professor emeritus, and CV lists Stanford visiting professorship in 2015–2019, contrary to death year 2013 in imported registry/B/agents.jsonl. Do not use that year for rights; verify current status and correct at source with provenance.",
+          "url": "https://sites.lsa.umich.edu/kendallwalton/wp-content/uploads/sites/225/2025/10/Kendall-Walton-CV.pdf"
+        }
+      ],
+      "remaining": "Verify legal copies of exact passages, source authority for biographical correction, all translation witnesses and rights; complete minimum searches."
     },
     {
       "work": "clive-bell.art",
@@ -1142,7 +1184,45 @@
         "AE18",
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "David Kellogg Lewis",
+          "role": "author",
+          "birth": 1941,
+          "death": 2001,
+          "evidence": [
+            "https://archive.org/details/philosophicalpap0002lewi"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Truth in Fiction, American Philosophical Quarterly 15(1), 1978, pp.37–46",
+          "catalogue": "https://www.andrewmbailey.com/dkl/",
+          "status": "Third-party scan supplies original page orientation, but its hosting permission has not been established. DOI of original not established."
+        },
+        {
+          "edition": "Philosophical Papers vol. I, Oxford University Press, 1983, pp.261–280, including postscript",
+          "doi": "10.1093/0195032047.003.0015",
+          "catalogue": "https://api.crossref.org/works/10.1093/0195032047.003.0015",
+          "status": "Reprint DOI and pages, not DOI or pages of original article; Crossref has no license field."
+        }
+      ],
+      "requested_places": [
+        "B:D-I012 original p.37",
+        "B:D-I013 original p.45",
+        "B:D-I014 original pp.45–46"
+      ],
+      "searches": [
+        {
+          "source": "Crossref, Unpaywall and HathiTrust",
+          "result": "1983 book chapter identified; Unpaywall marks closed and Hathi volume is search-only. Original 1978 article DOI not established.",
+          "url": "https://catalog.hathitrust.org/Record/000238445"
+        }
+      ],
+      "remaining": "Identify a lawful copy of exact English passages, translation witnesses and rights; complete required searches."
     },
     {
       "work": "frank-sibley.aesthetic-concepts",
