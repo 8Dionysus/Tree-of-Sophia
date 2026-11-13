@@ -18,3 +18,12 @@ sentence endings, checks exact unspaced CJK source runs at sentence boundaries,
 and counts those endings in quotation limits. Please build the assigned letter
 folds on the merged line; extend or replace these boundary checks as needed,
 keeping the gate, builder and quotation counter consistent.
+
+## Translation research: Schiller 1875
+
+The built-in browser shows the bibliography in [Encyclopedia of the Essay,
+p. 748](https://books.google.com/books?id=nOwBEsoNiUMC&pg=PA748): the 1875
+*Essays Aesthetical and Philosophical* is listed as having various translators.
+This supports neither an identity for each essay nor non-disclosure throughout
+the relevant term. The relation to the 1902 Dole printing and the applicable
+territorial rights still require source-specific investigation.
