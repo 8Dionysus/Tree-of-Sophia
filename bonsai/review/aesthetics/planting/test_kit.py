@@ -107,6 +107,9 @@ class RussianSpellingTest(unittest.TestCase):
         self.assertEqual(kit.modern_russian('Історія великаго народа.'), 'История великого народа.')
         self.assertEqual(kit.modern_russian('Ѵ'), 'И')
         self.assertEqual(kit.modern_russian('История и свет.'), 'История и свет.')
+        self.assertEqual(kit.modern_russian('Ея книга.'), 'Её книга.')
+        self.assertEqual(kit.modern_russian('Безсильная речь.'), 'Бессильная речь.')
+        self.assertEqual(kit.modern_russian('великаго мудреца.'), 'великого мудреца.')
 
 
 class SentenceBoundaryTest(unittest.TestCase):
