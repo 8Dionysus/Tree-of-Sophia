@@ -94,6 +94,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-12-poetics-places.json"
   },
   {
+   "id": "codex-2026-11-12-poetics-more-2",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Aristotle, Poetics VII, XI and XIII in the Greek public corpus, beside the registers’ readings.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-poetics-recognition.json"
+  },
+  {
    "id": "terra-2026-11-10-aesthetica",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -11638,6 +11645,131 @@
     "A:E074",
     "B:D-I003",
     "C:A-I005"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:pity-and-fear",
+   "type": "tos.entity.conception",
+   "of": [
+    "pity",
+    "fear",
+    "the-tragic-hero"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "XIII, 1453a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-fbe5206b6fc24373b4e115de9007a4b5",
+       "tos.text-unit.sid-fbe5206b6fc24373b4e115de9007a4b5"
+      ],
+      "s": 153,
+      "e": 966
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Сострадание обращено к незаслуженно несчастному, страх — к подобному нам; судьба совершенно дурного человека не вызывает ни того ни другого.",
+    "en": "Pity concerns the person who suffers undeservedly and fear someone like ourselves; the fate of a thoroughly wicked person evokes neither."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-more-2",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E078"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:recognition",
+   "type": "tos.entity.conception",
+   "of": [
+    "recognition"
+   ],
+   "areas": [
+    "area-knowledge-and-truth"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "XI, 1452a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-5f1ad0eb50dc4bb08d4d427ed89b998d",
+       "tos.text-unit.sid-5f1ad0eb50dc4bb08d4d427ed89b998d"
+      ],
+      "s": 416,
+      "e": 799
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Узнавание есть перемена от незнания к знанию, ведущая к дружбе или вражде; прекраснейшее соединено с перипетией, как в «Эдипе».",
+    "en": "Recognition is a change from ignorance to knowledge, leading to friendship or enmity; the finest coincides with reversal, as in Oedipus."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-more-2",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "B:D-I002"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:beginning-middle-end",
+   "type": "tos.entity.conception",
+   "of": [
+    "composition"
+   ],
+   "areas": [
+    "area-form-and-composition"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "locus": "VII, 1450b",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-e73a347a1cbe4250bc3d3b3cdcd60bc7",
+       "tos.text-unit.sid-e73a347a1cbe4250bc3d3b3cdcd60bc7"
+      ],
+      "s": 151,
+      "e": 728
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Трагедия подражает целому действию; целое имеет начало, середину и конец, поэтому хорошо построенная фабула не начинается и не заканчивается где попало.",
+    "en": "Tragedy imitates a whole action; a whole has beginning, middle and end, so a well-constructed plot does not begin or end at random."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-poetics-more-2",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:A-I002"
    ]
   },
   {

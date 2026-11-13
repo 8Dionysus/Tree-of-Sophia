@@ -1,0 +1,111 @@
+{
+  "reader": {
+    "id": "codex-2026-11-12-poetics-more-2",
+    "model": "gpt-6",
+    "date": "2026-11-12",
+    "reads": "Aristotle, Poetics VII, XI and XIII in the Greek public corpus, beside the registers’ readings."
+  },
+  "library": {
+    "agents": {
+      "aristotle": {
+        "tree": "tos.agent.aristotle"
+      }
+    },
+    "works": {
+      "aristotle.poetics": {
+        "title": {
+          "ru": "Поэтика",
+          "en": "Poetics"
+        },
+        "original": "grc",
+        "tree": "tos.work.retained-antiquity.poetics"
+      }
+    }
+  },
+  "conceptions": [
+    {
+      "id": "aristotle.poetics:pity-and-fear",
+      "of": [
+        "A:C146",
+        "A:C147",
+        "A:C048"
+      ],
+      "areas": [
+        "AE05"
+      ],
+      "work": "aristotle.poetics",
+      "locus": "XIII, 1453a",
+      "formula": [
+        {
+          "unit": "Глава 13",
+          "from": "ἐπειδὴ οὖν δεῖ τὴν σύνθεσιν",
+          "to": "οὔτε φοβερὸν ἔσται τὸ συμβαῖνον."
+        }
+      ],
+      "thesis": {
+        "ru": "Сострадание обращено к незаслуженно несчастному, страх — к подобному нам; судьба совершенно дурного человека не вызывает ни того ни другого.",
+        "en": "Pity concerns the person who suffers undeservedly and fear someone like ourselves; the fate of a thoroughly wicked person evokes neither."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "A:E078"
+      ]
+    },
+    {
+      "id": "aristotle.poetics:recognition",
+      "of": [
+        "A:C149"
+      ],
+      "areas": [
+        "AE18"
+      ],
+      "work": "aristotle.poetics",
+      "locus": "XI, 1452a",
+      "formula": [
+        {
+          "unit": "Глава 11",
+          "from": "ἀναγνώρισις δέ,",
+          "to": "εἰσὶν μὲν οὖν καὶ ἄλλαι ἀναγνωρίσεις· καὶ γὰρ πρὸς ἄψυχα καὶ τὰ τυχόντα † ἐστὶν ὥσπερ εἴρηται συμβαίνει † καὶ εἰ πέπραγέ τις ἢ μὴ πέπραγεν ἔστιν ἀναγνωρίσαι."
+        }
+      ],
+      "thesis": {
+        "ru": "Узнавание есть перемена от незнания к знанию, ведущая к дружбе или вражде; прекраснейшее соединено с перипетией, как в «Эдипе».",
+        "en": "Recognition is a change from ignorance to knowledge, leading to friendship or enmity; the finest coincides with reversal, as in Oedipus."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "B:D-I002"
+      ]
+    },
+    {
+      "id": "aristotle.poetics:beginning-middle-end",
+      "of": [
+        "A:C195"
+      ],
+      "areas": [
+        "AE21"
+      ],
+      "work": "aristotle.poetics",
+      "locus": "VII, 1450b",
+      "formula": [
+        {
+          "unit": "Глава 7",
+          "from": "κεῖται δὴ ἡμῖν",
+          "to": "κεχρῆσθαι ταῖς εἰρημέναις ἰδέαις."
+        }
+      ],
+      "thesis": {
+        "ru": "Трагедия подражает целому действию; целое имеет начало, середину и конец, поэтому хорошо построенная фабула не начинается и не заканчивается где попало.",
+        "en": "Tragedy imitates a whole action; a whole has beginning, middle and end, so a well-constructed plot does not begin or end at random."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "C:A-I002"
+      ]
+    }
+  ],
+  "links": []
+}
