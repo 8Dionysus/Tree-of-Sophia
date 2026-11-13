@@ -31,8 +31,9 @@ export function translationScopesIssues(module){
     if(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))issues.push('maxSourceSentences');
     if(scope.translationStart!==undefined&&(typeof scope.translationStart?.unitId!=='string'||!scope.translationStart.unitId.trim()||!Number.isInteger(scope.translationStart?.offset)||scope.translationStart.offset<1))issues.push('translationStart');
     if(scope.handoverUnitIds!==undefined&&(!Array.isArray(scope.handoverUnitIds)||!scope.handoverUnitIds.length||scope.handoverUnitIds.some(id=>typeof id!=='string'||!id.trim())||new Set(scope.handoverUnitIds).size!==scope.handoverUnitIds.length))issues.push('handoverUnitIds');
+    if(scope.localReferencePairs!==undefined&&(!Array.isArray(scope.localReferencePairs)||!scope.localReferencePairs.length||scope.localReferencePairs.some(pair=>!pair||typeof pair.originalUnitId!=='string'||!pair.originalUnitId.trim()||typeof pair.translationUnitId!=='string'||!pair.translationUnitId.trim()||(pair.includeFollowingContinuation!==undefined&&pair.includeFollowingContinuation!==true))||new Set(scope.localReferencePairs.map(pair=>pair?.originalUnitId)).size!==scope.localReferencePairs.length||new Set(scope.localReferencePairs.map(pair=>pair?.translationUnitId)).size!==scope.localReferencePairs.length))issues.push('localReferencePairs');
     if(scope.withheld!==undefined&&scope.withheld!==true)issues.push('withheld');
-    if(scope.withheld&&(scope.maxSourceSentences!==undefined||scope.translationStart!==undefined||scope.handoverUnitIds!==undefined))issues.push('withheld options');
+    if(scope.withheld&&(scope.maxSourceSentences!==undefined||scope.translationStart!==undefined||scope.handoverUnitIds!==undefined||scope.localReferencePairs!==undefined))issues.push('withheld options');
     if(!/^https:\/\//.test(scope.source??''))issues.push('source');
     const key=`${scope.work}:${scope.translationVersionId}`;if(seen.has(key))issues.push(`duplicate ${key}`);seen.add(key);
   }
