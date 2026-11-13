@@ -7650,6 +7650,21 @@
       "service": "English, Spanish, German and Chinese Wikisource full-text APIs",
       "queries": "English author name plus original title for all 88 works, once per language; recorded per work",
       "outcome": "All 352 requests returned HTTP 200. Broad full-text hits, first three per query in empty-wikisource-multi-author.json; translations under other names remain unsearched. No conclusion of absence."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "Additional public source route checks",
+      "queries": [
+        "Project Gutenberg Canada index",
+        "Project Gutenberg Australia homepage",
+        "Projekt Gutenberg-DE homepage and search",
+        "Zeno.org homepage",
+        "Presidential Library homepage",
+        "Biblioteca Virtual Miguel de Cervantes homepage",
+        "Biblioteca Nacional de España homepage",
+        "ctext.org homepage"
+      ],
+      "outcome": "Canada index returned 403; Australia timed out; Gutenberg-DE homepage returned 200 but search page returned 403; Zeno and ctext timed out; Presidential Library connection failed; Cervantes homepage returned 200, while its earlier article request returned 403; BNE homepage returned 403. These are route checks, not per-title searches or evidence of absence."
     }
   ]
 }
