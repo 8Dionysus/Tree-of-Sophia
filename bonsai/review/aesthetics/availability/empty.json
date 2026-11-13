@@ -149,6 +149,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/1939438837.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Bernays, Edward L.\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Bernays%2C+Edward+L.%22&format=json&size=5",
+          "result": "HTTP 200, 30 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -270,6 +276,12 @@
           "url": "https://openlibrary.org/search.json?title=Criteria+of+Negro+Art&author=W.+E.+B.+Du+Bois&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Bois, W. E. B. Du\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Bois%2C+W.+E.+B.+Du%22&format=json&size=5",
+          "result": "HTTP 200, 5 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -380,6 +392,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9798607412531.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Nietzsche, Friedrich\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Nietzsche%2C+Friedrich%22&format=json&size=5",
+          "result": "HTTP 200, 3042 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -467,6 +485,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Decorative+Arts%3A+Their+Relation+to+Modern+Life+and+Progress&author=William+Morris&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "1 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Morris, William\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Morris%2C+William%22&format=json&size=5",
+          "result": "HTTP 200, 857 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -591,6 +615,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9571504815.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Kant, Immanuel\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Kant%2C+Immanuel%22&format=json&size=5",
+          "result": "HTTP 200, 3891 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -734,6 +764,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/0399531971.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Dewey, John\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Dewey%2C+John%22&format=json&size=5",
+          "result": "HTTP 200, 816 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -905,6 +941,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/0141036192.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Benjamin, Walter\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Benjamin%2C+Walter%22&format=json&size=5",
+          "result": "HTTP 200, 973 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -1017,6 +1059,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/1350928542.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Goodman, Nelson\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Goodman%2C+Nelson%22&format=json&size=5",
+          "result": "HTTP 200, 114 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -1128,6 +1176,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/2020043637.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Gadamer, Hans-Georg\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Gadamer%2C+Hans-Georg%22&format=json&size=5",
+          "result": "HTTP 200, 910 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -1224,6 +1278,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Transformative+Power+of+Performance%3A+A+New+Aesthetics&author=Erika+Fischer-Lichte&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Fischer-Lichte, Erika\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Fischer-Lichte%2C+Erika%22&format=json&size=5",
+          "result": "HTTP 200, 329 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -1348,6 +1408,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9783465041634.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Heidegger, Martin\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Heidegger%2C+Martin%22&format=json&size=5",
+          "result": "HTTP 200, 1325 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -1443,6 +1509,12 @@
           "url": "https://openlibrary.org/search.json?title=La+Distinction%3A+Critique+sociale+du+jugement&author=Pierre+Bourdieu&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Bourdieu, Pierre\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Bourdieu%2C+Pierre%22&format=json&size=5",
+          "result": "HTTP 200, 833 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -1551,6 +1623,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/0199278350.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Saito, Yuriko\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Saito%2C+Yuriko%22&format=json&size=5",
+          "result": "HTTP 200, 14 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -1684,6 +1762,12 @@
           "url": "https://openlibrary.org/search.json?title=Conservation+Esthetic&author=Aldo+Leopold&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Leopold, Aldo\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Leopold%2C+Aldo%22&format=json&size=5",
+          "result": "HTTP 200, 30 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -1795,6 +1879,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Artworld&author=Arthur+C.+Danto&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Danto, Arthur C.\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Danto%2C+Arthur+C.%22&format=json&size=5",
+          "result": "HTTP 200, 47 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -1890,6 +1980,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Oppositional+Gaze%3A+Black+Female+Spectators&author=bell+hooks&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"hooks, bell\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22hooks%2C+bell%22&format=json&size=5",
+          "result": "HTTP 200, 163 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -2004,6 +2100,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/2913372058.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 1 items, Limited (search-only) (ic). Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Rancière, Jacques\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Ranci%C3%A8re%2C+Jacques%22&format=json&size=5",
+          "result": "HTTP 200, 264 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -2124,6 +2226,12 @@
           "url": "https://openlibrary.org/search.json?title=Traditional+Ecological+Knowledge+and+the+Aesthetic+Appreciation+of+Nature%3A+Lessons+from+Gilbbesj%C3%A1vri+and+Guovdageaidnu&author=Jukka+Mikkonen&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Mikkonen, Jukka\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Mikkonen%2C+Jukka%22&format=json&size=5",
+          "result": "HTTP 200, 8 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -2218,6 +2326,12 @@
           "url": "https://openlibrary.org/search.json?title=Id%C3%A9ologie+et+appareils+id%C3%A9ologiques+d%E2%80%99%C3%89tat&author=Louis+Althusser&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Althusser, Louis\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Althusser%2C+Louis%22&format=json&size=5",
+          "result": "HTTP 200, 212 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -2320,6 +2434,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9781639235377.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Heidegger, Martin\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Heidegger%2C+Martin%22&format=json&size=5",
+          "result": "HTTP 200, 1325 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -2456,6 +2576,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9785519521901.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Collingwood, R. G.\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Collingwood%2C+R.+G.%22&format=json&size=5",
+          "result": "HTTP 200, 9 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -2550,6 +2676,12 @@
           "url": "https://openlibrary.org/search.json?title=After+Walker+Evans%3A+4&author=Sherrie+Levine&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Levine, Sherrie\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Levine%2C+Sherrie%22&format=json&size=5",
+          "result": "HTTP 200, 36 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -2667,6 +2799,12 @@
           "url": "https://openlibrary.org/search.json?title=Aesthetics+and+Anaesthetics%3A+Walter+Benjamin%E2%80%99s+Artwork+Essay+Reconsidered&author=Susan+Buck-Morss&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Buck-Morss, Susan\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Buck-Morss%2C+Susan%22&format=json&size=5",
+          "result": "HTTP 200, 34 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -2775,6 +2913,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780241339701.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Sontag, Susan\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Sontag%2C+Susan%22&format=json&size=5",
+          "result": "HTTP 200, 342 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -2870,6 +3014,12 @@
           "url": "https://openlibrary.org/search.json?title=Aesthetics+of+the+Everyday&author=Yuriko+Saito&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Saito, Yuriko\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Saito%2C+Yuriko%22&format=json&size=5",
+          "result": "HTTP 200, 14 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -2990,6 +3140,12 @@
           "url": "https://openlibrary.org/search.json?title=Scenic+National+Landscapes%3A+Common+Themes+in+Japan+and+the+United+States&author=Yuriko+Saito&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Saito, Yuriko\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Saito%2C+Yuriko%22&format=json&size=5",
+          "result": "HTTP 200, 14 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -3084,6 +3240,12 @@
           "url": "https://openlibrary.org/search.json?title=Appreciation+and+the+Natural+Environment&author=Allen+Carlson&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Carlson, Allen\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Carlson%2C+Allen%22&format=json&size=5",
+          "result": "HTTP 200, 13 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -3178,6 +3340,12 @@
           "url": "https://openlibrary.org/search.json?title=Coloniality+of+Power%2C+Eurocentrism%2C+and+Latin+America&author=An%C3%ADbal+Quijano&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Quijano, Aníbal\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Quijano%2C+An%C3%ADbal%22&format=json&size=5",
+          "result": "HTTP 200, 25 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -3279,6 +3447,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780754650775.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Berleant, Arnold\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Berleant%2C+Arnold%22&format=json&size=5",
+          "result": "HTTP 200, 29 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -3374,6 +3548,12 @@
           "url": "https://openlibrary.org/search.json?title=Art+Museums+and+the+Ritual+of+Citizenship&author=Carol+Duncan&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Duncan, Carol\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Duncan%2C+Carol%22&format=json&size=5",
+          "result": "HTTP 200, 16 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -3469,6 +3649,12 @@
           "url": "https://openlibrary.org/search.json?title=Feminist+Aesthetics&author=Carolyn+Korsmeyer&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "1 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Korsmeyer, Carolyn\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Korsmeyer%2C+Carolyn%22&format=json&size=5",
+          "result": "HTTP 200, 18 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -3578,6 +3764,12 @@
           "url": "https://openlibrary.org/search.json?title=Antagonism+and+Relational+Aesthetics&author=Claire+Bishop&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Bishop, Claire\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Bishop%2C+Claire%22&format=json&size=5",
+          "result": "HTTP 200, 42 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -3673,6 +3865,12 @@
           "url": "https://openlibrary.org/search.json?title=Avant-Garde+and+Kitsch&author=Clement+Greenberg&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Greenberg, Clement\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Greenberg%2C+Clement%22&format=json&size=5",
+          "result": "HTTP 200, 88 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -3768,6 +3966,12 @@
           "url": "https://openlibrary.org/search.json?title=Intermedia&author=Dick+Higgins&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "2 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Higgins, Dick\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Higgins%2C+Dick%22&format=json&size=5",
+          "result": "HTTP 200, 49 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -3862,6 +4066,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Design+of+Everyday+Things%3A+Revised+and+Expanded+Edition&author=Don+Norman&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Norman, Don\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Norman%2C+Don%22&format=json&size=5",
+          "result": "HTTP 200, 6 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -3970,6 +4180,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780394740676.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 3 items, Limited (search-only) (ic); Limited (search-only) (ic); Limited (search-only) (ic). Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Said, Edward W.\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Said%2C+Edward+W.%22&format=json&size=5",
+          "result": "HTTP 200, 185 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -4065,6 +4281,12 @@
           "url": "https://openlibrary.org/search.json?title=Mother+Camp%3A+Female+Impersonators+in+America&author=Esther+Newton&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Newton, Esther\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Newton%2C+Esther%22&format=json&size=5",
+          "result": "HTTP 200, 22 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -4160,6 +4382,12 @@
           "url": "https://openlibrary.org/search.json?title=Defining+Art&author=George+Dickie&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Dickie, George\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Dickie%2C+George%22&format=json&size=5",
+          "result": "HTTP 200, 19 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -4268,6 +4496,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/2130455166.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 1 items, Limited (search-only) (ic). Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Deleuze, Gilles\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Deleuze%2C+Gilles%22&format=json&size=5",
+          "result": "HTTP 200, 600 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -4362,6 +4596,12 @@
           "url": "https://openlibrary.org/search.json?title=Environmental+Aesthetics&author=Glenn+Parsons&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Parsons, Glenn\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Parsons%2C+Glenn%22&format=json&size=5",
+          "result": "HTTP 200, 13 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -4456,6 +4696,12 @@
           "url": "https://openlibrary.org/search.json?title=Does+Aesthetic+Appreciation+of+Landscapes+Need+to+Be+Science-Based%3F&author=Holmes+Rolston+III&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"III, Holmes Rolston\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22III%2C+Holmes+Rolston%22&format=json&size=5",
+          "result": "HTTP 200, 0 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -4565,6 +4811,12 @@
           "url": "https://openlibrary.org/search.json?title=Art+as+Collective+Action&author=Howard+S.+Becker&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Becker, Howard S.\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Becker%2C+Howard+S.%22&format=json&size=5",
+          "result": "HTTP 200, 25 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -4673,6 +4925,12 @@
           "url": "https://openlibrary.org/search.json?title=Politics+and+Aesthetics%3A+An+Interview&author=Jacques+Ranci%C3%A8re&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Rancière, Jacques\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Ranci%C3%A8re%2C+Jacques%22&format=json&size=5",
+          "result": "HTTP 200, 264 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -4768,6 +5026,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Creative+Process&author=James+Baldwin&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Baldwin, James\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Baldwin%2C+James%22&format=json&size=5",
+          "result": "HTTP 200, 565 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -4862,6 +5126,12 @@
           "url": "https://openlibrary.org/search.json?title=Simulacres+et+Simulation%3A+%E2%80%9CLa+pr%C3%A9cession+des+simulacres%E2%80%9D&author=Jean+Baudrillard&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Baudrillard, Jean\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Baudrillard%2C+Jean%22&format=json&size=5",
+          "result": "HTTP 200, 363 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -4962,6 +5232,12 @@
           "url": "https://openlibrary.org/search.json?title=Defining+Art+Historically&author=Jerrold+Levinson&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Levinson, Jerrold\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Levinson%2C+Jerrold%22&format=json&size=5",
+          "result": "HTTP 200, 41 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -5073,6 +5349,12 @@
           "url": "https://openlibrary.org/search.json?title=Consuming+Hygge+at+Home%3A+Perception%2C+Representation%2C+Practice&author=Jonathan+Yorke+Bean&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Bean, Jonathan Yorke\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Bean%2C+Jonathan+Yorke%22&format=json&size=5",
+          "result": "HTTP 200, 0 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -5180,6 +5462,12 @@
           "url": "https://openlibrary.org/search.json?title=Performative+Acts+and+Gender+Constitution%3A+An+Essay+in+Phenomenology+and+Feminist+Theory&author=Judith+Butler&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Butler, Judith\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Butler%2C+Judith%22&format=json&size=5",
+          "result": "HTTP 200, 408 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -5275,6 +5563,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Philosophy+of+Digital+Art&author=Katherine+Thomson-Jones&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Thomson-Jones, Katherine\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Thomson-Jones%2C+Katherine%22&format=json&size=5",
+          "result": "HTTP 200, 11 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -5376,6 +5670,12 @@
           "url": "https://openlibrary.org/search.json?title=Visual+Pleasure+and+Narrative+Cinema&author=Laura+Mulvey&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "2 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Mulvey, Laura\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Mulvey%2C+Laura%22&format=json&size=5",
+          "result": "HTTP 200, 60 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -5476,6 +5776,12 @@
           "url": "https://openlibrary.org/search.json?title=New+Media%3A+a+User%E2%80%99s+Guide&author=Lev+Manovich&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Manovich, Lev\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Manovich%2C+Lev%22&format=json&size=5",
+          "result": "HTTP 200, 35 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -5579,6 +5885,12 @@
           "url": "https://openlibrary.org/search.json?title=Post-media+Aesthetics&author=Lev+Manovich&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Manovich, Lev\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Manovich%2C+Lev%22&format=json&size=5",
+          "result": "HTTP 200, 35 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -5688,6 +6000,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780500776629.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Nochlin, Linda\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Nochlin%2C+Linda%22&format=json&size=5",
+          "result": "HTTP 200, 118 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -5789,6 +6107,12 @@
           "url": "https://openlibrary.org/search.json?title=Bauen+Wohnen+Denken&author=Martin+Heidegger&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Heidegger, Martin\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Heidegger%2C+Martin%22&format=json&size=5",
+          "result": "HTTP 200, 1325 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -5884,6 +6208,12 @@
           "url": "https://openlibrary.org/search.json?title=Kulturindustrie.+Aufkl%C3%A4rung+als+Massenbetrug&author=Max+Horkheimer&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Horkheimer, Max\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Horkheimer%2C+Max%22&format=json&size=5",
+          "result": "HTTP 200, 522 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -5991,6 +6321,12 @@
           "url": "https://openlibrary.org/search.json?title=Symbolic+Meanings+of+Prices%3A+Constructing+the+Value+of+Contemporary+Art+in+Amsterdam+and+New+York+Galleries&author=Olav+Velthuis&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Velthuis, Olav\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Velthuis%2C+Olav%22&format=json&size=5",
+          "result": "HTTP 200, 12 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -6086,6 +6422,12 @@
           "url": "https://openlibrary.org/search.json?title=Le+mythe%2C+aujourd%E2%80%99hui&author=Roland+Barthes&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Barthes, Roland\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Barthes%2C+Roland%22&format=json&size=5",
+          "result": "HTTP 200, 745 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -6181,6 +6523,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Death+of+the+Author&author=Roland+Barthes&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Barthes, Roland\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Barthes%2C+Roland%22&format=json&size=5",
+          "result": "HTTP 200, 745 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -6275,6 +6623,12 @@
           "url": "https://openlibrary.org/search.json?title=Cultural+Identity+and+Diaspora&author=Stuart+Hall&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Hall, Stuart\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Hall%2C+Stuart%22&format=json&size=5",
+          "result": "HTTP 200, 356 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -6369,6 +6723,12 @@
           "url": "https://openlibrary.org/search.json?title=Notes+on+Deconstructing+%E2%80%9Cthe+Popular%E2%80%9D&author=Stuart+Hall&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Hall, Stuart\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Hall%2C+Stuart%22&format=json&size=5",
+          "result": "HTTP 200, 356 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -6464,6 +6824,12 @@
           "url": "https://openlibrary.org/search.json?title=R%C3%A9sum%C3%A9+%C3%BCber+Kulturindustrie&author=Theodor+W.+Adorno&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Adorno, Theodor W.\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Adorno%2C+Theodor+W.%22&format=json&size=5",
+          "result": "HTTP 200, 1863 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -6559,6 +6925,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Definition+of+Art&author=Thomas+Adajian&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Adajian, Thomas\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Adajian%2C+Thomas%22&format=json&size=5",
+          "result": "HTTP 200, 0 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -6653,6 +7025,12 @@
           "url": "https://openlibrary.org/search.json?title=Everyday+Surface+Aesthetic+Qualities%3A+%E2%80%9CNeat%2C%E2%80%9D+%E2%80%9CMessy%2C%E2%80%9D+%E2%80%9CClean%2C%E2%80%9D+%E2%80%9CDirty%E2%80%9D&author=Thomas+Leddy&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Leddy, Thomas\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Leddy%2C+Thomas%22&format=json&size=5",
+          "result": "HTTP 200, 3 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -6748,6 +7126,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Exhibitionary+Complex&author=Tony+Bennett&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "1 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Bennett, Tony\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Bennett%2C+Tony%22&format=json&size=5",
+          "result": "HTTP 200, 94 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -6873,6 +7257,12 @@
           "url": "https://openlibrary.org/search.json?title=Aiesthesis+decolonial&author=Walter+D.+Mignolo&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Mignolo, Walter D.\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Mignolo%2C+Walter+D.%22&format=json&size=5",
+          "result": "HTTP 200, 136 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -6997,6 +7387,12 @@
           "url": "https://openlibrary.org/search.json?title=Everyday+Aesthetics+and+World-Making&author=Yuriko+Saito&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Saito, Yuriko\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Saito%2C+Yuriko%22&format=json&size=5",
+          "result": "HTTP 200, 14 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -7112,6 +7508,12 @@
           "url": "https://openlibrary.org/search.json?title=How+Could+Anybody+Ever+Feel+at+Home%3F+Aesthetic+Familiarity%2C+Epistemic+Comfort%2C+and+Displacement&author=Ariane+Nomikos&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Nomikos, Ariane\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Nomikos%2C+Ariane%22&format=json&size=5",
+          "result": "HTTP 200, 0 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -7206,6 +7608,12 @@
           "url": "https://openlibrary.org/search.json?title=Aesthetic+Value%2C+Art%2C+and+Food&author=Carolyn+Korsmeyer&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Korsmeyer, Carolyn\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Korsmeyer%2C+Carolyn%22&format=json&size=5",
+          "result": "HTTP 200, 18 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -7325,6 +7733,12 @@
           "url": "https://openlibrary.org/search.json?title=Fashion+as+an+Aesthetic+Form+of+Life%3A+A+Wittgensteinian+Interpretation&author=Elena+Abate&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Abate, Elena\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Abate%2C+Elena%22&format=json&size=5",
+          "result": "HTTP 200, 0 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -7419,6 +7833,12 @@
           "url": "https://openlibrary.org/search.json?title=Food+as+Art&author=Elizabeth+Telfer&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Telfer, Elizabeth\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Telfer%2C+Elizabeth%22&format=json&size=5",
+          "result": "HTTP 200, 8 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -7513,6 +7933,12 @@
           "url": "https://openlibrary.org/search.json?title=Imagination+and+the+Aesthetic+Appreciation+of+Nature&author=Emily+Brady&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Brady, Emily\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Brady%2C+Emily%22&format=json&size=5",
+          "result": "HTTP 200, 18 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -7607,6 +8033,12 @@
           "url": "https://openlibrary.org/search.json?title=Political+Aesthetics&author=Esther+Leslie&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Leslie, Esther\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Leslie%2C+Esther%22&format=json&size=5",
+          "result": "HTTP 200, 29 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -7715,6 +8147,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/6053162019.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Fanon, Frantz\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Fanon%2C+Frantz%22&format=json&size=5",
+          "result": "HTTP 200, 143 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -7822,6 +8260,12 @@
           "url": "https://openlibrary.org/search.json?title=Aesthetics+of+Fashion&author=Giovanni+Matteucci&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Matteucci, Giovanni\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Matteucci%2C+Giovanni%22&format=json&size=5",
+          "result": "HTTP 200, 27 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -7930,6 +8374,12 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/1281978442.json",
           "http": 200,
           "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Parsons, Glenn\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Parsons%2C+Glenn%22&format=json&size=5",
+          "result": "HTTP 200, 13 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -8024,6 +8474,12 @@
           "url": "https://openlibrary.org/search.json?title=Appendix+to+%E2%80%9CIntermedia%E2%80%9D&author=Hannah+Higgins&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Higgins, Hannah\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Higgins%2C+Hannah%22&format=json&size=5",
+          "result": "HTTP 200, 14 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -8131,6 +8587,12 @@
           "url": "https://openlibrary.org/search.json?title=Indigenous+and+Local+Knowledge+and+Aesthetics%3A+Towards+an+Intergenerational+Aesthetics+of+Nature&author=Nanda+Jarosz&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Jarosz, Nanda\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Jarosz%2C+Nanda%22&format=json&size=5",
+          "result": "HTTP 200, 0 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -8225,6 +8687,12 @@
           "url": "https://openlibrary.org/search.json?title=Aesthetics+and+Apparent+Usability%3A+Empirically+Assessing+Cultural+and+Methodological+Issues&author=Noam+Tractinsky&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Tractinsky, Noam\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Tractinsky%2C+Noam%22&format=json&size=5",
+          "result": "HTTP 200, 0 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -8348,6 +8816,12 @@
           "url": "https://openlibrary.org/search.json?title=What+Is+Beautiful+Is+Usable&author=Noam+Tractinsky&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Tractinsky, Noam\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Tractinsky%2C+Noam%22&format=json&size=5",
+          "result": "HTTP 200, 0 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -8464,6 +8938,12 @@
           "url": "https://openlibrary.org/search.json?title=A+Semiotics+of+Coziness+and+Disappearing+Night&author=Rebecca+Journey&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Journey, Rebecca\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Journey%2C+Rebecca%22&format=json&size=5",
+          "result": "HTTP 200, 0 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -8558,6 +9038,12 @@
           "url": "https://openlibrary.org/search.json?title=Das+literarische+Kunstwerk&author=Roman+Ingarden&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Ingarden, Roman\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Ingarden%2C+Roman%22&format=json&size=5",
+          "result": "HTTP 200, 225 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -8652,6 +9138,12 @@
           "url": "https://openlibrary.org/search.json?title=Contemporary+Aesthetics+and+the+Neglect+of+Natural+Beauty&author=Ronald+Hepburn&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Hepburn, Ronald\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Hepburn%2C+Ronald%22&format=json&size=5",
+          "result": "HTTP 200, 12 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -8746,6 +9238,12 @@
           "url": "https://openlibrary.org/search.json?title=Nature+Humanised%3A+Nature+Respected&author=Ronald+Hepburn&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Hepburn, Ronald\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Hepburn%2C+Ronald%22&format=json&size=5",
+          "result": "HTTP 200, 12 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -8861,6 +9359,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Link+Between+Aesthetic+Appreciation+and+the+Preservation+Imperative&author=Sheila+Lintott&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Lintott, Sheila\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Lintott%2C+Sheila%22&format=json&size=5",
+          "result": "HTTP 200, 4 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -8955,6 +9459,12 @@
           "url": "https://openlibrary.org/search.json?title=Getting+to+Grips+with+Classical+Art%3A+Rethinking+the+Haptics+of+Graeco-Roman+Visual+Culture&author=Verity+Platt&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Platt, Verity\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Platt%2C+Verity%22&format=json&size=5",
+          "result": "HTTP 200, 8 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -9049,6 +9559,12 @@
           "url": "https://openlibrary.org/search.json?title=Design+for+the+Real+World%3A+Human+Ecology+and+Social+Change&author=Victor+Papanek&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Papanek, Victor\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Papanek%2C+Victor%22&format=json&size=5",
+          "result": "HTTP 200, 24 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -9152,6 +9668,12 @@
           "url": "https://openlibrary.org/search.json?title=The+Trouble+with+Wilderness%3B+or%2C+Getting+Back+to+the+Wrong+Nature&author=William+Cronon&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Cronon, William\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Cronon%2C+William%22&format=json&size=5",
+          "result": "HTTP 200, 47 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     },
@@ -9260,6 +9782,12 @@
           "url": "https://openlibrary.org/search.json?title=Appreciating+Nature+on+Its+Own+Terms&author=Yuriko+Saito&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
           "http": 200,
           "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "lobid German library catalog author search",
+          "query": "contribution.agent.label:\"Saito, Yuriko\"",
+          "url": "https://lobid.org/resources/search?q=contribution.agent.label%3A%22Saito%2C+Yuriko%22&format=json&size=5",
+          "result": "initial ConnectionError, retry HTTP 200, 14 records. Approximate inverted English author name only; first five records in empty-lobid-author.json. Alternative names, individual editions, text access and rights remain to be checked; no absence inferred."
         }
       ]
     }
@@ -9618,6 +10146,12 @@
       "service": "Open Library title/author ISBN and HathiTrust ISBN API",
       "queries": "88 title and author searches with ISBN fields; 19 selected ISBN queries to HathiTrust",
       "outcome": "All 88 Open Library and 19 HathiTrust requests returned HTTP 200. Three selected ISBNs returned search-only items in US access metadata; 16 returned no items. Approximate title/surname matching and one selected ISBN per work are not definitive edition identification, exhaustive access searches or rights findings. Raw data: empty-ol-hathi-search.json."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "lobid German library catalog author search",
+      "queries": "88 approximate inverted English author-name queries, recorded per work",
+      "outcome": "87 requests HTTP 200, one initial connection failure retried HTTP 200. First five metadata results per query are in empty-lobid-author.json. Approximate name order may be wrong for multiword names; neither a hit nor zero determines edition, access, rights or absence."
     }
   ]
 }
