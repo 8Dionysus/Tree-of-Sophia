@@ -60,6 +60,11 @@ export function readingLanguages(locale,original='de',available=['de','en','ru']
   return {primary:[original,translation],alternate:null};
 }
 
+/** Aesthetics shows the original and exactly the reader's language. */
+export function aestheticsReadingLanguages(locale,original,available){
+  return [...new Set([original,resolveLocale(locale)])].filter(language=>available.includes(language));
+}
+
 // Chapter titles as the witnesses print them, without numbering or a closing period.
 export {chapterTitle};
 /**
@@ -316,7 +321,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     // A place may give a language from another witness of it (the translation of a book the usual one lacks).
     const witnessOf=language=>work.witnesses?.[place.witness?.[language]??language];
     const available=Object.keys(place.texts??{}).filter(language=>place.texts[language]&&fragmentMayShow(witnessOf(language)));
-    const {primary,alternate}=profile==='aesthetics'?{primary:[...new Set([work.original,resolveLocale(locale())])].filter(language=>available.includes(language)),alternate:null}:readingLanguages(locale(),work.original,available,{exact:profile==='antiquity'});
+    const {primary,alternate}=profile==='aesthetics'?{primary:aestheticsReadingLanguages(locale(),work.original,available),alternate:null}:readingLanguages(locale(),work.original,available,{exact:profile==='antiquity'});
     let showing=primary.filter(language=>available.includes(language));
     if(!showing.length&&profile!=='antiquity')showing=[work.original].filter(language=>available.includes(language));
     const paint=()=>{

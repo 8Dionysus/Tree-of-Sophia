@@ -89,7 +89,7 @@ export function externalPlacesIssues(module){
         if(typeof text!=='string'||!text.trim())problems.push(`${id} ${loc} ${language} text is empty`);
         const bases=rightsBases(witnessOf(language)?.rights);
         if(!bases.length)problems.push(`${id} ${loc} has ${language} text without a witness`);
-        if(bases.length===1&&bases[0]==='locator-only')problems.push(`${id} ${loc} shows ${language} text of a work cited by locator only`);
+        if(bases.includes('locator-only'))problems.push(`${id} ${loc} shows ${language} text of a work cited by locator only`);
         const territorial=['russia','usa','eu'].some(country=>typeof witnessOf(language)?.rights?.[country]==='object');
         const tooLong=Array.from(text).length>900||(territorial&&(text.match(/[.!?…]+[”»’"')\]]*(?=\s|$)/gu)??[]).length>3);
         if(bases.includes('short-quotation')&&tooLong&&(!territorial||String(place.quotation_justification?.[language]??'').trim().length<30))problems.push(`${id} ${loc} ${language} quotation is longer than a short quotation`);

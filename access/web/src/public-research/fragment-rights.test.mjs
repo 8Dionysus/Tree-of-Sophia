@@ -1,10 +1,16 @@
 import {describe,it,expect} from 'vitest';
 import {fragmentMayShow,externalPlacesIssues} from '../../../../bonsai/lib/fragments.mjs';
+import {aestheticsReadingLanguages} from './fragments.mjs';
 
 const entry=(basis)=>({basis,law:'The applicable statutory provision and its term.'});
 const witness=(russia='public-domain',usa='public-domain',eu='public-domain')=>({edition:'Book',attribution:'Author',url:'https://example.org/page',rights:{russia:entry(russia),usa:entry(usa),eu:entry(eu)}});
 
 describe('territorial fragment rights',()=>{
+  it('shows the original and the exact reader language without English fallback',()=>{
+    expect(aestheticsReadingLanguages('ru','de',['de','en','ru'])).toEqual(['de','ru']);
+    expect(aestheticsReadingLanguages('ru','de',['de','en'])).toEqual(['de']);
+    expect(aestheticsReadingLanguages('zh-Hans','de',['de','zh-Hans'])).toEqual(['de','zh-Hans']);
+  });
   it('requires a complete permission and withholds text if any jurisdiction has only a locator',()=>{
     expect(fragmentMayShow(witness())).toBe(true);
     expect(fragmentMayShow(witness('public-domain','short-quotation','public-domain'))).toBe(true);
@@ -20,6 +26,8 @@ describe('territorial fragment rights',()=>{
     expect(externalPlacesIssues(module)).toContain('w p en quotation is longer than a short quotation');
     module.places.w.p.quotation_justification={en:'The complete sentence requires this length.'};
     expect(externalPlacesIssues(module)).toEqual([]);
+    module.works.w.witnesses.en.rights.usa=entry('locator-only');
+    expect(externalPlacesIssues(module)).toContain('w p shows en text of a work cited by locator only');
     delete module.works.w.witnesses.en.rights.eu;
     expect(externalPlacesIssues(module)).toContain('work w en witness has no rights basis');
   });
