@@ -6,7 +6,7 @@ use crate::knowledge_inspect::{
     execute_selected_carrier_packet_with_state,
 };
 use crate::knowledge_lens_spec::{py_string, truthy};
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode};
 use crate::source_read_projection::{object, text};
 use crate::{BoundCmpKnowledge, DisclosableInspect, InspectBudget, InspectCurrentAuthority};
 use std::collections::{BTreeMap, BTreeSet};
@@ -17,7 +17,7 @@ use tos_compiler::{
 use tos_foundation::{JsonNumber, JsonNumberKind, JsonString, JsonValue};
 
 pub const CORPUS_INTENDED_USE: &str = "read_only_public_corpus_projection_v1";
-pub const CORPUS_CARRIER_LAYER: &str = crate::knowledge_packet::INDEXED_SEARCH_CARRIER_LAYER;
+pub const CORPUS_CARRIER_LAYER: &str = crate::knowledge_scope::INDEXED_SEARCH_CARRIER_LAYER;
 
 /// Paths describe the actually selected release member, supplied by its held
 /// owner. A retained SQLite component alone does not assert a filesystem index.
@@ -80,7 +80,7 @@ impl CorpusReadRequest {
         &self,
         context: &CorpusReadContext,
         budget: CorpusReadBudget,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         let string = |s: &str| s.len() <= budget.inspect.max_field_bytes;
         let optional = |s: &Option<String>| s.as_deref().is_none_or(string);
         let valid = match self {
@@ -106,7 +106,7 @@ impl CorpusReadRequest {
         };
         if !valid || !string(&context.tos_root) || !string(&context.index_path) {
             return Err(fail(
-                SearchV2ErrorCode::InvalidRequest,
+                SearchErrorCode::InvalidRequest,
                 "invalid corpus read request",
             ));
         }
@@ -116,12 +116,12 @@ impl CorpusReadRequest {
         Ok(())
     }
 }
-fn fail(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error::new(code, message)
+fn fail(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError::new(code, message)
 }
-fn budget_error() -> SearchV2Error {
+fn budget_error() -> SearchError {
     fail(
-        SearchV2ErrorCode::BudgetExceeded,
+        SearchErrorCode::BudgetExceeded,
         "corpus read budget exceeded",
     )
 }
@@ -215,7 +215,7 @@ pub(crate) fn controlled_metadata(
     views: Vec<JsonValue>,
     branches: Vec<JsonValue>,
     request: &CorpusReadRequest,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     match request {
         CorpusReadRequest::Status => Ok(controlled_status(header, context, &views)),
         CorpusReadRequest::GraphViews => Ok(object(vec![
@@ -238,7 +238,7 @@ pub(crate) fn controlled_metadata(
             ),
         ])),
         _ => Err(fail(
-            SearchV2ErrorCode::InvalidRequest,
+            SearchErrorCode::InvalidRequest,
             "controlled corpus metadata operation unavailable",
         )),
     }
@@ -248,20 +248,20 @@ pub(crate) fn controlled_metadata(
 /// interruption. Existing selected Reader and controlled Original owner each
 /// implement these two operations; neither kernel can open a model or mint a cut.
 pub(crate) trait CorpusOriginalRead {
-    fn check_interrupt(&mut self) -> Result<(), SearchV2Error>;
+    fn check_interrupt(&mut self) -> Result<(), SearchError>;
     fn corpus_row(
         &mut self,
         receipt: &CorpusOriginalReceipt,
         collection: Collection,
         selector: &Selector,
         after: Option<u64>,
-    ) -> Result<Option<(u64, JsonValue)>, SearchV2Error>;
-    fn charge_kernel_work(&mut self, _steps: usize) -> Result<(), SearchV2Error> {
+    ) -> Result<Option<(u64, JsonValue)>, SearchError>;
+    fn charge_kernel_work(&mut self, _steps: usize) -> Result<(), SearchError> {
         self.check_interrupt()
     }
 }
 impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusOriginalRead for Reader<'_, '_, A> {
-    fn check_interrupt(&mut self) -> Result<(), SearchV2Error> {
+    fn check_interrupt(&mut self) -> Result<(), SearchError> {
         Reader::check_interrupt(self)
     }
     fn corpus_row(
@@ -270,7 +270,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusOriginalRead for R
         collection: Collection,
         selector: &Selector,
         after: Option<u64>,
-    ) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
+    ) -> Result<Option<(u64, JsonValue)>, SearchError> {
         Reader::corpus_row(self, receipt, collection, selector, after)
     }
 }
@@ -282,7 +282,7 @@ pub(crate) fn compute_controlled_corpus<R: CorpusOriginalRead + ?Sized>(
     context: &CorpusReadContext,
     request: &CorpusReadRequest,
     budget: CorpusReadBudget,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     request.validate(context, budget)?;
     let mut corpus = CorpusRead {
         read,
@@ -302,7 +302,7 @@ struct CorpusRead<'a, R: CorpusOriginalRead + ?Sized> {
     remaining: u64,
 }
 impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
-    fn work(&mut self, steps: usize) -> Result<(), SearchV2Error> {
+    fn work(&mut self, steps: usize) -> Result<(), SearchError> {
         self.remaining = self
             .remaining
             .checked_sub(u64::try_from(steps).map_err(|_| budget_error())?)
@@ -314,7 +314,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
         collection: Collection,
         selector: Selector,
         limit: Option<usize>,
-    ) -> Result<Vec<JsonValue>, SearchV2Error> {
+    ) -> Result<Vec<JsonValue>, SearchError> {
         let mut rows = Vec::new();
         let mut after = None;
         while limit.is_none_or(|limit| rows.len() < limit) {
@@ -326,7 +326,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
             };
             if after.is_some_and(|previous| ordinal <= previous) {
                 return Err(fail(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "corpus original page order differs",
                 ));
             }
@@ -336,10 +336,10 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
         }
         Ok(rows)
     }
-    fn contains(&mut self, value: &JsonValue, needle: &str) -> Result<bool, SearchV2Error> {
+    fn contains(&mut self, value: &JsonValue, needle: &str) -> Result<bool, SearchError> {
         crate::source_value_search::contains_values(value, needle, &mut |steps| self.work(steps))
     }
-    fn views(&mut self) -> Result<Vec<JsonValue>, SearchV2Error> {
+    fn views(&mut self) -> Result<Vec<JsonValue>, SearchError> {
         Ok(self
             .rows(Collection::GraphViews, Selector::All, None)?
             .into_iter()
@@ -351,7 +351,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
         query: &str,
         resource_kind: &Option<String>,
         limit: usize,
-    ) -> Result<JsonValue, SearchV2Error> {
+    ) -> Result<JsonValue, SearchError> {
         let needle =
             crate::source_value_search::normalize_query(query, &mut |steps| self.work(steps))?;
         let mut results = Vec::new();
@@ -372,7 +372,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
                 };
                 if after.is_some_and(|previous| ordinal <= previous) {
                     return Err(fail(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "corpus search order differs",
                     ));
                 }
@@ -408,7 +408,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
             ),
         ]))
     }
-    fn enrich_edges(&mut self, edges: &mut [JsonValue]) -> Result<(), SearchV2Error> {
+    fn enrich_edges(&mut self, edges: &mut [JsonValue]) -> Result<(), SearchError> {
         let ids: Vec<String> = edges
             .iter()
             .map(|edge| field(edge, "pack_id").as_str().unwrap_or("").to_owned())
@@ -440,7 +440,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
         }
         Ok(())
     }
-    fn node(&mut self, id: &str) -> Result<JsonValue, SearchV2Error> {
+    fn node(&mut self, id: &str) -> Result<JsonValue, SearchError> {
         let mut matches = self.rows(Collection::Nodes, Selector::NodeId(id.to_owned()), None)?;
         let mut edges = self.rows(
             Collection::RelationEdges,
@@ -471,7 +471,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
         }
         if matches.is_empty() {
             return Err(fail(
-                SearchV2ErrorCode::UnknownIdentifier,
+                SearchErrorCode::UnknownIdentifier,
                 "unknown ToS corpus node",
             ));
         }
@@ -486,7 +486,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
             ),
         ]))
     }
-    fn relation_pack(&mut self, id: &str) -> Result<JsonValue, SearchV2Error> {
+    fn relation_pack(&mut self, id: &str) -> Result<JsonValue, SearchError> {
         let packs = self.rows(
             Collection::RelationPacks,
             Selector::PackId(id.to_owned()),
@@ -494,7 +494,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
         )?;
         if packs.is_empty() {
             return Err(fail(
-                SearchV2ErrorCode::UnknownIdentifier,
+                SearchErrorCode::UnknownIdentifier,
                 "unknown ToS corpus relation pack",
             ));
         }
@@ -515,7 +515,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
             ),
         ]))
     }
-    fn graph_view(&mut self, id: &str, limit: usize) -> Result<JsonValue, SearchV2Error> {
+    fn graph_view(&mut self, id: &str, limit: usize) -> Result<JsonValue, SearchError> {
         let view = self
             .rows(
                 Collection::GraphViews,
@@ -524,15 +524,10 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
             )?
             .into_iter()
             .next()
-            .ok_or_else(|| {
-                fail(
-                    SearchV2ErrorCode::UnknownIdentifier,
-                    "unknown ToS graph view",
-                )
-            })?;
+            .ok_or_else(|| fail(SearchErrorCode::UnknownIdentifier, "unknown ToS graph view"))?;
         if !supported(id) {
             return Err(fail(
-                SearchV2ErrorCode::UnknownIdentifier,
+                SearchErrorCode::UnknownIdentifier,
                 "unsupported standalone ToS graph view",
             ));
         }
@@ -673,7 +668,7 @@ impl<R: CorpusOriginalRead + ?Sized> CorpusRead<'_, R> {
             ),
         ]))
     }
-    fn packet(&mut self, request: &CorpusReadRequest) -> Result<JsonValue, SearchV2Error> {
+    fn packet(&mut self, request: &CorpusReadRequest) -> Result<JsonValue, SearchError> {
         match request {
             CorpusReadRequest::Status
             | CorpusReadRequest::GraphViews
@@ -768,7 +763,7 @@ pub fn execute_selected_corpus<'hold, A: InspectCurrentAuthority<'hold> + ?Sized
     context: &CorpusReadContext,
     request: &CorpusReadRequest,
     budget: CorpusReadBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     execute_selected_corpus_with_meter(model, bound, authority, context, request, budget, None)
 }
 
@@ -780,7 +775,7 @@ pub fn execute_selected_corpus_metered<'hold, A: InspectCurrentAuthority<'hold> 
     request: &CorpusReadRequest,
     budget: CorpusReadBudget,
     meter: &mut InspectVisitMeter,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     execute_selected_corpus_with_meter(
         model,
         bound,
@@ -800,7 +795,7 @@ fn execute_selected_corpus_with_meter<'hold, A: InspectCurrentAuthority<'hold> +
     request: &CorpusReadRequest,
     budget: CorpusReadBudget,
     mut meter: Option<&mut InspectVisitMeter>,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     request.validate(context, budget)?;
     execute_selected_carrier_packet_with_optional_meter(
         model,
@@ -816,13 +811,13 @@ fn execute_selected_corpus_with_meter<'hold, A: InspectCurrentAuthority<'hold> +
                 .corpus_row(&receipt, Collection::Header, &Selector::All, None)?
                 .ok_or_else(|| {
                     fail(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "selected corpus header absent",
                     )
                 })?;
             if header.0 != 0 || header.1.as_object().is_none() {
                 return Err(fail(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "selected corpus header invalid",
                 ));
             }
@@ -848,7 +843,7 @@ pub fn execute_selected_corpus_health_seed_metered<
     context: &CorpusReadContext,
     budget: CorpusReadBudget,
     meter: &mut InspectVisitMeter,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     execute_selected_corpus_health_seed_with_meter(
         model,
         bound,
@@ -869,7 +864,7 @@ fn execute_selected_corpus_health_seed_with_meter<
     context: &CorpusReadContext,
     budget: CorpusReadBudget,
     mut meter: Option<&mut InspectVisitMeter>,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     if budget.max_work_steps == 0 {
         return Err(budget_error());
     }
@@ -887,13 +882,13 @@ fn execute_selected_corpus_health_seed_with_meter<
                 .corpus_row(&receipt, Collection::Header, &Selector::All, None)?
                 .ok_or_else(|| {
                     fail(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "selected corpus header absent",
                     )
                 })?;
             if header.0 != 0 || header.1.as_object().is_none() {
                 return Err(fail(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "selected corpus header invalid",
                 ));
             }
@@ -914,13 +909,13 @@ pub(crate) fn controlled_health_seed(
     header: &JsonValue,
     views: &[JsonValue],
     max_field_bytes: usize,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let index_schema = field(header, "schema_version")
         .as_str()
         .filter(|value| !value.is_empty())
         .ok_or_else(|| {
             fail(
-                SearchV2ErrorCode::CorruptSelectedCarrier,
+                SearchErrorCode::CorruptSelectedCarrier,
                 "selected corpus index schema absent",
             )
         })?
@@ -946,7 +941,7 @@ pub(crate) fn controlled_health_seed(
 fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     bound: &BoundCmpKnowledge<'_>,
-) -> Result<CorpusOriginalReceipt, SearchV2Error> {
+) -> Result<CorpusOriginalReceipt, SearchError> {
     let receipt = read.corpus_receipt()?;
     if (receipt.profile != tos_compiler::CORPUS_ORIGINAL_PROFILE
         && receipt.profile != tos_compiler::NATIVE_CORPUS_ORIGINAL_PROFILE)
@@ -955,7 +950,7 @@ fn bound_original_receipt<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
         || receipt.membership_root != bound.selection().source_membership_root.to_hex()
     {
         return Err(fail(
-            SearchV2ErrorCode::CorruptSelectedCarrier,
+            SearchErrorCode::CorruptSelectedCarrier,
             "selected corpus component binding differs",
         ));
     }
@@ -974,7 +969,7 @@ pub fn execute_selected_corpus_graph_views_with_state<
     context: &CorpusReadContext,
     budget: CorpusReadBudget,
     remaining_state_bytes: usize,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     CorpusReadRequest::GraphViews.validate(context, budget)?;
     execute_selected_carrier_packet_with_state(
         model,
@@ -991,13 +986,13 @@ pub fn execute_selected_corpus_graph_views_with_state<
                 .corpus_row(&receipt, Collection::Header, &Selector::All, None)?
                 .ok_or_else(|| {
                     fail(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "selected corpus header absent",
                     )
                 })?;
             if ordinal != 0 || header.as_object().is_none() {
                 return Err(fail(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "selected corpus header invalid",
                 ));
             }
@@ -1008,7 +1003,7 @@ pub fn execute_selected_corpus_graph_views_with_state<
                 .map(|r| r.rows)
                 .ok_or_else(|| {
                     fail(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "selected corpus graph-view receipt absent",
                     )
                 })?;
@@ -1042,7 +1037,7 @@ pub fn execute_selected_corpus_graph_views_with_state<
                 };
                 if after.is_some_and(|previous| ordinal <= previous) {
                     return Err(fail(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "corpus original page order differs",
                     ));
                 }
@@ -1071,7 +1066,7 @@ pub fn execute_selected_corpus_graph_views_with_state<
             }
             if count != expected {
                 return Err(fail(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "selected corpus graph-view coverage incomplete",
                 ));
             }
@@ -1100,7 +1095,7 @@ pub fn execute_selected_corpus_view_ids<'hold, A: InspectCurrentAuthority<'hold>
     bound: &BoundCmpKnowledge<'_>,
     authority: &mut A,
     budget: CorpusReadBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     if budget.max_work_steps == 0 {
         return Err(budget_error());
     }
@@ -1123,7 +1118,7 @@ pub fn execute_selected_corpus_view_ids<'hold, A: InspectCurrentAuthority<'hold>
                 let Some(row) = read.corpus_view_identity(&receipt, after)? else {
                     if after.is_none() {
                         return Err(fail(
-                            SearchV2ErrorCode::Unavailable,
+                            SearchErrorCode::Unavailable,
                             "selected corpus view identities unavailable",
                         ));
                     }
@@ -1147,19 +1142,19 @@ pub(crate) fn graph_for_evidence<'hold, A: InspectCurrentAuthority<'hold> + ?Siz
     bound: &BoundCmpKnowledge<'_>,
     context: &CorpusReadContext,
     remaining: u64,
-) -> Result<(JsonValue, u64), SearchV2Error> {
+) -> Result<(JsonValue, u64), SearchError> {
     let receipt = bound_original_receipt(read, bound)?;
     let (ordinal, header) = read
         .corpus_row(&receipt, Collection::Header, &Selector::All, None)?
         .ok_or_else(|| {
             fail(
-                SearchV2ErrorCode::CorruptSelectedCarrier,
+                SearchErrorCode::CorruptSelectedCarrier,
                 "selected corpus header absent",
             )
         })?;
     if ordinal != 0 || header.as_object().is_none() {
         return Err(fail(
-            SearchV2ErrorCode::CorruptSelectedCarrier,
+            SearchErrorCode::CorruptSelectedCarrier,
             "selected corpus header invalid",
         ));
     }

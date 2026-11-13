@@ -345,10 +345,10 @@ impl<'a> PreparedSearchSession<'a> {
     pub fn inspect(
         &mut self,
         binding: &JsonValue,
-        kind: crate::search_v2::SearchKind,
+        kind: crate::search::SearchKind,
         identifier: &str,
         relation_limit: usize,
-    ) -> std::result::Result<JsonValue, crate::search_v2::SearchV2Error> {
+    ) -> std::result::Result<JsonValue, crate::search::SearchError> {
         use crate::prepared_inspect::storage_error;
         self.read.check_abort().map_err(storage_error)?;
         let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
@@ -378,7 +378,7 @@ impl<'a> PreparedSearchSession<'a> {
         &mut self,
         binding: &JsonValue,
         spec: &JsonValue,
-    ) -> std::result::Result<JsonValue, crate::search_v2::SearchV2Error> {
+    ) -> std::result::Result<JsonValue, crate::search::SearchError> {
         use crate::prepared_inspect::storage_error;
         self.read.check_abort().map_err(storage_error)?;
         let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
@@ -402,7 +402,7 @@ impl<'a> PreparedSearchSession<'a> {
         &mut self,
         binding: &JsonValue,
         request: &JsonValue,
-    ) -> std::result::Result<JsonValue, crate::search_v2::SearchV2Error> {
+    ) -> std::result::Result<JsonValue, crate::search::SearchError> {
         use crate::prepared_inspect::storage_error;
         self.read.check_abort().map_err(storage_error)?;
         let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
@@ -426,7 +426,7 @@ impl<'a> PreparedSearchSession<'a> {
         &mut self,
         binding: &JsonValue,
         request: &crate::knowledge_focus::KnowledgeFocusRequest,
-    ) -> std::result::Result<JsonValue, crate::search_v2::SearchV2Error> {
+    ) -> std::result::Result<JsonValue, crate::search::SearchError> {
         let spec = crate::prepared_operations::focus_spec(&self.read, request)?;
         self.lens(binding, &spec)
     }
@@ -435,7 +435,7 @@ impl<'a> PreparedSearchSession<'a> {
         &mut self,
         binding: &JsonValue,
         identifier: &str,
-    ) -> std::result::Result<JsonValue, crate::search_v2::SearchV2Error> {
+    ) -> std::result::Result<JsonValue, crate::search::SearchError> {
         use crate::prepared_inspect::storage_error;
         self.read.check_abort().map_err(storage_error)?;
         let view = PreparedReadTransaction::admit(self.read.db, binding, self.read.limits)
@@ -466,7 +466,7 @@ impl<'a> PreparedSearchSession<'a> {
         checkpoints: &mut dyn crate::knowledge_exploration::ExplorationCheckpoints,
     ) -> std::result::Result<
         crate::prepared_exploration::PreparedExploration,
-        crate::search_v2::SearchV2Error,
+        crate::search::SearchError,
     > {
         use crate::prepared_inspect::storage_error;
         self.read.check_abort().map_err(storage_error)?;

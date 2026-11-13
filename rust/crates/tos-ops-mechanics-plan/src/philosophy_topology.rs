@@ -7,6 +7,7 @@ use std::path::Path;
 use std::sync::atomic::{AtomicI32, Ordering};
 use tos_foundation::{FoundationErrorCode, JsonLimits, JsonMode, parse_json};
 const MANIFEST: &str = "ToS/philosophy/philosophy.manifest.json";
+const BACKLOG: &str = "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl";
 const SCHEMA: &str = "ToS/contracts/philosophy-source-planting.schema.json";
 type Issue = (String, String);
 struct Context<'a> {
@@ -127,6 +128,26 @@ impl Context<'_> {
         Ok(count)
     }
 }
+// Branch-local paths and line numbers are stable logical addresses into this
+// source-owned file. Preserve the exact bytes and order of each selection.
+fn backlog_slices(raw: &[u8]) -> io::Result<BTreeMap<String, Vec<u8>>> {
+    let mut slices: BTreeMap<String, Vec<u8>> = BTreeMap::new();
+    for line in raw.split_inclusive(|byte| *byte == b'\n') {
+        if line.iter().all(u8::is_ascii_whitespace) {
+            continue;
+        }
+        let row: Value = serde_json::from_slice(line).map_err(io::Error::other)?;
+        let branch = row["branch_path"]
+            .as_str()
+            .ok_or_else(|| io::Error::other("backlog row has no branch_path"))?;
+        slices
+            .entry(branch.to_owned())
+            .or_default()
+            .extend_from_slice(line);
+    }
+    Ok(slices)
+}
+
 // The maintained Python comparisons use numeric equality, including bools.
 // Large integer lexemes never round through f64; floating lexemes follow
 // Python json.loads' finite IEEE representation, as in the existing validators.
@@ -800,6 +821,8 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
         },
         None => None,
     };
+    let mut backlog_cache = None;
+    let mut backlog_bytes_read = 0;
     let mut ids = BTreeSet::new();
     let mut branch_refs: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for path in planting_paths {
@@ -874,7 +897,27 @@ pub fn run_validation(root: &Path, cancel: &AtomicI32) -> io::Result<Vec<Issue>>
             if let (Some(file), Some(line)) =
                 (string(b, "path"), b.get("line").and_then(Value::as_i64))
             {
-                let raw = c.source.text(file)?;
+                let branch = string(&plant, "branch_path").unwrap_or("");
+                let logical_path = format!("{branch}/sources/source-anchor-backlog.jsonl");
+                let raw = if file == logical_path {
+                    if backlog_cache.is_none() {
+                        let bytes = c.source.bounded_bytes(
+                            BACKLOG,
+                            16 * 1024 * 1024,
+                            &mut backlog_bytes_read,
+                            16 * 1024 * 1024,
+                        )?;
+                        backlog_cache = Some(backlog_slices(&bytes)?);
+                    }
+                    backlog_cache
+                        .as_ref()
+                        .and_then(|slices| slices.get(branch))
+                        .map(|bytes| String::from_utf8(bytes.clone()))
+                        .transpose()
+                        .map_err(io::Error::other)?
+                } else {
+                    c.source.text(file)?
+                };
                 let row = raw.as_ref().and_then(|s| {
                     let lines = splitlines(s);
                     let index = if line <= 0 {
@@ -1133,20 +1176,16 @@ pub fn prepare_source_anchor(
     }
     let (branch_path, branch_bytes, branch) = branches.pop().unwrap();
     let branch_directory = parent(&branch_path);
-    let backlog = branch["source_anchor_backlog"]
-        .as_str()
-        .ok_or_else(|| io::Error::other("source backlog path must be a string"))?;
-    if backlog
-        != format!(
-            "{}/sources/source-anchor-backlog.jsonl",
-            parent(&branch_path)
-        )
-    {
+    if branch["source_anchor_backlog"].as_str() != Some(BACKLOG) {
         return Err(io::Error::other(
-            "source backlog must belong to the exact branch",
+            "source backlog must name the atlas source",
         ));
     }
-    let backlog_bytes = read(&mut c, backlog, &mut total_bytes)?;
+    let backlog = format!("{branch_directory}/sources/source-anchor-backlog.jsonl");
+    let atlas_bytes = read(&mut c, BACKLOG, &mut total_bytes)?;
+    let backlog_bytes = backlog_slices(&atlas_bytes)?
+        .remove(&branch_directory)
+        .ok_or_else(|| io::Error::other("source backlog has no rows for branch"))?;
     let backlog_source = std::str::from_utf8(&backlog_bytes).map_err(io::Error::other)?;
     let mut anchors = Vec::new();
     for (number, line) in splitlines(backlog_source).into_iter().enumerate() {

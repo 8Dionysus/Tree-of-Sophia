@@ -14,7 +14,7 @@ use tos_query::knowledge_exploration::{
     ExplorationCheckpoints, ExplorationState, PreparedExplorationCheckpoint,
     execute_selected_exploration,
 };
-use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode};
+use tos_query::search::{CurrentPolicyBinding, SearchError, SearchErrorCode};
 use tos_query::{
     AbortProbe, BoundCmpKnowledge, IndexedDisclosureScope, InspectBudget, InspectCurrentAuthority,
     InspectDisclosureLease, InspectedCarrier, ObservedInspectCarrier, bind_verified_knowledge,
@@ -77,15 +77,15 @@ fn same_json_fields(left: &JsonValue, right: &JsonValue) -> bool {
         _ => left == right,
     }
 }
-fn err(code: SearchV2ErrorCode) -> SearchV2Error {
-    SearchV2Error {
+fn err(code: SearchErrorCode) -> SearchError {
+    SearchError {
         code,
         message: "synthetic checkpoint admission",
     }
 }
 struct Lease;
 impl InspectDisclosureLease for Lease {
-    fn recheck(&mut self) -> Result<(), SearchV2Error> {
+    fn recheck(&mut self) -> Result<(), SearchError> {
         Ok(())
     }
 }
@@ -137,19 +137,19 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
     fn disclosure_scope(&self) -> IndexedDisclosureScope {
         self.scope.clone()
     }
-    fn check_selected(&mut self) -> Result<(), SearchV2Error> {
+    fn check_selected(&mut self) -> Result<(), SearchError> {
         Ok(())
     }
-    fn authorize_current(&mut self, _: &InspectedCarrier) -> Result<(), SearchV2Error> {
+    fn authorize_current(&mut self, _: &InspectedCarrier) -> Result<(), SearchError> {
         Ok(())
     }
     fn acquire_disclosure(
         &mut self,
         _: &IndexedDisclosureScope,
         _: &[ObservedInspectCarrier],
-    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
+    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchError> {
         if self.withdrawn {
-            Err(err(SearchV2ErrorCode::StalePolicy))
+            Err(err(SearchErrorCode::StalePolicy))
         } else {
             Ok(Box::new(Lease))
         }
@@ -208,25 +208,25 @@ impl PreparedExplorationCheckpoint for Staged {
     fn next_cursor(&self) -> Option<&str> {
         self.next.as_deref()
     }
-    fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchV2Error> {
+    fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchError> {
         if self.body_sha.is_some()
             || self
                 .state_bytes
                 .checked_add(body.len())
                 .is_none_or(|bytes| bytes > self.max_bytes)
         {
-            return Err(err(SearchV2ErrorCode::BudgetExceeded));
+            return Err(err(SearchErrorCode::BudgetExceeded));
         }
         self.body_sha = Some(Digest256::of_bytes(body));
         Ok(())
     }
-    fn commit(&mut self) -> Result<(), SearchV2Error> {
+    fn commit(&mut self) -> Result<(), SearchError> {
         if self.body_sha.is_none() {
-            return Err(err(SearchV2ErrorCode::CorruptSelectedCarrier));
+            return Err(err(SearchErrorCode::CorruptSelectedCarrier));
         }
         let mut store = self.store.lock().unwrap();
         if store.refuse {
-            return Err(err(SearchV2ErrorCode::BudgetExceeded));
+            return Err(err(SearchErrorCode::BudgetExceeded));
         }
         if let Some(input) = &self.input {
             store.rows.insert(
@@ -236,7 +236,7 @@ impl PreparedExplorationCheckpoint for Staged {
                     Stored::Replay(
                         self.packet.clone(),
                         self.body_sha
-                            .ok_or(err(SearchV2ErrorCode::CorruptSelectedCarrier))?,
+                            .ok_or(err(SearchErrorCode::CorruptSelectedCarrier))?,
                     ),
                 ),
             );
@@ -255,18 +255,14 @@ impl PreparedExplorationCheckpoint for Staged {
     }
 }
 impl ExplorationCheckpoints for Checkpoints {
-    fn load(
-        &mut self,
-        cursor: &str,
-        revision: &str,
-    ) -> Result<ExplorationCheckpoint, SearchV2Error> {
+    fn load(&mut self, cursor: &str, revision: &str) -> Result<ExplorationCheckpoint, SearchError> {
         let store = self.0.lock().unwrap();
         let (bound, row) = store
             .rows
             .get(cursor)
-            .ok_or(err(SearchV2ErrorCode::CursorExpired))?;
+            .ok_or(err(SearchErrorCode::CursorExpired))?;
         if bound != revision {
-            return Err(err(SearchV2ErrorCode::StaleContinuation));
+            return Err(err(SearchErrorCode::StaleContinuation));
         }
         Ok(match row {
             Stored::State(v) => ExplorationCheckpoint::State(v.clone()),
@@ -283,10 +279,10 @@ impl ExplorationCheckpoints for Checkpoints {
         successor: Option<&ExplorationState>,
         packet: &JsonValue,
         budget: ExplorationBudget,
-    ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> {
+    ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchError> {
         let mut store = self.0.lock().unwrap();
         if store.refuse {
-            return Err(err(SearchV2ErrorCode::BudgetExceeded));
+            return Err(err(SearchErrorCode::BudgetExceeded));
         }
         let mut limits = budget.read.json;
         limits.max_bytes = limits.max_bytes.min(budget.max_state_bytes);
@@ -295,7 +291,7 @@ impl ExplorationCheckpoints for Checkpoints {
             .transpose()?
             .unwrap_or(0);
         if state_bytes > budget.max_checkpoint_bytes {
-            return Err(err(SearchV2ErrorCode::BudgetExceeded));
+            return Err(err(SearchErrorCode::BudgetExceeded));
         }
         store.ordinal += 1;
         let next = successor.map(|_| format!("{:064x}", store.ordinal));
@@ -642,8 +638,8 @@ fn genuine_native_temporal_and_exploration_preserve_checkpoint_admission() {
                                 &cursor_request(&cursor),
                                 budget
                             ),
-                            Err(SearchV2Error {
-                                code: SearchV2ErrorCode::StalePolicy,
+                            Err(SearchError {
+                                code: SearchErrorCode::StalePolicy,
                                 ..
                             })
                         ));
@@ -764,8 +760,8 @@ fn genuine_relation_origin_keeps_exact_endpoint_closure_and_refuses_stale_revisi
             &stale,
             exploration_budget(512),
         ),
-        Err(SearchV2Error {
-            code: SearchV2ErrorCode::StaleSelection,
+        Err(SearchError {
+            code: SearchErrorCode::StaleSelection,
             ..
         })
     ));
@@ -1455,8 +1451,8 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                     &stale,
                     read_budget()
                 ),
-                Err(SearchV2Error {
-                    code: SearchV2ErrorCode::StaleSelection,
+                Err(SearchError {
+                    code: SearchErrorCode::StaleSelection,
                     ..
                 })
             ));
@@ -1473,9 +1469,9 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
             set(&mut display, "profile_ref", profile);
             set(&mut float_version, "display_perspective", display);
             for (bad, code) in [
-                (stale_cut, SearchV2ErrorCode::StaleSelection),
-                (bad_mode, SearchV2ErrorCode::InvalidRequest),
-                (float_version, SearchV2ErrorCode::InvalidRequest),
+                (stale_cut, SearchErrorCode::StaleSelection),
+                (bad_mode, SearchErrorCode::InvalidRequest),
+                (float_version, SearchErrorCode::InvalidRequest),
             ] {
                 match execute_selected_claim_projection(
                     &mut model,
@@ -1498,8 +1494,8 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                     &request,
                     tiny
                 ),
-                Err(SearchV2Error {
-                    code: SearchV2ErrorCode::BudgetExceeded,
+                Err(SearchError {
+                    code: SearchErrorCode::BudgetExceeded,
                     ..
                 })
             ));
@@ -1513,8 +1509,8 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                     &request,
                     read_budget()
                 ),
-                Err(SearchV2Error {
-                    code: SearchV2ErrorCode::StalePolicy,
+                Err(SearchError {
+                    code: SearchErrorCode::StalePolicy,
                     ..
                 })
             ));
@@ -1741,7 +1737,7 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                     .err()
                     .unwrap()
                     .code,
-                SearchV2ErrorCode::InvalidRequest
+                SearchErrorCode::InvalidRequest
             );
             for role in ["SourcePublication", "SystemTransaction"] {
                 let mut f = temporal_filter(8);
@@ -1822,7 +1818,7 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                 .err()
                 .unwrap()
                 .code,
-                SearchV2ErrorCode::InvalidRequest
+                SearchErrorCode::InvalidRequest
             );
         }
         if case == "conflicting-dates" {
@@ -1861,8 +1857,8 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                     &logical_limited,
                     one_comparison
                 ),
-                Err(SearchV2Error {
-                    code: SearchV2ErrorCode::BudgetExceeded,
+                Err(SearchError {
+                    code: SearchErrorCode::BudgetExceeded,
                     ..
                 })
             ));
@@ -1891,10 +1887,10 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
         let mut bad_count = continued.clone();
         set(&mut bad_count, "scan_limit", parse(b"1.0"));
         for (bad, code) in [
-            (changed_index, SearchV2ErrorCode::StaleSelection),
-            (changed_filter, SearchV2ErrorCode::InvalidRequest),
-            (unknown_field, SearchV2ErrorCode::InvalidRequest),
-            (bad_count, SearchV2ErrorCode::InvalidRequest),
+            (changed_index, SearchErrorCode::StaleSelection),
+            (changed_filter, SearchErrorCode::InvalidRequest),
+            (unknown_field, SearchErrorCode::InvalidRequest),
+            (bad_count, SearchErrorCode::InvalidRequest),
         ] {
             match execute_selected_claim_list(
                 &mut model,
@@ -1928,8 +1924,8 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                     &unsupported,
                     read_budget()
                 ),
-                Err(SearchV2Error {
-                    code: SearchV2ErrorCode::UnsupportedModel,
+                Err(SearchError {
+                    code: SearchErrorCode::UnsupportedModel,
                     ..
                 })
             ));
@@ -1945,8 +1941,8 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                 &continued,
                 read_budget()
             ),
-            Err(SearchV2Error {
-                code: SearchV2ErrorCode::StalePolicy,
+            Err(SearchError {
+                code: SearchErrorCode::StalePolicy,
                 ..
             })
         ));
@@ -1954,8 +1950,8 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
         denied.withdrawn = true;
         assert!(matches!(
             execute_selected_claim_list(&mut model, &bound, &mut denied, &continued, read_budget()),
-            Err(SearchV2Error {
-                code: SearchV2ErrorCode::StalePolicy,
+            Err(SearchError {
+                code: SearchErrorCode::StalePolicy,
                 ..
             })
         ));
@@ -1978,8 +1974,8 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
         tiny.max_rows = 1;
         assert!(matches!(
             execute_selected_claim_list(&mut model, &bound, &mut authority(), &continued, tiny),
-            Err(SearchV2Error {
-                code: SearchV2ErrorCode::BudgetExceeded,
+            Err(SearchError {
+                code: SearchErrorCode::BudgetExceeded,
                 ..
             })
         ));
@@ -2056,7 +2052,7 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                 .err()
                 .unwrap()
                 .code,
-                SearchV2ErrorCode::InvalidRequest
+                SearchErrorCode::InvalidRequest
             );
             let mut withdrawn = authority();
             withdrawn.withdrawn = true;
@@ -2071,7 +2067,7 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                 .err()
                 .unwrap()
                 .code,
-                SearchV2ErrorCode::StalePolicy
+                SearchErrorCode::StalePolicy
             );
             // The new wire workspace is bounded even when a rejection reads
             // no Claim rows; the native decoded transfer counter alone cannot
@@ -2090,7 +2086,7 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                     .err()
                     .unwrap()
                     .code,
-                    SearchV2ErrorCode::BudgetExceeded
+                    SearchErrorCode::BudgetExceeded
                 );
             }
             if let Some(node) = std::env::var_os("TOS_INTEGER_WIRE_NODE") {
@@ -2168,7 +2164,7 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                             .err()
                             .unwrap()
                             .code,
-                            SearchV2ErrorCode::StalePolicy
+                            SearchErrorCode::StalePolicy
                         );
                     }
                     let mut packet = execute_selected_claim_integer_wire(
@@ -2260,7 +2256,7 @@ fn selected_claim_projection_preserves_conflicts_unknown_calendar_and_year_preci
                         .err()
                         .unwrap()
                         .code,
-                        SearchV2ErrorCode::InvalidRequest
+                        SearchErrorCode::InvalidRequest
                     );
                     assert_ne!(get(&payload, "after"), &next);
                     set(&mut payload, "after", next);

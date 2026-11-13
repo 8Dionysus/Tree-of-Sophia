@@ -37,7 +37,7 @@ pub(super) fn encode(v: &Value, pretty: bool) -> Result<Vec<u8>> {
     let doc = tos_foundation::parse_json(&raw, JsonMode::PublishedStrict, limits)
         .map_err(|e| e.to_string())?;
     if pretty {
-        let (mut bytes, _) = tos_foundation::emit_python_pretty_sorted_json_with_state_budget(
+        let (mut bytes, _) = tos_foundation::emit_sorted_indent2_json_v1_with_state_budget(
             doc.root(),
             limits,
             32 * CAP,
@@ -48,7 +48,7 @@ pub(super) fn encode(v: &Value, pretty: bool) -> Result<Vec<u8>> {
         bytes.push(b'\n');
         Ok(bytes)
     } else {
-        tos_foundation::emit_python_compact_json(doc.root(), limits).map_err(|e| e.to_string())
+        tos_foundation::emit_ordered_compact_json_v1(doc.root(), limits).map_err(|e| e.to_string())
     }
 }
 pub(super) fn load(ctx: &ResearchExecution, r: &str) -> Result<(Vec<u8>, Value)> {

@@ -204,7 +204,7 @@ impl ControlledQueryHeap<'_, '_, '_> {
         self.context.remaining_json_visits()
     }
 
-    pub fn emit_python_pretty_owned_json(
+    pub fn emit_sorted_indent2_owned_json_v1(
         &self,
         value: &JsonValue,
         mut limits: JsonLimits,
@@ -239,7 +239,7 @@ impl ControlledQueryHeap<'_, '_, '_> {
                 )
             })
         };
-        let emitted = tos_foundation::emit_python_pretty_sorted_json_with_state_budget(
+        let emitted = tos_foundation::emit_sorted_indent2_json_v1_with_state_budget(
             value,
             limits,
             self.context.remaining_after_retained(0)?,

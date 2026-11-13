@@ -12,7 +12,6 @@ pub mod coverage;
 pub mod doctor;
 pub mod exploration_checkpoints;
 pub mod exploration_contracts;
-mod indexed_cursor;
 pub mod knowledge;
 pub mod managed_local;
 #[cfg(not(target_arch = "wasm32"))]
@@ -37,8 +36,6 @@ pub mod public_corpus_build_command;
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub mod public_packet_compare;
 pub mod reading;
-#[cfg(not(target_arch = "wasm32"))]
-pub(crate) mod reference_cursor;
 pub mod release_state;
 pub mod word_analysis;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
@@ -81,11 +78,10 @@ pub mod source_text_search;
 pub mod standalone_validation;
 
 pub use common::{
-    AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence,
-    IndexedSearchParams, NoOwner, Params, PreparedHealth, PreparedPacket, QuerySession,
-    RegisteredOperation, SEARCH_OPERATION_ID, SOURCE_TEXT_SEARCH_HTTP_PATH,
-    SOURCE_TEXT_SEARCH_MCP_TOOL, SOURCE_TEXT_SEARCH_OPERATION_ID, ScopedAccessExecutor,
-    checked_execute, descriptor, registered_operations,
+    AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence, NoOwner, Params,
+    PreparedHealth, PreparedPacket, QuerySession, RegisteredOperation, SEARCH_OPERATION_ID,
+    SOURCE_TEXT_SEARCH_HTTP_PATH, SOURCE_TEXT_SEARCH_MCP_TOOL, SOURCE_TEXT_SEARCH_OPERATION_ID,
+    ScopedAccessExecutor, checked_execute, descriptor, registered_operations,
 };
 
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
@@ -100,20 +96,7 @@ pub mod source_cut_restore;
 pub mod evidence_projection;
 
 #[cfg(not(target_arch = "wasm32"))]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub mod core_snapshot;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod native_cold_resources;
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub mod reference_query_executor;
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub mod reference_root_query;
-
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-mod core_http_admission;
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
@@ -122,6 +105,7 @@ pub mod source_projection_catalog_capture;
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub mod source_projection_coverage;
 
+mod partitioned_projection;
+
 #[cfg(not(target_arch = "wasm32"))]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub(crate) mod controlled_reference_health;
+mod prepared_coverage;

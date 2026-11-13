@@ -791,13 +791,6 @@ pub fn from_catalog<'hold>(packet: tos_query::DisclosableCatalog<'hold>) -> Prep
         fence: Box::new(CatalogFence(lease)),
     }
 }
-pub fn from_indexed_search(packet: tos_query::DisclosableIndexedSearch) -> PreparedPacket<'static> {
-    let (body, lease) = packet.into_parts();
-    PreparedPacket {
-        body,
-        fence: Box::new(SearchFence(lease)),
-    }
-}
 struct InspectFence<'hold>(Box<dyn tos_query::InspectDisclosureLease + 'hold>);
 impl crate::DisclosureFence for InspectFence<'_> {
     fn recheck(&mut self) -> Result<(), AccessError> {
@@ -810,16 +803,9 @@ impl crate::DisclosureFence for CatalogFence<'_> {
         self.0.recheck().map_err(Into::into)
     }
 }
-struct SearchFence(Box<dyn tos_query::IndexedDisclosureLease>);
-impl crate::DisclosureFence for SearchFence {
-    fn recheck(&mut self) -> Result<(), AccessError> {
-        self.0.recheck().map_err(Into::into)
-    }
-}
-
-impl From<tos_query::search_v2::SearchV2Error> for AccessError {
-    fn from(error: tos_query::search_v2::SearchV2Error) -> Self {
-        use tos_query::search_v2::SearchV2ErrorCode as Q;
+impl From<tos_query::search::SearchError> for AccessError {
+    fn from(error: tos_query::search::SearchError) -> Self {
+        use tos_query::search::SearchErrorCode as Q;
         let code = match error.code {
             Q::InvalidRequest | Q::QueryTooLong | Q::QueryTooShort => {
                 AccessErrorCode::InvalidRequest
@@ -882,7 +868,7 @@ pub fn execute_selected_knowledge<'hold>(
     budgets: SelectedKnowledgeBudgets,
     probe: Arc<dyn AbortProbe>,
 ) -> Result<PreparedPacket<'hold>, AccessError> {
-    use tos_query::search_v2::SearchKind;
+    use tos_query::search::SearchKind;
     check_abort(&probe)?;
     let catalog_probe = combined_probe(Arc::clone(&probe), catalog.abort_probe());
     let mut catalog = CatalogProbe {
@@ -943,14 +929,12 @@ pub fn execute_selected_knowledge<'hold>(
             )?;
             from_inspect(packet)
         }
-        KnowledgeRequest::SearchCapabilities => from_inspect(
-            tos_query::knowledge_legacy_search::execute_selected_search_capabilities(
-                model,
-                bound,
-                &mut inspect,
-                budgets.inspect,
-            )?,
-        ),
+        KnowledgeRequest::SearchCapabilities => {
+            return Err(AccessError::new(
+                AccessErrorCode::Unavailable,
+                "prepared search publication unavailable",
+            ));
+        }
         KnowledgeRequest::Dossier { object_id, limit } => {
             from_inspect(tos_query::source_dossier::execute_selected_dossier(
                 model,
@@ -1049,35 +1033,6 @@ pub fn execute_selected_knowledge<'hold>(
     check_abort(&probe)?;
     Ok(packet)
 }
-/// Native transport adapter for the maintained v1 engine, with exact owner scope.
-/// The session supplies its selected model, authority and explicit scan budgets.
-pub fn execute_selected_legacy_search<'hold>(
-    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
-    bound: &tos_query::BoundCmpKnowledge<'_>,
-    authority: &mut dyn tos_query::InspectCurrentAuthority<'hold>,
-    request: &tos_query::knowledge_legacy_search::LegacySearchRequest,
-    budget: tos_query::knowledge_legacy_search::LegacySearchBudget,
-    probe: Arc<dyn AbortProbe>,
-) -> Result<PreparedPacket<'hold>, AccessError> {
-    check_abort(&probe)?;
-    let owner_probe = combined_probe(Arc::clone(&probe), authority.abort_probe());
-    let mut authority = InspectProbe {
-        inner: authority,
-        probe: owner_probe,
-    };
-    let packet = from_inspect(
-        tos_query::knowledge_legacy_search::execute_selected_legacy_search(
-            model,
-            bound,
-            &mut authority,
-            request,
-            budget,
-        )?,
-    );
-    check_abort(&probe)?;
-    Ok(packet)
-}
-
 /// Execute contracts only when the trusted selected session supplies both exact
 /// borrowed registry carriers. Its authority hold must cover both grants.
 /// The generic dispatcher remains unavailable without that owner composition.
@@ -1130,7 +1085,7 @@ impl<'hold> tos_query::CatalogCurrentAuthority<'hold> for CatalogProbe<'_, 'hold
     fn abort_probe(&self) -> Option<Arc<dyn AbortProbe>> {
         Some(Arc::clone(&self.probe))
     }
-    fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {
+    fn policy_binding(&self) -> tos_query::search::CurrentPolicyBinding {
         self.inner.policy_binding()
     }
     fn disclosure_scope(&self) -> tos_query::CatalogDisclosureScope {
@@ -1161,13 +1116,13 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for InspectProbe<'_, 'hold
     fn authorize_managed_source_current(
         &mut self,
         proof: &tos_compiler::ManagedSourceProofV1,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inner.authorize_managed_source_current(proof)
     }
     fn authorize_managed_source_v2_current(
         &mut self,
         proof: &tos_compiler::ManagedSourceProofV2,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inner.authorize_managed_source_v2_current(proof)
     }
     fn authorize_corpus_view_identity_current(
@@ -1176,7 +1131,7 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for InspectProbe<'_, 'hold
         ordinal: u64,
         view_id: Option<&str>,
         sha: tos_foundation::Digest256,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inner
             .authorize_corpus_view_identity_current(receipt, ordinal, view_id, sha)
     }
@@ -1187,7 +1142,7 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for InspectProbe<'_, 'hold
         ordinal: u64,
         raw: &[u8],
         hash: tos_foundation::Digest256,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inner
             .authorize_corpus_original_current(receipt, collection, ordinal, raw, hash)
     }
@@ -1199,7 +1154,7 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for InspectProbe<'_, 'hold
         ordinal: u64,
         raw: &[u8],
         hash: tos_foundation::Digest256,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inner
             .authorize_philosophy_original_current(receipt, collection, ordinal, raw, hash)
     }
@@ -1208,16 +1163,16 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for InspectProbe<'_, 'hold
     }
     fn disclosure_metadata_state_upper_bound(
         &self,
-    ) -> std::result::Result<usize, tos_query::search_v2::SearchV2Error> {
+    ) -> std::result::Result<usize, tos_query::search::SearchError> {
         self.inner.disclosure_metadata_state_upper_bound()
     }
-    fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {
+    fn policy_binding(&self) -> tos_query::search::CurrentPolicyBinding {
         self.inner.policy_binding()
     }
     fn disclosure_scope(&self) -> tos_query::IndexedDisclosureScope {
         self.inner.disclosure_scope()
     }
-    fn check_selected(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    fn check_selected(&mut self) -> Result<(), tos_query::search::SearchError> {
         self.inner.check_selected()
     }
     fn authorize_navigation_original_current(
@@ -1226,7 +1181,7 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for InspectProbe<'_, 'hold
         ordinal: i64,
         raw: &[u8],
         hash: tos_foundation::Digest256,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inner
             .authorize_navigation_original_current(receipt, ordinal, raw, hash)
     }
@@ -1235,30 +1190,28 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for InspectProbe<'_, 'hold
         registry_id: &str,
         raw: &[u8],
         hash: tos_foundation::Digest256,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inner
             .authorize_registry_current(registry_id, raw, hash)
     }
     fn authorize_catalog_current(
         &mut self,
         hash: tos_foundation::Digest256,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inner.authorize_catalog_current(hash)
     }
     fn authorize_current(
         &mut self,
         carrier: &tos_query::InspectedCarrier,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inner.authorize_current(carrier)
     }
     fn acquire_disclosure(
         &mut self,
         scope: &tos_query::IndexedDisclosureScope,
         consulted: &[tos_query::ObservedInspectCarrier],
-    ) -> Result<
-        Box<dyn tos_query::InspectDisclosureLease + 'hold>,
-        tos_query::search_v2::SearchV2Error,
-    > {
+    ) -> Result<Box<dyn tos_query::InspectDisclosureLease + 'hold>, tos_query::search::SearchError>
+    {
         self.inner.acquire_disclosure(scope, consulted)
     }
 }
@@ -1373,33 +1326,6 @@ pub fn execute_selected_corpus<'hold>(
         context,
         request,
         budget,
-    )?;
-    check_abort(&probe)?;
-    Ok(from_inspect(packet))
-}
-
-pub(crate) fn execute_selected_corpus_graph_views_with_state<'hold>(
-    model: &mut tos_compiler::VerifiedKnowledgeModel<'_>,
-    bound: &tos_query::BoundCmpKnowledge<'_>,
-    authority: &mut dyn tos_query::InspectCurrentAuthority<'hold>,
-    context: &tos_query::corpus_read::CorpusReadContext,
-    budget: tos_query::corpus_read::CorpusReadBudget,
-    probe: Arc<dyn AbortProbe>,
-    remaining_state_bytes: usize,
-) -> Result<PreparedPacket<'hold>, AccessError> {
-    check_abort(&probe)?;
-    let probe = combined_probe(probe, authority.abort_probe());
-    let mut authority = InspectProbe {
-        inner: authority,
-        probe: Arc::clone(&probe),
-    };
-    let packet = tos_query::corpus_read::execute_selected_corpus_graph_views_with_state(
-        model,
-        bound,
-        &mut authority,
-        context,
-        budget,
-        remaining_state_bytes,
     )?;
     check_abort(&probe)?;
     Ok(from_inspect(packet))
@@ -1532,8 +1458,4 @@ pub(crate) fn execute_selected_philosophy_audit<'hold>(
     )?;
     check_abort(&probe)?;
     Ok(from_inspect(packet))
-}
-
-pub(crate) fn combined_probe_state_bytes() -> usize {
-    std::mem::size_of::<CombinedProbe>()
 }

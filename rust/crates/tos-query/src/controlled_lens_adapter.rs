@@ -7,7 +7,7 @@ use crate::knowledge_lens_spec::{LensVocabulary, normalize_lens_spec};
 use crate::lens_plan::{
     LensCandidate, LensCandidateCursor, LensCandidatePage, LensNeed, LensPlan, LensReply,
 };
-use crate::search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode, SelectedQueryVocabulary};
+use crate::search::{SearchError, SearchErrorCode, SearchKind, SelectedQueryVocabulary};
 use crate::{BoundCmpKnowledge, InspectCurrentAuthority, ObservedInspectCarrier};
 use std::cell::RefCell;
 use tos_compiler::{
@@ -15,15 +15,15 @@ use tos_compiler::{
     ControlledSearchKind,
 };
 use tos_foundation::{JsonString, JsonValue, OwnedState};
-fn budget() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+fn budget() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "controlled Lens budget exceeded",
     }
 }
-fn corrupt() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+fn corrupt() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::CorruptSelectedCarrier,
         message: "controlled native Lens carrier differs",
     }
 }
@@ -40,8 +40,8 @@ pub fn execute_controlled_lens_response<'hold, A: InspectCurrentAuthority<'hold>
     authority: &mut A,
     spec: &JsonValue,
     limits: LensBudget,
-    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
-) -> Result<(), SearchV2Error> {
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchError>,
+) -> Result<(), SearchError> {
     execute_controlled_lens_request_response(
         model,
         bound,
@@ -68,8 +68,8 @@ pub fn execute_controlled_lens_request_response<
     authority: &mut A,
     request: ControlledLensRequest<'_>,
     limits: LensBudget,
-    deliver: impl FnOnce(&[u8]) -> Result<(), SearchV2Error>,
-) -> Result<(), SearchV2Error> {
+    deliver: impl FnOnce(&[u8]) -> Result<(), SearchError>,
+) -> Result<(), SearchError> {
     let caps = limits.inspect;
     bound.check_controlled_model(model)?;
     model
@@ -566,7 +566,7 @@ pub fn execute_controlled_lens_request_response<
                                                 ),
                                             });
                                         }
-                                        Ok::<_, SearchV2Error>(())
+                                        Ok::<_, SearchError>(())
                                     },
                                 )
                                 .map_err(compiler_query_error)??;
@@ -609,7 +609,7 @@ pub fn execute_controlled_lens_request_response<
                                         .ok_or_else(budget)?,
                                     |rows| {
                                         ids.extend(rows.iter().map(|r| r.id.clone()));
-                                        Ok::<_, SearchV2Error>(())
+                                        Ok::<_, SearchError>(())
                                     },
                                 )
                                 .map_err(compiler_query_error)??;
@@ -642,7 +642,7 @@ pub fn execute_controlled_lens_request_response<
                                         .ok_or_else(budget)?,
                                     |rows| {
                                         ids.extend(rows.iter().map(|r| r.id.clone()));
-                                        Ok::<_, SearchV2Error>(())
+                                        Ok::<_, SearchError>(())
                                     },
                                 )
                                 .map_err(compiler_query_error)??;

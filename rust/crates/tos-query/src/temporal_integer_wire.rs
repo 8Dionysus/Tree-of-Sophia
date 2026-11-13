@@ -7,7 +7,7 @@ use crate::{
         DisclosableInspect, InspectBudget, InspectCurrentAuthority, execute_selected_carrier_packet,
     },
     knowledge_temporal::{execute_selected_claim_list, execute_selected_claim_projection},
-    search_v2::{SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode},
     source_read_projection::{object, text},
     temporal_comparison::{
         CLAIM_LIST_INTENDED_USE, CLAIM_LIST_OPERATION, CLAIM_PROJECTION_INTENDED_USE,
@@ -26,9 +26,9 @@ use tos_foundation::{
     JsonMode, JsonValue, emit_value_preserved_json, parse_json_with_state_budget,
 };
 
-fn wire_budget_error() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+fn wire_budget_error() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "integer transport retained workspace exceeds limit",
     }
 }
@@ -41,8 +41,8 @@ fn admit_wire_state(
     budget: InspectBudget,
     extra: usize,
     operation_bytes: usize,
-) -> Result<(), SearchV2Error> {
-    fn string_bytes(value: &tos_foundation::JsonString) -> Result<usize, SearchV2Error> {
+) -> Result<(), SearchError> {
+    fn string_bytes(value: &tos_foundation::JsonString) -> Result<usize, SearchError> {
         if let Some(text) = value.as_str() {
             text.bytes().try_fold(2usize, |count, byte| {
                 let emitted = match byte {
@@ -67,7 +67,7 @@ fn admit_wire_state(
         depth: usize,
         visits: &mut usize,
         budget: InspectBudget,
-    ) -> Result<usize, SearchV2Error> {
+    ) -> Result<usize, SearchError> {
         *visits = visits.checked_add(1).ok_or_else(wire_budget_error)?;
         if depth > budget.json.max_depth.min(64) || *visits > budget.json.max_visits {
             return Err(wire_budget_error());
@@ -124,18 +124,18 @@ fn admit_wire_state(
     Ok(())
 }
 
-fn mapped(error: TemporalError) -> SearchV2Error {
-    SearchV2Error {
+fn mapped(error: TemporalError) -> SearchError {
+    SearchError {
         code: match error {
-            TemporalError::ResourceExhausted(_) => SearchV2ErrorCode::BudgetExceeded,
-            TemporalError::MalformedRequest(_) => SearchV2ErrorCode::InvalidRequest,
+            TemporalError::ResourceExhausted(_) => SearchErrorCode::BudgetExceeded,
+            TemporalError::MalformedRequest(_) => SearchErrorCode::InvalidRequest,
         },
         message: "exact integer transport refused request or exceeded bounds",
     }
 }
-fn invalid() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::InvalidRequest,
+fn invalid() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::InvalidRequest,
         message: "integer transport operation or cursor profile mismatch",
     }
 }
@@ -164,7 +164,7 @@ pub fn execute_selected_claim_integer_wire<'hold, A: InspectCurrentAuthority<'ho
     authority: &mut A,
     request: &JsonValue,
     budget: InspectBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     // Admission precedes even the framing codec's temporary preserved emitter.
     admit_wire_state(request, budget, 0, 0)?;
     let temporal_budget = TemporalBudget {
@@ -249,11 +249,11 @@ pub fn execute_selected_claim_integer_wire<'hold, A: InspectCurrentAuthority<'ho
         .ok_or_else(wire_budget_error)?;
     let mut value =
         parse_json_with_state_budget(&bytes, JsonMode::PublishedStrict, limits, workspace)
-            .map_err(|error| SearchV2Error {
+            .map_err(|error| SearchError {
                 code: if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-                    SearchV2ErrorCode::BudgetExceeded
+                    SearchErrorCode::BudgetExceeded
                 } else {
-                    SearchV2ErrorCode::CorruptSelectedCarrier
+                    SearchErrorCode::CorruptSelectedCarrier
                 },
                 message: "selected response parser refused malformed data or workspace limit",
             })?
@@ -271,8 +271,8 @@ pub fn execute_selected_claim_integer_wire<'hold, A: InspectCurrentAuthority<'ho
         encode_integer_wire_response(wire.operation, &value, temporal_budget).map_err(mapped)?;
     drop(value);
     drop(bytes);
-    let body = emit_value_preserved_json(&encoded, limits).map_err(|_| SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+    let body = emit_value_preserved_json(&encoded, limits).map_err(|_| SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "integer transport response exceeds limits",
     })?;
     lease.recheck()?;

@@ -17,13 +17,13 @@ use tos_foundation::{
 };
 use tos_query::{
     BoundCmpKnowledge, InspectBudget, InspectCurrentAuthority, execute_selected_temporal,
-    search_v2::SearchV2Error,
+    search::SearchError,
 };
 
 #[derive(Debug)]
 pub enum HeldClaimComparisonError {
     Owner(SourceCommandError),
-    Query(SearchV2Error),
+    Query(SearchError),
     Json(FoundationError),
     Binding(StoredChronologyProjectionError),
     WrongModelSource,
@@ -39,8 +39,8 @@ impl From<SourceCommandError> for HeldClaimComparisonError {
         Self::Owner(e)
     }
 }
-impl From<SearchV2Error> for HeldClaimComparisonError {
-    fn from(e: SearchV2Error) -> Self {
+impl From<SearchError> for HeldClaimComparisonError {
+    fn from(e: SearchError) -> Self {
         Self::Query(e)
     }
 }

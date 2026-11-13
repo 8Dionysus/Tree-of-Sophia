@@ -1928,7 +1928,6 @@ name = "tos-reader"
 version = "0.1.0"
 dependencies = [
  "rustix",
- "tempfile",
  "tos-fd-open",
  "tos-foundation",
  "tos-segment-store",

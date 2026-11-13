@@ -32,8 +32,7 @@ tos --root /absolute/selected-data mcp
 
 HTTP binds to loopback by default. MCP uses stdio unless a loopback-only
 Streamable HTTP transport is selected explicitly. `--root` or `TOS_DATA_ROOT`
-selects data; neither changes the installed software, browser assets, or API
-schemas. No command searches a parent directory or neighboring checkout for
+selects data; neither changes the installed software or API schemas. No command searches a parent directory or neighboring checkout for
 another dataset. `--release-root` selects an already admitted managed release;
 it does not install software or build data.
 
@@ -75,7 +74,7 @@ Managed data is selected separately with `--release-root`.
 
 Use `tos-access software build`, `software verify`, `software extract`, and
 `software install` for the code-only archive. The archive contains the native
-entrypoint and its software-owned browser assets, not corpus data. Build inputs,
+entrypoint and runtime contracts, not browser assets or corpus data. Build inputs,
 budgets, archive verification and official release steps are in
 [`docs/RELEASING.md`](../docs/RELEASING.md).
 
@@ -102,17 +101,12 @@ SQLite path and an owner-selected binding. A reader never creates a missing
 product, infers a binding from database contents, or falls back to a different
 dataset after a selected product fails.
 
-Projection search retains its declared engine-specific behavior: legacy and
-indexed modes keep their own pagination and filters, while compressed search is
-available only for an explicitly selected prepared profile. The native
-consumer does not translate offsets into cursors or silently select another
-engine. See the [compressed-search contract](COMPRESSED_SEARCH_V3.md) and
-[native semantics](shared/NATIVE_SEMANTICS.md) for engine compatibility and
-work limits.
+Knowledge search uses the compressed profile of an explicitly selected prepared
+publication. The native consumer does not translate offsets into cursors or
+silently select another dataset. See the [compressed-search contract](COMPRESSED_SEARCH_V3.md) for the cursor and work limits.
 
 Source navigation provides `tos.source.descend` and `tos.dossier.inspect` on
-the native source-navigation product (or the explicitly supported legacy
-carrier). A dossier can include the connected bibliographic chain, observed
+the native source-navigation product. A dossier can include the connected bibliographic chain, observed
 links, scoped rights records, gaps and source references. Check the rights record
 before using a downloadable URL. A prepared
 reader without its declared navigation and rights companions is unavailable
@@ -311,9 +305,8 @@ Production, verification and corpus import follow the
 
 ## Browser application and WebMCP
 
-The web client is the human presentation of the same selected, bounded read
-products. It supports source-linked search, evidence and route inspection,
-bounded lens construction, and a browser-local research workspace. Workspace
+The public research site presents the Zarathustra and Antiquity stands and a
+browser-local research workspace. Workspace
 hypotheses and proposals remain local, visibly unreviewed, and outside ToS
 source, review ledger, candidate intake and canon. Export is the handoff.
 Feature-specific behavior and development commands are in the

@@ -78,9 +78,19 @@ fn derived_manifest_values_match_origin_main_before_migration() {
                 continue;
             };
             let count = match key {
-                "anchor_count" => {
-                    rows(root, &format!("{directory}/source-anchor-backlog.jsonl")).len()
-                }
+                "anchor_count" => cache
+                    .entry("ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl".into())
+                    .or_insert_with(|| {
+                        rows(
+                            root,
+                            "ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl",
+                        )
+                    })
+                    .iter()
+                    .filter(|row| {
+                        format!("{}/sources", row["branch_path"].as_str().unwrap()) == directory
+                    })
+                    .count(),
                 "proposed_node_count" | "proposed_relation_count" => {
                     let summary = read_json(root, &format!("{directory}/pre-canon-summary.json"));
                     let reference = summary[if key == "proposed_node_count" {

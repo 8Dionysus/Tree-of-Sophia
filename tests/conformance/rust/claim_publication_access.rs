@@ -113,7 +113,7 @@ fn read_three_wires(
 }
 
 /// Installed-only continuation. The real server owns SoftwareSite selection;
-/// this observer compares HTTP bytes with its immutable installed declaration.
+/// observe API-only delivery and preserve its immutable installed declaration.
 fn verify_installed_site(
     binary: &Path,
     database: &Path,
@@ -129,8 +129,6 @@ fn verify_installed_site(
         process::{Command, Stdio},
     };
     use tos_foundation::Digest256;
-    const STATIC_PREFIX: &str = "access/src/tos_access/web_dist/";
-    const ASSET_BYTES: usize = 16 * 1024 * 1024;
     const HEADER_BYTES: usize = 64 * 1024;
     let deadline = deadline.min(Instant::now() + Duration::from_secs(60));
     let executable = binary.canonicalize().unwrap();
@@ -161,35 +159,17 @@ fn verify_installed_site(
     );
     assert_eq!(manifest["data_included"], false);
     let members = manifest["members"].as_array().unwrap();
-    let mut assets = Vec::new();
-    let mut paths = std::collections::BTreeSet::new();
-    let mut total = 0u64;
-    for member in members {
-        let path = member["path"].as_str().unwrap();
-        if let Some(relative) = path.strip_prefix(STATIC_PREFIX) {
-            tos_foundation::RelativePath::parse(relative).unwrap();
-            assert!(
-                paths.insert(relative.to_owned()),
-                "duplicate installed static declaration"
-            );
-            let bytes = member["size_bytes"].as_u64().unwrap();
-            assert!(bytes <= ASSET_BYTES as u64 && assets.len() < 512);
-            total = total
-                .checked_add(bytes)
-                .filter(|n| *n <= 64 * 1024 * 1024)
-                .unwrap();
-            assets.push((
-                relative.to_owned(),
-                bytes,
-                member["sha256"].as_str().unwrap().to_owned(),
-            ));
-        }
-    }
-    assert!(paths.contains("assets/tos-graph.js") && paths.contains("assets/tos-graph.css"));
     assert!(
-        paths.iter().any(|p| p.ends_with(".wasm")),
-        "installed WASM not declared"
+        members
+            .iter()
+            .any(|member| { member["path"].as_str() == Some("access/src/tos_access/tos-access") })
     );
+    assert!(members.iter().all(|member| {
+        !member["path"]
+            .as_str()
+            .unwrap()
+            .starts_with("access/src/tos_access/web_dist/")
+    }));
     drop(manifest_raw);
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let address = listener.local_addr().unwrap();
@@ -223,7 +203,7 @@ fn verify_installed_site(
             Err(_) => std::thread::sleep(Duration::from_millis(20)),
         }
     };
-    let http = |mut stream: TcpStream, path: &str, maximum: usize| {
+    let http = |mut stream: TcpStream, path: &str, expected_status: u16, maximum: usize| {
         assert!(path.starts_with('/') && !path.contains('\r') && !path.contains('\n'));
         stream.set_write_timeout(Some(remaining(deadline))).unwrap();
         write!(
@@ -249,7 +229,7 @@ fn verify_installed_site(
             response.extend_from_slice(&buffer[..count]);
         }
         assert!(
-            response.starts_with(b"HTTP/1.1 200 "),
+            response.starts_with(format!("HTTP/1.1 {expected_status} ").as_bytes()),
             "installed HTTP refusal: {}",
             String::from_utf8_lossy(&response[..response.len().min(1024)])
         );
@@ -267,17 +247,17 @@ fn verify_installed_site(
         response.drain(..start);
         response
     };
-    let index = http(first, "/", 1_048_576);
-    let html = std::str::from_utf8(&index).unwrap();
-    assert!(
-        html.contains("window.__TOS_GRAPH_BOOT__=")
-            && html.contains("/static/assets/tos-graph.js")
-            && html.contains("/static/assets/tos-graph.css")
+    http(first, "/", 404, 1_048_576);
+    http(
+        TcpStream::connect_timeout(&address, remaining(deadline)).unwrap(),
+        "/static/assets/tos-graph.js",
+        404,
+        1_048_576,
     );
-    drop(index);
     let node = http(
         TcpStream::connect_timeout(&address, remaining(deadline)).unwrap(),
         &format!("/api/knowledge/nodes/{}", segment(node_id)),
+        200,
         prepared_local::PREPARED_RESPONSE_BYTES,
     );
     let node: Value = serde_json::from_slice(&node).unwrap();
@@ -289,26 +269,6 @@ fn verify_installed_site(
             .any(|row| row["id"] == node_id)
     );
     drop(node);
-    for (path, bytes, sha) in assets {
-        let route = format!(
-            "/static/{}",
-            path.split('/').map(segment).collect::<Vec<_>>().join("/")
-        );
-        let body = http(
-            TcpStream::connect_timeout(&address, remaining(deadline)).unwrap(),
-            &route,
-            bytes as usize,
-        );
-        assert_eq!(body.len() as u64, bytes);
-        assert_eq!(
-            Digest256::of_bytes(&body).to_hex(),
-            sha,
-            "installed static HTTP digest {path}"
-        );
-        if path.ends_with(".wasm") {
-            assert!(body.starts_with(b"\0asm"));
-        }
-    }
     server.kill().unwrap();
     server.wait().unwrap();
     remaining(deadline);

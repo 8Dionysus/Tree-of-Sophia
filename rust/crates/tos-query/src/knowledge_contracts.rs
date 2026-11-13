@@ -1,7 +1,7 @@
 //! Versioned software contracts plus exact owner-selected registry inputs.
 //! The pure builder grants no source access or public disclosure authority.
 use crate::{
-    search_v2::{SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode},
     source_read_projection::{object, text},
 };
 use tos_foundation::{
@@ -18,11 +18,6 @@ pub const KNOWLEDGE_PROGRAM_CONTRACTS: &[(&str, &str, &[u8])] = &[
         "knowledge_graph",
         "access/contracts/knowledge-graph.v1.schema.json",
         include_bytes!("../../../../access/contracts/knowledge-graph.v1.schema.json"),
-    ),
-    (
-        "knowledge_search_indexed",
-        "access/contracts/knowledge-search-indexed.v2.schema.json",
-        include_bytes!("../../../../access/contracts/knowledge-search-indexed.v2.schema.json"),
     ),
     (
         "readable_context",
@@ -82,8 +77,8 @@ pub struct KnowledgeContractBudget {
     pub max_response_bytes: usize,
     pub json: JsonLimits,
 }
-fn err(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn err(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
 /// Expected digests must originate in the caller's selected owner receipt.
 /// Digest equality establishes identity only; the adapter retains source-owner
@@ -92,13 +87,13 @@ pub fn build_knowledge_contract_bundle(
     registry_bytes: [&[u8]; 2],
     expected: [Digest256; 2],
     budget: KnowledgeContractBudget,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     if budget.max_input_bytes == 0
         || budget.max_registry_bytes == 0
         || budget.max_response_bytes == 0
     {
         return Err(err(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "contract admission unavailable",
         ));
     }
@@ -110,13 +105,13 @@ pub fn build_knowledge_contract_bundle(
     {
         total = total.checked_add(bytes.len()).ok_or_else(|| {
             err(
-                SearchV2ErrorCode::BudgetExceeded,
+                SearchErrorCode::BudgetExceeded,
                 "contract byte accounting overflow",
             )
         })?;
         if total > budget.max_input_bytes {
             return Err(err(
-                SearchV2ErrorCode::BudgetExceeded,
+                SearchErrorCode::BudgetExceeded,
                 "contract inputs exceed cap",
             ));
         }
@@ -131,9 +126,9 @@ pub fn build_knowledge_contract_bundle(
             .map_err(|reason| {
                 err(
                     if reason.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-                        SearchV2ErrorCode::BudgetExceeded
+                        SearchErrorCode::BudgetExceeded
                     } else {
-                        SearchV2ErrorCode::CorruptSelectedCarrier
+                        SearchErrorCode::CorruptSelectedCarrier
                     },
                     "contract JSON admission failed",
                 )
@@ -147,13 +142,13 @@ pub fn build_knowledge_contract_bundle(
         let bytes = registry_bytes[i];
         if bytes.len() > budget.max_registry_bytes {
             return Err(err(
-                SearchV2ErrorCode::BudgetExceeded,
+                SearchErrorCode::BudgetExceeded,
                 "contract registry exceeds cap",
             ));
         }
         if Digest256::of_bytes(bytes) != expected[i] {
             return Err(err(
-                SearchV2ErrorCode::StaleSelection,
+                SearchErrorCode::StaleSelection,
                 "selected contract registry bytes differ",
             ));
         }
@@ -183,7 +178,7 @@ pub fn build_knowledge_contract_bundle(
     limits.max_bytes = limits.max_bytes.min(budget.max_response_bytes);
     canonical_bytes_v1(&packet, CanonicalProfile::SourceRecordDigestV1, limits).map_err(|_| {
         err(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "contract response exceeds cap",
         )
     })?;
@@ -207,7 +202,7 @@ pub fn execute_selected_knowledge_contracts<
     registry_bytes: [&[u8]; 2],
     budget: KnowledgeContractBudget,
     inspect: crate::InspectBudget,
-) -> Result<crate::DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<crate::DisclosableInspect<'hold>, SearchError> {
     bound.check_model(model)?;
     let selection = bound.selection();
     let expected = [
@@ -234,14 +229,14 @@ pub fn execute_selected_knowledge_contracts<
             let packet = build_knowledge_contract_bundle(registry_bytes, expected, budget)?;
             let contracts = packet.object_get("contracts").ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "contract map absent",
                 )
             })?;
             for (i, (key, _)) in KNOWLEDGE_REGISTRY_CONTRACTS.iter().enumerate() {
                 let registry = contracts.object_get(key).ok_or_else(|| {
                     err(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "selected contract registry absent",
                     )
                 })?;
@@ -261,7 +256,7 @@ pub fn execute_selected_knowledge_contracts<
                     || version != Some(versions[i].as_str())
                 {
                     return Err(err(
-                        SearchV2ErrorCode::StaleSelection,
+                        SearchErrorCode::StaleSelection,
                         "selected contract registry identity differs",
                     ));
                 }
