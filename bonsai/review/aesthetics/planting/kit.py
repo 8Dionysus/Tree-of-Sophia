@@ -477,7 +477,7 @@ def cmd_cut(args):
     if not lang:die('places.json names no original language yet (entry.original)')
     normalization=None
     if lang=='ru':
-        modern=modern_russian(run)
+        modern=modern_russian(run,old_source=old_russian_source(text))
         if modern!=run:
             witness=((places.get('entry') or {}).get('witnesses') or {}).get(lang) or ((world()['fragments']['works'].get(places['work']) or {}).get('witnesses') or {}).get(lang)
             if witness is None:die('Russian modernization requires the original witness')
@@ -1289,11 +1289,14 @@ def cmd_status(args):
         rows.append(f"{state:9} {name}  conceptions {len(reading.get('conceptions',[]))} links {len(reading.get('links',[]))} left {len(reading.get('left',[]))} review {'yes' if part(path,'review.json') else 'no'}")
     print('\n'.join(rows) or 'no packets')
 
-def modern_russian(text):
-    """Use the stand's existing reform rules, with the owner's explicit ѵ→и rule."""
-    script="import {pathToFileURL} from 'node:url'; import {readFileSync} from 'node:fs'; const m=await import(pathToFileURL(process.argv[1])); process.stdout.write(m.modernRussian(readFileSync(0,'utf8').replaceAll('ѵ','и').replaceAll('Ѵ','И')));"
+def old_russian_source(text):
+    return bool(re.search(r'[ѣѢіІѳѲѵѴ]|[бвгджзклмнпрстфхцчшщ]ъ\b',text,re.I))
+
+def modern_russian(text,old_source=False):
+    """Use the stand's reform rules, preserving the source's old-spelling context for a short cut."""
+    script="import {pathToFileURL} from 'node:url'; import {readFileSync} from 'node:fs'; const m=await import(pathToFileURL(process.argv[1])); const t=readFileSync(0,'utf8').replaceAll('ѵ','и').replaceAll('Ѵ','И'); process.stdout.write(process.argv[2]==='old'?m.modernRussian('ѣ '+t).slice(2):m.modernRussian(t));"
     module=os.path.join(ROOT,'access','web','src','public-research','orthography.mjs')
-    run=subprocess.run(['node','--input-type=module','-e',script,module],input=text,text=True,capture_output=True)
+    run=subprocess.run(['node','--input-type=module','-e',script,module,'old' if old_source else 'modern'],input=text,text=True,capture_output=True)
     if run.returncode:die('Russian orthography conversion failed: '+run.stderr)
     return run.stdout
 
@@ -1544,7 +1547,7 @@ def cmd_witness_cut(args):
     problem=in_transcription(run,text)
     if problem:die(problem)
     if args.language=='ru':
-        modern=modern_russian(run)
+        modern=modern_russian(run,old_source=old_russian_source(text))
         if modern!=run:data['witness']['normalization']='Russian spelling modernized from the source by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged.'
         run=modern
     image=next((item for item in data['images'] if item['file']==args.image and item['by']=='maker'),None)
