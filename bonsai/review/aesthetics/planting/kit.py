@@ -1603,6 +1603,31 @@ def cmd_witness_cut(args):
     data['review']={} # the old second reading no longer describes this witness
     save(witness_file(path,args.language),data);print(run)
 
+def cmd_witness_transcribe_page(args):
+    """Record a human reading of an image, without claiming a fetched transcription."""
+    path=packet(args.packet);data=witness_data(path,args.language)
+    original={**((world()['fragments'].get('places') or {}).get(work_of(path),{})),**((part(path,'places.json') or {}).get('places') or {})}
+    if args.loc not in original:die('the original place is not in the bonsai')
+    image=next((item for item in data['images'] if item['file']==args.image and item['by']=='maker'),None)
+    if not image:die('fetch the page image as maker first')
+    try:raw=Path(witness_cache(path,args.language,image['file'])).read_bytes()
+    except OSError:die('the maker page image is missing')
+    if hashlib.sha256(raw).hexdigest()!=image['sha256'] or not valid_page_image(raw):die('the maker page image changed or is invalid')
+    address={'kind':args.address_kind,'value':args.address_value,'url':image['url']} if args.address_kind or args.address_value else None
+    if address and not valid_address(address):die('structured address needs kind, value and the source URL')
+    if not args.page and not address:die('give a printed page or an exact structured source address')
+    if len(args.reason.strip())<40:die('explain why this page needs a human transcription')
+    run=squeeze(args.text)
+    if not run:die('transcribe the page text')
+    if args.language=='ru':
+        modern=modern_russian(run,old_source=old_russian_source(run))
+        if modern!=run:data['witness']['normalization']='Russian spelling modernized from the page by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged.'
+        run=modern
+    page=args.page or f"{address['kind']} {address['value']}"
+    data['places'][args.loc]={'text':run,'transcription':{'kind':'human-page','reason':args.reason},'page':page,'url':image['url'],'image_sha256':image['sha256'],'alignment':args.alignment,**({'address':address} if address else {}),**({'lines':args.lines} if args.lines else {}),**({'justification':args.justification} if args.justification else {})}
+    (data.get('missing_places') or {}).pop(args.loc,None)
+    data['review']={};save(witness_file(path,args.language),data);print(run)
+
 def cmd_witness_correct(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     place=(data.get('places') or {}).get(args.loc) or die('no such place in this witness')
@@ -1758,8 +1783,12 @@ def witness_problems(path,lang,data,second=False,offline=False):
         quote=any(((witness.get('rights') or {}).get(country) or {}).get('basis')=='short-quotation' for country in JURISDICTIONS)
         for problem in sentences(text,limit=None if quote else LONGEST):add(f'{loc}: {problem}')
         if len(str(place.get('alignment','')))<20:add(f'{loc}: explain the alignment to the original')
-        source=sources.get(place.get('source'))
-        if not source or not lawful_url(source.get('url','')):add(f'{loc}: no lawful source');continue
+        source=sources.get(place.get('source'));transcription=place.get('transcription') or {}
+        if not isinstance(transcription,dict):add(f'{loc}: invalid transcription provenance');transcription={}
+        human=transcription.get('kind')=='human-page'
+        if human:
+            if place.get('source') or len(str(transcription.get('reason','')).strip())<40:add(f'{loc}: human page transcription needs its reason and no claimed downloaded transcription')
+        elif not source or not lawful_url(source.get('url','')):add(f'{loc}: no lawful source');continue
         if not place.get('page') or not lawful_url(place.get('url','')):add(f'{loc}: page or exact address and lawful URL are required')
         if place.get('address') is not None and (not valid_address(place['address']) or place['address'].get('url')!=place.get('url')):add(f'{loc}: structured address must name the same lawful source')
         image=next((item for item in data.get('images') or [] if item.get('by')=='maker' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
@@ -1840,6 +1869,7 @@ def main():
     sub('witness-fetch',cmd_witness_fetch,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}))
     sub('witness-image',cmd_witness_image,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}),(('--by',),{'choices':['maker','second'],'default':'maker'}))
     sub('witness-cut',cmd_witness_cut,P,(('language',),{}),(('source',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
+    sub('witness-transcribe-page',cmd_witness_transcribe_page,P,(('language',),{}),(('--text',),{'required':True}),(('--reason',),{'required':True}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
     sub('witness-cut-candidate',cmd_witness_cut_candidate,P,(('language',),{}),(('source',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}));
     sub('witness-correct',cmd_witness_correct,P,(('language',),{}),(('loc',),{}),(('from',),{}),(('to',),{}),(('reason',),{}));
     sub('witness-review',cmd_witness_review,P,(('language',),{}),(('loc',),{}),(('--reader',),{'required':True}),(('--alignment',),{'required':True}),(('--model',),{'default':'gpt-6.1-terra'}))

@@ -51,8 +51,10 @@ it, and `K scan . ITEM` chooses the one that `K leaf`, `K image`, `K offset`
 and `K cut . ocr` work on (`K scan .` lists them). Each scan wants its own
 offset.
 
-Then fill `entry` in `places.json`: `original` (language code) and one witness
-under that code:
+Prepare a complete copy of the packet's current `places.json` outside the
+packet, add `entry`: `original` (language code) and one witness under that
+code, then use `K import . places FILE` to record it. Packet files are changed
+only through kit commands; retain existing cuts and page checks in the copy:
 
 ```json
 "witnesses": {"en": {
@@ -223,7 +225,8 @@ Every waiting reading and link ends in a `from` or under `left`:
 ```
 
 Fill `reader.reads` with one sentence saying what was read (the language, the
-edition, beside the registers' readings).
+edition, beside the registers' readings). Prepare the complete reading object
+outside the packet and record it with `K import . reading FILE`.
 
 ## 6. The gate
 
@@ -263,6 +266,19 @@ records `--justification` on `witness-cut`. The acceptance binds the exact file
 by SHA-256. Changes require a new independent reading and acceptance. Local
 source files and images stay in the kit cache outside Git. A partial witness
 leaves the other places without a translation.
+
+When no usable transcription contains the passage, open and read the maker's
+page image, then record the actual words as a human page transcription:
+
+```
+K witness-transcribe-page . es --loc '§1 p1' --page 'p. 86' --image page.jpg --text 'The actual complete sentences read on this page.' --reason 'The image-only source has no usable transcription of this passage.' --alignment 'How these sentences correspond to the original.'
+```
+
+Use the exact image URL for each page; another page source requires its own
+image. The packet identifies this as a human transcription, not a downloaded
+text. A different reader must open the same image and independently review the
+words and alignment with `witness-image --by second` and `witness-review`.
+Recording a check is a statement that the reader actually opened and read it.
 
 A prepared JSON object can be brought into a new, unaccepted packet with
 `K import . places FILE` or `K import . reading FILE`; the second reader can

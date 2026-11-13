@@ -197,6 +197,15 @@ class TranslationWitnessTest(unittest.TestCase):
                   'review':{'reader':'reader','model':'gpt-6.1-terra','date':'2026-11-12','places':{'p':{'reads':'as the packet','image_sha256':digest,'alignment':'This sentence matches the complete original.'}}}}
             with patch.object(kit,'CACHE',str(cache)), patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                place=data['places']['p'];place.pop('source')
+                place['transcription']={'kind':'human-page','reason':'The page image has no usable machine transcription of this passage.'}
+                self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                data['images'][1]['url']='https://example.org/other-page'
+                self.assertTrue(any('second reader page image' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['images'][1]['url']='https://example.org/page'
+                place['transcription']['reason']='short'
+                self.assertTrue(any('human page transcription' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                place.pop('transcription');place['source']='text.txt'
                 license_url='https://creativecommons.org/licenses/by/4.0/'
                 license_raw=('Publisher grants '+license_url.replace('https://','http://')).encode();(folder/'licence.html').write_bytes(license_raw)
                 source_record={'file':'licence.html','url':'https://example.org/exact-edition','sha256':hashlib.sha256(license_raw).hexdigest()}
@@ -590,6 +599,22 @@ class LivingAuthorChronologyTest(unittest.TestCase):
             self.assertIn('approximately',life['dating']['source_wording']['text'])
 
 class TranslationCorrectionTest(unittest.TestCase):
+    def test_page_transcription_records_image_and_invalidates_review(self):
+        import argparse, base64, hashlib, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
+            folder=Path(tmp)/'cache/work/witnesses/en';folder.mkdir(parents=True)
+            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+            (folder/'page.jpg').write_bytes(raw);digest=hashlib.sha256(raw).hexdigest()
+            data={'language':'en','witness':{},'images':[{'file':'page.jpg','url':'https://example.org/page','by':'maker','sha256':digest}],'places':{},'review':{'reader':'old-reader'}}
+            file=path/'witnesses/en.json';file.write_text(json.dumps(data))
+            args=argparse.Namespace(packet=str(path),language='en',loc='p',image='page.jpg',page='86',address_kind=None,address_value=None,text='A whole sentence.',reason='This image-only page has no usable transcription of the passage.',alignment='This sentence matches the original place.',lines=None,justification=None)
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')),patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):kit.cmd_witness_transcribe_page(args)
+            result=json.loads(file.read_text());place=result['places']['p']
+            self.assertEqual(place['transcription']['kind'],'human-page');self.assertNotIn('source',place)
+            self.assertEqual(place['image_sha256'],digest);self.assertEqual(result['review'],{})
+
     def test_correction_preserves_page_binding_and_invalidates_review(self):
         import argparse
         import hashlib
