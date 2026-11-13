@@ -952,9 +952,14 @@
           "query": "The Principles of Aesthetics Parker",
           "result": "1920 NYPL full view; chapter V starts p80 and chapter IX p188. Personally viewed pp84 and 204; target passages and translations not fully reviewed.",
           "url": "https://babel.hathitrust.org/cgi/pt?id=nyp.33433081904454&seq=214"
+        },
+        {
+          "source": "Independent scan and Gutenberg comparison",
+          "url": "https://www.gutenberg.org/ebooks/6366",
+          "result": "Second researcher compared complete sentence boundaries on 1920 scan pp.83, 85, 88, 97 and 204 with Gutenberg. On pp.83–84 the discussion concerns grasping many elements, but the existing claim about rapid plot development was not confirmed; review claim or locate better evidence before admission."
         }
       ],
-      "remaining": "Search other required catalogues and actual translations for ru, es, de and zh-Hans; verify named hands, places and rights. No conclusion of absence has been made.",
+      "remaining": "Search mandatory catalogs and actual translations for ru, es, de and zh-Hans, verify rights and independent semantic review. C:A-I041 rapid plot claim is not established by pp.83–84; no absence inferred.",
       "original_places": [
         {
           "reading": "C:A-I040",
@@ -4872,7 +4877,61 @@
       "areas": [
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "de",
+      "people": [
+        {
+          "name": "Walter Gropius",
+          "role": "author",
+          "birth": 1883,
+          "death": 1969,
+          "evidence": [
+            "https://collections.library.yale.edu/catalog/2107189"
+          ]
+        },
+        {
+          "name": "Lyonel Feininger",
+          "role": "cover woodcut artist; separate graphic work",
+          "birth": 1871,
+          "death": 1956,
+          "evidence": [
+            "https://collections.library.yale.edu/catalog/2107189"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Programm des Staatlichen Bauhauses in Weimar, April 1919, Yale Beinecke exemplar",
+          "url": "https://collections.library.yale.edu/catalog/2107189",
+          "pdf": "https://collections.library.yale.edu/pdfs/2107189.pdf",
+          "status": "Yale digitization PDF p.3 is image 1329646, showing interior pp.[1–2]; personally inspected p.[1], second paragraph on art schools and workshop, and final paragraph on architecture, sculpture and painting. Yale metadata public access, image-use rights not independently decided."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "The Bauhaus: Weimar, Dessau, Berlin, Chicago, Wingler, MIT Press 1978, pp.31–33",
+          "url": "https://germanhistorydocs.org/en/weimar-germany-1918-1933/walter-gropius-program-of-the-state-bauhaus-in-weimar-1919",
+          "status": "Institutional English text identifies source range; translators and exact page require verification."
+        },
+        {
+          "language": "ru",
+          "edition": "Границы архитектуры, 1971; translation attributed to В. Р. Аронов",
+          "url": "https://archi.ru/elpub/91601/manifest-gosudarstvennogo-baukhauza-v-veimare",
+          "status": "Candidate translation; translator identity, dates, legal copy and print page require verification."
+        }
+      ],
+      "requested_places": [
+        "C:A-I075: Yale original 1919 p.[1], schools and workshops; compare full sentences and English/Russian translations independently"
+      ],
+      "searches": [
+        {
+          "source": "Yale Beinecke digitized exemplar",
+          "url": "https://collections.library.yale.edu/catalog/2107189",
+          "result": "Four-page 1919 object; PDF image of interior personally inspected. Gropius text and Feininger image are separate contributions. The library warns image use may be subject to rights."
+        }
+      ],
+      "remaining": "Verify text reuse and translation rights, exact translator identities, page alignment and complete required searches for ru/en/es/de/zh-Hans; no absence inferred."
     },
     {
       "work": "william-empson.seven-types-of-ambiguity",
