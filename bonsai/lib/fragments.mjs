@@ -38,7 +38,7 @@ export function translationScopesIssues(module){
   }
   return issues;
 }
-const BASES=['public-domain','public-domain+licence','short-quotation','locator-only'];
+const BASES=['public-domain','public-domain+licence','licensed','short-quotation','locator-only'];
 const JURISDICTIONS=['russia','usa','eu'];
 // Legacy witnesses predate territorial records; newer records must be complete.
 export function rightsBases(rights){
@@ -47,10 +47,17 @@ export function rightsBases(rights){
   if(entries.some(entry=>!BASES.includes(entry?.basis)||typeof entry?.law!=='string'||!entry.law.trim()))return [];
   return entries.map(entry=>entry.basis);
 }
+// A licence is specific to the edition and to the source that states it.
+const licensedEvidence=witness=>{
+  const proof=witness?.licence_evidence,source=proof?.source;
+  return proof?.edition===witness?.edition && /^https:\/\//.test(proof?.licence_url??'') &&
+    /^https:\/\//.test(source?.url??'') && /^[a-f0-9]{64}$/.test(source?.sha256??'') &&
+    typeof source?.file==='string' && !!source.file && String(proof?.explanation??'').trim().length>=40;
+};
 // Without a jurisdiction signal use the intersection of the three permissions.
 export function fragmentMayShow(witness){
   const bases=rightsBases(witness?.rights);
-  return bases.length>0&&!bases.includes('locator-only');
+  return bases.length>0&&!bases.includes('locator-only')&&(!bases.includes('licensed')||licensedEvidence(witness));
 }
 // What a link opens: the whole work, the page a quotation is taken from, or where a book can be found.
 const OPENS=['work','quotation','book'];
@@ -68,6 +75,7 @@ export function externalPlacesIssues(module){
       for(const field of ['edition','attribution'])if(!witness?.[field])problems.push(`work ${id} ${language} witness has no ${field}`);
       const bases=rightsBases(witness?.rights);
       if(!bases.length)problems.push(`work ${id} ${language} witness has no rights basis`);
+      if(bases.includes('licensed')&&!licensedEvidence(witness))problems.push(`work ${id} ${language} witness lacks licence evidence for this edition`);
       if(bases.some(basis=>basis!=='locator-only')&&!/^https:\/\//.test(witness?.url??''))problems.push(`work ${id} ${language} witness has no source URL`);
       if(witness?.opens!==undefined&&!OPENS.includes(witness.opens))problems.push(`work ${id} ${language} witness opens ${witness.opens}`);
     }
