@@ -27,7 +27,7 @@ storage stack, and Cargo declares the native tests' `required-features`.
 ranking, Unicode-16 query normalization, cursor binding and response budget over
 one complete bounded candidate set. The adapter still owns source selection,
 currentness, rights and candidate completeness; this operation does not replace
-the indexed-v2 or compressed-v3 search profiles.
+the compressed-v3 knowledge search profile.
 
 `tos-validation` provides typed candidate validation interfaces and an offline,
 locally supplied Draft 2020-12 schema probe. Its observed legacy format profile

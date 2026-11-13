@@ -31,8 +31,6 @@ pub mod knowledge_exploration;
 pub mod knowledge_focus;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 mod knowledge_inspect;
-#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
-pub mod knowledge_legacy_search;
 pub mod knowledge_lens;
 pub mod knowledge_lens_spec;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]

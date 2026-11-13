@@ -297,11 +297,7 @@ impl McpSession {
                         self.software.is_some() || executor.word_analysis_available()
                     }
                     Some(crate::reading::MCP_TOOL) => executor.reading_search_available(),
-                    Some(SEARCH_MCP_TOOL) => {
-                        executor.knowledge_search_indexed_available()
-                            || executor.knowledge_search_legacy_available()
-                            || executor.knowledge_search_compressed_available()
-                    }
+                    Some(SEARCH_MCP_TOOL) => executor.knowledge_search_compressed_available(),
                     Some(crate::SOURCE_TEXT_SEARCH_MCP_TOOL) => self.source_text_search_selected(),
                     Some(name)
                         if registered_operations().ok().is_some_and(|ops| {

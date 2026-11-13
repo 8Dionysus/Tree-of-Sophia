@@ -18,13 +18,14 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Legacy knowledge search
 
-`tos-query/src/knowledge_legacy_search.rs` scans selected carriers; `tos-access/src/core_legacy_query_executor.rs`, `knowledge.rs` and the Worker D1 `knowledgeSearchD1` serve callers. The compiler and D1 publication routes produce its input carriers. Tracked legacy-search carrier counts are not established; JSON marker counts alone cannot identify those carriers. Inspect installed CLI, HTTP, MCP and web clients, selected stores and D1 deployments and offsets.
-
-**Removal condition:** Every supported consumer and publication uses a replacement with accepted normalization, ranking, ordering, offsets, rights and error behavior, or an explicitly versioned and accepted change; outstanding continuations expire or migrate and rollback works. **Package:** Search consumer cutover and legacy executor retirement.
+The native access legacy scan is removed. The intended preservation tag is
+`retired/legacy-search`; the tag and its data archive must be established and
+verified by the landing owner. The separate retired Worker is handled by its
+own package.
 
 ## Indexed search V2
 
-`tos-query/src/search_v2.rs` defines typed requests, vocabulary and cursor behavior; `tos-access/src/prepared_local.rs` and `indexed_cursor.rs` serve indexed readers, while the Worker calls `knowledgeSearchD1Indexed`. Prepared/D1 publishers supply indexed data. Three tracked JSON contract files mention `tos_knowledge_search_indexed_v2`. Inspect deployed capabilities, D1 and local publications, clients and unexpired cursors.
+`tos-query/src/search_v2.rs` defines typed requests, vocabulary and cursor behavior; the indexed executor and `indexed_cursor.rs` remain in the native source but native CLI, HTTP and MCP no longer dispatch them. The Worker calls `knowledgeSearchD1Indexed`. Prepared/D1 publishers supply indexed data. Three tracked JSON contract files mention `tos_knowledge_search_indexed_v2`. Inspect deployed capabilities, D1 and local publications, clients and unexpired cursors.
 
 **Removal condition:** A selected API implements accepted indexed semantics and rights, all clients and publications switch, and old cursor lifetimes expire or are migrated with tested continuation and rollback. **Package:** Offline export and consumer cutover; retain reusable V2 semantics in the chosen owner.
 
@@ -54,13 +55,14 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Diagnostic query-store search
 
-`tos-query/src/source_diagnostic_legacy.rs` and `source_diagnostic.rs` read authenticated `tos_query_store_v1` carriers; `tos-access/src/core_snapshot.rs` and `core_legacy_query_executor.rs` expose selected query-store operations. Compiler snapshot routes produce carriers. Zero tracked JSON/JSONL files contain the exact marker; binary and external carriers are unknown. Inspect configured query-store files, snapshot metadata, backups and CLI/MCP consumers.
-
-**Removal condition:** Every retained selected carrier and required diagnostic operation has a source-returning, authorized replacement; regenerate or migrate carriers, verify restore and switch consumers. **Package:** Diagnostic carrier migration and reader retirement.
+The native access diagnostic query-store reader is removed. The intended
+preservation tag is `retired/query-store`; the tag and its data archive must be
+established and verified by the landing owner. Source diagnostics retain
+separate selected-input checks.
 
 ## Files named legacy or historical
 
-A basename search finds 100 tracked files containing `legacy` or `historical`, including data and fixtures; nine are Rust files, eight under `rust/` totaling 12,941 lines and one under `tests/`. Their names are not a deletion list. The Rust files are `tos-access/src/core_legacy_query_executor.rs`, `tos-query/src/{knowledge_legacy_search,source_diagnostic_legacy}.rs`, `tos-compiler/src/legacy.rs`, and `tos-command/src/{source_legacy_claim_store,source_legacy_historical_claim,source_native_legacy_claim_cli,source_native_pg_forms_historical_cli}.rs`; the test is `tests/conformance/rust/command_legacy_claim_cases.rs`. Command modules write or read claims and forms; the compiler and query modules produce or read compatibility carriers. Historical-subject forms and authored Claims remain active responsibilities. Inspect operator claim stores, permissions, selected captures and consumers as well as tracked references.
+The pre-retirement basename survey found 100 tracked files containing `legacy` or `historical`, including data and fixtures. Their names are not a deletion list. The remaining Rust files include `tos-compiler/src/legacy.rs` and `tos-command/src/{source_legacy_claim_store,source_legacy_historical_claim,source_native_legacy_claim_cli,source_native_pg_forms_historical_cli}.rs`; the test is `tests/conformance/rust/command_legacy_claim_cases.rs`. Command modules write or read claims and forms; the compiler and query modules produce or read compatibility carriers. Historical-subject forms and authored Claims remain active responsibilities. Inspect operator claim stores, permissions, selected captures and consumers as well as tracked references.
 
 **Removal condition:** Classify each file and its records by actual behavior; move active historical-subject responsibilities to an accepted owner, satisfy each relevant search or claim migration gate, preserve records and history, and prove no supported caller needs the old implementation. **Package:** Per-owner claim/forms, compiler, query and conformance cleanup; remove only individually qualified files.
 

@@ -4,6 +4,9 @@
 //! fields present on normalized graph carriers. It never assesses meaning,
 //! admits source, or mutates an owner surface.
 
+use crate::prepared_coverage::{
+    PreparedCoverageKind, PreparedCoverageLimits, PreparedCoverageSource,
+};
 use crate::source_projection_catalog_capture::{CaptureObservationLimits, observe_owned_catalogue};
 use serde_json::{Value, json};
 use std::{
@@ -13,14 +16,17 @@ use std::{
     os::fd::AsRawFd,
     os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
-    sync::atomic::{AtomicBool, AtomicI32},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, AtomicI32},
+    },
     time::{Duration, Instant},
 };
 use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonString, JsonValue,
-    canonical_feed_digest_v1, canonical_raw_bytes_v1, parse_json,
+    canonical_feed_digest_v1, canonical_raw_bytes_v1, emit_value_preserved_json, parse_json,
 };
-use tos_query::source_diagnostic::Limits;
+use tos_query::{AbortProbe, AbortReason};
 use tos_source_store::MetadataPublicationEpoch;
 
 const SOURCE_HOME: &str = "ToS/source-witnesses";
@@ -48,6 +54,13 @@ const LIMITATIONS: [&str; 8] = [
     "The report compares the selected snapshot. Generated artifacts, runtime and deployment have their own revision and currentness checks.",
     "Boundary rechecks do not provide an atomic snapshot against arbitrary non-cooperating editors.",
 ];
+
+struct ProjectionDeadline(Instant);
+impl AbortProbe for ProjectionDeadline {
+    fn reason(&self) -> Option<AbortReason> {
+        (Instant::now() >= self.0).then_some(AbortReason::DeadlineExceeded)
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct SourceEntry {
@@ -617,6 +630,31 @@ impl Stamp {
     }
 }
 
+struct SelectedGraph {
+    path: PathBuf,
+    file: File,
+    stamp: Stamp,
+}
+impl SelectedGraph {
+    fn verify_currentness(&self) -> Result<(), String> {
+        let held = self
+            .file
+            .metadata()
+            .map_err(|_| "selected philosophy graph descriptor unavailable")?;
+        let metadata = fs::symlink_metadata(&self.path)
+            .map_err(|_| "selected philosophy graph projection disappeared")?;
+        if !held.is_file()
+            || Stamp::read(&held) != self.stamp
+            || !metadata.is_file()
+            || metadata.file_type().is_symlink()
+            || Stamp::read(&metadata) != self.stamp
+        {
+            return Err("selected philosophy graph projection changed before completion".into());
+        }
+        Ok(())
+    }
+}
+
 struct FileFence {
     stamp: Stamp,
     sha256: String,
@@ -1098,15 +1136,58 @@ fn parse_source_json(raw: &[u8], cap: usize) -> Result<Value, String> {
     serde_json::from_slice(&preserved).map_err(|error| error.to_string())
 }
 
-fn read_input(path: &str, cap: usize, deadline: Instant) -> Result<Vec<u8>, String> {
+fn prepared_source_limits(
+    max_input_bytes: u64,
+    max_rows: u64,
+    max_state_bytes: u64,
+) -> Result<PreparedCoverageLimits, String> {
+    let max_input_bytes = usize::try_from(max_input_bytes)
+        .map_err(|_| "source projection prepared input budget does not fit memory")?;
+    let max_rows = usize::try_from(max_rows)
+        .map_err(|_| "source projection prepared row budget does not fit memory")?;
+    let max_state_bytes = usize::try_from(max_state_bytes)
+        .map_err(|_| "source projection prepared state budget does not fit memory")?;
+    let mut limits = PreparedCoverageLimits::default();
+    limits.max_total_bytes = max_input_bytes.min(max_state_bytes / 4);
+    limits.max_rows = max_rows;
+    limits.max_row_bytes = MAX_SOURCE_ROW_BYTES;
+    limits.max_vm_steps = 100_000_000;
+    limits.admission.max_bytes = limits.max_total_bytes;
+    limits.admission.max_metadata_bytes = limits
+        .max_total_bytes
+        .min(limits.admission.max_metadata_bytes);
+    limits.admission.max_row_bytes = MAX_SOURCE_ROW_BYTES;
+    if limits.max_total_bytes == 0 {
+        return Err("source projection prepared byte/state budget is exhausted".into());
+    }
+    Ok(limits)
+}
+
+fn prepared_record_value(record: &JsonValue) -> Result<Value, String> {
+    let encoded = emit_value_preserved_json(record, json_limits(MAX_SOURCE_ROW_BYTES))
+        .map_err(|error| error.to_string())?;
+    serde_json::from_slice(&encoded).map_err(|error| error.to_string())
+}
+
+fn read_input(
+    path: &str,
+    cap: usize,
+    deadline: Instant,
+) -> Result<(Vec<u8>, Option<SelectedGraph>), String> {
     if path != "-" {
-        let file = tos_fd_open::open_absolute_regular(Path::new(path), cap as u64)
+        let path = Path::new(path);
+        let file = tos_fd_open::open_absolute_regular(path, cap as u64)
             .map_err(|_| "source projection input is not a safe regular file")?;
-        let before = Stamp::read(
-            &file
-                .metadata()
-                .map_err(|_| "source projection input cannot be stated")?,
-        );
+        let before_metadata = file
+            .metadata()
+            .map_err(|_| "source projection input cannot be stated")?;
+        let before = Stamp::read(&before_metadata);
+        let selected = SelectedGraph {
+            path: path.to_owned(),
+            file,
+            stamp: before,
+        };
+        selected.verify_currentness()?;
         if before.len > cap as u64 {
             return Err("source projection input byte budget exceeded".into());
         }
@@ -1119,7 +1200,7 @@ fn read_input(path: &str, cap: usize, deadline: Instant) -> Result<Vec<u8>, Stri
             if Instant::now() >= deadline {
                 return Err("source projection input deadline exceeded".into());
             }
-            let read = (&file)
+            let read = (&selected.file)
                 .take(cap as u64 + 1 - bytes.len() as u64)
                 .read(&mut chunk)
                 .map_err(|_| "source projection input cannot be read")?;
@@ -1132,14 +1213,16 @@ fn read_input(path: &str, cap: usize, deadline: Instant) -> Result<Vec<u8>, Stri
             bytes.extend_from_slice(&chunk[..read]);
         }
         if Stamp::read(
-            &file
+            &selected
+                .file
                 .metadata()
                 .map_err(|_| "source projection input cannot be restated")?,
         ) != before
         {
             return Err("source projection input changed during read".into());
         }
-        return Ok(bytes);
+        selected.verify_currentness()?;
+        return Ok((bytes, Some(selected)));
     }
     let mut stdin = io::stdin();
     let mut bytes = Vec::new();
@@ -1174,7 +1257,7 @@ fn read_input(path: &str, cap: usize, deadline: Instant) -> Result<Vec<u8>, Stri
         }
         bytes.extend_from_slice(&chunk[..read]);
     }
-    Ok(bytes)
+    Ok((bytes, None))
 }
 
 fn required<'a>(value: &'a Value, name: &str) -> Result<&'a Value, String> {
@@ -1523,32 +1606,59 @@ fn load_source_catalog(
     Ok((fence, publication, entries, hashes, kinds, currentness))
 }
 
-fn open_store(
-    root: &Path,
-    max_input_bytes: u64,
-    max_rows: u64,
-    deadline: Instant,
-) -> Result<tos_query::source_diagnostic::LegacyStore, String> {
-    crate::coverage::open_knowledge_store(
-        root,
-        Limits {
-            max_input_bytes,
-            max_json_bytes: MAX_SOURCE_ROW_BYTES,
-            max_rows,
-            max_work_steps: 100_000_000,
-            max_sql_vm_steps: 100_000_000,
-            sqlite_cache_kib: 8192,
-        },
-        deadline,
-    )
-}
-
 fn graph_revision(graph: &Value) -> Result<Value, String> {
     let revision = required(graph, "source_revision")?;
     if !revision.is_string() {
         return Err("source projection graph needs a string source_revision".into());
     }
     Ok(revision.clone())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn finish_candidates<F>(
+    revision: &Value,
+    entries: &[SourceEntry],
+    source_hashes: &BTreeMap<String, String>,
+    kinds: &[String],
+    catalog_sha256: &str,
+    catalogue_origin: &str,
+    candidates: &BTreeMap<String, IdentityObservation>,
+    fence: &mut RootFence,
+    publication: &MetadataPublicationEpoch,
+    deadline: Instant,
+    rows: bool,
+    mut verify_selection: F,
+    output: &mut dyn Write,
+) -> Result<(), String>
+where
+    F: FnMut(&mut RootFence) -> Result<(), String>,
+{
+    verify_source_snapshot(fence, publication)?;
+    let source_hash_map_encoded_len =
+        reserve_source_hash_map_digest(&mut fence.meter, source_hashes)?;
+    let files_digest = source_hash_map_digest(
+        source_hashes,
+        source_hash_map_encoded_len,
+        &mut fence.meter,
+        deadline,
+    )?;
+    report_summary(
+        entries,
+        source_hashes.len(),
+        &files_digest,
+        kinds,
+        revision,
+        catalog_sha256,
+        catalogue_origin,
+        candidates,
+        rows,
+        deadline,
+        || {
+            verify_selection(fence)?;
+            verify_source_snapshot(fence, publication)
+        },
+        output,
+    )
 }
 
 fn execute_imported_graph(
@@ -1562,6 +1672,8 @@ fn execute_imported_graph(
     publication: &MetadataPublicationEpoch,
     deadline: Instant,
     rows: bool,
+    precharged_rows: u64,
+    verify_graph: &dyn Fn() -> Result<(), String>,
     output: &mut dyn Write,
 ) -> Result<(), String> {
     let revision = graph_revision(graph)?;
@@ -1578,8 +1690,10 @@ fn execute_imported_graph(
         .collect::<BTreeMap<_, _>>();
     let known = by_identity.keys().cloned().collect::<BTreeSet<_>>();
     let mut candidates = BTreeMap::<String, IdentityObservation>::new();
-    for item in node_list.iter().chain(relation_list.iter()) {
-        fence.meter.charge_row()?;
+    for (index, item) in node_list.iter().chain(relation_list.iter()).enumerate() {
+        if (index as u64) >= precharged_rows {
+            fence.meter.charge_row()?;
+        }
         add_carrier(
             item,
             &by_identity,
@@ -1588,122 +1702,19 @@ fn execute_imported_graph(
             &mut fence.meter,
         )?;
     }
-    verify_source_snapshot(fence, publication)?;
-    let source_hash_map_encoded_len =
-        reserve_source_hash_map_digest(&mut fence.meter, source_hashes)?;
-    let files_digest = source_hash_map_digest(
-        source_hashes,
-        source_hash_map_encoded_len,
-        &mut fence.meter,
-        deadline,
-    )?;
-    report_summary(
-        entries,
-        source_hashes.len(),
-        &files_digest,
-        kinds,
+    finish_candidates(
         &revision,
+        entries,
+        source_hashes,
+        kinds,
         catalog_sha256,
         catalogue_origin,
         &candidates,
+        fence,
+        publication,
+        deadline,
         rows,
-        deadline,
-        || verify_source_snapshot(fence, publication),
-        output,
-    )
-}
-
-fn execute_native_store(
-    entries: &[SourceEntry],
-    source_hashes: &BTreeMap<String, String>,
-    kinds: &[String],
-    catalog_sha256: &str,
-    catalogue_origin: &str,
-    root: &Path,
-    fence: &mut RootFence,
-    publication: &MetadataPublicationEpoch,
-    deadline: Instant,
-    rows: bool,
-    output: &mut dyn Write,
-) -> Result<(), String> {
-    let remaining_input = fence.meter.remaining_input();
-    if remaining_input == 0 {
-        return Err(
-            "source projection selected-input byte budget exhausted before graph read".into(),
-        );
-    }
-    let remaining_rows = fence.meter.max_rows.saturating_sub(fence.meter.rows);
-    if remaining_rows == 0 {
-        return Err("source projection row budget exhausted before graph read".into());
-    }
-    let mut store = open_store(root, remaining_input, remaining_rows, deadline)?;
-    let revision = store
-        .graph_header
-        .get("source_revision")
-        .filter(|value| value.is_string())
-        .cloned()
-        .ok_or("native source diagnostic graph header has no string source_revision")?;
-    let by_identity = entries
-        .iter()
-        .cloned()
-        .map(|entry| (entry.identity.clone(), entry))
-        .collect::<BTreeMap<_, _>>();
-    let known = by_identity.keys().cloned().collect::<BTreeSet<_>>();
-    let mut candidates = BTreeMap::<String, IdentityObservation>::new();
-    let mut observed_rows = 0u64;
-    let counts = store
-        .visit_knowledge_carriers(|item| {
-            observed_rows = observed_rows.checked_add(1).ok_or_else(|| {
-                tos_query::source_diagnostic::DiagnosticError(
-                    "source projection graph row overflow".into(),
-                )
-            })?;
-            add_carrier(
-                item,
-                &by_identity,
-                &known,
-                &mut candidates,
-                &mut fence.meter,
-            )
-            .map_err(tos_query::source_diagnostic::DiagnosticError)
-        })
-        .map_err(|error| error.to_string())?;
-    if counts.0.checked_add(counts.1) != Some(observed_rows) {
-        return Err("source projection graph enumeration count mismatch".into());
-    }
-    let (charged_bytes, charged_rows) = store.resource_usage();
-    fence
-        .meter
-        .charge_external_usage(charged_bytes, charged_rows)?;
-    store
-        .verify_currentness()
-        .map_err(|error| error.to_string())?;
-    fence.verify_currentness()?;
-    let source_hash_map_encoded_len =
-        reserve_source_hash_map_digest(&mut fence.meter, source_hashes)?;
-    let files_digest = source_hash_map_digest(
-        source_hashes,
-        source_hash_map_encoded_len,
-        &mut fence.meter,
-        deadline,
-    )?;
-    report_summary(
-        entries,
-        source_hashes.len(),
-        &files_digest,
-        kinds,
-        &revision,
-        catalog_sha256,
-        catalogue_origin,
-        &candidates,
-        rows,
-        deadline,
-        || {
-            store
-                .verify_currentness()
-                .map_err(|error| error.to_string())?;
-            verify_source_snapshot(fence, publication)
-        },
+        |_| verify_graph(),
         output,
     )
 }
@@ -1712,6 +1723,7 @@ fn execute_root(
     root: &Path,
     invocation: &str,
     graph: Option<&str>,
+    prepared: Option<(PathBuf, PathBuf)>,
     input_bytes: u64,
     max_rows: u64,
     max_state_bytes: u64,
@@ -1719,6 +1731,16 @@ fn execute_root(
     rows: bool,
     output: &mut dyn Write,
 ) -> Result<(), String> {
+    if graph.is_none() && prepared.is_none() {
+        return Err(
+            "source-projection-coverage requires --graph with normalized knowledge carriers or an explicit prepared reader; the philosophy graph projection is a different data product".into(),
+        );
+    }
+    if graph.is_some() && prepared.is_some() {
+        return Err(
+            "source-projection-coverage requires exactly one --graph or prepared read-model/binding pair".into(),
+        );
+    }
     let (mut fence, publication, entries, source_hashes, kinds, currentness) = load_source_catalog(
         root,
         invocation,
@@ -1727,51 +1749,178 @@ fn execute_root(
         max_state_bytes,
         deadline,
     )?;
-    if let Some(graph_path) = graph {
-        let remaining = fence.meter.remaining_input();
-        if remaining == 0 {
-            return Err(
-                "source projection selected-input byte budget exhausted before graph input".into(),
-            );
+    if let Some((model, binding)) = prepared {
+        let remaining_input = fence.meter.remaining_input();
+        let remaining_rows = fence.meter.max_rows.saturating_sub(fence.meter.rows);
+        let remaining_state = fence.meter.max_state.saturating_sub(fence.meter.state);
+        let limits = prepared_source_limits(remaining_input, remaining_rows, remaining_state)?;
+        let source = PreparedCoverageSource::new(model, binding, limits)?;
+        let by_identity = entries
+            .iter()
+            .cloned()
+            .map(|entry| (entry.identity.clone(), entry))
+            .collect::<BTreeMap<_, _>>();
+        let known = by_identity.keys().cloned().collect::<BTreeSet<_>>();
+        let mut candidates = BTreeMap::<String, IdentityObservation>::new();
+        let mut visitor_revision = None::<String>;
+        let abort: Arc<dyn AbortProbe> = Arc::new(ProjectionDeadline(deadline));
+        let result = source.visit(deadline, Arc::clone(&abort), |row| {
+            if visitor_revision
+                .as_deref()
+                .is_some_and(|revision| revision != row.source_revision)
+            {
+                return Err("prepared source revision changed within coverage visitor".into());
+            }
+            visitor_revision.get_or_insert_with(|| row.source_revision.to_owned());
+            let item = prepared_record_value(row.record)?;
+            if (row.kind == PreparedCoverageKind::Relation) != item.get("from_id").is_some() {
+                return Err(
+                    "prepared source-projection row kind differs from normalized carrier".into(),
+                );
+            }
+            add_carrier(
+                &item,
+                &by_identity,
+                &known,
+                &mut candidates,
+                &mut fence.meter,
+            )
+        })?;
+        let mut summary = result.summary;
+        if visitor_revision
+            .as_deref()
+            .is_some_and(|revision| revision != summary.source_revision)
+        {
+            return Err("prepared source revision differs from coverage summary".into());
         }
-        let cap = usize::try_from(remaining.min(usize::MAX as u64))
-            .map_err(|_| "source projection graph input cap does not fit memory")?;
-        let raw = read_input(graph_path, cap, deadline)?;
-        fence.meter.charge_read(raw.len() as u64, 4)?;
-        let graph_value = parse_source_json(&raw, cap)?;
-        execute_imported_graph(
-            &graph_value,
+        let charged_bytes = u64::try_from(summary.charged_bytes)
+            .map_err(|_| "prepared coverage byte accounting")?;
+        let charged_rows =
+            u64::try_from(summary.charged_rows).map_err(|_| "prepared coverage row accounting")?;
+        fence
+            .meter
+            .charge_external_usage(charged_bytes, charged_rows)?;
+        let revision = json!(summary.source_revision.clone());
+        let mut guard = result.guard;
+        let mut accounted_bytes = summary.charged_bytes;
+        let mut accounted_rows = summary.charged_rows;
+        let mut verify_prepared = |fence: &mut RootFence| {
+            guard.recheck(&mut summary, deadline, Arc::clone(&abort))?;
+            let next_bytes = u64::try_from(summary.charged_bytes)
+                .map_err(|_| "prepared coverage byte accounting")?;
+            let next_rows = u64::try_from(summary.charged_rows)
+                .map_err(|_| "prepared coverage row accounting")?;
+            let previous_bytes =
+                u64::try_from(accounted_bytes).map_err(|_| "prepared coverage byte accounting")?;
+            let previous_rows =
+                u64::try_from(accounted_rows).map_err(|_| "prepared coverage row accounting")?;
+            let delta_bytes = next_bytes
+                .checked_sub(previous_bytes)
+                .ok_or("prepared coverage byte accounting moved backwards")?;
+            let delta_rows = next_rows
+                .checked_sub(previous_rows)
+                .ok_or("prepared coverage row accounting moved backwards")?;
+            fence.meter.charge_external_usage(delta_bytes, delta_rows)?;
+            accounted_bytes = summary.charged_bytes;
+            accounted_rows = summary.charged_rows;
+            Ok(())
+        };
+        return finish_candidates(
+            &revision,
             &entries,
             &source_hashes,
             &kinds,
             &currentness.catalog_sha256,
             currentness.catalogue_origin,
+            &candidates,
             &mut fence,
             &publication,
             deadline,
             rows,
+            &mut verify_prepared,
             output,
-        )
-    } else {
-        execute_native_store(
-            &entries,
-            &source_hashes,
-            &kinds,
-            &currentness.catalog_sha256,
-            currentness.catalogue_origin,
-            root,
-            &mut fence,
-            &publication,
-            deadline,
-            rows,
-            output,
-        )
+        );
     }
+
+    let graph_path = graph.expect("exclusive normalized graph selection checked");
+    let remaining = fence.meter.remaining_input();
+    if remaining == 0 {
+        return Err(
+            "source projection selected-input byte budget exhausted before graph input".into(),
+        );
+    }
+    let cap = usize::try_from(remaining.min(usize::MAX as u64))
+        .map_err(|_| "source projection graph input cap does not fit memory")?;
+    let (raw, selected_graph) = read_input(graph_path, cap, deadline)?;
+    fence.meter.charge_read(raw.len() as u64, 4)?;
+    let graph_value = parse_source_json(&raw, cap)?;
+    let (graph_value, precharged_rows) =
+        if graph_value.get("schema_version").and_then(Value::as_str)
+            == Some("tos_partitioned_projection_v1")
+        {
+            let selected = selected_graph
+                .as_ref()
+                .ok_or("partitioned normalized graph requires an absolute --graph file path")?;
+            let remaining_input = fence.meter.remaining_input();
+            let remaining_rows = fence.meter.max_rows.saturating_sub(fence.meter.rows);
+            let remaining_state = fence.meter.max_state.saturating_sub(fence.meter.state);
+            let limits = tos_compiler::d1_projection_snapshot::D1ProjectionLimits {
+                max_opened_parts: remaining_rows,
+                max_read_bytes: remaining_input,
+                max_stored_read_bytes: remaining_input,
+                max_decoded_bytes: remaining_input,
+                max_keys: remaining_rows,
+                max_rows: remaining_rows,
+                max_changes: 0,
+                max_output_bytes: remaining_state / 4,
+            };
+            let (assembled, accounting) = crate::partitioned_projection::materialize_collections(
+                &raw,
+                &selected.path,
+                &["nodes", "relations"],
+                limits,
+                deadline,
+            )?;
+            let read_bytes = accounting
+                .stored_bytes
+                .checked_add(accounting.decoded_bytes)
+                .ok_or("source projection partition byte accounting overflow")?;
+            fence
+                .meter
+                .charge_external_usage(read_bytes, accounting.keys)?;
+            let materialized = parse_source_json(&assembled, assembled.len())?;
+            (materialized, accounting.keys)
+        } else {
+            (graph_value, 0)
+        };
+    let verify_graph = || {
+        if let Some(selected) = &selected_graph {
+            selected.verify_currentness()?;
+        }
+        Ok(())
+    };
+    execute_imported_graph(
+        &graph_value,
+        &entries,
+        &source_hashes,
+        &kinds,
+        &currentness.catalog_sha256,
+        currentness.catalogue_origin,
+        &mut fence,
+        &publication,
+        deadline,
+        rows,
+        precharged_rows,
+        &verify_graph,
+        output,
+    )
 }
 
 fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
     let mut root = None;
     let mut graph = None;
+    let mut prepared_model = None;
+    let mut prepared_binding = None;
     let mut invocation = None;
     let mut input = None;
     let mut observe = false;
@@ -1810,6 +1959,8 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
             "--root" => root = Some(PathBuf::from(value)),
             "--invocation" => invocation = Some(value.as_str()),
             "--graph" => graph = Some(value.as_str()),
+            "--prepared-read-model" => prepared_model = Some(PathBuf::from(value)),
+            "--prepared-binding" => prepared_binding = Some(PathBuf::from(value)),
             "--input" => input = Some(value.as_str()),
             "--max-input-bytes" => {
                 max_input_bytes = value
@@ -1849,11 +2000,21 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
         .checked_add(Duration::from_secs(max_seconds))
         .ok_or("source projection deadline arithmetic")?;
     if observe {
-        if rows || root.is_some() || graph.is_some() || invocation.is_some() {
-            return Err("--observe-record does not accept root, graph or rows options".into());
+        if rows
+            || root.is_some()
+            || graph.is_some()
+            || prepared_model.is_some()
+            || prepared_binding.is_some()
+            || invocation.is_some()
+        {
+            return Err(
+                "--observe-record does not accept root, graph, prepared selection or rows options"
+                    .into(),
+            );
         }
         let path = input.ok_or("--observe-record requires --input")?;
-        let value = parse_source_json(&read_input(path, REQUEST_CAP, deadline)?, REQUEST_CAP)?;
+        let (raw, _) = read_input(path, REQUEST_CAP, deadline)?;
+        let value = parse_source_json(&raw, REQUEST_CAP)?;
         return execute_observe(&value, output);
     }
     if input.is_some() || root.is_none() {
@@ -1862,11 +2023,33 @@ fn execute(args: &[String], output: &mut dyn Write) -> Result<(), String> {
                 .into(),
         );
     }
+    if prepared_model.is_some() != prepared_binding.is_some() {
+        return Err(
+            "source-projection-coverage requires both --prepared-read-model and --prepared-binding"
+                .into(),
+        );
+    }
+    let prepared = match (prepared_model, prepared_binding) {
+        (Some(model), Some(binding)) => Some((model, binding)),
+        (None, None) => None,
+        _ => unreachable!(),
+    };
+    if graph.is_none() && prepared.is_none() {
+        return Err(
+            "source-projection-coverage requires --graph with normalized knowledge carriers or an explicit prepared reader; the philosophy graph projection is a different data product".into(),
+        );
+    }
+    if graph.is_some() && prepared.is_some() {
+        return Err(
+            "source-projection-coverage requires exactly one --graph or prepared read-model/binding pair".into(),
+        );
+    }
     execute_root(
         root.as_deref().expect("checked root"),
         invocation
             .ok_or("source-projection-coverage requires protected native --invocation ABS")?,
         graph,
+        prepared,
         max_input_bytes,
         max_rows,
         max_state_bytes,
@@ -1890,7 +2073,7 @@ pub fn run_if_requested(
     if args.len() == 2 && matches!(args[1].as_str(), "--help" | "-h") {
         let _ = writeln!(
             output,
-            "source-projection-coverage --root ABS --invocation ABS [--graph ABS_JSON|-] [--rows] [--max-input-bytes N --max-rows N --max-state-bytes N --max-seconds N]\nsource-projection-coverage --observe-record --input ABS|-\nProtected invocation catalogue_representation selects persisted-root (default) or owned-cold. Terminal catalogue_origin is published_root or cold_generated; cold_generated is a complete private native output tuple, not a persisted root publication. A stream without its terminal summary is incomplete. No assessment, admission or source mutation."
+            "source-projection-coverage --root ABS --invocation ABS (--graph NORMALIZED_GRAPH_JSON | --prepared-read-model ABS --prepared-binding ABS) [--rows] [--max-input-bytes N --max-rows N --max-state-bytes N --max-seconds N]\nsource-projection-coverage --observe-record --input ABS|-\n--graph must contain normalized knowledge nodes and relations; the philosophy graph projection has a different schema. The prepared pair selects normalized knowledge carriers with binding and file/WAL checks. Protected invocation catalogue_representation selects persisted-root (default) or owned-cold. Terminal catalogue_origin is published_root or cold_generated; cold_generated is a complete private native output tuple, not a persisted root publication. A stream without its terminal summary is incomplete. No assessment, admission or source mutation."
         );
         return Some(0);
     }
@@ -1906,6 +2089,25 @@ pub fn run_if_requested(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn root_route_refuses_philosophy_projection_as_knowledge_carriers() {
+        let error = execute_root(
+            Path::new("/unused"),
+            "/unused/invocation.json",
+            None,
+            None,
+            1,
+            1,
+            1,
+            Instant::now() + Duration::from_secs(1),
+            false,
+            &mut Vec::new(),
+        )
+        .unwrap_err();
+        assert!(error.contains("requires --graph with normalized knowledge carriers"));
+        assert!(error.contains("different data product"));
+    }
 
     #[test]
     fn unknown_and_null_fields_participate_in_exact_projection_comparison() {

@@ -117,7 +117,7 @@
     },
     {
       "operation_id": "tos.knowledge.search",
-      "execution_version": "tos_knowledge_search_v1_or_indexed_v2",
+      "execution_version": "tos_knowledge_search_compressed_v3",
       "effect": "read-only",
       "availability": "only_with_owner_selected_engine_and_current_query_fence",
       "http": {
@@ -126,7 +126,7 @@
       },
       "mcp": {
         "tool": "tos_knowledge_search",
-        "description": "Search selected knowledge carriers with the maintained legacy or indexed engine; compressed requires a prepared publication",
+        "description": "Search selected knowledge carriers in the prepared local publication",
         "input_schema": {
           "type": "object",
           "properties": {
@@ -165,7 +165,7 @@
             "offset": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 100000,
+              "maximum": 0,
               "default": 0
             },
             "limit": {
@@ -177,11 +177,9 @@
             "mode": {
               "type": "string",
               "enum": [
-                "legacy",
-                "indexed",
                 "compressed"
               ],
-              "default": "legacy"
+              "default": "compressed"
             },
             "cursor": {
               "type": [
@@ -191,69 +189,21 @@
               "maxLength": 65536
             }
           },
-          "additionalProperties": false,
-          "allOf": [
-            {
-              "if": {
-                "properties": {
-                  "mode": {
-                    "const": "indexed"
-                  }
-                },
-                "required": [
-                  "mode"
-                ]
-              },
-              "then": {
-                "properties": {
-                  "query": {
-                    "maxLength": 256
-                  },
-                  "offset": {
-                    "const": 0
-                  },
-                  "sources": {
-                    "maxItems": 256,
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 256
-                    }
-                  },
-                  "kind_ids": {
-                    "maxItems": 256,
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 256
-                    }
-                  },
-                  "predicate_ids": {
-                    "maxItems": 256,
-                    "items": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 256
-                    }
-                  }
-                }
-              }
-            }
-          ]
+          "additionalProperties": false
         }
       },
       "cli": {
         "command": "knowledge search"
       },
       "request": {
-        "query": "optional Unicode text; default empty; 0..256 normalized code points for legacy, 3..256 for indexed",
+        "query": "optional Unicode text; default empty; at most 256 normalized code points",
         "sources": "selected source-owned vocabulary IDs",
-        "kind_ids": "legacy permits unknown filters (zero matches); indexed requires selected vocabulary",
-        "predicate_ids": "legacy permits unknown filters (zero matches); indexed requires selected vocabulary",
-        "cursor": "adapter-local continuation",
+        "kind_ids": "selected filter IDs",
+        "predicate_ids": "selected filter IDs",
+        "cursor": "authenticated publication-bound continuation",
         "limit": "1..100; default 40",
-        "mode": "legacy default; indexed explicit; compressed unavailable without prepared owner publication",
-        "offset": "legacy 0..100000; indexed/compressed zero"
+        "mode": "compressed by default; requires prepared owner publication",
+        "offset": "zero only"
       },
       "result": "exact selected engine packet under held current authority"
     },

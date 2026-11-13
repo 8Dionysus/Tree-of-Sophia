@@ -46,8 +46,6 @@ pub mod public_d1_build;
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub mod public_packet_compare;
 pub mod reading;
-#[cfg(not(target_arch = "wasm32"))]
-pub(crate) mod reference_cursor;
 pub mod release_state;
 pub mod word_analysis;
 pub use knowledge::{KnowledgeOperation, KnowledgeRequest};
@@ -109,20 +107,7 @@ pub mod source_cut_restore;
 pub mod evidence_projection;
 
 #[cfg(not(target_arch = "wasm32"))]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub mod core_snapshot;
-#[cfg(not(target_arch = "wasm32"))]
 pub mod native_cold_resources;
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub mod reference_query_executor;
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub mod reference_root_query;
-
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-mod core_http_admission;
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
@@ -131,6 +116,7 @@ pub mod source_projection_catalog_capture;
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub mod source_projection_coverage;
 
+mod partitioned_projection;
+
 #[cfg(not(target_arch = "wasm32"))]
-#[cfg(any(feature = "source-tools", feature = "research-tools"))]
-pub(crate) mod controlled_reference_health;
+mod prepared_coverage;

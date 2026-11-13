@@ -5,8 +5,7 @@ use tos_foundation::{JsonLimits, JsonMode, JsonValue, parse_json};
 use tos_query::{AbortProbe, AbortReason};
 
 use tos_access::{
-    AccessError, AccessExecutor, AccessProfile, DisclosureFence, IndexedSearchParams, Params,
-    PreparedPacket, cli,
+    AccessError, AccessExecutor, AccessProfile, DisclosureFence, Params, PreparedPacket, cli,
     http::{handle_get, serve, serve_connection},
     mcp::run_io,
 };
@@ -766,8 +765,7 @@ fn http_refuses_non_loopback_before_listening() {
 }
 
 struct SearchSynthetic {
-    available: bool,
-    calls: Mutex<Vec<IndexedSearchParams>>,
+    calls: Mutex<Vec<tos_query::compressed_search::CompressedSearchRequest>>,
 }
 impl AccessExecutor for SearchSynthetic {
     fn source_descend_available(&self) -> bool {
@@ -780,17 +778,17 @@ impl AccessExecutor for SearchSynthetic {
     ) -> Result<PreparedPacket<'static>, AccessError> {
         unreachable!()
     }
-    fn knowledge_search_indexed_available(&self) -> bool {
-        self.available
+    fn knowledge_search_compressed_available(&self) -> bool {
+        true
     }
-    fn knowledge_search_indexed(
+    fn knowledge_search_compressed(
         &self,
-        request: IndexedSearchParams,
+        request: tos_query::compressed_search::CompressedSearchRequest,
         _: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'static>, AccessError> {
         self.calls.lock().unwrap().push(request);
         Ok(PreparedPacket {
-            body: br#"{"schema":"tos_knowledge_search_indexed_v2","nodes":[],"relations":[]}"#
+            body: br#"{"schema":"tos_knowledge_search_compressed_v3","nodes":[],"relations":[]}"#
                 .to_vec(),
             fence: Box::new(Fence),
         })
@@ -798,35 +796,29 @@ impl AccessExecutor for SearchSynthetic {
 }
 
 #[test]
-fn indexed_search_requires_explicit_mode_and_routes_all_three_wires() {
+fn compressed_search_defaults_and_routes_all_three_wires() {
     let executor = SearchSynthetic {
-        available: true,
         calls: Mutex::new(vec![]),
     };
-    let unavailable_default = handle_get(
-        &executor,
-        "GET",
-        "/api/knowledge/search?query=abc",
-        profile(),
-    );
-    assert_eq!(unavailable_default.status, 503);
     let http = handle_get(
         &executor,
         "GET",
-        "/api/knowledge/search?mode=indexed&query=abc&sources=source.a,source.b&limit=5",
+        "/api/knowledge/search?query=abc&sources=canon,philosophy&limit=5",
         profile(),
     );
     assert_eq!(http.status, 200);
     for invalid in [
-        "/api/knowledge/search?mode=indexed&query=abc&cursor=",
-        "/api/knowledge/search?mode=indexed&query=abc&cursor=%ZZ",
-        "/api/knowledge/search?mode=indexed&query=abc&cursor=one&cursor=two",
+        "/api/knowledge/search?query=abc&cursor=",
+        "/api/knowledge/search?query=abc&cursor=%ZZ",
+        "/api/knowledge/search?query=abc&cursor=one&cursor=two",
+        "/api/knowledge/search?query=abc&mode=indexed",
+        "/api/knowledge/search?query=abc&mode=legacy",
     ] {
         assert_eq!(handle_get(&executor, "GET", invalid, profile()).status, 400);
     }
     assert_eq!(
         executor.calls.lock().unwrap()[0].sources,
-        vec!["source.a", "source.b"]
+        vec!["canon", "philosophy"]
     );
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
@@ -835,8 +827,6 @@ fn indexed_search_requires_explicit_mode_and_routes_all_three_wires() {
             "knowledge".into(),
             "search".into(),
             "abc".into(),
-            "--mode".into(),
-            "indexed".into(),
             "--limit".into(),
             "5".into(),
         ],
@@ -847,11 +837,11 @@ fn indexed_search_requires_explicit_mode_and_routes_all_three_wires() {
     );
     assert_eq!(code, 0);
     assert!(stderr.is_empty());
-    assert!(stdout.starts_with(b"{\"schema\":\"tos_knowledge_search_indexed_v2\""));
+    assert!(stdout.starts_with(br#"{"schema":"tos_knowledge_search_compressed_v3"#));
     let input = br#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}
 {"jsonrpc":"2.0","method":"notifications/initialized"}
 {"jsonrpc":"2.0","id":2,"method":"tools/list"}
-{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"tos_knowledge_search","arguments":{"mode":"indexed","query":"abc","limit":5}}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"tos_knowledge_search","arguments":{"query":"abc","limit":5}}}
 "#;
     let mut output = Vec::new();
     run_io(Cursor::new(input), &mut output, &executor, profile()).unwrap();
@@ -860,7 +850,8 @@ fn indexed_search_requires_explicit_mode_and_routes_all_three_wires() {
     assert!(frames[1].contains("tos_knowledge_search"));
     assert!(!frames[1].contains("tos_source_descend"));
     assert!(
-        frames[2].contains("\"structuredContent\":{\"schema\":\"tos_knowledge_search_indexed_v2\"")
+        frames[2]
+            .contains("\"structuredContent\":{\"schema\":\"tos_knowledge_search_compressed_v3\"")
     );
     assert_eq!(executor.calls.lock().unwrap().len(), 3);
 }
@@ -1711,70 +1702,6 @@ fn write_native_doctor_fixture(root: &std::path::Path) {
     .unwrap();
 }
 
-/// Build only the legacy reader's declared metadata envelope. This is an
-/// explicit schema fixture, not a second production QueryStore writer.
-#[cfg(feature = "source-tools")]
-fn write_legacy_query_store_fixture(root: &std::path::Path) {
-    let input_paths = [
-        "ToS/derived-exports/tos_corpus_index.min.json",
-        "ToS/derived-exports/philosophy_graph_projection.min.json",
-        "ToS/derived-exports/graph/source-witness-bibliographic-claims.min.json",
-        "ToS/doctrine/semantic-interchange/entity-types.v1.json",
-        "ToS/doctrine/semantic-interchange/relation-types.v1.json",
-    ];
-    let mut bindings = serde_json::Map::new();
-    for relative in input_paths {
-        let raw = std::fs::read(root.join(relative)).unwrap();
-        bindings.insert(
-            relative.to_owned(),
-            serde_json::Value::String(tos_foundation::Digest256::of_bytes(&raw).to_hex()),
-        );
-    }
-    let graph_raw = std::fs::read(root.join(input_paths[1])).unwrap();
-    let graph: serde_json::Value = serde_json::from_slice(&graph_raw).unwrap();
-    let corpus_raw = std::fs::read(root.join(input_paths[0])).unwrap();
-    let corpus: serde_json::Value = serde_json::from_slice(&corpus_raw).unwrap();
-    let store = root.join("ToS/derived-exports/runtime/knowledge.sqlite3");
-    std::fs::create_dir_all(store.parent().unwrap()).unwrap();
-    let db = rusqlite::Connection::open(&store).unwrap();
-    db.execute_batch(
-        "CREATE TABLE metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
-         CREATE TABLE knowledge_nodes(id TEXT PRIMARY KEY,native_id TEXT,entity_id TEXT,source_graph TEXT,kind_id TEXT,type_id TEXT,label TEXT,search_text TEXT,payload TEXT NOT NULL);
-         CREATE TABLE knowledge_relations(id TEXT PRIMARY KEY,native_id TEXT,from_id TEXT,to_id TEXT,source_graph TEXT,predicate_id TEXT,relation_type_id TEXT,label TEXT,search_text TEXT,payload TEXT NOT NULL);
-         CREATE TABLE source_nodes(id TEXT PRIMARY KEY,kind_id TEXT,packet_id TEXT,payload TEXT NOT NULL);
-         CREATE TABLE source_edges(id TEXT PRIMARY KEY,from_id TEXT,to_id TEXT,edge_kind TEXT,predicate_id TEXT,payload TEXT NOT NULL);
-         CREATE TABLE source_rights(id TEXT PRIMARY KEY,payload TEXT NOT NULL);
-         CREATE TABLE source_rights_scopes(right_id TEXT,scope_id TEXT,PRIMARY KEY(right_id,scope_id));
-         CREATE TABLE semantic_diagnostics(kind TEXT,position INTEGER,payload TEXT NOT NULL,PRIMARY KEY(kind,position));
-         CREATE TABLE raw_records(collection TEXT,key TEXT,position INTEGER,payload TEXT NOT NULL,PRIMARY KEY(collection,key));",
-    )
-    .unwrap();
-    let metadata = [
-        ("schema", serde_json::json!("tos_query_store_v1")),
-        ("complete", serde_json::json!(true)),
-        (
-            "compiler_version",
-            serde_json::json!("tos_offline_knowledge_v2"),
-        ),
-        ("snapshot_bindings", serde_json::Value::Object(bindings)),
-        ("graph_header", graph),
-        ("catalog", serde_json::json!({})),
-        ("corpus_header", corpus),
-        (
-            "exploration_revision",
-            serde_json::json!("fixture-old-query-store-v1"),
-        ),
-    ];
-    for (key, value) in metadata {
-        db.execute(
-            "INSERT INTO metadata(key,value) VALUES (?1,?2)",
-            rusqlite::params![key, serde_json::to_string(&value).unwrap()],
-        )
-        .unwrap();
-    }
-    drop(db);
-}
-
 #[test]
 #[cfg(feature = "source-tools")]
 fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
@@ -1964,94 +1891,29 @@ fn source_backed_doctor_verify_binary_preserves_diagnostic_boundaries() {
     let store = directory.join("ToS/derived-exports/runtime/knowledge.sqlite3");
     fs::create_dir_all(store.parent().unwrap()).unwrap();
     fs::write(&store, []).unwrap();
-    let unsupported = run(&["doctor", "--json"]);
-    assert_eq!(unsupported.status.code(), Some(1));
-    let unsupported = parse_json(
-        &unsupported.stdout,
+    select_store.set(true);
+    let ignored_store = run(&["verify", "--json"]);
+    assert_eq!(ignored_store.status.code(), report_exit);
+    let ignored_store = parse_json(
+        &ignored_store.stdout,
         JsonMode::PublishedStrict,
         JsonLimits::default(),
     )
     .unwrap();
-    assert!(
-        unsupported
-            .root()
-            .object_get("required_failures")
-            .unwrap()
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|id| id.as_str() == Some("query-store")),
-        "a store file marker cannot establish native readiness"
-    );
-    fs::remove_file(&store).unwrap();
-    // Retain the legacy success-path contract through a precise test-only schema fixture.
-    // This does not add a second production QueryStore writer.
-    write_legacy_query_store_fixture(&directory);
-    let ready = run(&["verify", "--json"]);
-    let ready = parse_json(
-        &ready.stdout,
-        JsonMode::PublishedStrict,
-        JsonLimits::default(),
-    )
-    .unwrap();
-    let rows = ready
+    let ignored_checks = ignored_store
         .root()
         .object_get("checks")
         .unwrap()
         .as_array()
         .unwrap();
-    for id in [
-        "query-store",
-        "corpus-index-schema",
-        "philosophy-graph-schema",
-        "graph-view-materialization",
-    ] {
-        let row = rows
+    assert!(
+        !ignored_checks
             .iter()
-            .find(|row| row.object_get("check_id").unwrap().as_str() == Some(id))
-            .unwrap();
-        assert_eq!(
-            row.object_get("ok"),
-            Some(&tos_foundation::JsonValue::Bool(true)),
-            "{id}: {:?}",
-            row
-        );
-    }
-    // The following refusals concern an explicitly selected store, including
-    // its disappearance; an absent optional store is a different diagnosis.
-    select_store.set(true);
-    let rejected_store = |output: std::process::Output| {
-        assert_eq!(output.status.code(), Some(1));
-        let report = parse_json(
-            &output.stdout,
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap();
-        assert!(
-            report
-                .root()
-                .object_get("required_failures")
-                .unwrap()
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|id| id.as_str() == Some("query-store"))
-        );
-    };
-    let registry = directory.join("ToS/doctrine/semantic-interchange/entity-types.v1.json");
-    let original = fs::read(&registry).unwrap();
-    let mut changed = original.clone();
-    changed.push(b'\n');
-    fs::write(&registry, changed).unwrap();
-    rejected_store(run(&["doctor", "--json"]));
-    fs::write(&registry, original).unwrap();
-    let journal = store.with_file_name("knowledge.sqlite3-journal");
-    fs::write(&journal, []).unwrap();
-    rejected_store(run(&["doctor", "--json"]));
-    fs::remove_file(journal).unwrap();
+            .any(|row| row.object_get("check_id").unwrap().as_str() == Some("query-store")),
+        "retired query-store files do not participate in current readiness"
+    );
+    select_store.set(false);
     fs::remove_file(&store).unwrap();
-    rejected_store(run(&["doctor", "--json"]));
     let graph = directory.join("ToS/derived-exports/philosophy_graph_projection.min.json");
     fs::File::create(&graph)
         .unwrap()
