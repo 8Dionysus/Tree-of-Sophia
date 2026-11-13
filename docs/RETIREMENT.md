@@ -30,7 +30,7 @@ For each package, inventory installed versions, deployments, selected publicatio
 
 ## Compressed search V3
 
-`tos-compiler/src/local_prepared_search.rs` writes SQLite search structures; `tos-query/src/compressed_search_state.rs` and `compressed_search.rs`, plus `tos-access/src/prepared_local.rs`, read and serve them. Two tracked JSON contract files mention `tos_knowledge_search_compressed_v3`; external SQLite databases and cursor counts are unknown. Inspect selected SQLite publication metadata, CLI/HTTP/MCP/SDK capability use and cursor expiry.
+`tos-compiler/src/local_prepared_search.rs` writes SQLite search structures; `tos-query/src/compressed_search_state.rs` and `compressed_search.rs`, plus `tos-access/src/prepared_local.rs`, read and serve them. Two tracked JSON contract files mention `tos_knowledge_search_compressed_v3`; external SQLite databases and cursor counts are unknown. Inspect selected SQLite publication metadata, CLI/HTTP/MCP capability use and cursor expiry.
 
 **Removal condition:** The chosen offline export reproduces accepted query, rights, budget and continuation behavior; all selected publications are rebuilt and verified, consumers switch, and old cursors expire or migrate. **Package:** Offline export followed by compressed-mode cutover and retirement.
 
