@@ -476,3 +476,46 @@ await import(pathToFileURL(process.argv[3]??'%MODULE%').href);
             self.assertEqual(lives['karl']['identity_catalogue']['work'],'/works/OL123W')
             self.assertEqual(lives['karl']['identity_catalogue']['authority'],['P214','12345'])
             self.assertIsNone(lives['other']['item']);self.assertEqual(lives['other']['status'],'unresolved')
+
+class NewWorkLanguageIntegrationTest(unittest.TestCase):
+    def test_new_work_needs_each_language_and_second_readings(self):
+        import copy
+        import json
+        import shutil
+        import tempfile
+        from pathlib import Path
+        work='alexander-gottlieb-baumgarten.aesthetica';source=Path(kit.PACKETS)/work
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/work;path.mkdir()
+            for name in ('places.json','reading.json','evidence.json','review.json'):shutil.copy2(source/name,path/name)
+            places=json.loads((path/'places.json').read_text());ev=json.loads((path/'evidence.json').read_text())
+            rights=kit.rights_lines(ev);rights['reasoning']=places['entry']['witnesses']['la']['rights']['reasoning']
+            places['entry']['witnesses']['la']['rights']=rights;places['entry']['absent']=[]
+            (path/'places.json').write_text(json.dumps(places,ensure_ascii=False))
+            kit.OWES.clear();problems,_=kit.gate(str(path),offline=True)
+            self.assertTrue(any(item.startswith('ru: no search record') for item in problems))
+            directory=path/'witnesses';directory.mkdir();loc=next(iter(places['places']))
+            author=copy.deepcopy(next(person for person in ev['persons'] if person['role']=='author'))
+            for person in (author,):
+                person['evidence']={'file':'person.json','sha256':'a'*64,'url':f"https://www.wikidata.org/wiki/Special:EntityData/{person['qid']}.json"}
+            translator={'role':'translator','qid':'Q2','name':{'en':'Translator'},'died':1800,'source':'https://www.wikidata.org/wiki/Q2',
+                        'evidence':{'file':'translator.json','sha256':'b'*64,'url':'https://www.wikidata.org/wiki/Special:EntityData/Q2.json'}}
+            by_country={key:{'basis':'public-domain','law':'The relevant public-domain statutory term.'} for key in kit.JURISDICTIONS}
+            for language in ('ru','en','es','de','zh-Hans'):
+                data={'language':language,'witness':{'maker':'maker','edition':'A cited edition','attribution':'Author and translator','licence':'Public domain','url':'https://example.org/book','year':1900,'persons':[author,translator], 'rights':by_country,'normalization':'Modern Russian source and documented normalization.'},
+                      'sources':[{'file':'text.txt','url':'https://example.org/text','sha256':'c'*64}],
+                      'images':[{'file':'page.jpg','url':'https://example.org/page','sha256':'d'*64,'by':'maker'}, {'file':'second.jpg','url':'https://example.org/page','sha256':'d'*64,'by':'second'}],
+                      'places':{loc:{'text':'A whole sentence.','source':'text.txt','page':'1','url':'https://example.org/page','image_sha256':'d'*64,'alignment':'The sentence corresponds to the original place.'}},
+                      'review':{'reader':'second','model':'gpt-6.1-terra','date':'2026-11-12','places':{loc:{'reads':'as the packet','image_sha256':'d'*64,'alignment':'The sentence corresponds to the original place.'}}}}
+                (directory/(language+'.json')).write_text(json.dumps(data,ensure_ascii=False))
+            kit.OWES.clear();problems,state=kit.gate(str(path),offline=True)
+            self.assertEqual(problems,[]);self.assertEqual(state,'open')
+            kit.OWES.clear();problems,state=kit.gate(str(path),second=True,offline=True)
+            self.assertEqual(problems,[]);self.assertEqual(state,'open')
+            russian=json.loads((directory/'ru.json').read_text());russian['review']={}
+            (directory/'ru.json').write_text(json.dumps(russian,ensure_ascii=False))
+            kit.OWES.clear();problems,_=kit.gate(str(path),second=True,offline=True)
+            self.assertTrue(any('second reader' in item for item in problems))
+            (directory/'ru.json').unlink()
+            kit.OWES.clear();problems,_=kit.gate(str(path),offline=True)
+            self.assertTrue(any(item.startswith('ru: no search record') for item in problems))
