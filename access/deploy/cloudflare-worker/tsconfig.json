@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2024",
-    "lib": ["ES2024", "ESNext.Disposable"],
+    "lib": [
+      "ES2024",
+      "ESNext.Disposable"
+    ],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
@@ -10,5 +13,12 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true
   },
-  "include": ["src/**/*.ts", "worker-configuration.d.ts"]
+  "include": [
+    "src/common.ts",
+    "src/public-head.ts",
+    "src/public-prototypes.ts",
+    "src/public-research-entry.ts",
+    "src/selected-temporal-runtime.ts",
+    "worker-configuration.d.ts"
+  ]
 }
