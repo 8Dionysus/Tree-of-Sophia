@@ -66,6 +66,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-10-hogarth.json"
   },
   {
+   "id": "codex-2026-11-12-plotinus",
+   "model": "gpt-6",
+   "date": "2026-11-12",
+   "reads": "Plotinus, Enneads I.6.5, in the Greek text of the public corpus, beside register A:E005.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-12-plotinus-purification.json"
+  },
+  {
    "id": "terra-2026-11-10-aesthetica",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -11098,6 +11105,48 @@
    "admission": "map",
    "grew_from": [
     "A:E015"
+   ]
+  },
+  {
+   "id": "plotinus.enneads:soul-purification",
+   "type": "tos.entity.conception",
+   "of": [
+    "the-beautiful"
+   ],
+   "areas": [
+    "area-beautiful"
+   ],
+   "work": "plotinus.enneads",
+   "agents": [
+    "plotinus"
+   ],
+   "locus": "I.6.5",
+   "formula": {
+    "cite": [
+     {
+      "w": "plotinus.enneads",
+      "u": [
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9",
+       "tos.text-unit.sid-115764814bcc4084850cce65fd13bfb9"
+      ],
+      "s": 10022,
+      "e": 10446
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Душа, освободившись от страстей, связанных с телом, и очистившись, оставляет безобразное, пришедшее от иной природы; Плотин уподобляет это золоту, очищенному от земли.",
+    "en": "The soul, freed from passions associated with the body and purified, lays aside the ugliness that came from another nature; Plotinus likens this to gold cleansed of earth."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-12-plotinus",
+    "verdict": "revise",
+    "note": "The register also names the Beautiful itself; these sentences speak of purification of the soul and the beauty of gold, so the conception follows those words."
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E005"
    ]
   },
   {
