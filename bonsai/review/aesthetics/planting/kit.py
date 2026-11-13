@@ -554,7 +554,7 @@ def cmd_image(args):
         if entry.get('method')!='ocr':entry['method']='image';entry['images']=sorted(set(entry.get('images',[]))|{args.n});entry.setdefault('scan',item)
     save(os.path.join(path,'evidence.json'),ev);print(f'{cache(path,name)}\nlook at this file; the page of the place opens at https://archive.org/details/{item}/page/n{args.n}/mode/1up')
 
-TRUSTED=('wikipedia.org','wikidata.org','d-nb.info','viaf.org','bnf.fr','plato.stanford.edu','britannica.com','deutsche-biographie.de','loc.gov','oxforddnb.com','treccani.it')
+TRUSTED=('wikipedia.org','wikidata.org','d-nb.info','viaf.org','bnf.fr','plato.stanford.edu','britannica.com','deutsche-biographie.de','loc.gov','oxforddnb.com','treccani.it','rusneb.ru','rsl.ru','nlr.ru','bne.es')
 def trusted(url):
     host=urllib.parse.urlparse(str(url)).netloc.lower();return str(url).startswith('https://') and any(host==name or host.endswith('.'+name) for name in TRUSTED)
 
@@ -856,7 +856,7 @@ def gate(path,second=False,offline=False):
     if not held:
         for name in('author','title'):
             if not all((entry.get(name) or {}).get(lang) for lang in('ru','en')):add(f'entry.{name} wants ru and en')
-        if not re.fullmatch(r'[a-z]{2,3}',original):add('entry.original wants a language code (de, en, fr, it, la, ru, el …)')
+        if not re.fullmatch(r'[a-z]{2,3}(?:-[A-Z][a-z]{3})?',original):add('entry.original wants a language code (de, en, ru, zh-Hans …)')
         witnesses=entry.get('witnesses') or {}
         if list(witnesses)!=[original]:add('entry.witnesses holds one witness in this pass: the original, under its language code')
         witness=witnesses.get(original) or {}
@@ -1235,6 +1235,19 @@ def cmd_witness_open(args):
     save(file,{'language':args.language,'witness':metadata,'sources':[],'images':[],'places':{},'review':{}})
     print(file)
 
+def cmd_witness_info(args):
+    path=packet(args.packet);data=witness_data(path,args.language);info=load(args.file)
+    fields={'edition','year','url','licence','attribution','maker','normalization'}
+    if not isinstance(info,dict) or not set(info)<=fields:die('witness info has an unknown or protected field')
+    data['witness'].update(info);data['review']={};save(witness_file(path,args.language),data)
+    print('witness information updated; a new second reading is required')
+
+def cmd_witness_rights(args):
+    path=packet(args.packet);data=witness_data(path,args.language)
+    data['witness'].setdefault('rights',{})[args.jurisdiction]={'basis':args.basis,'law':args.law}
+    data['review']={};save(witness_file(path,args.language),data)
+    print('jurisdictional rights updated; a new second reading is required')
+
 def cmd_witness_candidate(args):
     path=packet(args.packet);data=witness_data(path,args.language);raw=Path(args.file).read_bytes();candidate=json.loads(raw)
     if not isinstance(candidate,dict) or candidate.get('work')!=work_of(path):die('candidate names another work')
@@ -1274,6 +1287,23 @@ def cmd_witness_person(args):
     data['review']={};save(witness_file(path,args.language),data)
     print(f"{name['en']} ({args.role}): {person['born']}–{died}, {args.qid}")
 
+def cmd_witness_person_source(args):
+    path=packet(args.packet);data=witness_data(path,args.language)
+    if not trusted(args.url):die('person reference must be on a trusted catalogue or reference site')
+    raw=Path(args.file).read_bytes() if args.file else get(args.url)
+    text=plain(raw,args.name+'.html').casefold()
+    if args.name.casefold() not in text:die('the reference does not contain the stated name')
+    for year in (args.born,args.died):
+        if year is not None and str(year) not in text:die(f'the reference does not contain year {year}')
+    filename='person-'+hashlib.sha256(args.url.encode()).hexdigest()[:16]+'.html'
+    Path(witness_cache(path,args.language,filename)).write_bytes(raw)
+    person={'role':args.role,'name':{'en':args.name,'ru':args.ru or args.name},'born':args.born,'died':args.died,'source':args.url,
+            'evidence':{'kind':'reference','file':filename,'sha256':hashlib.sha256(raw).hexdigest(),'url':args.url}}
+    people=data['witness'].setdefault('persons',[])
+    data['witness']['persons']=[p for p in people if not(p.get('name')==person['name'] and p.get('role')==args.role)]+[person]
+    data['review']={};save(witness_file(path,args.language),data)
+    print(f'{args.name} ({args.role}): source saved')
+
 def cmd_witness_fetch(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     if not lawful_url(args.url):die('source must be a lawful https URL')
@@ -1282,6 +1312,7 @@ def cmd_witness_fetch(args):
     with open(witness_cache(path,args.language,name),'wb') as target:target.write(raw)
     source={'file':name,'url':args.url,'sha256':hashlib.sha256(raw).hexdigest(),'fetched':today()}
     data['sources']=[item for item in data['sources'] if item['file']!=name]+[source]
+    data['review']={}
     save(witness_file(path,args.language),data);print(json.dumps(source,ensure_ascii=False))
 
 def cmd_witness_image(args):
@@ -1292,6 +1323,7 @@ def cmd_witness_image(args):
     with open(witness_cache(path,args.language,name),'wb') as target:target.write(raw)
     image={'file':name,'url':args.url,'sha256':hashlib.sha256(raw).hexdigest(),'by':args.by}
     data['images']=[item for item in data['images'] if not (item['file']==name and item['by']==args.by)]+[image]
+    if args.by=='maker':data['review']={}
     save(witness_file(path,args.language),data);print(json.dumps(image,ensure_ascii=False))
 
 def cmd_witness_cut(args):
@@ -1352,17 +1384,23 @@ def witness_problems(path,lang,data,second=False,offline=False):
     for person in people:
         if person.get('wartime') is not None and (type(person['wartime']) is not bool or not trusted(person.get('wartime_source'))):add('wartime status requires a trusted source')
         if person.get('rehabilitated') is not None and (type(person['rehabilitated']) is not int or not trusted(person.get('rehabilitation_source'))):add('rehabilitation requires a year and a trusted source')
-        evidence_record=person.get('evidence') or {};qid=person.get('qid')
-        if not re.fullmatch(r'Q[1-9]\d*',str(qid or '')) or evidence_record.get('url')!=f'https://www.wikidata.org/wiki/Special:EntityData/{qid}.json' or not re.fullmatch(r'[a-f0-9]{64}',str(evidence_record.get('sha256',''))):
-            add('each hand needs the fetched Wikidata evidence from witness-person');continue
+        evidence_record=person.get('evidence') or {};qid=person.get('qid');reference=evidence_record.get('kind')=='reference'
+        valid_digest=bool(re.fullmatch(r'[a-f0-9]{64}',str(evidence_record.get('sha256',''))))
+        valid_url=(trusted(person.get('source')) and evidence_record.get('url')==person.get('source')) if reference else (bool(re.fullmatch(r'Q[1-9]\d*',str(qid or ''))) and evidence_record.get('url')==f'https://www.wikidata.org/wiki/Special:EntityData/{qid}.json')
+        if not valid_url or not valid_digest:
+            add('each hand needs fetched evidence from witness-person or witness-person-source');continue
         if not offline:
             try:
                 raw=Path(witness_cache(path,lang,evidence_record['file'])).read_bytes()
-                if hashlib.sha256(raw).hexdigest()!=evidence_record['sha256']:add(f'{qid}: person evidence changed');continue
-                entity=json.loads(raw)['entities'][qid];claims=entity.get('claims',{}).get('P570',[])
-                years={int(claim['mainsnak']['datavalue']['value']['time'][:5]) for claim in claims if claim.get('rank')!='deprecated' and claim.get('mainsnak',{}).get('datavalue')}
-                if (person.get('died') is None and years) or (person.get('died') is not None and person.get('died') not in years):add(f'{qid}: death year differs from the fetched entity')
-            except (OSError,KeyError,ValueError,TypeError):add(f'{qid}: person evidence is missing or invalid')
+                if hashlib.sha256(raw).hexdigest()!=evidence_record['sha256']:add(f'{qid or person.get("name")}: person evidence changed');continue
+                if reference:
+                    content=plain(raw,evidence_record['file']).casefold();name=(person.get('name') or {}).get('en','')
+                    if not name or name.casefold() not in content or any(year is not None and str(year) not in content for year in (person.get('born'),person.get('died'))):add(f'{name}: stated name or dates are absent from the fetched reference')
+                else:
+                    entity=json.loads(raw)['entities'][qid];claims=entity.get('claims',{}).get('P570',[])
+                    years={int(claim['mainsnak']['datavalue']['value']['time'][:5]) for claim in claims if claim.get('rank')!='deprecated' and claim.get('mainsnak',{}).get('datavalue')}
+                    if (person.get('died') is None and years) or (person.get('died') is not None and person.get('died') not in years):add(f'{qid}: death year differs from the fetched entity')
+            except (OSError,KeyError,ValueError,TypeError):add(f'{qid or person.get("name")}: person evidence is missing or invalid')
     dates=public_domain_by_dates(people,witness.get('year'))
     for country in JURISDICTIONS:
         item=(witness.get('rights') or {}).get(country) or {}
@@ -1432,8 +1470,11 @@ def main():
     sub('extension-open',cmd_extension_open,P,(('name',),{}),(('--keys',),{'required':True}));
     sub('import',cmd_import,P,(('part',),{'choices':['places','reading','review','blocked']}),(('file',),{}));sub('unblock',cmd_unblock,P)
     sub('witness-open',cmd_witness_open,P,(('language',),{}),(('metadata',),{}))
+    sub('witness-info',cmd_witness_info,P,(('language',),{}),(('file',),{}));
+    sub('witness-rights',cmd_witness_rights,P,(('language',),{}),(('jurisdiction',),{'choices':JURISDICTIONS}),(('basis',),{'choices':sorted(BASES)}),(('law',),{}));
     sub('witness-candidate',cmd_witness_candidate,P,(('language',),{}),(('file',),{}));
     sub('witness-person',cmd_witness_person,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}));
+    sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));
     sub('witness-fetch',cmd_witness_fetch,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}))
     sub('witness-image',cmd_witness_image,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}),(('--by',),{'choices':['maker','second'],'default':'maker'}))
     sub('witness-cut',cmd_witness_cut,P,(('language',),{}),(('source',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--page',),{'required':True}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))

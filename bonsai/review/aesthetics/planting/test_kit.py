@@ -140,6 +140,9 @@ class TranslationWitnessTest(unittest.TestCase):
                 entity={'entities':{qid:{'claims':{'P570':[{'mainsnak':{'datavalue':{'value':{'time':'+1800-01-01T00:00:00Z'}}}}]}}}}
                 raw=json.dumps(entity).encode();(folder/filename).write_bytes(raw)
                 person['evidence']={'file':filename,'sha256':hashlib.sha256(raw).hexdigest(),'url':f'https://www.wikidata.org/wiki/Special:EntityData/{qid}.json'}
+            reference=b'<html><body>Translator (1800)</body></html>'; (folder/'translator.html').write_bytes(reference)
+            people[1].pop('qid');people[1]['source']='https://en.wikipedia.org/wiki/Translator'
+            people[1]['evidence']={'kind':'reference','file':'translator.html','sha256':hashlib.sha256(reference).hexdigest(),'url':people[1]['source']}
             rights={key:{'basis':'public-domain','law':'Public domain by the applicable law.'} for key in kit.JURISDICTIONS}
             data={'language':'en','witness':{'maker':'maker','edition':'Book','attribution':'Author','licence':'Public domain','url':'https://example.org/book','year':1900,'persons':people,'rights':rights},
                   'sources':[{'file':'text.txt','url':'https://example.org/text','sha256':hashlib.sha256(source).hexdigest()}],
