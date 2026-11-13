@@ -135,6 +135,20 @@
           "query": "Edward L. Bernays",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 26 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 26 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Propaganda / Edward L. Bernays",
+          "url": "https://openlibrary.org/search.json?title=Propaganda&author=Edward+L.+Bernays&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "5 records; 2 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "1939438837",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/1939438837.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -249,6 +263,13 @@
           "query": "W. E. B. Du Bois",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 354 broad hits; es: HTTP 200, 1 broad hits; de: HTTP 200, 162 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Criteria of Negro Art / W. E. B. Du Bois",
+          "url": "https://openlibrary.org/search.json?title=Criteria+of+Negro+Art&author=W.+E.+B.+Du+Bois&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -345,6 +366,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/3458327126.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Die Geburt der Tragödie aus dem Geiste der Musik; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Die Geburt der Tragödie aus dem Geiste der Musik / Friedrich Nietzsche",
+          "url": "https://openlibrary.org/search.json?title=Die+Geburt+der+Trag%C3%B6die+aus+dem+Geiste+der+Musik&author=Friedrich+Nietzsche&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "6 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "9798607412531",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9798607412531.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -425,6 +460,13 @@
           "query": "William Morris",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 3917 broad hits; es: HTTP 200, 7 broad hits; de: HTTP 200, 72 broad hits; zh: HTTP 200, 4 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Decorative Arts: Their Relation to Modern Life and Progress / William Morris",
+          "url": "https://openlibrary.org/search.json?title=The+Decorative+Arts%3A+Their+Relation+to+Modern+Life+and+Progress&author=William+Morris&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "1 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -535,6 +577,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/3518076574.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Kritik der Urteilskraft; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Kritik der Urteilskraft / Immanuel Kant",
+          "url": "https://openlibrary.org/search.json?title=Kritik+der+Urteilskraft&author=Immanuel+Kant&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "31 records; 2 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "9571504815",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9571504815.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -664,6 +720,20 @@
           "query": "John Dewey",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 604 broad hits; es: HTTP 200, 4 broad hits; de: HTTP 200, 7 broad hits; zh: HTTP 200, 4 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Art as Experience / John Dewey",
+          "url": "https://openlibrary.org/search.json?title=Art+as+Experience&author=John+Dewey&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "2 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "0399531971",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/0399531971.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -821,6 +891,20 @@
           "query": "Walter Benjamin",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 1539 broad hits; es: HTTP 200, 14 broad hits; de: HTTP 200, 283 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Das Kunstwerk im Zeitalter seiner technischen Reproduzierbarkeit / Walter Benjamin",
+          "url": "https://openlibrary.org/search.json?title=Das+Kunstwerk+im+Zeitalter+seiner+technischen+Reproduzierbarkeit&author=Walter+Benjamin&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "4 records; 2 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "0141036192",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/0141036192.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -919,6 +1003,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/0915144344.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Languages of art; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Languages of Art / Nelson Goodman",
+          "url": "https://openlibrary.org/search.json?title=Languages+of+Art&author=Nelson+Goodman&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "1 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "1350928542",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/1350928542.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -1016,6 +1114,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/3168339121.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Wahrheit und Methode; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Wahrheit und Methode / Hans-Georg Gadamer",
+          "url": "https://openlibrary.org/search.json?title=Wahrheit+und+Methode&author=Hans-Georg+Gadamer&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "4 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "2020043637",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/2020043637.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -1105,6 +1217,13 @@
           "query": "Erika Fischer-Lichte",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 54 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Transformative Power of Performance: A New Aesthetics / Erika Fischer-Lichte",
+          "url": "https://openlibrary.org/search.json?title=The+Transformative+Power+of+Performance%3A+A+New+Aesthetics&author=Erika+Fischer-Lichte&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -1215,6 +1334,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9783465141631.json",
           "http": 200,
           "result": "Selected lobid title/author candidate \"Der Ursprung des Kunstwerkes\"; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Der Ursprung des Kunstwerkes / Martin Heidegger",
+          "url": "https://openlibrary.org/search.json?title=Der+Ursprung+des+Kunstwerkes&author=Martin+Heidegger&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "3 records; 2 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "9783465041634",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9783465041634.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -1303,6 +1436,13 @@
           "query": "Pierre Bourdieu",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 11 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 3 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "La Distinction: Critique sociale du jugement / Pierre Bourdieu",
+          "url": "https://openlibrary.org/search.json?title=La+Distinction%3A+Critique+sociale+du+jugement&author=Pierre+Bourdieu&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -1397,6 +1537,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780199278350.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Everyday aesthetics; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Everyday Aesthetics / Yuriko Saito",
+          "url": "https://openlibrary.org/search.json?title=Everyday+Aesthetics&author=Yuriko+Saito&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "2 records; 2 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "0199278350",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/0199278350.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -1523,6 +1677,13 @@
           "query": "Aldo Leopold",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 7 broad hits; es: HTTP 200, 2 broad hits; de: HTTP 200, 10 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Conservation Esthetic / Aldo Leopold",
+          "url": "https://openlibrary.org/search.json?title=Conservation+Esthetic&author=Aldo+Leopold&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -1627,6 +1788,13 @@
           "query": "Arthur C. Danto",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 2 broad hits; es: HTTP 200, 3 broad hits; de: HTTP 200, 1 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Artworld / Arthur C. Danto",
+          "url": "https://openlibrary.org/search.json?title=The+Artworld&author=Arthur+C.+Danto&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -1715,6 +1883,13 @@
           "query": "bell hooks",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 2644 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 26 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Oppositional Gaze: Black Female Spectators / bell hooks",
+          "url": "https://openlibrary.org/search.json?title=The+Oppositional+Gaze%3A+Black+Female+Spectators&author=bell+hooks&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -1815,6 +1990,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/2913372058.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Le partage du sensible; 1 items, Limited (search-only) (ic). ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Le partage du sensible / Jacques Rancière",
+          "url": "https://openlibrary.org/search.json?title=Le+partage+du+sensible&author=Jacques+Ranci%C3%A8re&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "1 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "2913372058",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/2913372058.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 1 items, Limited (search-only) (ic). Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -1928,6 +2117,13 @@
           "query": "Jukka Mikkonen",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Traditional Ecological Knowledge and the Aesthetic Appreciation of Nature: Lessons from Gilbbesjávri and Guovdageaidnu / Jukka Mikkonen",
+          "url": "https://openlibrary.org/search.json?title=Traditional+Ecological+Knowledge+and+the+Aesthetic+Appreciation+of+Nature%3A+Lessons+from+Gilbbesj%C3%A1vri+and+Guovdageaidnu&author=Jukka+Mikkonen&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -2015,6 +2211,13 @@
           "query": "Louis Althusser",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 2 broad hits; es: HTTP 200, 1 broad hits; de: HTTP 200, 2 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Idéologie et appareils idéologiques d’État / Louis Althusser",
+          "url": "https://openlibrary.org/search.json?title=Id%C3%A9ologie+et+appareils+id%C3%A9ologiques+d%E2%80%99%C3%89tat&author=Louis+Althusser&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -2103,6 +2306,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/3484701099.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Sein und Zeit; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Sein und Zeit / Martin Heidegger",
+          "url": "https://openlibrary.org/search.json?title=Sein+und+Zeit&author=Martin+Heidegger&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "7 records; 2 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "9781639235377",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9781639235377.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -2225,6 +2442,20 @@
           "query": "R. G. Collingwood",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 213 broad hits; es: HTTP 200, 7 broad hits; de: HTTP 200, 12 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Principles of Art / R. G. Collingwood",
+          "url": "https://openlibrary.org/search.json?title=The+Principles+of+Art&author=R.+G.+Collingwood&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "2 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "9785519521901",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9785519521901.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -2312,6 +2543,13 @@
           "query": "Sherrie Levine",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 1 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "After Walker Evans: 4 / Sherrie Levine",
+          "url": "https://openlibrary.org/search.json?title=After+Walker+Evans%3A+4&author=Sherrie+Levine&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -2422,6 +2660,13 @@
           "query": "Susan Buck-Morss",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 1 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Aesthetics and Anaesthetics: Walter Benjamin’s Artwork Essay Reconsidered / Susan Buck-Morss",
+          "url": "https://openlibrary.org/search.json?title=Aesthetics+and+Anaesthetics%3A+Walter+Benjamin%E2%80%99s+Artwork+Essay+Reconsidered&author=Susan+Buck-Morss&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -2516,6 +2761,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780241339701.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Notes on \"Camp\"; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Notes on “Camp” / Susan Sontag",
+          "url": "https://openlibrary.org/search.json?title=Notes+on+%E2%80%9CCamp%E2%80%9D&author=Susan+Sontag&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "2 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "9780241339701",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780241339701.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -2604,6 +2863,13 @@
           "query": "Yuriko Saito",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 1 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Aesthetics of the Everyday / Yuriko Saito",
+          "url": "https://openlibrary.org/search.json?title=Aesthetics+of+the+Everyday&author=Yuriko+Saito&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -2717,6 +2983,13 @@
           "query": "Yuriko Saito",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 1 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Scenic National Landscapes: Common Themes in Japan and the United States / Yuriko Saito",
+          "url": "https://openlibrary.org/search.json?title=Scenic+National+Landscapes%3A+Common+Themes+in+Japan+and+the+United+States&author=Yuriko+Saito&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -2804,6 +3077,13 @@
           "query": "Allen Carlson",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 224 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 17 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Appreciation and the Natural Environment / Allen Carlson",
+          "url": "https://openlibrary.org/search.json?title=Appreciation+and+the+Natural+Environment&author=Allen+Carlson&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -2891,6 +3171,13 @@
           "query": "Aníbal Quijano",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 1 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Coloniality of Power, Eurocentrism, and Latin America / Aníbal Quijano",
+          "url": "https://openlibrary.org/search.json?title=Coloniality+of+Power%2C+Eurocentrism%2C+and+Latin+America&author=An%C3%ADbal+Quijano&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -2978,6 +3265,20 @@
           "query": "Arnold Berleant",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Aesthetics and Environment: Variations on a Theme / Arnold Berleant",
+          "url": "https://openlibrary.org/search.json?title=Aesthetics+and+Environment%3A+Variations+on+a+Theme&author=Arnold+Berleant&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "1 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "9780754650775",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780754650775.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -3066,6 +3367,13 @@
           "query": "Carol Duncan",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 97 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 7 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Art Museums and the Ritual of Citizenship / Carol Duncan",
+          "url": "https://openlibrary.org/search.json?title=Art+Museums+and+the+Ritual+of+Citizenship&author=Carol+Duncan&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -3154,6 +3462,13 @@
           "query": "Carolyn Korsmeyer",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Feminist Aesthetics / Carolyn Korsmeyer",
+          "url": "https://openlibrary.org/search.json?title=Feminist+Aesthetics&author=Carolyn+Korsmeyer&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "1 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -3256,6 +3571,13 @@
           "query": "Claire Bishop",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 116 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 10 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Antagonism and Relational Aesthetics / Claire Bishop",
+          "url": "https://openlibrary.org/search.json?title=Antagonism+and+Relational+Aesthetics&author=Claire+Bishop&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -3344,6 +3666,13 @@
           "query": "Clement Greenberg",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 26 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 3 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Avant-Garde and Kitsch / Clement Greenberg",
+          "url": "https://openlibrary.org/search.json?title=Avant-Garde+and+Kitsch&author=Clement+Greenberg&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -3432,6 +3761,13 @@
           "query": "Dick Higgins",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 83 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 10 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Intermedia / Dick Higgins",
+          "url": "https://openlibrary.org/search.json?title=Intermedia&author=Dick+Higgins&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "2 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -3519,6 +3855,13 @@
           "query": "Don Norman",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 660 broad hits; es: HTTP 200, 3 broad hits; de: HTTP 200, 29 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Design of Everyday Things: Revised and Expanded Edition / Don Norman",
+          "url": "https://openlibrary.org/search.json?title=The+Design+of+Everyday+Things%3A+Revised+and+Expanded+Edition&author=Don+Norman&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -3613,6 +3956,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9781474470476.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Orientalism; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Orientalism / Edward W. Said",
+          "url": "https://openlibrary.org/search.json?title=Orientalism&author=Edward+W.+Said&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "5 records; 2 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "9780394740676",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780394740676.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 3 items, Limited (search-only) (ic); Limited (search-only) (ic); Limited (search-only) (ic). Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -3701,6 +4058,13 @@
           "query": "Esther Newton",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 142 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 6 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Mother Camp: Female Impersonators in America / Esther Newton",
+          "url": "https://openlibrary.org/search.json?title=Mother+Camp%3A+Female+Impersonators+in+America&author=Esther+Newton&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -3789,6 +4153,13 @@
           "query": "George Dickie",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 66 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 3 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Defining Art / George Dickie",
+          "url": "https://openlibrary.org/search.json?title=Defining+Art&author=George+Dickie&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -3883,6 +4254,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/2130455166.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Différence et répétition; 1 items, Limited (search-only) (ic). ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Différence et répétition / Gilles Deleuze",
+          "url": "https://openlibrary.org/search.json?title=Diff%C3%A9rence+et+r%C3%A9p%C3%A9tition&author=Gilles+Deleuze&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "2 records; 2 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "2130455166",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/2130455166.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 1 items, Limited (search-only) (ic). Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -3970,6 +4355,13 @@
           "query": "Glenn Parsons",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 62 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 3 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Environmental Aesthetics / Glenn Parsons",
+          "url": "https://openlibrary.org/search.json?title=Environmental+Aesthetics&author=Glenn+Parsons&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -4057,6 +4449,13 @@
           "query": "Holmes Rolston III",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 4 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Does Aesthetic Appreciation of Landscapes Need to Be Science-Based? / Holmes Rolston III",
+          "url": "https://openlibrary.org/search.json?title=Does+Aesthetic+Appreciation+of+Landscapes+Need+to+Be+Science-Based%3F&author=Holmes+Rolston+III&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -4159,6 +4558,13 @@
           "query": "Howard S. Becker",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 204 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 63 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Art as Collective Action / Howard S. Becker",
+          "url": "https://openlibrary.org/search.json?title=Art+as+Collective+Action&author=Howard+S.+Becker&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -4260,6 +4666,13 @@
           "query": "Jacques Rancière",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 1 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 1 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Politics and Aesthetics: An Interview / Jacques Rancière",
+          "url": "https://openlibrary.org/search.json?title=Politics+and+Aesthetics%3A+An+Interview&author=Jacques+Ranci%C3%A8re&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -4348,6 +4761,13 @@
           "query": "James Baldwin",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 1376 broad hits; es: HTTP 200, 6 broad hits; de: HTTP 200, 21 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Creative Process / James Baldwin",
+          "url": "https://openlibrary.org/search.json?title=The+Creative+Process&author=James+Baldwin&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -4435,6 +4855,13 @@
           "query": "Jean Baudrillard",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 3 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 2 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Simulacres et Simulation: “La précession des simulacres” / Jean Baudrillard",
+          "url": "https://openlibrary.org/search.json?title=Simulacres+et+Simulation%3A+%E2%80%9CLa+pr%C3%A9cession+des+simulacres%E2%80%9D&author=Jean+Baudrillard&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -4528,6 +4955,13 @@
           "query": "Jerrold Levinson",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Defining Art Historically / Jerrold Levinson",
+          "url": "https://openlibrary.org/search.json?title=Defining+Art+Historically&author=Jerrold+Levinson&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -4632,6 +5066,13 @@
           "query": "Jonathan Yorke Bean",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 3 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Consuming Hygge at Home: Perception, Representation, Practice / Jonathan Yorke Bean",
+          "url": "https://openlibrary.org/search.json?title=Consuming+Hygge+at+Home%3A+Perception%2C+Representation%2C+Practice&author=Jonathan+Yorke+Bean&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -4732,6 +5173,13 @@
           "query": "Judith Butler",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 149 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 13 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Performative Acts and Gender Constitution: An Essay in Phenomenology and Feminist Theory / Judith Butler",
+          "url": "https://openlibrary.org/search.json?title=Performative+Acts+and+Gender+Constitution%3A+An+Essay+in+Phenomenology+and+Feminist+Theory&author=Judith+Butler&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -4820,6 +5268,13 @@
           "query": "Katherine Thomson-Jones",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 51 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 3 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Philosophy of Digital Art / Katherine Thomson-Jones",
+          "url": "https://openlibrary.org/search.json?title=The+Philosophy+of+Digital+Art&author=Katherine+Thomson-Jones&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -4914,6 +5369,13 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9783863359652.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Visual pleasure and narrative cinema; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Visual Pleasure and Narrative Cinema / Laura Mulvey",
+          "url": "https://openlibrary.org/search.json?title=Visual+Pleasure+and+Narrative+Cinema&author=Laura+Mulvey&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "2 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -5007,6 +5469,13 @@
           "query": "Lev Manovich",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 1 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "New Media: a User’s Guide / Lev Manovich",
+          "url": "https://openlibrary.org/search.json?title=New+Media%3A+a+User%E2%80%99s+Guide&author=Lev+Manovich&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -5103,6 +5572,13 @@
           "query": "Lev Manovich",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 1 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Post-media Aesthetics / Lev Manovich",
+          "url": "https://openlibrary.org/search.json?title=Post-media+Aesthetics&author=Lev+Manovich&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -5198,6 +5674,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780500023846.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Why have there been no great women artists?; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Why Have There Been No Great Women Artists? / Linda Nochlin",
+          "url": "https://openlibrary.org/search.json?title=Why+Have+There+Been+No+Great+Women+Artists%3F&author=Linda+Nochlin&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "2 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "9780500776629",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9780500776629.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -5292,6 +5782,13 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9783608947588.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Bauen Wohnen Denken; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Bauen Wohnen Denken / Martin Heidegger",
+          "url": "https://openlibrary.org/search.json?title=Bauen+Wohnen+Denken&author=Martin+Heidegger&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -5380,6 +5877,13 @@
           "query": "Max Horkheimer",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 28 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Kulturindustrie. Aufklärung als Massenbetrug / Max Horkheimer",
+          "url": "https://openlibrary.org/search.json?title=Kulturindustrie.+Aufkl%C3%A4rung+als+Massenbetrug&author=Max+Horkheimer&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -5480,6 +5984,13 @@
           "query": "Olav Velthuis",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Symbolic Meanings of Prices: Constructing the Value of Contemporary Art in Amsterdam and New York Galleries / Olav Velthuis",
+          "url": "https://openlibrary.org/search.json?title=Symbolic+Meanings+of+Prices%3A+Constructing+the+Value+of+Contemporary+Art+in+Amsterdam+and+New+York+Galleries&author=Olav+Velthuis&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -5568,6 +6079,13 @@
           "query": "Roland Barthes",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 3 broad hits; es: HTTP 200, 1 broad hits; de: HTTP 200, 72 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Le mythe, aujourd’hui / Roland Barthes",
+          "url": "https://openlibrary.org/search.json?title=Le+mythe%2C+aujourd%E2%80%99hui&author=Roland+Barthes&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -5656,6 +6174,13 @@
           "query": "Roland Barthes",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 3 broad hits; es: HTTP 200, 1 broad hits; de: HTTP 200, 72 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Death of the Author / Roland Barthes",
+          "url": "https://openlibrary.org/search.json?title=The+Death+of+the+Author&author=Roland+Barthes&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -5743,6 +6268,13 @@
           "query": "Stuart Hall",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 2306 broad hits; es: HTTP 200, 17 broad hits; de: HTTP 200, 282 broad hits; zh: HTTP 200, 2 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Cultural Identity and Diaspora / Stuart Hall",
+          "url": "https://openlibrary.org/search.json?title=Cultural+Identity+and+Diaspora&author=Stuart+Hall&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -5830,6 +6362,13 @@
           "query": "Stuart Hall",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 2306 broad hits; es: HTTP 200, 17 broad hits; de: HTTP 200, 282 broad hits; zh: HTTP 200, 2 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Notes on Deconstructing “the Popular” / Stuart Hall",
+          "url": "https://openlibrary.org/search.json?title=Notes+on+Deconstructing+%E2%80%9Cthe+Popular%E2%80%9D&author=Stuart+Hall&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -5918,6 +6457,13 @@
           "query": "Theodor W. Adorno",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 2 broad hits; es: HTTP 200, 1 broad hits; de: HTTP 200, 27 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Résumé über Kulturindustrie / Theodor W. Adorno",
+          "url": "https://openlibrary.org/search.json?title=R%C3%A9sum%C3%A9+%C3%BCber+Kulturindustrie&author=Theodor+W.+Adorno&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6006,6 +6552,13 @@
           "query": "Thomas Adajian",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Definition of Art / Thomas Adajian",
+          "url": "https://openlibrary.org/search.json?title=The+Definition+of+Art&author=Thomas+Adajian&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6093,6 +6646,13 @@
           "query": "Thomas Leddy",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 30 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Everyday Surface Aesthetic Qualities: “Neat,” “Messy,” “Clean,” “Dirty” / Thomas Leddy",
+          "url": "https://openlibrary.org/search.json?title=Everyday+Surface+Aesthetic+Qualities%3A+%E2%80%9CNeat%2C%E2%80%9D+%E2%80%9CMessy%2C%E2%80%9D+%E2%80%9CClean%2C%E2%80%9D+%E2%80%9CDirty%E2%80%9D&author=Thomas+Leddy&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6181,6 +6741,13 @@
           "query": "Tony Bennett",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 73 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 10 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Exhibitionary Complex / Tony Bennett",
+          "url": "https://openlibrary.org/search.json?title=The+Exhibitionary+Complex&author=Tony+Bennett&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "1 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6299,6 +6866,13 @@
           "query": "Walter D. Mignolo",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 1 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Aiesthesis decolonial / Walter D. Mignolo",
+          "url": "https://openlibrary.org/search.json?title=Aiesthesis+decolonial&author=Walter+D.+Mignolo&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6416,6 +6990,13 @@
           "query": "Yuriko Saito",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 1 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Everyday Aesthetics and World-Making / Yuriko Saito",
+          "url": "https://openlibrary.org/search.json?title=Everyday+Aesthetics+and+World-Making&author=Yuriko+Saito&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6524,6 +7105,13 @@
           "query": "Ariane Nomikos",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 1 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "How Could Anybody Ever Feel at Home? Aesthetic Familiarity, Epistemic Comfort, and Displacement / Ariane Nomikos",
+          "url": "https://openlibrary.org/search.json?title=How+Could+Anybody+Ever+Feel+at+Home%3F+Aesthetic+Familiarity%2C+Epistemic+Comfort%2C+and+Displacement&author=Ariane+Nomikos&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6611,6 +7199,13 @@
           "query": "Carolyn Korsmeyer",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Aesthetic Value, Art, and Food / Carolyn Korsmeyer",
+          "url": "https://openlibrary.org/search.json?title=Aesthetic+Value%2C+Art%2C+and+Food&author=Carolyn+Korsmeyer&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6723,6 +7318,13 @@
           "query": "Elena Abate",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 9 broad hits; es: HTTP 200, 15 broad hits; de: HTTP 200, 3 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Fashion as an Aesthetic Form of Life: A Wittgensteinian Interpretation / Elena Abate",
+          "url": "https://openlibrary.org/search.json?title=Fashion+as+an+Aesthetic+Form+of+Life%3A+A+Wittgensteinian+Interpretation&author=Elena+Abate&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6810,6 +7412,13 @@
           "query": "Elizabeth Telfer",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 13 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 1 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Food as Art / Elizabeth Telfer",
+          "url": "https://openlibrary.org/search.json?title=Food+as+Art&author=Elizabeth+Telfer&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6897,6 +7506,13 @@
           "query": "Emily Brady",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 53 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Imagination and the Aesthetic Appreciation of Nature / Emily Brady",
+          "url": "https://openlibrary.org/search.json?title=Imagination+and+the+Aesthetic+Appreciation+of+Nature&author=Emily+Brady&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -6984,6 +7600,13 @@
           "query": "Esther Leslie",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 110 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 9 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Political Aesthetics / Esther Leslie",
+          "url": "https://openlibrary.org/search.json?title=Political+Aesthetics&author=Esther+Leslie&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -7078,6 +7701,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/9782020006019.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Peau noire, masques blancs; 1 items, Limited (search-only) (ic). ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Peau noire, masques blancs / Frantz Fanon",
+          "url": "https://openlibrary.org/search.json?title=Peau+noire%2C+masques+blancs&author=Frantz+Fanon&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "1 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "6053162019",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/6053162019.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -7178,6 +7815,13 @@
           "query": "Giovanni Matteucci",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 4 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 6 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Aesthetics of Fashion / Giovanni Matteucci",
+          "url": "https://openlibrary.org/search.json?title=Aesthetics+of+Fashion&author=Giovanni+Matteucci&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -7272,6 +7916,20 @@
           "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/0199659311.json",
           "http": 200,
           "result": "Selected lobid title/author candidate Functional beauty; 0 items, no items returned. ISBN and candidate identity need further verification; this covers one candidate edition only and does not establish absence or global rights."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Functional Beauty / Glenn Parsons",
+          "url": "https://openlibrary.org/search.json?title=Functional+Beauty&author=Glenn+Parsons&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "1 records; 1 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
+        },
+        {
+          "service": "HathiTrust bibliographic ISBN API via Open Library",
+          "query": "1281978442",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/isbn/1281978442.json",
+          "http": 200,
+          "result": "One ISBN from an approximate title/author candidate; 0 items, no items returned. Identity, other editions and jurisdictional rights remain to be reviewed; no absence inferred."
         }
       ]
     },
@@ -7359,6 +8017,13 @@
           "query": "Hannah Higgins",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 57 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 6 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Appendix to “Intermedia” / Hannah Higgins",
+          "url": "https://openlibrary.org/search.json?title=Appendix+to+%E2%80%9CIntermedia%E2%80%9D&author=Hannah+Higgins&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -7459,6 +8124,13 @@
           "query": "Nanda Jarosz",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Indigenous and Local Knowledge and Aesthetics: Towards an Intergenerational Aesthetics of Nature / Nanda Jarosz",
+          "url": "https://openlibrary.org/search.json?title=Indigenous+and+Local+Knowledge+and+Aesthetics%3A+Towards+an+Intergenerational+Aesthetics+of+Nature&author=Nanda+Jarosz&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -7546,6 +8218,13 @@
           "query": "Noam Tractinsky",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Aesthetics and Apparent Usability: Empirically Assessing Cultural and Methodological Issues / Noam Tractinsky",
+          "url": "https://openlibrary.org/search.json?title=Aesthetics+and+Apparent+Usability%3A+Empirically+Assessing+Cultural+and+Methodological+Issues&author=Noam+Tractinsky&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -7662,6 +8341,13 @@
           "query": "Noam Tractinsky",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "What Is Beautiful Is Usable / Noam Tractinsky",
+          "url": "https://openlibrary.org/search.json?title=What+Is+Beautiful+Is+Usable&author=Noam+Tractinsky&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -7771,6 +8457,13 @@
           "query": "Rebecca Journey",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 439 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 3 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "A Semiotics of Coziness and Disappearing Night / Rebecca Journey",
+          "url": "https://openlibrary.org/search.json?title=A+Semiotics+of+Coziness+and+Disappearing+Night&author=Rebecca+Journey&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -7858,6 +8551,13 @@
           "query": "Roman Ingarden",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 1 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 3 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Das literarische Kunstwerk / Roman Ingarden",
+          "url": "https://openlibrary.org/search.json?title=Das+literarische+Kunstwerk&author=Roman+Ingarden&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -7945,6 +8645,13 @@
           "query": "Ronald Hepburn",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 18 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Contemporary Aesthetics and the Neglect of Natural Beauty / Ronald Hepburn",
+          "url": "https://openlibrary.org/search.json?title=Contemporary+Aesthetics+and+the+Neglect+of+Natural+Beauty&author=Ronald+Hepburn&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -8032,6 +8739,13 @@
           "query": "Ronald Hepburn",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 18 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Nature Humanised: Nature Respected / Ronald Hepburn",
+          "url": "https://openlibrary.org/search.json?title=Nature+Humanised%3A+Nature+Respected&author=Ronald+Hepburn&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -8140,6 +8854,13 @@
           "query": "Sheila Lintott",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Link Between Aesthetic Appreciation and the Preservation Imperative / Sheila Lintott",
+          "url": "https://openlibrary.org/search.json?title=The+Link+Between+Aesthetic+Appreciation+and+the+Preservation+Imperative&author=Sheila+Lintott&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -8227,6 +8948,13 @@
           "query": "Verity Platt",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 10 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Getting to Grips with Classical Art: Rethinking the Haptics of Graeco-Roman Visual Culture / Verity Platt",
+          "url": "https://openlibrary.org/search.json?title=Getting+to+Grips+with+Classical+Art%3A+Rethinking+the+Haptics+of+Graeco-Roman+Visual+Culture&author=Verity+Platt&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -8314,6 +9042,13 @@
           "query": "Victor Papanek",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Design for the Real World: Human Ecology and Social Change / Victor Papanek",
+          "url": "https://openlibrary.org/search.json?title=Design+for+the+Real+World%3A+Human+Ecology+and+Social+Change&author=Victor+Papanek&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -8410,6 +9145,13 @@
           "query": "William Cronon",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 0 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "The Trouble with Wilderness; or, Getting Back to the Wrong Nature / William Cronon",
+          "url": "https://openlibrary.org/search.json?title=The+Trouble+with+Wilderness%3B+or%2C+Getting+Back+to+the+Wrong+Nature&author=William+Cronon&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     },
@@ -8511,6 +9253,13 @@
           "query": "Yuriko Saito",
           "url": "https://www.wikisource.org/",
           "result": "Bounded English author-name full-text search only; up to five hits each in empty-wikisource-author-only.json. en: HTTP 200, 0 broad hits; es: HTTP 200, 0 broad hits; de: HTTP 200, 1 broad hits; zh: HTTP 200, 0 broad hits. Results include unrelated references and other names or translated titles remain to be searched; zero is not proof of absence."
+        },
+        {
+          "service": "Open Library ISBN candidate search",
+          "query": "Appreciating Nature on Its Own Terms / Yuriko Saito",
+          "url": "https://openlibrary.org/search.json?title=Appreciating+Nature+on+Its+Own+Terms&author=Yuriko+Saito&fields=key%2Ctitle%2Cauthor_name%2Cisbn%2Cfirst_publish_year&limit=5",
+          "http": 200,
+          "result": "0 records; 0 candidate works retained after approximate title and surname comparison. Exact edition identity and rights require review; other spellings and editions remain unsearched."
         }
       ]
     }
@@ -8863,6 +9612,12 @@
       "service": "HathiTrust bibliographic ISBN API",
       "queries": "16 ISBNs selected from lobid title/author candidates and recorded per work",
       "outcome": "All HTTP 200: 13 returned no items; three returned a single in-copyright search-only item in US access metadata. Results cover only the selected editions; further editions, access, identity and jurisdictions remain to be checked. Raw metadata: empty-hathi-isbn.json."
+    },
+    {
+      "date": "2026-11-12",
+      "service": "Open Library title/author ISBN and HathiTrust ISBN API",
+      "queries": "88 title and author searches with ISBN fields; 19 selected ISBN queries to HathiTrust",
+      "outcome": "All 88 Open Library and 19 HathiTrust requests returned HTTP 200. Three selected ISBNs returned search-only items in US access metadata; 16 returned no items. Approximate title/surname matching and one selected ISBN per work are not definitive edition identification, exhaustive access searches or rights findings. Raw data: empty-ol-hathi-search.json."
     }
   ]
 }
