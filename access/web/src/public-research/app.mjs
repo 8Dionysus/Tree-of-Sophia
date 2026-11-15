@@ -15,9 +15,10 @@ import {initializePublicReaderRules} from './bootstrap.mjs';
 import {createPublicSpace} from './space-library.mjs';
 import {mountPublicResearchSpace} from './public-space.mjs';
 import './public-research.css';
+import {publicCorpusWorkCount} from './corpus-work-count.mjs';
 
 const root = document.querySelector('#public-research') ?? document.querySelector('#public-reader-host');
-import {corpusProfile} from './bonsai.mjs';
+import {corpusProfile,loadBonsai} from './bonsai.mjs';
 const profile = ['antiquity','aesthetics'].includes(root?.dataset.profile) ? root.dataset.profile : 'zarathustra';
 const requestedLocale=new URLSearchParams(location.search).get('lang');
 let savedLocale;try{savedLocale=localStorage.getItem('tos.public-research.locale.v1');}catch{}
@@ -506,7 +507,11 @@ async function start() {
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && corpusInfo) {
-    const workCount = Array.isArray(corpusInfo.documentIds) ? corpusInfo.documentIds.length : null;
+    // Aesthetics keeps its own count while it reads through the Antiquity fallback.
+    const identities = profile === 'aesthetics' && !Array.isArray(profileInfo?.documentIds)
+      ? (await loadBonsai(profile))?.identities?.works
+      : undefined;
+    const workCount = publicCorpusWorkCount(profile, manifest, identities);
     corpusWorkCount=workCount;refreshProviderStatus();
     entry.opener.disabled = false;
     readerRoot.querySelector('.corpus-open-narrow')?.removeAttribute('disabled');
