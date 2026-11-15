@@ -15,6 +15,7 @@ import {readChronology} from '../../../../bonsai/lib/chronology.mjs';
 import {centuryOf,centuryStart,formatDating,formatYears} from '../../../../bonsai/lib/time.mjs';
 import witnessManifest from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
 import {citationId} from './research-index.mjs';
+import {aestheticsGroupTitle} from './aesthetics-groups.mjs';
 
 export {formatDating,formatYears};
 const lang=resolveLocale;
@@ -96,7 +97,7 @@ const LANE=36,GAP=12,STACK=7;
  * stands in the first; a writing the chronology dates as unknown stands with
  * the other undated ones outside the scale.
  */
-export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
+export function antiquityTimeline({routes=[],entries=[],chronology=null,passageIdOf=id=>String(id).replace(/^antiquity:reading:/,''),laneSpacing=LANE,weightedWorks=false}={}){
   const byId=new Map(entries.map(entry=>[entry.legacyId??entry.id,entry])),reader=readChronology(chronology);
   // Each author's life as the chronology dates it; it spans an era's bracket.
   const lives=new Map();
@@ -104,7 +105,7 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
   const timeOf=new Map();
   for(const route of routes)for(const step of route.steps??[]){
     const id=step.nodeId??step.graphNodeId;if(!id||timeOf.has(id))continue;
-    const passageId=String(id).replace(/^antiquity:reading:/,''),passage=byId.get(passageId);if(!passage)continue;
+    const passageId=passageIdOf(id),passage=byId.get(passageId);if(!passage)continue;
     const workId=passage.workId??null,authorId=passage.author??byId.get(workId)?.author??null,composition=reader.compositionOf({passageId,workId});
     timeOf.set(id,{passageId,workId,authorId,life:lives.get(authorId)?.situation??null,composition,span:composition?reader.span(composition):null,period:pick(passage.period,'en')});
   }
@@ -115,7 +116,18 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
   const min=centuryStart(Math.floor(Math.min(...all.map(span=>span.from)))),max=centuryStart(Math.ceil(Math.max(...all.map(span=>span.to)))-1)+100;
   // The column past the scale is "date unknown" where every writing in it is dated so, else only "off the scale".
   const unknownOnly=[...undated].every(id=>reader.situation(timeOf.get(id)?.composition)?.dating?.kind==='unknown-date');
-  const width=1000,xOfYear=year=>(year-min)/(max-min)*width-width/2,outsideX=width/2+130;
+  const width=1000,outsideX=width/2+130;
+  // A field spanning many centuries can give more room to centuries with more works.
+  // Each century remains linear inside its own interval, and empty ones retain space.
+  const counts=new Map();
+  if(weightedWorks){
+    const works=new Map();for(const time of timeOf.values())if(time.workId&&time.span&&!works.has(time.workId))works.set(time.workId,time.span);
+    for(const span of works.values()){const start=centuryStart(Math.floor((span.from+span.to)/2));counts.set(start,(counts.get(start)??0)+1);}
+  }
+  const centuries=Array.from({length:(max-min)/100},(_,i)=>min+i*100);
+  const weights=centuries.map(start=>weightedWorks?1+2*Math.sqrt(counts.get(start)??0):1),total=weights.reduce((a,b)=>a+b,0);
+  const offsets=[0];for(const weight of weights)offsets.push(offsets.at(-1)+weight/total*width);
+  const xOfYear=year=>{if(!weightedWorks)return (year-min)/(max-min)*width-width/2;const index=Math.max(0,Math.min(centuries.length-1,Math.floor((year-min)/100)));return -width/2+offsets[index]+(year-centuries[index])/100*(offsets[index+1]-offsets[index]);};
   const positions=new Map(),lanes=[],yearOf=new Map();
   for(const route of routes){
     const ids=[...new Set((route.steps??[]).map(step=>step.nodeId??step.graphNodeId))].filter(id=>timeOf.has(id)&&!positions.has(id));
@@ -128,13 +140,13 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
     const dodged=dodgeRow(dated.map((id,order)=>({id,x:xOfYear(yearOf.get(id)),order})),GAP);
     const xs=new Map(dated.map(id=>{const span=spanOf(id);return [id,Math.min(xOfYear(span.to),Math.max(xOfYear(span.from),dodged.get(id)))];}));
     ids.filter(id=>!spanOf(id)).forEach((id,index)=>xs.set(id,outsideX+index*GAP));
-    const y=lanes.length*LANE,dys=stackColumns(xs,GAP/2,STACK);
+    const y=lanes.length*laneSpacing,dys=stackColumns(xs,GAP/2,STACK);
     for(const [id,x] of xs)positions.set(id,[x,y+dys.get(id),0]);
     const inside=dated.map(id=>xs.get(id));
     lanes.push({id:route.id,title:route.title,y,from:Math.min(...(inside.length?inside:[...xs.values()])),to:Math.max(...(inside.length?inside:[...xs.values()]))});
   }
   // Rows are centred on the scale's origin.
-  const shift=-(lanes.length-1)*LANE/2;for(const position of positions.values())position[1]+=shift;for(const lane of lanes)lane.y+=shift;
+  const shift=-(lanes.length-1)*laneSpacing/2;for(const position of positions.values())position[1]+=shift;for(const lane of lanes)lane.y+=shift;
   const eras=entries.filter(entry=>entry.kind==='era'),livesOf=period=>[...lives.entries()].filter(([id])=>pick(byId.get(id)?.period,'en')===period).map(([,life])=>life.span);
   return {
     kind:'years',positions,lanes,domain:{min,max},rows:YEAR_ROWS,strip:YEAR_ROWS.era0+4,bounds:[xOfYear(min),undated.size?outsideX:xOfYear(max)],
@@ -167,6 +179,16 @@ export function antiquityTimeline({routes=[],entries=[],chronology=null}={}){
       return out;
     },
   };
+}
+
+/** The same scale for a field: rows are its four groups of areas. */
+export function aestheticsTimeline({field,library,chronology}){
+  const areas=new Map(field.areas.map(area=>[area.id,area]));
+  const rows=['A','B','C','D'].map(group=>({id:group,title:aestheticsGroupTitle(group),steps:library.atlas.routes.filter(route=>areas.get(route.id)?.group===group).flatMap(route=>route.steps)}));
+  const entries=[...Object.keys(chronology.lives??{}).map(id=>({id,kind:'author'})),...field.conceptions.map(item=>({id:item.id,workId:item.work,author:item.agents?.[0]}))];
+  const timeline=antiquityTimeline({routes:rows,entries,chronology,passageIdOf:id=>String(id).replace(/^aesthetics:reading:/,''),laneSpacing:70,weightedWorks:true});
+  if(!timeline)return null;
+  return {...timeline,labels:(locale,options)=>timeline.labels(locale,options).map(label=>{if(label.variant==='axis')return {...label,noOverlap:true};if(label.variant!=='lane')return label;const {hint,ref,...group}=label;return group;})};
 }
 
 /**
