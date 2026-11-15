@@ -44,7 +44,8 @@ test('every authored Bonsai display form has a translation entry',async()=>{
     if(typeof value.ru==='string'&&typeof value.en==='string'&&value.en.trim()&&/\p{L}/u.test(value.en))forms.add(value.en);
     // A place's texts are a work's own words in its witnesses, not forms of the stand;
     // a story's pieces are its sources as they stand: the witnesses' sentences, the Tree's readings and words.
-    for(const [key,item] of Object.entries(value))if(key!=='texts'&&key!=='pieces')walk(item);
+    // Language-keyed links are source addresses, not display forms.
+    for(const [key,item] of Object.entries(value))if(key!=='texts'&&key!=='pieces'&&key!=='links')walk(item);
   };
   for(const stand of ['antiquity','zarathustra']){
     const home=new URL(`../../../../bonsai/${stand}/`,import.meta.url);
@@ -109,6 +110,8 @@ test('provider title fallbacks remain literal even when they match a UI message'
 
 test('the public corpus names its authors in the reader\'s language, and an author it does not know as the manifest spells it',()=>{
   expect(corpusAuthorName('Plato','ru')).toBe('Платон');expect(corpusAuthorName('Plato','en')).toBe('Plato');
+  expect(corpusAuthorName('Xenophon','ru')).toBe('Ксенофонт');expect(corpusAuthorName('Xenophon','es')).toBe('Jenofonte');
+  expect(corpusWorkTitle({id:'tos.work.xenophon.memorabilia',title:'Memorabilia'},'ru')).toBe('Воспоминания о Сократе');
   expect(corpusAuthorName('Hippocratic corpus','ru')).toBe('Гиппократов корпус');
   expect(corpusAuthorName('Friedrich Nietzsche','ru')).toBe('Фридрих Ницше');
   expect(corpusAuthorName('Plato','de')).toBe('Platon');expect(corpusAuthorName('Plato','es')).toBe('Platón');expect(corpusAuthorName('Plato','zh-Hans')).toBe('柏拉图');

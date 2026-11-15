@@ -1,12 +1,9 @@
 # Knowledge-contract source snapshots
 
 These files are bounded software-test inputs. They preserve the exact public
-metadata records needed by `access/tests/test_knowledge_contract.py`; they do
-not admit canon, source meaning, rights, publication, or a data release. No
-private payload is included. The software bundle remains governed by
-`access/packaging/build_software_bundle.py` and
-`access/packaging/validate_software_bundle.py`; these fixtures are not bundle
-inputs.
+metadata records used by native conformance and crate tests; they do not
+admit canon, source meaning, rights, publication, or a data release. No
+private payload is included, and these fixtures are not bundle inputs.
 
 ## Provenance
 
@@ -74,8 +71,8 @@ records into canon or add a semantic decision.
 
 ### Readable-context public metadata
 
-The two bounded public metadata snapshots below are exact byte copies used by
-`access/tests/test_readable_context.py`. They replace a sparse-CI dependency on
+The two bounded public metadata snapshots below are exact byte copies retained
+for native fixture consumers. They replace a sparse-CI dependency on
 the source-witness tree; they carry no private payload, rights grant, canon
 admission, or semantic judgment.
 

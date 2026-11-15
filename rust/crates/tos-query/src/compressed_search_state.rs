@@ -3,7 +3,7 @@
 use std::collections::BTreeSet;
 use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, JsonNumber, JsonNumberKind,
-    JsonString, JsonValue, canonical_bytes_v1, emit_python_compact_json, parse_json,
+    JsonString, JsonValue, canonical_bytes_v1, emit_ordered_compact_json_v1, parse_json,
     python_lower_unicode16_v1, python_strip_unicode16_v1,
 };
 
@@ -456,7 +456,7 @@ pub(crate) fn id_hash(value: &JsonValue) -> Result<String> {
     Ok(Digest256::of_bytes(&sorted_default(value, 1_900_000)?).to_hex())
 }
 pub(crate) fn compact(value: &JsonValue, max: usize) -> Result<Vec<u8>> {
-    emit_python_compact_json(value, json_limits(max))
+    emit_ordered_compact_json_v1(value, json_limits(max))
         .map_err(|_| budget("JSON framing exceeds search budget"))
 }
 pub(crate) fn sorted_default(value: &JsonValue, max: usize) -> Result<Vec<u8>> {

@@ -14,7 +14,7 @@ use tos_query::{AbortProbe, AbortReason};
 use crate::common::checked_execute_source_descend;
 use crate::common::{
     AccessError, AccessErrorCode, AccessExecutor, AccessProfile, DisclosureFence, HTTP_PREFIX,
-    IndexedSearchParams, Params, SEARCH_HTTP_PATH, checked_execute, error_json, validate_packet,
+    Params, SEARCH_HTTP_PATH, checked_execute, error_json, validate_packet,
 };
 
 const MAX_HEAD: usize = 8 * 1024;
@@ -215,7 +215,7 @@ fn query_list(query: &str, name: &str) -> Vec<String> {
         .collect()
 }
 
-fn indexed_cursor(query: &str) -> Result<Option<String>, AccessError> {
+fn search_cursor(query: &str) -> Result<Option<String>, AccessError> {
     let mut cursor = None;
     for pair in query.split('&') {
         let (key, value) = pair.split_once('=').unwrap_or((pair, ""));
@@ -223,14 +223,14 @@ fn indexed_cursor(query: &str) -> Result<Option<String>, AccessError> {
             if cursor.is_some() {
                 return Err(AccessError::new(
                     AccessErrorCode::InvalidRequest,
-                    "indexed cursor appears more than once",
+                    "search cursor appears more than once",
                 ));
             }
             let value = percent_decode(value, true)?;
             if value.is_empty() {
                 return Err(AccessError::new(
                     AccessErrorCode::InvalidRequest,
-                    "indexed cursor is empty",
+                    "search cursor is empty",
                 ));
             }
             cursor = Some(value);
@@ -246,144 +246,56 @@ fn handle_search<'hold, E: crate::common::ScopedAccessExecutor<'hold> + ?Sized>(
     profile: AccessProfile,
     abort_probe: Arc<dyn AbortProbe>,
 ) -> ScopedHttpResponse<'hold> {
-    let mode = query_value(query, "mode").unwrap_or_else(|| "legacy".into());
-    if mode != "indexed" {
-        use tos_foundation::JsonString;
-        let string = |value: String| JsonValue::String(JsonString::from_utf8(&value));
-        let list = |key| JsonValue::Array(query_list(query, key).into_iter().map(string).collect());
-        let mut fields = vec![
-            ("mode", string(mode.clone())),
-            (
-                "query",
-                string(query_value(query, "query").unwrap_or_default()),
-            ),
-            ("sources", list("sources")),
-            ("kind_ids", list("kind_ids")),
-            ("predicate_ids", list("predicate_ids")),
-            (
-                "offset",
+    use tos_foundation::JsonString;
+    let string = |value: String| JsonValue::String(JsonString::from_utf8(&value));
+    let list = |key| JsonValue::Array(query_list(query, key).into_iter().map(string).collect());
+    let mut fields = vec![
+        (
+            "query",
+            string(query_value(query, "query").unwrap_or_default()),
+        ),
+        ("sources", list("sources")),
+        ("kind_ids", list("kind_ids")),
+        ("predicate_ids", list("predicate_ids")),
+    ];
+    if let Some(mode) = query_value(query, "mode") {
+        fields.push(("mode", string(mode)));
+    }
+    match search_cursor(query) {
+        Ok(Some(cursor)) => fields.push(("cursor", string(cursor))),
+        Ok(None) => {}
+        Err(error) => return packet_response(Err(error), method, profile),
+    }
+    for key in ["offset", "limit"] {
+        if let Some(raw) = query_value(query, key) {
+            let Ok(value) = raw.parse::<usize>() else {
+                return packet_response(
+                    Err(AccessError::new(
+                        AccessErrorCode::InvalidRequest,
+                        "invalid compressed search integer",
+                    )),
+                    method,
+                    profile,
+                );
+            };
+            fields.push((
+                key,
                 JsonValue::Number(JsonNumber {
                     kind: JsonNumberKind::Int,
-                    lexeme: bounded_legacy_int(
-                        query_value(query, "offset").as_deref(),
-                        0,
-                        0,
-                        100_000,
-                    )
-                    .to_string(),
+                    lexeme: value.to_string(),
                 }),
-            ),
-            (
-                "limit",
-                JsonValue::Number(JsonNumber {
-                    kind: JsonNumberKind::Int,
-                    lexeme: bounded_legacy_int(query_value(query, "limit").as_deref(), 40, 1, 100)
-                        .to_string(),
-                }),
-            ),
-        ];
-        if mode == "compressed" {
-            // Reuse the strict cursor decoder: duplicates and malformed escapes
-            // must refuse rather than silently start a new search.
-            match indexed_cursor(query) {
-                Ok(Some(cursor)) => fields.push(("cursor", string(cursor))),
-                Ok(None) => {}
-                Err(error) => return packet_response(Err(error), method, profile),
-            }
-            for key in ["offset", "limit"] {
-                if let Some(raw) = query_value(query, key) {
-                    let Ok(value) = raw.parse::<usize>() else {
-                        return packet_response(
-                            Err(AccessError::new(
-                                AccessErrorCode::InvalidRequest,
-                                "invalid compressed search integer",
-                            )),
-                            method,
-                            profile,
-                        );
-                    };
-                    fields.retain(|(name, _)| *name != key);
-                    fields.push((
-                        key,
-                        JsonValue::Number(JsonNumber {
-                            kind: JsonNumberKind::Int,
-                            lexeme: value.to_string(),
-                        }),
-                    ));
-                }
-            }
+            ));
         }
-        let args = JsonValue::Object(
-            fields
-                .into_iter()
-                .map(|(key, value)| (JsonString::from_utf8(key), value))
-                .collect(),
-        );
-        let result = crate::search::SearchRequest::from_arguments(&args).and_then(|request| {
-            checked_execute(abort_probe, |probe| request.execute(executor, probe))
-        });
-        return packet_response(result, method, profile);
     }
-    if !executor.knowledge_search_indexed_available() {
-        return ScopedHttpResponse::error_for_method(
-            503,
-            "indexed knowledge search unavailable",
-            method,
-        );
-    }
-    let offset = bounded_legacy_int(query_value(query, "offset").as_deref(), 0, 0, 100_000);
-    if offset != 0 {
-        return ScopedHttpResponse::error_for_method(
-            400,
-            "indexed search uses cursor, not offset",
-            method,
-        );
-    }
-    let limit = bounded_legacy_int(query_value(query, "limit").as_deref(), 40, 1, 100) as usize;
-    let result = indexed_cursor(query)
-        .and_then(|cursor| {
-            IndexedSearchParams::new(
-                query_value(query, "query").unwrap_or_default(),
-                query_list(query, "sources"),
-                query_list(query, "kind_ids"),
-                query_list(query, "predicate_ids"),
-                cursor,
-                limit,
-            )
-        })
-        .and_then(|params| {
-            checked_execute(abort_probe, |probe| {
-                executor.knowledge_search_indexed(params, probe)
-            })
-        })
-        .and_then(|packet| {
-            if packet.body.len() > profile.max_response_bytes {
-                return Err(AccessError::new(
-                    AccessErrorCode::BudgetExceeded,
-                    "indexed search response budget exceeded",
-                ));
-            }
-            validate_packet(&packet.body, profile.max_response_bytes)?;
-            Ok(packet)
-        });
-    match result {
-        Ok(packet) => ScopedHttpResponse {
-            status: 200,
-            body: packet.body,
-            head_only: method == "HEAD",
-            content_type: "application/json; charset=utf-8",
-            csp_nonce: None,
-            fence: Some(packet.fence),
-        },
-        Err(error) => ScopedHttpResponse {
-            status: error.http_status(),
-            body: error_json(&error),
-            head_only: method == "HEAD",
-            content_type: "application/json; charset=utf-8",
-            csp_nonce: None,
-            fence: None,
-        },
-    }
+    let args = JsonValue::Object(
+        fields
+            .into_iter()
+            .map(|(key, value)| (JsonString::from_utf8(key), value))
+            .collect(),
+    );
+    let result = crate::search::SearchRequest::from_arguments(&args)
+        .and_then(|request| checked_execute(abort_probe, |probe| request.execute(executor, probe)));
+    packet_response(result, method, profile)
 }
 
 pub fn handle_get(
@@ -579,35 +491,6 @@ fn handle_get_with_probe<'hold, E: crate::common::ScopedAccessExecutor<'hold> + 
             method,
             profile,
         );
-    }
-    if path == "/" || path.starts_with("/static/") {
-        let Some(site) = site else {
-            return ScopedHttpResponse::error_for_method(
-                503,
-                "installed software site unavailable",
-                method,
-            );
-        };
-        let result = if path == "/" {
-            site.shell(executor, profile, abort_probe)
-                .map(|(packet, nonce)| (packet, "text/html; charset=utf-8", Some(nonce)))
-        } else {
-            percent_decode(&path[8..], false).and_then(|relative| {
-                site.asset(&relative, abort_probe)
-                    .map(|packet| (packet, crate::site::mime(&relative), None))
-            })
-        };
-        return match result {
-            Ok((packet, content_type, csp_nonce)) => ScopedHttpResponse {
-                status: 200,
-                body: packet.body,
-                head_only: method == "HEAD",
-                fence: Some(packet.fence),
-                content_type,
-                csp_nonce,
-            },
-            Err(error) => packet_response(Err(error), method, profile),
-        };
     }
     if path == "/api/zarathustra/word-analysis" {
         let packet = crate::reading::public_word_analysis_capability(profile.max_response_bytes);

@@ -77,6 +77,8 @@ describe('immutable public corpus delivery',()=>{
   expect((await provider.catalog({query:'Диоген',limit:24})).items).toMatchObject([{id:'work',author:'Diogenes Laertius'}]);
   expect((await provider.catalog({query:'Laertius',limit:24})).items).toHaveLength(1);
   expect((await provider.catalog({query:'Платон',limit:24})).items).toHaveLength(0);
+  const xenophon=fixture({author:'Xenophon'}).provider;
+  expect((await xenophon.catalog({query:'Ксенофонт',limit:24})).items).toMatchObject([{id:'work',author:'Xenophon'}]);
  });
  it('searches source text across indexed form delimiters without losing exact Unicode offsets',async()=>{
   const {provider,calls}=fixture({text:'🌳 sense-organs and sense organs.',terms:[{form:'sense',occurrences:[[1,2,7]]},{form:'organs',occurrences:[[1,8,14]]}]});

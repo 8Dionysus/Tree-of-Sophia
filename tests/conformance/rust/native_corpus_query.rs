@@ -9094,20 +9094,20 @@ fn assert_native_corpus_query_packets(
     use tos_query::corpus_read::{
         CORPUS_INTENDED_USE, CorpusReadContext, CorpusReadRequest as R, execute_selected_corpus,
     };
-    use tos_query::search_v2::{CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode};
+    use tos_query::search::{CurrentPolicyBinding, SearchError, SearchErrorCode};
     use tos_query::{
         IndexedDisclosureScope, InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier,
         ObservedInspectCarrier, bind_verified_knowledge,
     };
-    fn withdrawn() -> SearchV2Error {
-        SearchV2Error {
-            code: SearchV2ErrorCode::StalePolicy,
+    fn withdrawn() -> SearchError {
+        SearchError {
+            code: SearchErrorCode::StalePolicy,
             message: "finite projection hold withdrawn",
         }
     }
     struct Hold(Arc<AtomicBool>);
     impl InspectDisclosureLease for Hold {
-        fn recheck(&mut self) -> Result<(), SearchV2Error> {
+        fn recheck(&mut self) -> Result<(), SearchError> {
             if self.0.load(Ordering::SeqCst) {
                 Err(withdrawn())
             } else {
@@ -9132,16 +9132,16 @@ fn assert_native_corpus_query_packets(
         fn disclosure_scope(&self) -> IndexedDisclosureScope {
             self.scope.clone()
         }
-        fn check_selected(&mut self) -> Result<(), SearchV2Error> {
+        fn check_selected(&mut self) -> Result<(), SearchError> {
             if self.withdrawn.load(Ordering::SeqCst) {
                 Err(withdrawn())
             } else {
                 Ok(())
             }
         }
-        fn authorize_current(&mut self, _: &InspectedCarrier) -> Result<(), SearchV2Error> {
-            Err(SearchV2Error {
-                code: SearchV2ErrorCode::Unavailable,
+        fn authorize_current(&mut self, _: &InspectedCarrier) -> Result<(), SearchError> {
+            Err(SearchError {
+                code: SearchErrorCode::Unavailable,
                 message: "corpus oracle grants originals only",
             })
         }
@@ -9152,11 +9152,11 @@ fn assert_native_corpus_query_packets(
             ordinal: u64,
             raw: &[u8],
             sha: Digest256,
-        ) -> Result<(), SearchV2Error> {
+        ) -> Result<(), SearchError> {
             self.check_selected()?;
             if self.deny {
-                return Err(SearchV2Error {
-                    code: SearchV2ErrorCode::Unavailable,
+                return Err(SearchError {
+                    code: SearchErrorCode::Unavailable,
                     message: "finite original grant denied",
                 });
             }
@@ -9175,7 +9175,7 @@ fn assert_native_corpus_query_packets(
             &mut self,
             scope: &IndexedDisclosureScope,
             consulted: &[ObservedInspectCarrier],
-        ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
+        ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchError> {
             self.check_selected()?;
             assert_eq!(scope.operation_id, self.scope.operation_id);
             assert_eq!(scope.intended_use, CORPUS_INTENDED_USE);
@@ -9419,12 +9419,12 @@ fn assert_native_corpus_query_packets(
         .err()
         .unwrap()
         .code,
-        SearchV2ErrorCode::BudgetExceeded
+        SearchErrorCode::BudgetExceeded
     );
     current.withdrawn.store(true, Ordering::SeqCst);
     assert_eq!(
         held.recheck().unwrap_err().code,
-        SearchV2ErrorCode::StalePolicy
+        SearchErrorCode::StalePolicy
     );
     let mut denied = authority(request);
     denied.deny = true;
@@ -9433,7 +9433,7 @@ fn assert_native_corpus_query_packets(
             .err()
             .unwrap()
             .code,
-        SearchV2ErrorCode::Unavailable
+        SearchErrorCode::Unavailable
     );
     requests
         .into_iter()

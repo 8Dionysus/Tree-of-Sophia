@@ -28,7 +28,7 @@ pub struct SourceRow {
 /// still need their own admission under the same original owner.
 pub(crate) struct OwnedSourceRow<'s, 'budget> {
     row: SourceRow,
-    _hold: Option<crate::d1_public_capture::CreationStateHold<'s, 'budget>>,
+    _hold: Option<crate::public_capture::CreationStateHold<'s, 'budget>>,
 }
 impl std::ops::Deref for OwnedSourceRow<'_, '_> {
     type Target = SourceRow;
@@ -336,7 +336,7 @@ impl SourceRow {
     pub(crate) fn parse_scoped_with_optional_owned_state<'s, 'budget>(
         raw: &[u8],
         max_bytes: usize,
-        state: Option<&'s crate::d1_public_capture::CreationState<'budget>>,
+        state: Option<&'s crate::public_capture::CreationState<'budget>>,
     ) -> Result<OwnedSourceRow<'s, 'budget>> {
         match state {
             Some(state) => Self::parse_scoped_with_owned_state(raw, max_bytes, state),
@@ -349,7 +349,7 @@ impl SourceRow {
     pub(crate) fn parse_scoped_with_owned_state<'s, 'budget>(
         raw: &[u8],
         max_bytes: usize,
-        state: &'s crate::d1_public_capture::CreationState<'budget>,
+        state: &'s crate::public_capture::CreationState<'budget>,
     ) -> Result<OwnedSourceRow<'s, 'budget>> {
         if max_bytes == 0 || max_bytes > MAX_SOURCE_ROW_BYTES || raw.len() > max_bytes {
             return Err(Error::Budget("normalization source row bytes"));
@@ -577,13 +577,13 @@ fn stamp_content_revision_inner(value: &mut Value, max_bytes: usize) -> Result<(
 fn stable_digest_value_owned(
     value: &Value,
     hasher: &mut Digest256Hasher,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     depth: usize,
 ) -> Result<()> {
     fn emit(
         hasher: &mut Digest256Hasher,
         bytes: &[u8],
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<()> {
         state.charge_work(bytes.len())?;
         hasher.update(bytes);
@@ -592,7 +592,7 @@ fn stable_digest_value_owned(
     fn length(
         hasher: &mut Digest256Hasher,
         mut n: usize,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<()> {
         state.charge_work(20 + 20)?;
         let mut bytes = [0u8; 20];
@@ -610,7 +610,7 @@ fn stable_digest_value_owned(
     fn string(
         hasher: &mut Digest256Hasher,
         text: &str,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<()> {
         emit(hasher, b"s", state)?;
         length(hasher, text.len(), state)?;
@@ -621,7 +621,7 @@ fn stable_digest_value_owned(
     fn greater(
         left: &str,
         right: &str,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<bool> {
         state.charge_work(
             left.len()
@@ -634,7 +634,7 @@ fn stable_digest_value_owned(
         entries: &mut [Entry<'_>],
         mut root: usize,
         end: usize,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<()> {
         loop {
             state.active()?;
@@ -775,7 +775,7 @@ fn stable_digest_value_owned(
 // This covers both maintained BTreeMap and preserve_order's hashed map choice.
 fn charge_revision_map_lookup(
     value: &Value,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     let fields = value
         .as_object()
@@ -797,7 +797,7 @@ fn charge_revision_map_lookup(
 /// before their admission, including every error and unwinding path. The
 /// incoming tree's own existing admission must remain held by the caller.
 pub(crate) fn with_content_revision_owned(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     value: Value,
     max_bytes: usize,
     consume: impl FnOnce(&Value, &[u8]) -> Result<()>,
@@ -807,7 +807,7 @@ pub(crate) fn with_content_revision_owned(
     }
     struct RevisionOwner<'s, 'b> {
         value: Value,
-        _hold: crate::d1_public_capture::CreationStateHold<'s, 'b>,
+        _hold: crate::public_capture::CreationStateHold<'s, 'b>,
     }
     let extra = serde_object_slots_upper(1)?
         .checked_add(64 + "content_revision".len())
@@ -854,7 +854,7 @@ mod tests {
     #[test]
     fn owned_revision_keeps_exact_bytes_and_bounded_delivery_with_less_work() {
         use crate::{
-            d1_public_capture::CreationState, knowledge_payload_read::RuntimeKnowledgeOwnedBudget,
+            knowledge_payload_read::RuntimeKnowledgeOwnedBudget, public_capture::CreationState,
         };
         use std::{
             sync::{
@@ -1064,11 +1064,11 @@ mod tests {
 
 pub(crate) fn python_casefold_with_state<'state, 'budget>(
     value: &str,
-    creation: &'state crate::d1_public_capture::CreationState<'budget>,
+    creation: &'state crate::public_capture::CreationState<'budget>,
     max_output_bytes: usize,
 ) -> Result<(
     String,
-    crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+    crate::public_capture::CreationStateHold<'state, 'budget>,
 )> {
     let error_floor = tos_foundation::python_casefold_unicode16_v1_error_state_upper_bound();
     let floor_hold = creation.hold(error_floor)?;

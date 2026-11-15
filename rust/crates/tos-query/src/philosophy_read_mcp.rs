@@ -1,7 +1,7 @@
 //! Maintained MCP compositions over the same original graph and work meter.
 use super::*;
 use crate::knowledge_lens_spec::{py_string, truthy};
-fn unique(rows: &[&JsonValue], key: &str, w: &mut Work<'_>) -> Result<JsonValue, SearchV2Error> {
+fn unique(rows: &[&JsonValue], key: &str, w: &mut Work<'_>) -> Result<JsonValue, SearchError> {
     let mut result = BTreeSet::new();
     for row in rows {
         w.step()?;
@@ -16,7 +16,7 @@ pub(super) fn contracts<'a>(
     nodes: &'a [JsonValue],
     edges: &'a [JsonValue],
     w: &mut Work<'_>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let mut views = vec![];
     for view in objs(get(g.header, "views")) {
         w.step()?;
@@ -68,7 +68,7 @@ pub(super) fn contracts<'a>(
                 refs.push((
                     key.as_str().ok_or_else(|| {
                         failure(
-                            SearchV2ErrorCode::CorruptSelectedCarrier,
+                            SearchErrorCode::CorruptSelectedCarrier,
                             "non-Unicode philosophy source reference key",
                         )
                     })?,
@@ -131,7 +131,7 @@ pub(super) fn packet<'a>(
     view: Option<&str>,
     limit: usize,
     w: &mut Work<'_>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     w.step()?;
     let search = if query.is_empty() {
         object(vec![
@@ -193,7 +193,7 @@ pub(super) fn lens<'a>(
     view: &str,
     limit: usize,
     w: &mut Work<'_>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let packet = packet(g, nodes, edges, "", Some(view), limit, w)?;
     w.step()?;
     Ok(object(vec![
@@ -218,7 +218,7 @@ pub(super) fn epistemic<'a>(
     edges: &'a [JsonValue],
     request: &EvidenceRequest,
     w: &mut Work<'_>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let context = evidence::phi_context(g, nodes, edges, request, w)?;
     w.step()?;
     let counts = object(vec![
@@ -247,7 +247,7 @@ pub(super) fn epistemic<'a>(
         .as_object()
         .ok_or_else(|| {
             failure(
-                SearchV2ErrorCode::CorruptSelectedCarrier,
+                SearchErrorCode::CorruptSelectedCarrier,
                 "invalid philosophy epistemic context",
             )
         })?

@@ -1,6 +1,6 @@
 {
   "schema_version": "tos_public_corpus_snapshot_v1",
-  "revision": "f032d74f5d8fd73b09172f44cfb33b52abc9fec3164922db53a3d9db12a2ee28",
+  "revision": "06ef01a01d9081f504e51ba219953165d294796fd47abe8b65d49b30326a5acc",
   "profiles": {
     "zarathustra": {
       "label": "Заратустра",
@@ -54,7 +54,8 @@
         "tos.work.retained-antiquity.ancient-medicine",
         "tos.work.retained-antiquity.sacred-disease",
         "tos.work.retained-antiquity.isagoge",
-        "tos.work.retained-antiquity.enneads"
+        "tos.work.retained-antiquity.enneads",
+        "tos.work.xenophon.memorabilia"
       ],
       "initialDocumentId": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.zarathustra.v1.json",
@@ -290,7 +291,8 @@
         "tos.work.retained-antiquity.ancient-medicine",
         "tos.work.retained-antiquity.sacred-disease",
         "tos.work.retained-antiquity.isagoge",
-        "tos.work.retained-antiquity.enneads"
+        "tos.work.retained-antiquity.enneads",
+        "tos.work.xenophon.memorabilia"
       ],
       "initialDocumentId": "tos.work.plato.meno",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.antiquity.v1.json",
@@ -956,6 +958,16 @@
         "path": "documents/f56d0d836ed39f93357730f35a50306ad8c4f832ec9fe8a8840c443c1f8337d7.json",
         "sha256": "f56d0d836ed39f93357730f35a50306ad8c4f832ec9fe8a8840c443c1f8337d7",
         "bytes": 53803
+      }
+    },
+    {
+      "id": "tos.work.xenophon.memorabilia",
+      "title": "Memorabilia",
+      "author": "Xenophon",
+      "manifest": {
+        "path": "documents/8dc7e4d11dacd06717015a822d4965b9763355ed3f85f1c31cf0bde80aa216fc.json",
+        "sha256": "8dc7e4d11dacd06717015a822d4965b9763355ed3f85f1c31cf0bde80aa216fc",
+        "bytes": 13445
       }
     }
   ]
