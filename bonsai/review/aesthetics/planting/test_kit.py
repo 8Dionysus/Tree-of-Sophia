@@ -370,6 +370,14 @@ class ExtensionPlantingTest(unittest.TestCase):
             subprocess.run(command,check=True,capture_output=True,text=True)
             projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
             self.assertIn('Test p999',projected['places'][work])
+            world=kit.world(but=json.loads((source/'reading.json').read_text())['reader']['id']);world['fragments']=projected
+            with patch.object(kit,'world',return_value=world):
+                problems,_=kit.gate(str(parent),second=True,offline=True)
+                self.assertEqual(problems,[])
+                projected['places'][work]['Unowned p998']=copy.deepcopy(place)
+                problems,_=kit.gate(str(parent),second=True,offline=True)
+                self.assertTrue(any('drop entry from places.json' in problem for problem in problems))
+                del projected['places'][work]['Unowned p998']
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
             (ext/'accepted.json').unlink()
             subprocess.run(command,check=True,capture_output=True,text=True)

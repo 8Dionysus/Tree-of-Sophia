@@ -951,7 +951,9 @@ def gate(path,second=False,offline=False):
         if not scope.get('keys') or any(key not in waiting for key in scope['keys']):add('extension scope includes a key that is no longer waiting')
     held=None if entry else w['fragments']['works'].get(work)        # a packet with an entry brings the whole work; one without adds places to a work the bonsai holds
     if places.get('work')!=work:add('places.json names another work')
-    if entry and set(w['fragments']['places'].get(work,{}))-set(places.get('places') or {}):add('the bonsai already holds places of this work: drop entry from places.json and add places of the same edition')
+    provenance=w['fragments'].get('provenance') or {}
+    extension_places=(provenance.get('extension_places') or {}).get(work,{}) if part(path,'accepted.json') and packet_selector(path)==work and work in (provenance.get('packets') or []) else {}
+    if entry and set(w['fragments']['places'].get(work,{}))-set(places.get('places') or {})-set(extension_places):add('the bonsai already holds places of this work: drop entry from places.json and add places of the same edition')
     if not held and not entry:add('places.json has no entry for the work')
     entry=entry or held or {};original=entry.get('original') or ''
     original_rights=((entry.get('witnesses') or {}).get(original) or {}).get('rights') or {}
