@@ -8258,15 +8258,30 @@
   "checked": "2026-11-13"
  },
  "john-of-damascus": {
-  "item": null,
+  "item": "Q51884",
   "label": {
    "ru": "Иоанн Дамаскин",
    "en": "John of Damascus"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
+  "born": [
+   {
+    "time": "+0675-00-00T00:00:00Z",
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "died": [
+   {
+    "time": "+0749-12-04T00:00:00Z",
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
+   }
+  ],
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -8286,6 +8301,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://sourcebooks.web.fordham.edu/source/johndam-icons.asp",
+   "person_url": "https://www.wikidata.org/wiki/Q51884",
+   "basis": "Fordham identifies John of Damascus as the icon-defending author of On Holy Images; dates in the biography are approximate."
   }
  },
  "john-r-searle": {
