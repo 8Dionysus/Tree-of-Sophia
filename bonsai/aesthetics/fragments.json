@@ -2032,7 +2032,20 @@
    "william-gilpin.three-essays",
    "william-james.the-principles-of-psychology",
    "william-morris.the-decorative-arts"
-  ]
+  ],
+  "translation_packets": {
+   "baruch-spinoza.ethics": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/baruch-spinoza.ethics/witnesses/en.json",
+     "corrections": []
+    }
+   }
+  }
  },
  "works": {
   "immanuel-kant.kritik-der-urteilskraft": {
@@ -3777,6 +3790,106 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan",
+     "year": 1891,
+     "url": "https://archive.org/details/chiefworksofbene02spin",
+     "licence": "Spinoza's work and Elwes's historical translation are public domain on the stated jurisdictional grounds. Words were taken from English Wikisource, Ethics (Spinoza)/Part 3, revision 14519811, rendered at https://en.wikisource.org/w/index.php?title=Ethics_(Spinoza)/Part_3&oldid=14519811&action=render, and checked against Internet Archive page images of the 1891 Elwes edition; Wikisource does not identify a scan of its transcription's edition. Wikisource's copyright policy https://en.wikisource.org/wiki/Wikisource:Copyright_policy states that, unless otherwise noted, user contributions are released under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/) and the unversioned GNU Free Documentation License with no invariant sections or cover texts (https://www.gnu.org/licenses/fdl.html). For applicable copyrightable user contributions respect attribution, licence and share-alike terms; revision history identifies contributors. Wikisource's reuse guidance https://en.wikisource.org/wiki/Wikisource:Reusing_Wikisource_content states that transcription of a public-domain work does not create new copyright: these site terms do not by themselves create rights in the historic text.",
+     "attribution": "Baruch Spinoza, Ethics, translated by Robert Harvey Monro Elwes, in The Chief Works, vol. II, revised edition (London: George Bell and Sons, 1891), pp. 130, 174. Transcription: English Wikisource contributors, Ethics (Spinoza)/Part 3, revision 14519811, https://en.wikisource.org/w/index.php?title=Ethics_(Spinoza)/Part_3&oldid=14519811&action=render; contributors and revision history: https://en.wikisource.org/w/index.php?title=Ethics_(Spinoza)/Part_3&action=history. Words checked against 1891 page images; whitespace normalized and print emphasis not retained.",
+     "maker": "codex-2026-11-19-spinoza-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q35802",
+       "name": {
+        "en": "Benedictus de Spinoza",
+        "ru": "Бенедикт Спиноза"
+       },
+       "born": 1632,
+       "died": 1677,
+       "source": "https://www.wikidata.org/wiki/Q35802",
+       "evidence": {
+        "file": "wikidata-Q35802.json",
+        "sha256": "1f54e5bbe926af378b4b14e20d00203122710c93021980dcf7e8aa0c0d9a28a1",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q35802.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q18911484",
+       "name": {
+        "en": "Robert Harvey Monro Elwes",
+        "ru": "Robert Harvey Monro Elwes"
+       },
+       "born": 1853,
+       "died": 1892,
+       "source": "https://www.wikidata.org/wiki/Q18911484",
+       "evidence": {
+        "file": "wikidata-Q18911484.json",
+        "sha256": "cc088924a4e258c49aa240d8c5fdf6a2a9fc71a13572a97911cff28e6e2cb03d",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q18911484.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281; ФЗ 231-ФЗ ст. 6: автор умер в 1677, переводчик в 1892, сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "The translation was published by 1891, before 1931; the copyright term has expired in the United States."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC Article 1: more than 70 years since the deaths of author (1677) and translator (1892)."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Benedictus de Spinoza",
+        "ru": "Бенедикт Спиноза"
+       },
+       "qid": "Q35802",
+       "source": "https://www.wikidata.org/wiki/Q35802",
+       "born": [
+        {
+         "time": "+1632-11-24T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1677-02-21T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Robert Harvey Monro Elwes",
+        "ru": "Robert Harvey Monro Elwes"
+       },
+       "qid": "Q18911484",
+       "source": "https://www.wikidata.org/wiki/Q18911484",
+       "born": [
+        {
+         "time": "+1853-01-01T00:00:00Z",
+         "precision": 9
+        }
+       ],
+       "died": [
+        {
+         "time": "+1892-01-01T00:00:00Z",
+         "precision": 9
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -3784,10 +3897,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -10135,15 +10244,21 @@
      "en": "Part III, definition 3, p. 132"
     },
     "texts": {
-     "la": "Per Affectum intelligo Corporis affectiones, quibus ipsius Corporis agendi potentia augetur, vel minuitur, juvatur vel coërcetur, et simul harum affectionum ideas. Si itaque alicujus harum affectionum adaequata possimus esse causa, tum per Affectum actionem intelligo; alias passionem."
+     "la": "Per Affectum intelligo Corporis affectiones, quibus ipsius Corporis agendi potentia augetur, vel minuitur, juvatur vel coërcetur, et simul harum affectionum ideas. Si itaque alicujus harum affectionum adaequata possimus esse causa, tum per Affectum actionem intelligo; alias passionem.",
+     "en": "By emotion I mean the modifications of the body, whereby the active power of the said body is increased or diminished, aided or constrained, and also the ideas of such modifications.\n\nN.B. If we can be the adequate cause of any of these modifications, I then call the emotion an activity, otherwise I call it a passion, or state wherein the mind is passive."
     },
     "links": {
-     "la": "https://archive.org/details/benedictidespin01spingoog/page/n170/mode/1up"
+     "la": "https://archive.org/details/benedictidespin01spingoog/page/n170/mode/1up",
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n155.jpg"
     },
     "refs": [
      [
       "la",
       "Paulus edition (Jena 1802–1803), p. 132"
+     ],
+     [
+      "en",
+      "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 130"
      ]
     ]
    },
@@ -10153,15 +10268,21 @@
      "en": "Part III, definitions of the affects, 2, p. 184"
     },
     "texts": {
-     "la": "Laetitia est hominis transitio a minore ad majorem perfectionem."
+     "la": "Laetitia est hominis transitio a minore ad majorem perfectionem.",
+     "en": "Pleasure is the transition of a man from a less to a greater perfection."
     },
     "links": {
-     "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up"
+     "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up",
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg"
     },
     "refs": [
      [
       "la",
       "Paulus edition (Jena 1802–1803), p. 184"
+     ],
+     [
+      "en",
+      "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 174"
      ]
     ]
    },
@@ -10171,15 +10292,21 @@
      "en": "Part III, definitions of the affects, 3, p. 184"
     },
     "texts": {
-     "la": "Tristitia est hominis transitio a majore ad minorem perfectionem."
+     "la": "Tristitia est hominis transitio a majore ad minorem perfectionem.",
+     "en": "Pain is the transition of a man from a greater to a less perfection."
     },
     "links": {
-     "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up"
+     "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up",
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg"
     },
     "refs": [
      [
       "la",
       "Paulus edition (Jena 1802–1803), p. 184"
+     ],
+     [
+      "en",
+      "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 174"
      ]
     ]
    }
