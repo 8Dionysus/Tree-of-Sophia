@@ -3,7 +3,7 @@
 //! rollback, disk reservation and SQLite file/VM caps for explicit installation.
 
 #[cfg(feature = "source-tools")]
-use crate::d1_public_lens::compact_seed;
+use crate::public_lens::compact_seed;
 use crate::{
     Error, Result,
     local_prepared::{compact, metadata, parse, snapshot_binding},

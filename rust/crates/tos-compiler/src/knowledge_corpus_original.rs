@@ -2,7 +2,6 @@
 //! authored-source identity; neither projection custody nor selection admits it.
 #[cfg(feature = "source-tools")]
 use crate::QueryVocabulary;
-use crate::d1_public_capture::CreationState;
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
 use crate::knowledge_selected::{
     owned_schema_equal, owned_schema_sql_error, owned_schema_step, with_owned_schema_statement,
@@ -10,6 +9,7 @@ use crate::knowledge_selected::{
 use crate::knowledge_stage::{KNOWLEDGE_CARRIER_ONCE_MODEL_ABI, KnowledgePayloadLayout};
 #[cfg(feature = "source-tools")]
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+use crate::public_capture::CreationState;
 use crate::{Error, Result, SourceBinding};
 use rusqlite::{Connection, OptionalExtension, params, params_from_iter};
 use serde_json::Value;
@@ -269,7 +269,7 @@ pub(crate) fn component_root(r: &CorpusOriginalReceipt) -> Result<String> {
 }
 pub(crate) fn component_root_with_state(
     r: &CorpusOriginalReceipt,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<String> {
     if let Some(state) = state {
         if r.origin.native_producer.is_some() {
@@ -376,7 +376,7 @@ pub(crate) fn validate_receipt(r: &CorpusOriginalReceipt) -> Result<()> {
 }
 pub(crate) fn validate_receipt_with_state(
     r: &CorpusOriginalReceipt,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<()> {
     if let Some(state) = state {
         let max_path = r

@@ -1,4 +1,4 @@
-//! Thin, trusted-local CLI for exact V1 or native V2 corpus reads. It grants no public access.
+//! Thin, trusted-local CLI for exact native V2 corpus reads. It grants no public access.
 
 use std::collections::BTreeMap;
 use std::env;
@@ -13,19 +13,19 @@ use std::time::{Duration, Instant};
 
 use tos_foundation::{Digest256, JsonLimits, RelativePath, SourceRevision};
 use tos_segment_store::{AuthenticatedTreeLimitsV1, SegmentLimits};
-use tos_source_store::{CorpusReader, PinnedSqliteIoBudget, ReadLimits, Selector};
+use tos_source_store::{PinnedSqliteIoBudget, ReadLimits};
 
 const USAGE: &str = "tos-reader --store ABSOLUTE_ROOT --revision SHA256 (--source-id ID | --member-path NORMALIZED_RELATIVE_PATH) \
---stage-dir ABSOLUTE_PRIVATE_DIR [--format v1|v2] --max-manifest-bytes N \
+--stage-dir ABSOLUTE_PRIVATE_DIR [--format v2] --max-manifest-bytes N \
 --max-manifest-entries N --max-selected-object-bytes N --json-max-depth N \
 --json-max-visits N --json-max-integer-digits N \
-V2 additionally requires --max-read-bytes N --max-write-bytes N \
+--max-read-bytes N --max-write-bytes N \
 --max-segment-bytes N --max-frame-bytes N --max-frames N --max-journal-bytes N \
 --tree-max-key-bytes N --tree-max-value-bytes N --tree-max-kind-bytes N \
 --tree-max-node-bytes N --tree-max-children N --tree-max-nodes N \
 --tree-max-total-bytes N --tree-max-rows N --max-state-bytes N \
 --deadline-seconds N [--max-work-units N (required for packed V2 objects)]";
-const CAPABILITIES: &str = "{\"schema_version\":\"tos_reader_capabilities_v1\",\"store_format\":\"tos_corpus_snapshot_v1\",\"supported_store_formats\":[\"tos_corpus_snapshot_v1\",\"tos_native_admission_v2\"],\"default_format\":\"v1\",\"selection\":\"exact_revision_and_source_id_or_v2_member_path\",\"platform\":\"linux\",\"minimum_kernel\":\"5.6\",\"required_open_api\":\"openat2\",\"path_traversal\":\"beneath_no_symlinks\",\"unsafe_fallback\":false}";
+const CAPABILITIES: &str = "{\"schema_version\":\"tos_reader_capabilities_v1\",\"store_format\":\"tos_native_admission_v2\",\"supported_store_formats\":[\"tos_native_admission_v2\"],\"default_format\":\"v2\",\"selection\":\"exact_revision_and_source_id_or_v2_member_path\",\"platform\":\"linux\",\"minimum_kernel\":\"5.6\",\"required_open_api\":\"openat2\",\"path_traversal\":\"beneath_no_symlinks\",\"unsafe_fallback\":false}";
 const MAX_ARGUMENTS: usize = 64;
 const MAX_ARGUMENT_BYTES: usize = 16 * 1024;
 const OUTPUT_BUFFER_BYTES: usize = 64 * 1024;
@@ -43,10 +43,7 @@ enum ReadSelector {
     MemberPath(RelativePath),
 }
 
-fn parse_selector(
-    values: &mut BTreeMap<String, OsString>,
-    format: &str,
-) -> Result<ReadSelector, String> {
+fn parse_selector(values: &mut BTreeMap<String, OsString>) -> Result<ReadSelector, String> {
     let source_id = values
         .remove("--source-id")
         .map(|value| {
@@ -72,9 +69,6 @@ fn parse_selector(
         )),
         (Some(id), None) => Ok(ReadSelector::SourceId(id)),
         (None, Some(path)) => {
-            if format != "v2" {
-                return Err("--member-path requires --format v2".to_owned());
-            }
             let path = RelativePath::parse(&path).map_err(|error| {
                 format!("--member-path is not a canonical relative corpus path: {error}")
             })?;
@@ -211,11 +205,11 @@ fn run() -> Result<(), String> {
     let argument_state_bytes = parsed.retained_state_bytes;
     let format = values
         .remove("--format")
-        .unwrap_or_else(|| OsString::from("v1"))
+        .unwrap_or_else(|| OsString::from("v2"))
         .into_string()
         .map_err(|_| "--format must be UTF-8 text".to_owned())?;
-    if format != "v1" && format != "v2" {
-        return Err("--format must be v1 or v2".to_owned());
+    if format != "v2" {
+        return Err("--format must be v2".to_owned());
     }
     let store = PathBuf::from(required(&mut values, "--store")?);
     let stage_dir = PathBuf::from(required(&mut values, "--stage-dir")?);
@@ -226,7 +220,7 @@ fn run() -> Result<(), String> {
         Digest256::from_hex(&required_text(&mut values, "--revision")?)
             .map_err(|error| error.to_string())?,
     );
-    let selector = parse_selector(&mut values, &format)?;
+    let selector = parse_selector(&mut values)?;
     let max_manifest_bytes = required_usize(&mut values, "--max-manifest-bytes")?;
     let max_manifest_entries = required_usize(&mut values, "--max-manifest-entries")?;
     let max_selected_object_bytes = required_u64(&mut values, "--max-selected-object-bytes")?;
@@ -247,51 +241,16 @@ fn run() -> Result<(), String> {
         json,
     };
 
-    if format == "v2" {
-        return run_v2(
-            &mut values,
-            store,
-            stage_dir,
-            revision,
-            selector,
-            limits,
-            max_selected_object_bytes,
-            argument_state_bytes,
-        );
-    }
-
-    if let Some(name) = values.keys().next() {
-        return Err(format!("unknown option {name}; usage: {USAGE}"));
-    }
-    let reader = CorpusReader::open_existing(&store, limits).map_err(|error| error.to_string())?;
-    let snapshot = reader
-        .load_exact(revision)
-        .map_err(|error| error.to_string())?;
-    let ReadSelector::SourceId(source_id) = selector else {
-        return Err("--member-path requires --format v2".to_owned());
-    };
-    let descriptor = reader
-        .resolve(&snapshot, Selector::SourceId(&source_id))
-        .map_err(|error| error.to_string())?;
-    // The selected bytes remain private until the complete object passes fixity checks.
-    let mut stage = tempfile::tempfile_in(stage_dir).map_err(|error| error.to_string())?;
-    reader
-        .read_selected(
-            &snapshot,
-            &descriptor,
-            max_selected_object_bytes,
-            &mut stage,
-        )
-        .map_err(|error| error.to_string())?;
-    stage.flush().map_err(|error| error.to_string())?;
-    stage
-        .seek(SeekFrom::Start(0))
-        .map_err(|error| error.to_string())?;
-    let stdout = io::stdout();
-    let mut output = stdout.lock();
-    io::copy(&mut stage, &mut output).map_err(|error| error.to_string())?;
-    output.flush().map_err(|error| error.to_string())?;
-    Ok(())
+    run_v2(
+        &mut values,
+        store,
+        stage_dir,
+        revision,
+        selector,
+        limits,
+        max_selected_object_bytes,
+        argument_state_bytes,
+    )
 }
 
 fn run_v2(
@@ -712,39 +671,35 @@ mod tests {
     use std::ffi::OsString;
 
     #[test]
-    fn source_id_selector_remains_available_in_both_formats() {
-        for format in ["v1", "v2"] {
-            let mut values =
-                BTreeMap::from([("--source-id".to_owned(), OsString::from("tos.item.example"))]);
-            assert!(
-                matches!(parse_selector(&mut values, format), Ok(ReadSelector::SourceId(id)) if id == "tos.item.example")
-            );
-            assert!(values.is_empty());
-        }
+    fn source_id_selector_remains_available() {
+        let mut values =
+            BTreeMap::from([("--source-id".to_owned(), OsString::from("tos.item.example"))]);
+        assert!(
+            matches!(parse_selector(&mut values), Ok(ReadSelector::SourceId(id)) if id == "tos.item.example")
+        );
+        assert!(values.is_empty());
     }
 
     #[test]
-    fn member_path_is_v2_only_and_canonical() {
+    fn member_path_is_canonical() {
         let path = "ToS/source-witnesses/example/item.json";
         let mut values = BTreeMap::from([("--member-path".to_owned(), OsString::from(path))]);
         assert!(
-            matches!(parse_selector(&mut values, "v2"), Ok(ReadSelector::MemberPath(found)) if found.as_str() == path)
+            matches!(parse_selector(&mut values), Ok(ReadSelector::MemberPath(found)) if found.as_str() == path)
         );
         let mut values =
             BTreeMap::from([("--member-path".to_owned(), OsString::from("../escape"))]);
-        assert!(parse_selector(&mut values, "v2").is_err());
-        let mut values = BTreeMap::from([("--member-path".to_owned(), OsString::from(path))]);
-        assert!(parse_selector(&mut values, "v1").is_err());
+        assert!(parse_selector(&mut values).is_err());
     }
 
     #[test]
     fn selector_is_required_and_mutually_exclusive() {
-        assert!(parse_selector(&mut BTreeMap::new(), "v2").is_err());
+        assert!(parse_selector(&mut BTreeMap::new()).is_err());
         let mut values = BTreeMap::from([
             ("--source-id".to_owned(), OsString::from("tos.item.example")),
             ("--member-path".to_owned(), OsString::from("ToS/item.json")),
         ]);
-        assert!(parse_selector(&mut values, "v2").is_err());
+        assert!(parse_selector(&mut values).is_err());
     }
 }
 

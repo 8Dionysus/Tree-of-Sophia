@@ -45,6 +45,19 @@ const RU: &str = "technical-markup/antonovsky-1911-structural-paragraph-v2";
 const ROUTE: &str = "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1";
 const PRIVATE: &str = "gold-sets/foundation-pilot-v1/local-content/translation-alignment-v1";
 const SCHEMA: &str = "ToS/contracts/translation-alignment-packet-v1.schema.json";
+const PRIVATE_FAMILY_NAMES: &[&str] = &[
+    "alignment-spine.v1.jsonl",
+    "conflict-ledger.v1.jsonl",
+    "coverage-receipt.v1.json",
+    "manifest.v1.json",
+    "part-1.translation-alignment-packet.v1.json",
+    "part-2.translation-alignment-packet.v1.json",
+    "part-3.translation-alignment-packet.v1.json",
+    "part-4.translation-alignment-packet.v1.json",
+    "per-reading-diagnostics.v1.jsonl",
+    "scope-exclusions.v1.jsonl",
+    "summary.v1.json",
+];
 fn at(route: &str, name: &str) -> String {
     format!("{BASE}/{route}/{name}")
 }
@@ -1719,6 +1732,179 @@ fn manifest_check(repo: &ResearchExecution, manifest: &Value) -> Result<()> {
     }
     Ok(())
 }
+
+fn validate_available_private_outputs(
+    repo: &ResearchExecution,
+    policy: &Policy,
+    missing: &[String],
+) -> Result<BTreeMap<String, Value>> {
+    let mut parsed = BTreeMap::new();
+    let contract = policy.paths.contract.as_str();
+    for name in PRIVATE_FAMILY_NAMES {
+        repo.tick(1)?;
+        if missing.iter().any(|absent| absent == name) {
+            continue;
+        }
+        let reference = policy.paths.output(name);
+        if name.ends_with(".jsonl") {
+            let rows = lines(repo, &reference)?;
+            for row in &rows {
+                text_free(repo, row)?;
+            }
+            match *name {
+                "alignment-spine.v1.jsonl" => {
+                    let mut ids = BTreeSet::new();
+                    let mut claims = BTreeSet::new();
+                    for row in &rows {
+                        ensure(
+                            ["proposed", "ambiguous", "deferred"].contains(&s(&row["status"])?),
+                            "invalid alignment status",
+                        )?;
+                        ensure(
+                            ids.insert(s(&row["alignment_id"])?.to_owned())
+                                && claims.insert(s(&row["claim_id"])?.to_owned()),
+                            "alignment or claim identity collision",
+                        )?;
+                        ensure(
+                            row["human_acceptance"] == false
+                                && row["semantic_equivalence_asserted"] == false
+                                && row["canon_effect"] == false
+                                && !(row["status"] == "proposed"
+                                    && row["independent_challenger_same_paragraph_group"] == false),
+                            "alignment authority or disagreement posture drift",
+                        )?;
+                    }
+                }
+                "conflict-ledger.v1.jsonl" => ensure(
+                    rows.iter().all(|row| {
+                        row["machine_resolution"] == "none"
+                            && row["source_text_included"] == false
+                            && row["semantic_equivalence_asserted"] == false
+                    }),
+                    "conflict ledger authority drift",
+                )?,
+                "per-reading-diagnostics.v1.jsonl" => ensure(
+                    rows.len() == policy.coverage.readings,
+                    "reading diagnostic census drift",
+                )?,
+                "scope-exclusions.v1.jsonl" => exclusion_census(repo, &rows, &policy.scope)?,
+                _ => {}
+            }
+            parsed.insert(name.to_string(), json!(rows));
+        } else {
+            let value = load(repo, &reference)?;
+            text_free(repo, &value)?;
+            if name.starts_with("part-") {
+                validate_packet(repo, &value, contract)?;
+            }
+            if *name == "coverage-receipt.v1.json" {
+                ensure(
+                    value["accepted_alignment_count"] == 0,
+                    "coverage acceptance boundary drift",
+                )?;
+            }
+            if *name == "summary.v1.json" {
+                ensure(
+                    value["accepted_alignment_count"] == 0
+                        && value["semantic_equivalence_asserted"] == false
+                        && value["canon_effect"] == false,
+                    "alignment summary authority drift",
+                )?;
+            }
+            if *name == "manifest.v1.json" {
+                let static_inputs = value["static_inputs"]
+                    .as_object()
+                    .ok_or("manifest static_inputs required")?;
+                for (input, receipt) in static_inputs {
+                    let raw = bytes(repo, input)?;
+                    ensure(
+                        sha(&raw) == s(&receipt["sha256"])?
+                            && raw.len() == n(&receipt["byte_size"])?,
+                        "static input manifest drift",
+                    )?;
+                }
+                let generated = value["generated_outputs"]
+                    .as_object()
+                    .ok_or("manifest generated_outputs required")?;
+                for member in PRIVATE_FAMILY_NAMES {
+                    if missing.iter().any(|absent| absent == member)
+                        || *member == "manifest.v1.json"
+                    {
+                        continue;
+                    }
+                    let output_ref = policy.paths.output(member);
+                    let receipt = generated
+                        .get(&output_ref)
+                        .ok_or("manifest output receipt missing")?;
+                    let raw = bytes(repo, &output_ref)?;
+                    ensure(
+                        sha(&raw) == s(&receipt["sha256"])?
+                            && raw.len() == n(&receipt["byte_size"])?,
+                        "generated output manifest drift",
+                    )?;
+                }
+            }
+            parsed.insert(name.to_string(), value);
+        }
+    }
+    // These outputs remain available outside the private R2 family. Keep their
+    // local authority and comparison checks even when the private spine is absent.
+    let audit = lines(
+        repo,
+        &policy.paths.output("independent-challenger-audit.v1.jsonl"),
+    )?;
+    for row in &audit {
+        text_free(repo, row)?;
+        ensure(
+            row["source_text_included"] == false && row["target_text_included"] == false,
+            "challenger audit text boundary drift",
+        )?;
+    }
+    ensure(
+        audit.len() == policy.scope.primary_proposals,
+        "independent audit census drift",
+    )?;
+    let same = audit
+        .iter()
+        .filter(|row| row["same_paragraph_group"] == true)
+        .count();
+    ensure(
+        same == policy.coverage.same && audit.len() - same == policy.coverage.disagreement,
+        "independent audit comparison denominator drift",
+    )?;
+    let verification = load(repo, &policy.paths.output("agent-verification.v1.json"))?;
+    text_free(repo, &verification)?;
+    ensure(
+        verification["human_acceptance"] == false,
+        "verification acceptance boundary drift",
+    )?;
+
+    if let Some(spine) = parsed.get("alignment-spine.v1.jsonl") {
+        let spine = arr(spine)?;
+        if let Some(coverage) = parsed.get("coverage-receipt.v1.json") {
+            ensure(
+                count(repo, spine, "status")? == coverage["status_counts"],
+                "tracked status census differs from coverage receipt",
+            )?;
+        }
+        if let Some(conflicts) = parsed.get("conflict-ledger.v1.jsonl") {
+            let rows = arr(conflicts)?;
+            let mut risk = BTreeSet::new();
+            for row in spine {
+                if row["status"] != "proposed" {
+                    risk.insert(s(&row["primary_proposal_ref"])?.to_owned());
+                }
+            }
+            let conflict_refs = rows
+                .iter()
+                .map(|row| s(&row["primary_proposal_ref"]).map(str::to_owned))
+                .collect::<Result<BTreeSet<_>>>()?;
+            ensure(conflict_refs == risk, "conflict/spine risk union drift")?;
+        }
+    }
+    repo.check()?;
+    Ok(parsed)
+}
 // The compatibility gate covers recipe fields the legacy producer has not
 // yet consumed. Remove it after the remaining paragraph parameters migrate.
 const COMPATIBILITY_PROFILE_SHA256: &str =
@@ -1818,6 +2004,38 @@ pub fn replay_selected(
 /// Validate tracked proposal metadata without reading private payload layers.
 pub fn validate_tracked_scoped(repo: &ResearchExecution) -> Result<Value> {
     let policy = Policy::legacy();
+    let family_manifest = format!("{BASE}/{ROUTE}/r2-manifest.v1.json");
+    let missing = tos_compiler::private_custody::verify_family_missing(
+        repo,
+        &family_manifest,
+        PRIVATE_FAMILY_NAMES,
+    )?;
+    if !missing.is_empty() {
+        let checked = validate_available_private_outputs(repo, &policy, &missing)?;
+        repo.check()?;
+        return Ok(json!({
+            "status": "private-custody-manifest-verified-content-not-hydrated",
+            "mode": "validate-tracked",
+            "private_manifest_ref": family_manifest,
+            "private_manifest_entries": 11,
+            "files_verified": 11 - missing.len(),
+            "files_not_hydrated": missing.len(),
+            "message": format!(
+                "private custody: {} not hydrated, manifest verified",
+                missing.len()
+            ),
+            "content_validation": "present files validated locally; complete cross-file validation awaits hydration",
+            "files_content_checked": checked.keys().collect::<Vec<_>>(),
+            "unhydrated_files": missing,
+            "cross_file_checks_skipped": [
+                "the complete generated-output manifest closure",
+                "alignment-to-packet reference and census closure where a required file is absent",
+                "complete coverage and risk-union comparison where a required file is absent"
+            ],
+            "semantic_admission": false,
+            "writes": false
+        }));
+    }
     manifest_check(repo, &load(repo, &policy.paths.output("manifest.v1.json"))?)?;
     let mut alignment_ids = BTreeSet::new();
     let mut claim_ids = BTreeSet::new();

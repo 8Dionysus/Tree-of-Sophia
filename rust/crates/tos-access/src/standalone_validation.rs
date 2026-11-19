@@ -84,7 +84,6 @@ const PAGE_COMMANDS: &[&str] = &[
 const ACCESS_SCHEMAS: &[&str] = &[
     "access/contracts/deployment-profile.v1.schema.json",
     "access/contracts/knowledge-graph.v1.schema.json",
-    "access/contracts/knowledge-search-indexed.v2.schema.json",
     "access/contracts/lens-spec.v1.schema.json",
     "access/contracts/lens-result.v1.schema.json",
     "access/contracts/temporal-comparison-request.v1.schema.json",
@@ -98,7 +97,6 @@ const ACCESS_SCHEMAS: &[&str] = &[
 const ALL_PROGRAM_SCHEMAS: &[&str] = &[
     "access/contracts/deployment-profile.v1.schema.json",
     "access/contracts/knowledge-graph.v1.schema.json",
-    "access/contracts/knowledge-search-indexed.v2.schema.json",
     "access/contracts/lens-spec.v1.schema.json",
     "access/contracts/lens-result.v1.schema.json",
     "access/contracts/temporal-comparison-request.v1.schema.json",
@@ -664,7 +662,10 @@ fn scan_source(meter: &mut Meter) -> Result<(), String> {
         "access/packaging",
         "access/web/src",
     ];
-    let mut paths = vec!["access/web/index.html".to_owned()];
+    let mut paths = ["home", "zarathustra", "antiquity", "not-found"]
+        .iter()
+        .map(|page| format!("access/web/{page}/index.html"))
+        .collect::<Vec<_>>();
     let mut visited_entries = 0u64;
     for relative in ROOTS {
         let start = meter.root_path.join(relative);

@@ -40,7 +40,7 @@ enum LocalRequest<'a> {
     SearchCapabilities,
     Catalog,
     Inspect {
-        kind: tos_query::search_v2::SearchKind,
+        kind: tos_query::search::SearchKind,
         identifier: String,
         relation_limit: usize,
     },
@@ -396,34 +396,10 @@ impl PreparedLocalExecutor {
                 .map_err(query_error)?;
             object(vec![
                 ("schema", string("tos_knowledge_search_capabilities_v1")),
-                ("default_mode", string("legacy")),
-                ("explicit_mode_required", JsonValue::Bool(true)),
+                ("default_mode", string("compressed")),
+                ("explicit_mode_required", JsonValue::Bool(false)),
                 ("writes_to_tree", JsonValue::Bool(false)),
-                (
-                    "modes",
-                    object(vec![
-                        (
-                            "legacy",
-                            object(vec![
-                                ("available", JsonValue::Bool(false)),
-                                ("schema", string("tos_knowledge_search_v1")),
-                                ("verification", string("engine-selection-only")),
-                                ("pagination", string("offset")),
-                            ]),
-                        ),
-                        (
-                            "indexed",
-                            object(vec![
-                                ("available", JsonValue::Bool(false)),
-                                ("schema", string("tos_knowledge_search_indexed_v2")),
-                                ("verification", string("engine-selection-only")),
-                                ("pagination", string("cursor")),
-                                ("min_normalized_query_code_points", number(3)),
-                            ]),
-                        ),
-                        ("compressed", compressed),
-                    ]),
-                ),
+                ("modes", object(vec![("compressed", compressed)])),
             ])
         };
         crate::knowledge::check_abort(&probe)?;
@@ -645,7 +621,7 @@ impl AccessExecutor for PreparedLocalExecutor {
                 relation_limit,
             } => self.read(
                 LocalRequest::Inspect {
-                    kind: tos_query::search_v2::SearchKind::Nodes,
+                    kind: tos_query::search::SearchKind::Nodes,
                     identifier: node_id,
                     relation_limit,
                 },
@@ -653,7 +629,7 @@ impl AccessExecutor for PreparedLocalExecutor {
             ),
             KnowledgeRequest::Relation { relation_id } => self.read(
                 LocalRequest::Inspect {
-                    kind: tos_query::search_v2::SearchKind::Relations,
+                    kind: tos_query::search::SearchKind::Relations,
                     identifier: relation_id,
                     relation_limit: 0,
                 },
