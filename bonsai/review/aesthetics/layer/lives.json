@@ -1487,26 +1487,24 @@
   "identity_work": "Q85542398"
  },
  "aurel-kolnai": {
-  "item": null,
+  "item": "Q774997",
   "label": {
-   "ru": "Аурель Колнаи",
-   "en": "Aurel Kolnai"
+   "en": "Aurel Kolnai",
+   "ru": "Аурель Колнаи"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Aurel Kolnai"
-   },
-   {
-    "kind": "work",
-    "query": "Der Ekel"
+    "time": "+1900-12-05T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [
+   {
+    "time": "+1973-06-28T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1532,6 +1530,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Aurel Kolnai"
+   },
+   {
+    "kind": "work",
+    "query": "Der Ekel"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Der Ekel",
+   "source": "https://www.aesthetik.hu-berlin.de/en/der-ekel-ein-aesthetisches-gefuehl/",
+   "person_url": "https://en.wikipedia.org/wiki/Aurel_Kolnai",
+   "basis": "Humboldt names the philosopher and essay; publication dates in sources differ and are not resolved here."
   }
  },
  "baruch-spinoza": {
@@ -1895,26 +1910,19 @@
   }
  },
  "brian-boyd": {
-  "item": null,
+  "item": "Q4090348",
   "label": {
-   "ru": "Брайан Бойд",
-   "en": "Brian Boyd"
+   "en": "Brian Boyd",
+   "ru": "Брайан Бойд"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Brian Boyd"
-   },
-   {
-    "kind": "work",
-    "query": "Laughter and Literature: A Play Theory of Humor"
+    "time": "+1952-07-30T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1940,6 +1948,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Brian Boyd"
+   },
+   {
+    "kind": "work",
+    "query": "Laughter and Literature: A Play Theory of Humor"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Laughter and Literature: A Play Theory of Humor",
+   "source": "https://literary-universals.uconn.edu/bibliography/",
+   "person_url": "https://thenabokovian.org/node/25896",
+   "basis": "The university bibliography and the Nabokov society record link the paper to this scholar."
   }
  },
  "brian-massumi": {
@@ -4028,26 +4053,24 @@
   }
  },
  "e-f-carritt": {
-  "item": null,
+  "item": "Q52305948",
   "label": {
-   "ru": "Эдгар Фредерик Кэрритт",
-   "en": "E. F. Carritt"
+   "en": "Edgar Frederick Carritt",
+   "ru": "Эдгар Фредерик Кэрритт"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "E. F. Carritt"
-   },
-   {
-    "kind": "work",
-    "query": "Philosophies of Beauty"
+    "time": "+1876-01-01T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [
+   {
+    "time": "+1964-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -4073,6 +4096,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "E. F. Carritt"
+   },
+   {
+    "kind": "work",
+    "query": "Philosophies of Beauty"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Philosophies of Beauty",
+   "source": "https://www.nationaltrustcollections.org.uk/object/3216549",
+   "person_url": "https://en.wikipedia.org/wiki/Edgar_Frederick_Carritt",
+   "basis": "The National Trust identifies Carritt as selector and editor of the anthology, not the author of every text."
   }
  },
  "e-h-gombrich": {
@@ -13429,16 +13469,19 @@
   "checked": "2026-11-13"
  },
  "philip-pettit": {
-  "item": null,
+  "item": "Q1237041",
   "label": {
-   "ru": "Филип Петтит",
-   "en": "Philip Pettit"
+   "en": "Philip Pettit",
+   "ru": "Филип Петтит"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1945-12-20T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -13464,6 +13507,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Possibility of Aesthetic Realism",
+   "source": "https://ppettit.scholar.princeton.edu/publications/possibility-aesthetic-realism",
+   "person_url": "https://en.wikipedia.org/wiki/Philip_Pettit",
+   "basis": "The Princeton bibliography names the work; its record lists it as an article but the bibliographic details describe a chapter."
   }
  },
  "philip-sidney": {
@@ -14702,16 +14752,23 @@
   }
  },
  "rosalind-krauss": {
-  "item": null,
+  "item": "Q431963",
   "label": {
-   "ru": "Розалинд Краусс",
-   "en": "Rosalind Krauss"
+   "en": "Rosalind E. Krauss",
+   "ru": "Розалинда Краусс"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1941-11-30T00:00:00Z",
+    "precision": 11
+   },
+   {
+    "time": "+1940-11-30T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -14737,6 +14794,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "L’informe: mode d’emploi",
+   "source": "https://www.si.edu/object/siris_sil_643737",
+   "person_url": "https://en.wikipedia.org/wiki/Rosalind_E._Krauss",
+   "basis": "Smithsonian records Krauss and Bois as editors of the exhibition catalogue, not authors of every contribution."
   }
  },
  "ruben-c-gur": {
@@ -15740,26 +15804,19 @@
   "identity_work": "Q30572306"
  },
  "stephen-houlgate": {
-  "item": null,
+  "item": "Q61410057",
   "label": {
-   "ru": "Стивен Хулгейт",
-   "en": "Stephen Houlgate"
+   "en": "Stephen Houlgate",
+   "ru": "Стивен Хулгейт"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Stephen Houlgate"
-   },
-   {
-    "kind": "work",
-    "query": "Hegel’s Aesthetics"
+    "time": "+1954-03-23T00:00:00Z",
+    "precision": 11
    }
   ],
-  "checked": "2026-11-13",
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -15785,6 +15842,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Stephen Houlgate"
+   },
+   {
+    "kind": "work",
+    "query": "Hegel’s Aesthetics"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Hegel’s Aesthetics",
+   "source": "https://plato.stanford.edu/entries/hegel-aesthetics/",
+   "person_url": "https://warwick.ac.uk/fac/soc/philosophy/people/houlgate/",
+   "basis": "The Stanford entry and the Warwick profile identify the modern commentator, not Hegel as author."
   }
  },
  "steven-gimbel": {
@@ -16132,16 +16206,19 @@
   }
  },
  "tamar-szabo-gendler": {
-  "item": null,
+  "item": "Q7680735",
   "label": {
-   "ru": "Тамар Сабо Гендлер",
-   "en": "Tamar Szabó Gendler"
+   "en": "Tamar Gendler",
+   "ru": "Тамар Сабо Гендлер"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1965-12-20T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16167,29 +16244,34 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Alief and Belief",
+   "source": "https://tamar-gendler.yale.edu/alief-and-belief",
+   "person_url": "https://en.wikipedia.org/wiki/Tamar_Gendler",
+   "basis": "The Yale professor names the exact article."
   }
  },
  "ted-cohen": {
-  "item": null,
+  "item": "Q55634818",
   "label": {
-   "ru": "Тед Коэн",
-   "en": "Ted Cohen"
+   "en": "Ted Cohen",
+   "ru": "Тед Коэн"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Ted Cohen"
-   },
-   {
-    "kind": "work",
-    "query": "Jokes: Philosophical Thoughts on Joking Matters"
+    "time": "+1939-00-00T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [
+   {
+    "time": "+2014-03-14T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16215,6 +16297,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Ted Cohen"
+   },
+   {
+    "kind": "work",
+    "query": "Jokes: Philosophical Thoughts on Joking Matters"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Jokes: Philosophical Thoughts on Joking Matters",
+   "source": "https://press.uchicago.edu/ucp/books/book/chicago/J/bo3613669.html",
+   "person_url": "https://artshumanities.uchicago.edu/news/ted-cohen",
+   "basis": "The university press and obituary connect this book to the philosopher."
   }
  },
  "ted-toadvine": {
@@ -17633,16 +17732,19 @@
   }
  },
  "william-cronon": {
-  "item": null,
+  "item": "Q8007305",
   "label": {
-   "ru": "Уильям Кронон",
-   "en": "William Cronon"
+   "en": "William Cronon",
+   "ru": "Уильям Кронон"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1954-09-11T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -17668,6 +17770,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Trouble with Wilderness; or, Getting Back to the Wrong Nature",
+   "source": "https://www.journals.uchicago.edu/doi/10.2307/3985059",
+   "person_url": "https://en.wikipedia.org/wiki/William_Cronon",
+   "basis": "The journal record and biography identify this essay and environmental historian."
   }
  },
  "william-empson": {
@@ -18343,16 +18452,19 @@
   }
  },
  "yve-alain-bois": {
-  "item": null,
+  "item": "Q970901",
   "label": {
-   "ru": "Ив-Ален Буа",
-   "en": "Yve-Alain Bois"
+   "en": "Yve-Alain Bois",
+   "ru": "Ив-Ален Буа"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1952-04-16T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -18378,6 +18490,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "L’informe: mode d’emploi",
+   "source": "https://www.si.edu/object/siris_sil_643737",
+   "person_url": "https://en.wikipedia.org/wiki/Yve-Alain_Bois",
+   "basis": "Smithsonian records Bois and Krauss as editors of the exhibition catalogue, not authors of every contribution."
   }
  },
  "zhang-yanyuan": {
