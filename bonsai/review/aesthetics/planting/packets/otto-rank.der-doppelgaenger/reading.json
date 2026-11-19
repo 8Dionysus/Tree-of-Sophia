@@ -1,0 +1,58 @@
+{
+ "reader": {
+  "id": "terra-2026-11-12-der-doppelgaenger",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-12",
+  "reads": "Read Rank’s German text in the 1925 edition against register reading A:E124.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "otto-rank": {
+    "tree": "tos.agent.otto-rank"
+   }
+  },
+  "works": {
+   "otto-rank.der-doppelgaenger": {
+    "title": {
+     "ru": "Двойник",
+     "en": "The Double"
+    },
+    "original": "de",
+    "tree": "tos.work.otto-rank.der-doppelgaenger",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "otto-rank.der-doppelgaenger:killing-the-double",
+   "of": [
+    "A:C067"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "otto-rank.der-doppelgaenger",
+   "locus": "V p. 109",
+   "formula": [
+    {
+     "place": "V p109"
+    }
+   ],
+   "thesis": {
+    "ru": "Герой ищет окончательной защиты от преследований своего Я в убийстве двойника; это убийство есть самоубийство в безболезненной форме убийства другого Я, бессознательная иллюзия отделения дурного, заслуживающего наказания Я.",
+    "en": "The hero seeks final protection from the persecutions of his ego in killing the double; this killing is suicide in the painless form of killing another ego, an unconscious illusion of splitting off an evil ego deserving punishment."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The 1925 sentence supports the double and the hero’s protection from his ego; it does not name the uncanny. The reading is narrower than the register and does not establish the distinction between the 1914 and 1925 versions.",
+   "from": [
+    "A:E124"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

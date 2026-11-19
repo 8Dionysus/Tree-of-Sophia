@@ -1,0 +1,85 @@
+{
+ "reader": {
+  "id": "terra-2026-11-12-the-principles-of-psychology",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-12",
+  "reads": "Read James’s English first edition of volume I, chapter XI, pp. 403–404, alongside the register reading, using the Gutenberg transcription and the Internet Archive page images.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "william-james": {
+    "tree": "tos.agent.william-james"
+   }
+  },
+  "works": {
+   "william-james.the-principles-of-psychology": {
+    "title": {
+     "ru": "Принципы психологии",
+     "en": "The Principles of Psychology"
+    },
+    "original": "en",
+    "tree": "tos.work.william-james.the-principles-of-psychology",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "william-james.the-principles-of-psychology:attention-as-focalization",
+   "of": [
+    "B:A-C004"
+   ],
+   "areas": [
+    "AE13"
+   ],
+   "work": "william-james.the-principles-of-psychology",
+   "locus": "Ch. XI",
+   "formula": [
+    {
+     "place": "XI p403a"
+    }
+   ],
+   "thesis": {
+    "ru": "Внимание есть овладение умом в ясной и живой форме одним из того, что представляется несколькими одновременно возможными объектами или рядами мысли; его сущность — сосредоточение сознания.",
+    "en": "Attention is the mind’s taking possession, in clear and vivid form, of one out of what seem several simultaneously possible objects or trains of thought; focalization of consciousness is of its essence."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The definition supports selection and concentration; the register’s reference to preparation is not stated in this place. Subjective interest is addressed in the sibling conception.",
+   "from": [
+    "B:A-I010"
+   ]
+  },
+  {
+   "id": "william-james.the-principles-of-psychology:experience-attention-and-interest",
+   "of": [
+    "B:A-C004"
+   ],
+   "areas": [
+    "AE13"
+   ],
+   "work": "william-james.the-principles-of-psychology",
+   "locus": "Ch. XI",
+   "formula": [
+    {
+     "place": "XI p402"
+    }
+   ],
+   "thesis": {
+    "ru": "Мой опыт есть то, чему я соглашаюсь уделять внимание; множество присутствующих перед моими чувствами элементов внешнего порядка не входят надлежащим образом в мой опыт, потому что не представляют для меня интереса.",
+    "en": "My experience is what I agree to attend to; millions of items of the outward order present to my senses never properly enter my experience because they have no interest for me."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register connects attention and interest. Page 402 states their relation through the author’s experience; the former page 403 passage on associations does not itself name attention. The register’s preparation is not stated here.",
+   "from": [
+    "B:A-I010"
+   ],
+   "negation": "never properly enter into my experience. Why? Because they have no interest for me."
+  }
+ ],
+ "links": [],
+ "left": []
+}

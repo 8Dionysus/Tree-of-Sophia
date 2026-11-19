@@ -1,0 +1,60 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-ueber-das-erhabene-und-naive-in-den-scho",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "I read the German text of the 1771 second edition against register reading A:E052.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "moses-mendelssohn": {
+    "tree": "tos.agent.moses-mendelssohn"
+   }
+  },
+  "works": {
+   "moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen": {
+    "title": {
+     "ru": "О возвышенном и наивном в изящных науках",
+     "en": "On the Sublime and the Naive in the Fine Sciences"
+    },
+    "original": "de",
+    "tree": "tos.work.moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen:great-strong-sublime",
+   "of": [
+    "A:C002",
+    "A:C021",
+    "A:C022"
+   ],
+   "areas": [
+    "AE02"
+   ],
+   "work": "moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen",
+   "locus": "III",
+   "formula": [
+    {
+     "place": "III p161"
+    }
+   ],
+   "thesis": {
+    "ru": "В изящных искусствах и науках чувственно совершенное представление неизмеримого бывает великим, сильным или возвышенным в зависимости от того, касается ли величина протяжения и множества, степени силы или, в особенности, степени совершенства.",
+    "en": "In the fine arts and sciences, the sensibly perfect representation of the immeasurable is great, strong, or sublime according as magnitude concerns extension and multitude, a degree of force, or in particular a degree of perfection."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "A:E052 treats magnitude and force as grounds of different kinds of the sublime. The 1771 text instead distinguishes the great, the strong, and the sublime, the last in particular by degree of perfection; the passage does not establish a simple identity with Kant’s later distinction.",
+   "from": [
+    "A:E052"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

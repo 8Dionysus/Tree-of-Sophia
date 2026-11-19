@@ -29,14 +29,17 @@ import {readFileSync,writeFileSync,readdirSync,existsSync,mkdirSync} from 'node:
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {loadCore} from './core.mjs';
+import {aestheticsReviewIssues,readAestheticsReview} from './aesthetics-review.mjs';
 import {exportPhilosophy} from './export.mjs';
 import {dirname,join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {alignCorpus,citedUnits,corpusReader,formatAlignment} from './corpus-align.mjs';
+import {translationScopesIssues} from './fragments.mjs';
 import {bonsaiIds,checkBonsai,loadBonsai,loadWitnessChapters} from './graft.mjs';
 import {realignWitnesses} from './realign.mjs';
 import {addMedia,MEDIA_LAYER_PATH,mediaFilePath} from './media.mjs';
 import {formatLayers,readLayers,sha256} from './layers.mjs';
+import {FILE_HOSTS} from './media-hosts.mjs';
 
 const root=join(dirname(fileURLToPath(import.meta.url)),'..','..');
 const [command,...rest]=process.argv.slice(2);
@@ -47,6 +50,10 @@ if(command==='check'){
   let failed=false;
   for(const id of names.length?names:bonsaiIds(root)){
     const result=checkBonsai(root,id);
+    if(id==='aesthetics'){
+      try{result.problems.push(...aestheticsReviewIssues(readAestheticsReview(root)).map(issue=>`review layer: ${issue}`));}
+      catch(error){result.problems.push(`review layer: ${error.message}`);}
+    }
     const counts=result.packet?`${result.packet.claims.length} claims, ${result.packet.records.length} records, ${result.packet.identities.length} identities`:'no export';
     console.log(`${id}: ${result.problems.length?'FAILED':'ok'} · ${counts}${result.checkedIdentities?'':' · Tree identities not checked out'}${result.layers==='absent'?' · layers not fetched, their manifest checked':''}${result.corpus==='absent'?' · corpus not fetched, its places unchecked':''}`);
     for(const problem of result.problems)console.log(`  problem: ${problem}`);
@@ -105,8 +112,9 @@ if(command==='check'){
     else if(!['alignment','held'].includes(item.id)&&modules[item.id])content.push(modules[item.id]);
   }
   const works=Object.fromEntries(Object.entries(modules.identities?.works??{}).map(([key,value])=>[key,value.tree]));
+  if(modules['translation-scopes']){const issues=translationScopesIssues(modules['translation-scopes']);if(issues.length)throw new Error(`translation scopes: ${issues.join(', ')}`);}
   const read=corpusReader(join(root,option('--corpus')??'access/web/public/public-corpus'));
-  const text=formatAlignment(alignCorpus(citedUnits(content,works,read),works,read)),path=join(home,module.path);
+  const text=formatAlignment(alignCorpus(citedUnits(content,works,read),works,read,modules['translation-scopes']?.scopes??[])),path=join(home,module.path);
   const same=readFileSync(path,'utf8')===text;
   console.log(`${names[0]}: the stored corpus alignment ${same?'matches':'differs from'} the one the mechanism gives`);
   if(rest.includes('--write')){writeFileSync(path,text);console.log('stored');}
@@ -133,7 +141,8 @@ if(command==='check'){
     const limit=profile.admission.acquisition.max_record_bytes;
     for(const file of [result.image.preview,result.image.file]){
       const url=new URL(file.source);
-      if(url.origin!=='https://images.metmuseum.org'||url.username||url.password
+      const work=result.module.works[result.workId];
+      if(url.protocol!=='https:'||!(FILE_HOSTS[work.provider]??[]).includes(url.host)||url.port||url.username||url.password
         ||!Number.isSafeInteger(file.bytes)||file.bytes<=0||file.bytes>limit||!/^[a-f0-9]{64}$/.test(file.sha256))
         throw new Error('invalid or out-of-bounds media file descriptor');
       const path=mediaFilePath(file),full=join(home,path);
@@ -143,8 +152,12 @@ if(command==='check'){
     }
   }
   const check=checkBonsai(root,stand,{overrides:{media:result.module,identities:result.identities},mediaLayers:layers});
-  for(const problem of check.problems)console.error(`  problem: ${problem}`);
-  if(check.problems.length)process.exit(1);
+  // A new work is named in the stands' languages after it is added: its names are the next step, not a refusal.
+  const naming=problem=>problem.startsWith(`media names: work ${result.workId}: `)||problem.startsWith(`media names: holder ${result.module.works[result.workId].holder}: `);
+  const problems=check.problems.filter(problem=>!naming(problem));
+  for(const problem of problems)console.error(`  problem: ${problem}`);
+  if(problems.length)process.exit(1);
+  for(const problem of check.problems.filter(naming))console.log(`  to name: ${problem.slice('media names: '.length)}`);
   const pending=[];
   for(const [full,file] of copies){
     if(existsSync(full)){
@@ -153,7 +166,7 @@ if(command==='check'){
       throw new Error(`${full}: existing media does not match its fingerprint`);
     }
     const response=await fetch(file.source,{redirect:'error',signal:AbortSignal.timeout(45000),
-      headers:{'User-Agent':'Tree-of-Sophia-bonsai-media/1',Accept:'image/jpeg, image/png;q=0.9, image/*;q=0.8'}});
+      headers:{'User-Agent':'Tree-of-Sophia-bonsai-media/1 (https://treeofsophia.com)',Accept:'image/jpeg, image/png;q=0.9, image/*;q=0.8'}});
     if(!response.ok||!response.body)throw new Error(`${file.source}: HTTP ${response.status}`);
     const chunks=[];let size=0;
     for await(const chunk of response.body){

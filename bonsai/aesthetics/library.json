@@ -1,0 +1,1352 @@
+{
+ "schema": "tos.bonsai.library.v1",
+ "bonsai": "aesthetics",
+ "posture": {
+  "ru": "Произведения и авторы, на места которых опираются трактовки бонсая. Запись появляется здесь вместе с первой трактовкой, прочитанной в самом произведении.",
+  "en": "The works and authors whose places the bonsai’s conceptions rest on. A record enters with the first conception read in the work itself."
+ },
+ "agents": {
+  "plato": {
+   "name": {
+    "ru": "Платон",
+    "en": "Plato",
+    "original": "Πλάτων"
+   },
+   "grew_from": [
+    "A:P001",
+    "B:D-A013",
+    "C:A-A001",
+    "D:B-A012"
+   ]
+  },
+  "plotinus": {
+   "name": {
+    "ru": "Плотин",
+    "en": "Plotinus",
+    "original": "Πλωτῖνος"
+   },
+   "grew_from": [
+    "A:P003",
+    "C:A-A018"
+   ]
+  },
+  "aristotle": {
+   "name": {
+    "ru": "Аристотель",
+    "en": "Aristotle",
+    "original": "Ἀριστοτέλης"
+   },
+   "grew_from": [
+    "A:P002",
+    "B:B-A001",
+    "C:A-A002"
+   ]
+  },
+  "immanuel-kant": {
+   "name": {
+    "ru": "Иммануил Кант",
+    "en": "Immanuel Kant"
+   },
+   "grew_from": [
+    "A:P008",
+    "B:A-A001",
+    "C:A-A003",
+    "D:B-A013"
+   ]
+  },
+  "edmund-burke": {
+   "name": {
+    "ru": "Эдмунд Бёрк",
+    "en": "Edmund Burke"
+   },
+   "grew_from": [
+    "A:P007",
+    "B:B-A004"
+   ]
+  },
+  "william-hogarth": {
+   "name": {
+    "ru": "Уильям Хогарт",
+    "en": "William Hogarth"
+   },
+   "grew_from": [
+    "A:P038"
+   ]
+  },
+  "alexander-gottlieb-baumgarten": {
+   "name": {
+    "ru": "Александр Готлиб Баумгартен",
+    "en": "Alexander Gottlieb Baumgarten"
+   },
+   "grew_from": [
+    "B:C-A006",
+    "D:B-A062"
+   ]
+  },
+  "arthur-schopenhauer": {
+   "name": {
+    "ru": "Артур Шопенгауэр",
+    "en": "Arthur Schopenhauer"
+   },
+   "grew_from": [
+    "A:P041",
+    "B:A-A003"
+   ]
+  },
+  "baruch-spinoza": {
+   "name": {
+    "ru": "Бенедикт Спиноза",
+    "en": "Baruch Spinoza"
+   },
+   "grew_from": [
+    "B:B-A002"
+   ]
+  },
+  "buffon": {
+   "name": {
+    "ru": "Жорж-Луи Леклерк, граф де Бюффон",
+    "en": "Georges-Louis Leclerc, comte de Buffon"
+   },
+   "grew_from": [
+    "C:A-A030"
+   ]
+  },
+  "charles-baudelaire": {
+   "name": {
+    "ru": "Шарль Бодлер",
+    "en": "Charles Baudelaire"
+   },
+   "grew_from": [
+    "A:P042"
+   ]
+  },
+  "david-hume": {
+   "name": {
+    "ru": "Дэвид Юм",
+    "en": "David Hume"
+   },
+   "grew_from": [
+    "A:P006",
+    "B:B-A003",
+    "D:A-035-A02"
+   ]
+  },
+  "edith-stein": {
+   "name": {
+    "ru": "Эдит Штайн",
+    "en": "Edith Stein"
+   },
+   "grew_from": [
+    "B:B-A005"
+   ]
+  },
+  "eduard-hanslick": {
+   "name": {
+    "ru": "Эдуард Ганслик",
+    "en": "Eduard Hanslick"
+   },
+   "grew_from": [
+    "A:P103",
+    "C:A-A044"
+   ]
+  },
+  "edward-bullough": {
+   "name": {
+    "ru": "Эдвард Буллоу",
+    "en": "Edward Bullough"
+   },
+   "grew_from": [
+    "A:P097",
+    "B:A-A004"
+   ]
+  },
+  "edward-lear": {
+   "name": {
+    "ru": "Эдвард Лир",
+    "en": "Edward Lear"
+   },
+   "grew_from": [
+    "A:P083"
+   ]
+  },
+  "emile-durkheim": {
+   "name": {
+    "ru": "Эмиль Дюркгейм",
+    "en": "Émile Durkheim"
+   },
+   "grew_from": [
+    "D:B-A001"
+   ]
+  },
+  "ernst-jentsch": {
+   "name": {
+    "ru": "Эрнст Йенч",
+    "en": "Ernst Jentsch"
+   },
+   "grew_from": [
+    "A:P048"
+   ]
+  },
+  "francis-hutcheson": {
+   "name": {
+    "ru": "Фрэнсис Хатчесон",
+    "en": "Francis Hutcheson"
+   },
+   "grew_from": [
+    "A:P039",
+    "B:C-A002"
+   ]
+  },
+  "friedrich-nietzsche": {
+   "name": {
+    "ru": "Фридрих Ницше",
+    "en": "Friedrich Nietzsche"
+   },
+   "grew_from": [
+    "A:P034",
+    "B:C-A009",
+    "C:B-A003",
+    "D:A-035-A10"
+   ]
+  },
+  "friedrich-schiller": {
+   "name": {
+    "ru": "Фридрих Шиллер",
+    "en": "Friedrich Schiller"
+   },
+   "grew_from": [
+    "A:P009",
+    "B:B-A022",
+    "C:B-A004",
+    "D:A-035-A01"
+   ]
+  },
+  "friedrich-schlegel": {
+   "name": {
+    "ru": "Фридрих Шлегель",
+    "en": "Friedrich Schlegel"
+   },
+   "grew_from": [
+    "A:P060"
+   ]
+  },
+  "georg-simmel": {
+   "name": {
+    "ru": "Георг Зиммель",
+    "en": "Georg Simmel"
+   },
+   "grew_from": [
+    "B:B-A031"
+   ]
+  },
+  "georg-wilhelm-friedrich-hegel": {
+   "name": {
+    "ru": "Георг Вильгельм Фридрих Гегель",
+    "en": "Georg Wilhelm Friedrich Hegel"
+   },
+   "grew_from": [
+    "A:P010",
+    "B:C-A008",
+    "C:A-A011"
+   ]
+  },
+  "gotthold-ephraim-lessing": {
+   "name": {
+    "ru": "Готхольд Эфраим Лессинг",
+    "en": "Gotthold Ephraim Lessing"
+   },
+   "grew_from": [
+    "A:P058",
+    "C:A-A014"
+   ]
+  },
+  "gustav-theodor-fechner": {
+   "name": {
+    "ru": "Густав Теодор Фехнер",
+    "en": "Gustav Theodor Fechner"
+   },
+   "grew_from": [
+    "D:B-A073"
+   ]
+  },
+  "henri-bergson": {
+   "name": {
+    "ru": "Анри Бергсон",
+    "en": "Henri Bergson"
+   },
+   "grew_from": [
+    "A:P013"
+   ]
+  },
+  "henri-poincare": {
+   "name": {
+    "ru": "Анри Пуанкаре",
+    "en": "Henri Poincaré"
+   },
+   "grew_from": [
+    "B:D-A006"
+   ]
+  },
+  "johann-wolfgang-goethe": {
+   "name": {
+    "ru": "Иоганн Вольфганг Гёте",
+    "en": "Johann Wolfgang Goethe"
+   },
+   "grew_from": [
+    "C:A-A010"
+   ]
+  },
+  "joseph-addison": {
+   "name": {
+    "ru": "Джозеф Аддисон",
+    "en": "Joseph Addison"
+   },
+   "grew_from": [
+    "A:P040"
+   ]
+  },
+  "leon-battista-alberti": {
+   "name": {
+    "ru": "Леон Баттиста Альберти",
+    "en": "Leon Battista Alberti"
+   },
+   "grew_from": [
+    "C:A-A007"
+   ]
+  },
+  "lewis-carroll": {
+   "name": {
+    "ru": "Льюис Кэрролл",
+    "en": "Lewis Carroll"
+   },
+   "grew_from": [
+    "A:P082"
+   ]
+  },
+  "moses-mendelssohn": {
+   "name": {
+    "ru": "Мозес Мендельсон",
+    "en": "Moses Mendelssohn"
+   },
+   "grew_from": [
+    "A:P057"
+   ]
+  },
+  "oscar-wilde": {
+   "name": {
+    "ru": "Оскар Уайльд",
+    "en": "Oscar Wilde"
+   },
+   "grew_from": [
+    "C:A-A040",
+    "D:B-A014"
+   ]
+  },
+  "otto-rank": {
+   "name": {
+    "ru": "Отто Ранк",
+    "en": "Otto Rank"
+   },
+   "grew_from": [
+    "A:P064"
+   ]
+  },
+  "philip-sidney": {
+   "name": {
+    "ru": "Филип Сидни",
+    "en": "Philip Sidney"
+   },
+   "grew_from": [
+    "B:D-A026"
+   ]
+  },
+  "rudolf-otto": {
+   "name": {
+    "ru": "Рудольф Отто",
+    "en": "Rudolf Otto"
+   },
+   "grew_from": [
+    "D:B-A002"
+   ]
+  },
+  "samuel-taylor-coleridge": {
+   "name": {
+    "ru": "Сэмюэл Тейлор Кольридж",
+    "en": "Samuel Taylor Coleridge"
+   },
+   "grew_from": [
+    "B:D-A002"
+   ]
+  },
+  "shaftesbury": {
+   "name": {
+    "ru": "Энтони Эшли Купер, граф Шефтсбери",
+    "en": "Anthony Ashley Cooper, 3rd Earl of Shaftesbury"
+   },
+   "grew_from": [
+    "B:A-A002"
+   ]
+  },
+  "sigmund-freud": {
+   "name": {
+    "ru": "Зигмунд Фрейд",
+    "en": "Sigmund Freud"
+   },
+   "grew_from": [
+    "A:P012",
+    "B:B-A006"
+   ]
+  },
+  "theodor-lipps": {
+   "name": {
+    "ru": "Теодор Липпс",
+    "en": "Theodor Lipps"
+   },
+   "grew_from": [
+    "B:B-A021"
+   ]
+  },
+  "thomas-aquinas": {
+   "name": {
+    "ru": "Фома Аквинский",
+    "en": "Thomas Aquinas"
+   },
+   "grew_from": [
+    "A:P004"
+   ]
+  },
+  "uvedale-price": {
+   "name": {
+    "ru": "Юведейл Прайс",
+    "en": "Uvedale Price"
+   },
+   "grew_from": [
+    "A:P015"
+   ]
+  },
+  "victor-hugo": {
+   "name": {
+    "ru": "Виктор Гюго",
+    "en": "Victor Hugo"
+   },
+   "grew_from": [
+    "A:P035"
+   ]
+  },
+  "william-gilpin": {
+   "name": {
+    "ru": "Уильям Гилпин",
+    "en": "William Gilpin"
+   },
+   "grew_from": [
+    "A:P014"
+   ]
+  },
+  "william-james": {
+   "name": {
+    "ru": "Уильям Джеймс",
+    "en": "William James"
+   },
+   "grew_from": [
+    "B:A-A007"
+   ]
+  },
+  "william-morris": {
+   "name": {
+    "ru": "Уильям Моррис",
+    "en": "William Morris"
+   },
+   "grew_from": [
+    "D:B-A061"
+   ]
+  }
+ },
+ "works": {
+  "plato.symposium": {
+   "title": {
+    "ru": "Пир",
+    "en": "Symposium",
+    "original": "Συμπόσιον"
+   },
+   "agents": [
+    "plato"
+   ],
+   "original": "grc",
+   "grew_from": [
+    "A:W001",
+    "D:B-W013"
+   ]
+  },
+  "plotinus.enneads": {
+   "title": {
+    "ru": "Эннеады",
+    "en": "Enneads",
+    "original": "Ἐννεάδες I.6 [1], Περὶ τοῦ καλοῦ"
+   },
+   "agents": [
+    "plotinus"
+   ],
+   "original": "grc",
+   "grew_from": [
+    "A:W003",
+    "C:A-W020"
+   ]
+  },
+  "aristotle.poetics": {
+   "title": {
+    "ru": "Поэтика",
+    "en": "Poetics",
+    "original": "Περὶ ποιητικῆς"
+   },
+   "agents": [
+    "aristotle"
+   ],
+   "original": "grc",
+   "grew_from": [
+    "A:W002",
+    "B:D-W001",
+    "C:A-W003"
+   ]
+  },
+  "immanuel-kant.kritik-der-urteilskraft": {
+   "title": {
+    "ru": "Критика способности суждения",
+    "en": "Critique of Judgment",
+    "original": "Kritik der Urteilskraft"
+   },
+   "agents": [
+    "immanuel-kant"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W009",
+    "B:A-W001",
+    "C:A-W004",
+    "D:B-W014"
+   ]
+  },
+  "edmund-burke.a-philosophical-enquiry-into-the-origin-of-our": {
+   "title": {
+    "ru": "Философское исследование о происхождении наших идей возвышенного и прекрасного",
+    "en": "A Philosophical Enquiry into the Origin of Our Ideas of the Sublime and Beautiful"
+   },
+   "agents": [
+    "edmund-burke"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W008",
+    "B:C-W004"
+   ]
+  },
+  "william-hogarth.the-analysis-of-beauty": {
+   "title": {
+    "ru": "Анализ красоты",
+    "en": "The Analysis of Beauty"
+   },
+   "agents": [
+    "william-hogarth"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W043"
+   ]
+  },
+  "alexander-gottlieb-baumgarten.aesthetica": {
+   "title": {
+    "ru": "Эстетика",
+    "en": "Aesthetics",
+    "original": "Aesthetica"
+   },
+   "agents": [
+    "alexander-gottlieb-baumgarten"
+   ],
+   "original": "la",
+   "grew_from": [
+    "B:C-W006",
+    "D:B-W059"
+   ]
+  },
+  "arthur-schopenhauer.die-welt-als-wille-und-vorstellung": {
+   "title": {
+    "ru": "Мир как воля и представление",
+    "en": "The World as Will and Representation",
+    "original": "Die Welt als Wille und Vorstellung"
+   },
+   "agents": [
+    "arthur-schopenhauer"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W046",
+    "B:A-W003"
+   ]
+  },
+  "baruch-spinoza.ethics": {
+   "title": {
+    "ru": "Этика",
+    "en": "Ethics"
+   },
+   "agents": [
+    "baruch-spinoza"
+   ],
+   "original": "la",
+   "grew_from": [
+    "B:B-W003"
+   ]
+  },
+  "buffon.discours-sur-le-style": {
+   "title": {
+    "ru": "Речь о стиле",
+    "en": "Discourse on Style",
+    "original": "Discours sur le style"
+   },
+   "agents": [
+    "buffon"
+   ],
+   "original": "fr",
+   "grew_from": [
+    "C:A-W032"
+   ]
+  },
+  "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique": {
+   "title": {
+    "ru": "О сущности смеха и вообще о комическом в пластических искусствах",
+    "en": "On the Essence of Laughter and Generally on the Comic in the Plastic Arts",
+    "original": "De l’essence du rire et généralement du comique dans les arts plastiques"
+   },
+   "agents": [
+    "charles-baudelaire"
+   ],
+   "original": "fr",
+   "grew_from": [
+    "A:W047"
+   ]
+  },
+  "david-hume.a-treatise-of-human-nature": {
+   "title": {
+    "ru": "Трактат о человеческой природе",
+    "en": "A Treatise of Human Nature"
+   },
+   "agents": [
+    "david-hume"
+   ],
+   "original": "en",
+   "grew_from": [
+    "B:D-W034"
+   ]
+  },
+  "david-hume.of-the-delicacy-of-taste-and-passion": {
+   "title": {
+    "ru": "О тонкости вкуса и страсти",
+    "en": "Of the Delicacy of Taste and Passion"
+   },
+   "agents": [
+    "david-hume"
+   ],
+   "original": "en",
+   "grew_from": [
+    "B:C-W003"
+   ]
+  },
+  "david-hume.of-the-standard-of-taste": {
+   "title": {
+    "ru": "О стандарте вкуса",
+    "en": "Of the Standard of Taste"
+   },
+   "agents": [
+    "david-hume"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W006",
+    "B:C-W002",
+    "D:A-035-W02"
+   ]
+  },
+  "david-hume.of-tragedy": {
+   "title": {
+    "ru": "О трагедии",
+    "en": "Of Tragedy"
+   },
+   "agents": [
+    "david-hume"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W007",
+    "B:B-W029"
+   ]
+  },
+  "edith-stein.zum-problem-der-einfuehlung": {
+   "title": {
+    "ru": "К проблеме эмпатии",
+    "en": "On the Problem of Empathy",
+    "original": "Zum Problem der Einfühlung"
+   },
+   "agents": [
+    "edith-stein"
+   ],
+   "original": "de",
+   "grew_from": [
+    "B:B-W006"
+   ]
+  },
+  "eduard-hanslick.vom-musikalisch-schoenen": {
+   "title": {
+    "ru": "О музыкально-прекрасном",
+    "en": "On the Musically Beautiful",
+    "original": "Vom Musikalisch-Schönen"
+   },
+   "agents": [
+    "eduard-hanslick"
+   ],
+   "original": "de",
+   "grew_from": [
+    "C:A-W045"
+   ]
+  },
+  "edward-bullough.psychical-distance-as-a-factor-in-art": {
+   "title": {
+    "ru": "Психическая дистанция как фактор искусства",
+    "en": "‘Psychical Distance’ as a Factor in Art and an Aesthetic Principle",
+    "original": "'Psychical Distance' as a Factor in Art and as an Aesthetic Principle"
+   },
+   "agents": [
+    "edward-bullough"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W100",
+    "B:A-W004"
+   ]
+  },
+  "edward-lear.a-book-of-nonsense": {
+   "title": {
+    "ru": "Книга бессмыслиц",
+    "en": "A Book of Nonsense"
+   },
+   "agents": [
+    "edward-lear"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W086"
+   ]
+  },
+  "emile-durkheim.les-formes-elementaires-de-la-vie-religieuse": {
+   "title": {
+    "ru": "Элементарные формы религиозной жизни",
+    "en": "The Elementary Forms of Religious Life",
+    "original": "Les formes élémentaires de la vie religieuse"
+   },
+   "agents": [
+    "emile-durkheim"
+   ],
+   "original": "fr",
+   "grew_from": [
+    "D:B-W001"
+   ]
+  },
+  "ernst-jentsch.zur-psychologie-des-unheimlichen": {
+   "title": {
+    "ru": "К психологии жуткого",
+    "en": "On the Psychology of the Uncanny",
+    "original": "Zur Psychologie des Unheimlichen"
+   },
+   "agents": [
+    "ernst-jentsch"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W054"
+   ]
+  },
+  "francis-hutcheson.an-inquiry-into-the-original-of-our-ideas": {
+   "title": {
+    "ru": "Исследование о происхождении наших идей красоты и добродетели",
+    "en": "An Inquiry into the Original of Our Ideas of Beauty and Virtue"
+   },
+   "agents": [
+    "francis-hutcheson"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W044",
+    "B:C-W001"
+   ]
+  },
+  "friedrich-nietzsche.die-froehliche-wissenschaft": {
+   "title": {
+    "ru": "Веселая наука",
+    "en": "The Gay Science",
+    "original": "Die fröhliche Wissenschaft"
+   },
+   "agents": [
+    "friedrich-nietzsche"
+   ],
+   "original": "de",
+   "grew_from": [
+    "D:A-035-W10"
+   ]
+  },
+  "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste": {
+   "title": {
+    "ru": "Рождение трагедии из духа музыки",
+    "en": "The Birth of Tragedy out of the Spirit of Music",
+    "original": "Die Geburt der Tragödie aus dem Geiste der Musik"
+   },
+   "agents": [
+    "friedrich-nietzsche"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W039",
+    "B:C-W009",
+    "C:B-W003"
+   ]
+  },
+  "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen": {
+   "title": {
+    "ru": "Мысли об использовании обыденного и низменного в искусстве",
+    "en": "Thoughts on the Use of the Common and the Low in Art",
+    "original": "Gedanken über den Gebrauch des Gemeinen und Niedrigen in der Kunst"
+   },
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W013"
+   ]
+  },
+  "friedrich-schiller.ueber-anmut-und-wuerde": {
+   "title": {
+    "ru": "О грации и достоинстве",
+    "en": "On Grace and Dignity",
+    "original": "Über Anmut und Würde"
+   },
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W010"
+   ]
+  },
+  "friedrich-schiller.ueber-das-erhabene": {
+   "title": {
+    "ru": "О возвышенном",
+    "en": "On the Sublime",
+    "original": "Über das Erhabene"
+   },
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W011"
+   ]
+  },
+  "friedrich-schiller.ueber-das-pathetische": {
+   "title": {
+    "ru": "О патетическом",
+    "en": "On the Pathetic",
+    "original": "Über das Pathetische"
+   },
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W012",
+    "B:B-W023"
+   ]
+  },
+  "friedrich-schiller.ueber-den-grund-des-vergnuegens-an-tragischen": {
+   "title": {
+    "ru": "О причине наслаждения трагическими предметами",
+    "en": "On the Ground of Pleasure in Tragic Objects",
+    "original": "Über den Grund des Vergnügens an tragischen Gegenständen"
+   },
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W015"
+   ]
+  },
+  "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen": {
+   "title": {
+    "ru": "Письма об эстетическом воспитании человека",
+    "en": "On the Aesthetic Education of Man in a Series of Letters",
+    "original": "Über die ästhetische Erziehung des Menschen in einer Reihe von Briefen"
+   },
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W017",
+    "B:C-W007",
+    "C:B-W004",
+    "D:A-035-W01"
+   ]
+  },
+  "friedrich-schiller.ueber-die-tragische-kunst": {
+   "title": {
+    "ru": "О трагическом искусстве",
+    "en": "On Tragic Art",
+    "original": "Über die tragische Kunst"
+   },
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W014"
+   ]
+  },
+  "friedrich-schiller.ueber-naive-und-sentimentalische-dichtung": {
+   "title": {
+    "ru": "О наивной и сентиментальной поэзии",
+    "en": "On Naive and Sentimental Poetry",
+    "original": "Über naive und sentimentalische Dichtung"
+   },
+   "agents": [
+    "friedrich-schiller"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W016"
+   ]
+  },
+  "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie": {
+   "title": {
+    "ru": "Об изучении греческой поэзии",
+    "en": "On the Study of Greek Poetry",
+    "original": "Über das Studium der griechischen Poesie"
+   },
+   "agents": [
+    "friedrich-schlegel"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W064"
+   ]
+  },
+  "georg-simmel.philosophie-der-landschaft": {
+   "title": {
+    "ru": "Философия пейзажа",
+    "en": "The Philosophy of Landscape",
+    "original": "Philosophie der Landschaft"
+   },
+   "agents": [
+    "georg-simmel"
+   ],
+   "original": "de",
+   "grew_from": [
+    "B:B-W035"
+   ]
+  },
+  "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik": {
+   "title": {
+    "ru": "Лекции по эстетике",
+    "en": "Lectures on Aesthetics",
+    "original": "Vorlesungen über die Ästhetik"
+   },
+   "agents": [
+    "georg-wilhelm-friedrich-hegel"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W018",
+    "B:C-W008",
+    "C:A-W012"
+   ]
+  },
+  "gotthold-ephraim-lessing.laokoon": {
+   "title": {
+    "ru": "Лаокоон, или О границах живописи и поэзии",
+    "en": "Laocoön: An Essay on the Limits of Painting and Poetry",
+    "original": "Laokoon: oder über die Grenzen der Malerei und Poesie"
+   },
+   "agents": [
+    "gotthold-ephraim-lessing"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W062",
+    "C:A-W015"
+   ]
+  },
+  "gustav-theodor-fechner.vorschule-der-aesthetik": {
+   "title": {
+    "ru": "Введение в эстетику",
+    "en": "Introduction to Aesthetics",
+    "original": "Vorschule der Ästhetik"
+   },
+   "agents": [
+    "gustav-theodor-fechner"
+   ],
+   "original": "de",
+   "grew_from": [
+    "D:B-W071"
+   ]
+  },
+  "henri-bergson.le-rire": {
+   "title": {
+    "ru": "Смех. Очерк о значении комического",
+    "en": "Laughter: An Essay on the Meaning of the Comic",
+    "original": "Le Rire. Essai sur la signification du comique"
+   },
+   "agents": [
+    "henri-bergson"
+   ],
+   "original": "fr",
+   "grew_from": [
+    "A:W021"
+   ]
+  },
+  "henri-poincare.l-invention-mathematique": {
+   "title": {
+    "ru": "Математическое изобретение",
+    "en": "Mathematical Invention",
+    "original": "L’invention mathématique"
+   },
+   "agents": [
+    "henri-poincare"
+   ],
+   "original": "fr",
+   "grew_from": [
+    "B:D-W008"
+   ]
+  },
+  "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl": {
+   "title": {
+    "ru": "Простое подражание природе, манера, стиль",
+    "en": "Simple Imitation of Nature, Manner, Style",
+    "original": "Einfache Nachahmung der Natur, Manier, Styl"
+   },
+   "agents": [
+    "johann-wolfgang-goethe"
+   ],
+   "original": "de",
+   "grew_from": [
+    "C:A-W011"
+   ]
+  },
+  "johann-wolfgang-goethe.maximen-und-reflexionen": {
+   "title": {
+    "ru": "Максимы и размышления",
+    "en": "Maxims and Reflections",
+    "original": "Maximen und Reflexionen"
+   },
+   "agents": [
+    "johann-wolfgang-goethe"
+   ],
+   "original": "de",
+   "grew_from": [
+    "C:A-W053"
+   ]
+  },
+  "joseph-addison.the-pleasures-of-the-imagination": {
+   "title": {
+    "ru": "Об удовольствиях воображения",
+    "en": "The Pleasures of the Imagination"
+   },
+   "agents": [
+    "joseph-addison"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W045"
+   ]
+  },
+  "leon-battista-alberti.de-pictura": {
+   "title": {
+    "ru": "О живописи",
+    "en": "On Painting",
+    "original": "De pictura"
+   },
+   "agents": [
+    "leon-battista-alberti"
+   ],
+   "original": "it",
+   "grew_from": [
+    "C:A-W008"
+   ]
+  },
+  "leon-battista-alberti.de-re-aedificatoria": {
+   "title": {
+    "ru": "Десять книг о зодчестве",
+    "en": "On the Art of Building",
+    "original": "De re aedificatoria"
+   },
+   "agents": [
+    "leon-battista-alberti"
+   ],
+   "original": "la",
+   "grew_from": [
+    "C:A-W046"
+   ]
+  },
+  "lewis-carroll.through-the-looking-glass-and-what-alice-found": {
+   "title": {
+    "ru": "Алиса в Зазеркалье",
+    "en": "Through the Looking-Glass, and What Alice Found There"
+   },
+   "agents": [
+    "lewis-carroll"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W085"
+   ]
+  },
+  "moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen": {
+   "title": {
+    "ru": "О возвышенном и наивном в изящных науках",
+    "en": "On the Sublime and the Naive in the Fine Sciences",
+    "original": "Über das Erhabene und Naive in den schönen Wissenschaften"
+   },
+   "agents": [
+    "moses-mendelssohn"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W060"
+   ]
+  },
+  "oscar-wilde.preface-to-the-picture-of-dorian-gray": {
+   "title": {
+    "ru": "Предисловие к «Портрету Дориана Грея»",
+    "en": "Preface to The Picture of Dorian Gray"
+   },
+   "agents": [
+    "oscar-wilde"
+   ],
+   "original": "en",
+   "grew_from": [
+    "D:B-W015"
+   ]
+  },
+  "oscar-wilde.the-decay-of-lying": {
+   "title": {
+    "ru": "Упадок лжи",
+    "en": "The Decay of Lying"
+   },
+   "agents": [
+    "oscar-wilde"
+   ],
+   "original": "en",
+   "grew_from": [
+    "C:A-W041"
+   ]
+  },
+  "otto-rank.der-doppelgaenger": {
+   "title": {
+    "ru": "Двойник",
+    "en": "The Double",
+    "original": "Der Doppelgänger"
+   },
+   "agents": [
+    "otto-rank"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W071"
+   ]
+  },
+  "philip-sidney.the-defence-of-poesie": {
+   "title": {
+    "ru": "Защита поэзии",
+    "en": "The Defence of Poesie"
+   },
+   "agents": [
+    "philip-sidney"
+   ],
+   "original": "en",
+   "grew_from": [
+    "B:D-W026"
+   ]
+  },
+  "rudolf-otto.das-heilige": {
+   "title": {
+    "ru": "Священное",
+    "en": "The Idea of the Holy",
+    "original": "Das Heilige"
+   },
+   "agents": [
+    "rudolf-otto"
+   ],
+   "original": "de",
+   "grew_from": [
+    "D:B-W002"
+   ]
+  },
+  "samuel-taylor-coleridge.biographia-literaria": {
+   "title": {
+    "ru": "Литературная биография",
+    "en": "Biographia Literaria"
+   },
+   "agents": [
+    "samuel-taylor-coleridge"
+   ],
+   "original": "en",
+   "grew_from": [
+    "B:D-W002"
+   ]
+  },
+  "shaftesbury.characteristics-of-men-manners-opinions-times": {
+   "title": {
+    "ru": "Характеристики людей, нравов, мнений, времён; «Моралисты»",
+    "en": "Characteristics of Men, Manners, Opinions, Times; The Moralists"
+   },
+   "agents": [
+    "shaftesbury"
+   ],
+   "original": "en",
+   "grew_from": [
+    "B:A-W002"
+   ]
+  },
+  "sigmund-freud.das-unheimliche": {
+   "title": {
+    "ru": "Жуткое",
+    "en": "The Uncanny",
+    "original": "Das Unheimliche"
+   },
+   "agents": [
+    "sigmund-freud"
+   ],
+   "original": "de",
+   "grew_from": [
+    "A:W020"
+   ]
+  },
+  "sigmund-freud.der-dichter-und-das-phantasieren": {
+   "title": {
+    "ru": "Поэт и фантазирование",
+    "en": "Creative Writers and Day-Dreaming",
+    "original": "Der Dichter und das Phantasieren"
+   },
+   "agents": [
+    "sigmund-freud"
+   ],
+   "original": "de",
+   "grew_from": [
+    "B:D-W012"
+   ]
+  },
+  "sigmund-freud.trauer-und-melancholie": {
+   "title": {
+    "ru": "Скорбь и меланхолия",
+    "en": "Mourning and Melancholia",
+    "original": "Trauer und Melancholie"
+   },
+   "agents": [
+    "sigmund-freud"
+   ],
+   "original": "de",
+   "grew_from": [
+    "B:B-W007"
+   ]
+  },
+  "theodor-lipps.das-wissen-von-fremden-ichen": {
+   "title": {
+    "ru": "Знание о чужих Я",
+    "en": "The Knowledge of Other Egos",
+    "original": "Das Wissen von fremden Ichen"
+   },
+   "agents": [
+    "theodor-lipps"
+   ],
+   "original": "de",
+   "grew_from": [
+    "B:B-W022"
+   ]
+  },
+  "thomas-aquinas.summa-theologiae": {
+   "title": {
+    "ru": "Сумма теологии",
+    "en": "Summa Theologiae",
+    "original": "Summa theologiae"
+   },
+   "agents": [
+    "thomas-aquinas"
+   ],
+   "original": "la",
+   "grew_from": [
+    "A:W004"
+   ]
+  },
+  "uvedale-price.an-essay-on-the-picturesque-as-compared": {
+   "title": {
+    "ru": "Эссе о живописном в сравнении с возвышенным и прекрасным",
+    "en": "An Essay on the Picturesque, as Compared with the Sublime and the Beautiful"
+   },
+   "agents": [
+    "uvedale-price"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W023"
+   ]
+  },
+  "victor-hugo.preface-de-cromwell": {
+   "title": {
+    "ru": "Предисловие к «Кромвелю»",
+    "en": "Preface to Cromwell",
+    "original": "Préface de Cromwell"
+   },
+   "agents": [
+    "victor-hugo"
+   ],
+   "original": "fr",
+   "grew_from": [
+    "A:W040"
+   ]
+  },
+  "william-gilpin.three-essays": {
+   "title": {
+    "ru": "Три эссе: о живописной красоте, живописных путешествиях и рисовании пейзажа",
+    "en": "Three Essays: On Picturesque Beauty; On Picturesque Travel; and On Sketching Landscape"
+   },
+   "agents": [
+    "william-gilpin"
+   ],
+   "original": "en",
+   "grew_from": [
+    "A:W022"
+   ]
+  },
+  "william-james.the-principles-of-psychology": {
+   "title": {
+    "ru": "Принципы психологии",
+    "en": "The Principles of Psychology"
+   },
+   "agents": [
+    "william-james"
+   ],
+   "original": "en",
+   "grew_from": [
+    "B:A-W007"
+   ]
+  },
+  "william-morris.the-decorative-arts": {
+   "title": {
+    "ru": "Декоративные искусства / Малые искусства",
+    "en": "The Decorative Arts: Their Relation to Modern Life and Progress"
+   },
+   "agents": [
+    "william-morris"
+   ],
+   "original": "en",
+   "grew_from": [
+    "D:B-W057"
+   ]
+  }
+ }
+}

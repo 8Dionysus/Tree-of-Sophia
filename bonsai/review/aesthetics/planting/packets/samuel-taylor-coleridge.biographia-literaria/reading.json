@@ -1,0 +1,161 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-biographia-literaria",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "English text in the 1834 New York one-volume printing, compared with the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "samuel-taylor-coleridge": {
+    "tree": "tos.agent.samuel-taylor-coleridge"
+   }
+  },
+  "works": {
+   "samuel-taylor-coleridge.biographia-literaria": {
+    "title": {
+     "ru": "Литературная биография",
+     "en": "Biographia Literaria"
+    },
+    "original": "en",
+    "tree": "tos.work.samuel-taylor-coleridge.biographia-literaria",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "samuel-taylor-coleridge.biographia-literaria:primary-imagination",
+   "of": [
+    "B:D-C009"
+   ],
+   "areas": [
+    "AE19"
+   ],
+   "work": "samuel-taylor-coleridge.biographia-literaria",
+   "locus": "Ch. XIII",
+   "formula": [
+    {
+     "place": "XIII p172a"
+    }
+   ],
+   "thesis": {
+    "ru": "Первичное воображение — живая сила и главный деятель всякого человеческого восприятия, повторение в конечном уме вечного акта творения в бесконечном Я есмь.",
+    "en": "The primary imagination is the living power and prime agent of all human perception, a repetition in the finite mind of the eternal act of creation in the infinite I AM."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:D-I005"
+   ]
+  },
+  {
+   "id": "samuel-taylor-coleridge.biographia-literaria:secondary-imagination",
+   "of": [
+    "B:D-C009"
+   ],
+   "areas": [
+    "AE19"
+   ],
+   "work": "samuel-taylor-coleridge.biographia-literaria",
+   "locus": "Ch. XIII",
+   "formula": [
+    {
+     "place": "XIII p172a"
+    }
+   ],
+   "thesis": {
+    "ru": "Вторичное воображение сосуществует с сознательной волей и растворяет, рассеивает и разъединяет, чтобы воссоздать; там, где это невозможно, оно всё же стремится идеализировать и объединять.",
+    "en": "The secondary imagination coexists with the conscious will and dissolves, diffuses and dissipates in order to re-create; where this process is impossible, it still struggles to idealize and unify."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:D-I005"
+   ],
+   "negation": "where this process is rendered impossible"
+  },
+  {
+   "id": "samuel-taylor-coleridge.biographia-literaria:fancy-and-memory",
+   "of": [
+    "B:D-C010"
+   ],
+   "areas": [
+    "AE19"
+   ],
+   "work": "samuel-taylor-coleridge.biographia-literaria",
+   "locus": "Ch. XIII",
+   "formula": [
+    {
+     "place": "XIII p172b"
+    }
+   ],
+   "thesis": {
+    "ru": "Фантазия (fancy) — форма памяти, освобождённая от порядка времени и пространства и изменённая выбором; она получает готовые материалы от закона ассоциации.",
+    "en": "Fancy is a mode of memory emancipated from the order of time and space and modified by choice; it receives its materials ready made from the law of association."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "B:D-I006"
+   ],
+   "note": "The register also lists imagination; the fancy passage defines fancy and memory, while its opening contrast refers to the preceding account of imagination. This conception states the fancy passage itself."
+  },
+  {
+   "id": "samuel-taylor-coleridge.biographia-literaria:poetic-faith",
+   "of": [
+    "B:D-C012",
+    "B:D-C015"
+   ],
+   "areas": [
+    "AE19"
+   ],
+   "work": "samuel-taylor-coleridge.biographia-literaria",
+   "locus": "Ch. XIV",
+   "formula": [
+    {
+     "place": "XIV p174a"
+    }
+   ],
+   "thesis": {
+    "ru": "Человеческий интерес и подобие истины доставляют теням воображения добровольное приостановление неверия на мгновение, составляющее поэтическую веру.",
+    "en": "Human interest and a semblance of truth procure for the shadows of imagination the willing suspension of disbelief for the moment which constitutes poetic faith."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:D-I007"
+   ]
+  },
+  {
+   "id": "samuel-taylor-coleridge.biographia-literaria:novelty-and-custom",
+   "of": [
+    "B:D-C002"
+   ],
+   "areas": [
+    "AE18"
+   ],
+   "work": "samuel-taylor-coleridge.biographia-literaria",
+   "locus": "Ch. XIV",
+   "formula": [
+    {
+     "place": "XIV p174b"
+    }
+   ],
+   "thesis": {
+    "ru": "Вордсворт поставил себе целью придать прелесть новизны повседневным вещам и вызвать чувство, подобное сверхъестественному, пробуждая внимание ума от оцепенения привычки и направляя его к красоте и чудесам окружающего мира.",
+    "en": "Wordsworth set out to give the charm of novelty to things of every day and to excite a feeling analogous to the supernatural by awakening the mind’s attention from the lethargy of custom and directing it to the loveliness and wonders of the world before us."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "B:D-I008"
+   ],
+   "note": "The place speaks of attention and understanding; recognition is not named or asserted as a separate concept."
+  }
+ ],
+ "links": [],
+ "left": []
+}

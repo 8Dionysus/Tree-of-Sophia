@@ -1,0 +1,289 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-die-welt-als-wille-und-vorstellung",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "I read the German third edition of 1859 against the register readings and the scanned pages.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "arthur-schopenhauer": {
+    "tree": "tos.agent.arthur-schopenhauer"
+   }
+  },
+  "works": {
+   "arthur-schopenhauer.die-welt-als-wille-und-vorstellung": {
+    "title": {
+     "ru": "Мир как воля и представление",
+     "en": "The World as Will and Representation"
+    },
+    "original": "de",
+    "tree": "tos.work.arthur-schopenhauer.die-welt-als-wille-und-vorstellung",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung:sublime-elevation",
+   "of": [
+    "A:C002",
+    "A:C110"
+   ],
+   "areas": [
+    "AE01",
+    "AE02"
+   ],
+   "work": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung",
+   "locus": "§39",
+   "formula": [
+    {
+     "place": "§39 p238a"
+    }
+   ],
+   "thesis": {
+    "ru": "В возвышенном чистое познание достигается сознательным отрывом от неблагоприятных отношений предмета к воле и возвышением над волей.",
+    "en": "In the sublime pure knowledge is won by consciously breaking away from the object’s unfavourable relations to the will and rising above the will."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E055"
+   ],
+   "note": "The chosen sentence grounds the conscious elevation; the register’s might is omitted here because this sentence does not describe it."
+  },
+  {
+   "id": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung:danger-and-contemplation",
+   "of": [
+    "A:C002",
+    "A:C130"
+   ],
+   "areas": [
+    "AE02"
+   ],
+   "work": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung",
+   "locus": "§39",
+   "formula": [
+    {
+     "place": "§39 p238b"
+    }
+   ],
+   "thesis": {
+    "ru": "При действительной личной опасности индивидуальная воля берёт верх, покой созерцания становится невозможен и впечатление возвышенного уступает место страху.",
+    "en": "In actual personal danger the individual will gains the upper hand, the calm of contemplation becomes impossible, and the impression of the sublime gives way to fear."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E056"
+   ],
+   "note": "The passage describes actual danger and fear, not a separately established safe distance."
+  },
+  {
+   "id": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung:laughter-and-incongruity",
+   "of": [
+    "A:C054",
+    "A:C055"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung",
+   "locus": "§13",
+   "formula": [
+    {
+     "place": "§13 p70"
+    }
+   ],
+   "thesis": {
+    "ru": "Смех возникает из внезапно воспринятого несоответствия между понятием и реальными предметами, мыслившимися посредством него, и выражает это несоответствие.",
+    "en": "Laughter arises from the suddenly perceived incongruity between a concept and the real objects thought through it, and expresses that incongruity."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E097"
+   ],
+   "note": "The sentence explains laughter and incongruity; it does not name wit."
+  },
+  {
+   "id": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung:wit-and-wordplay",
+   "of": [
+    "A:C053",
+    "A:C166",
+    "A:C054"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung",
+   "locus": "§13",
+   "formula": [
+    {
+     "place": "§13 p72"
+    }
+   ],
+   "thesis": {
+    "ru": "Остроумие подводит различные реальные предметы под одно понятие, а игра слов подводит различные понятия под одно слово.",
+    "en": "Wit forces different real objects under one concept, while wordplay brings different concepts under one word."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E098"
+   ],
+   "note": "The cited distinction concerns wit and wordplay; the register also names folly, which these sentences do not explain."
+  },
+  {
+   "id": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung:contemplation-of-idea",
+   "of": [
+    "B:A-C002"
+   ],
+   "areas": [
+    "AE13"
+   ],
+   "work": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung",
+   "locus": "§34",
+   "formula": [
+    {
+     "place": "§34 p209"
+    }
+   ],
+   "thesis": {
+    "ru": "Познание отрывается от службы воле, и субъект становится чистым безвольным субъектом познания, пребывающим в созерцании предмета и переходящим к познанию идеи.",
+    "en": "Knowledge breaks free from the service of the will, and the subject becomes a pure will-less subject of knowledge, resting in contemplation of the object and passing to knowledge of the Idea."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:A-I005"
+   ]
+  },
+  {
+   "id": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung:greatness-and-ancient-ruins",
+   "of": [
+    "A:C083",
+    "A:C021"
+   ],
+   "areas": [
+    "AE02",
+    "AE10"
+   ],
+   "work": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung",
+   "locus": "§39",
+   "formula": [
+    {
+     "place": "§39 p243"
+    }
+   ],
+   "thesis": {
+    "ru": "Некоторые предметы производят впечатление возвышенного своей пространственной величиной и древностью: перед ними мы чувствуем себя уменьшенными до ничто и вместе с тем наслаждаемся их созерцанием; таковы высокие горы, египетские пирамиды и колоссальные древние руины.",
+    "en": "Some objects impress us as sublime through their spatial greatness and great age: we feel reduced to nothing before them while delighting in their sight; such are high mountains, Egyptian pyramids and colossal ancient ruins."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The sentence gives spatial greatness and duration, not unbounded space as such.",
+   "from": [
+    "A:E057"
+   ]
+  },
+  {
+   "id": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung:wordplay-and-contrast",
+   "of": [
+    "A:C166",
+    "A:C054"
+   ],
+   "areas": [
+    "AE06"
+   ],
+   "work": "arthur-schopenhauer.die-welt-als-wille-und-vorstellung",
+   "locus": "§13",
+   "formula": [
+    {
+     "place": "§13 p72"
+    }
+   ],
+   "thesis": {
+    "ru": "Игра слов подводит два различных понятия под одно слово, и тот же контраст возникает вновь, но слабее и поверхностнее, поскольку происходит из случайности наименования.",
+    "en": "Wordplay brings two different concepts under one word, and the same contrast arises again, but more faintly and superficially because it comes from the accident of naming."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage calls this the same contrast, while locating the difference in the concepts and identity in the word.",
+   "from": [
+    "A:E098"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "incongruity:gives-rise-to:laughter",
+   "from_concept": "A:C054",
+   "to_concept": "A:C055",
+   "verb": {
+    "ru": "вызывает",
+    "en": "gives rise to"
+   },
+   "grounds": [
+    "arthur-schopenhauer.die-welt-als-wille-und-vorstellung:laughter-and-incongruity"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R091"
+   ]
+  },
+  {
+   "id": "the-ruin:can-exemplify-an-impression-of:greatness",
+   "from_concept": "A:C083",
+   "to_concept": "A:C021",
+   "verb": {
+    "ru": "может служить примером предмета, впечатляющего своей",
+    "en": "can exemplify an object that impresses through its"
+   },
+   "grounds": [
+    "arthur-schopenhauer.die-welt-als-wille-und-vorstellung:greatness-and-ancient-ruins"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The text names ancient colossal ruins among objects whose spatial greatness and age impress as sublime; it does not separate the two causes.",
+   "from": [
+    "A:R053"
+   ]
+  },
+  {
+   "id": "wordplay:brings-about-a-fainter:incongruity",
+   "from_concept": "A:C166",
+   "to_concept": "A:C054",
+   "verb": {
+    "ru": "вызывает более слабое",
+    "en": "brings about a fainter"
+   },
+   "grounds": [
+    "arthur-schopenhauer.die-welt-als-wille-und-vorstellung:wordplay-and-contrast"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage calls it the same contrast, but fainter and more superficial; the difference lies in concepts and the identity in the word.",
+   "from": [
+    "A:R090"
+   ]
+  }
+ ],
+ "left": [
+  {
+   "key": "A:R051",
+   "reason": "The passage describes rising above the will and its relations, not overcoming an interest in might as a concept."
+  },
+  {
+   "key": "A:R052",
+   "reason": "The passage makes fear the consequence of lost contemplation in actual danger, rather than the cause that interrupts the sublime."
+  },
+  {
+   "key": "A:R179",
+   "reason": "The passage on ruins and spatial greatness does not mention the picturesque or establish its relation to the sublime."
+  }
+ ]
+}

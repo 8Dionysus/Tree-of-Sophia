@@ -1,0 +1,224 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/oeuvrescomplte23hugouoft/oeuvrescomplte23hugouoft_hocr_searchtext.txt.gz",
+   "file": "oeuvrescomplte23hugouoft.ocr.txt",
+   "sha256": "d62dda8531038c4770f2faeaefffded14f5586ecd2123ed868298a7e08865a52",
+   "bytes": 1564631,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/oeuvrescomplte23hugouoft/oeuvrescomplte23hugouoft_hocr_pageindex.json.gz",
+   "file": "oeuvrescomplte23hugouoft.index.json",
+   "sha256": "229fae327608bfb78ade312290a0bf5dba5c02cc5195802e7fe22c7da41893df",
+   "bytes": 32241,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/oeuvrescomplte23hugouoft/oeuvrescomplte23hugouoft_page_numbers.json",
+   "file": "oeuvrescomplte23hugouoft.pages.json",
+   "sha256": "76b7567ce5b64c00b35673926fa46db397fca3b31e88e42851679b60d75288c3",
+   "bytes": 145092,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://fr.wikisource.org/w/index.php?title=Cromwell_-_Pr%C3%A9face&action=render",
+   "file": "preface-wikisource.html",
+   "sha256": "f88867962a816ec9fe5575dca3960897826eadaeccb3e6dfbd54abe367a27c5a",
+   "bytes": 144451,
+   "fetched": "2026-11-10",
+   "text": "preface-wikisource.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "oeuvrescomplte23hugouoft",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -3
+ },
+ "persons": [
+  {
+   "qid": "Q535",
+   "name": {
+    "en": "Victor Hugo",
+    "ru": "Виктор Гюго"
+   },
+   "role": "author",
+   "died": 1885,
+   "source": "https://www.wikidata.org/wiki/Q535"
+  }
+ ],
+ "published": 1912,
+ "images": [
+  {
+   "n": 30,
+   "file": "oeuvrescomplte23hugouoft-n30.jpg",
+   "sha256": "defab07d6a523b8f8af899fe86158f552296a5acb5d6827636fbe6e81e946701",
+   "by": "maker"
+  },
+  {
+   "n": 29,
+   "file": "oeuvrescomplte23hugouoft-n29.jpg",
+   "sha256": "a9d69853a41e25518a6852ffebd419fd615fc02c17622ddacf6e27de21a4e4e0",
+   "by": "maker"
+  },
+  {
+   "n": 36,
+   "file": "oeuvrescomplte23hugouoft-n36.jpg",
+   "sha256": "0e5bc68efaf484ebd74757657714ff6c5c5bc1be507e94caf253eb2f292c76e3",
+   "by": "maker"
+  },
+  {
+   "n": 27,
+   "file": "oeuvrescomplte23hugouoft-n27.jpg",
+   "sha256": "ab0dd8e16d9d38dfebf554ca025291cd269490bbbb98e9a90bcb0184282d3bac",
+   "by": "maker"
+  },
+  {
+   "n": 28,
+   "file": "oeuvrescomplte23hugouoft-n28.jpg",
+   "sha256": "81623fa9e1be98c3f80c6ee1e7984c381e6ee92295e9be5e79a2ef9ee9a3ed5b",
+   "by": "maker"
+  },
+  {
+   "n": 37,
+   "file": "oeuvrescomplte23hugouoft-n37.jpg",
+   "sha256": "c1ca84f959aa9a987d57f3fe2e14d2271fb23a1056d3e763e626ef7e27bd4ec5",
+   "by": "maker"
+  },
+  {
+   "n": 29,
+   "file": "oeuvrescomplte23hugouoft-n29.jpg",
+   "sha256": "a9d69853a41e25518a6852ffebd419fd615fc02c17622ddacf6e27de21a4e4e0",
+   "by": "second",
+   "loc": "Préface p16"
+  },
+  {
+   "n": 37,
+   "file": "oeuvrescomplte23hugouoft-n37.jpg",
+   "sha256": "2a20d084e38064265327db9209d0e42cd3c4b0ca75e28444ed14355fe81658cf",
+   "by": "second",
+   "loc": "Préface p24"
+  },
+  {
+   "n": 27,
+   "file": "oeuvrescomplte23hugouoft-n27.jpg",
+   "sha256": "ef0440cce9f5251bfc82cc38e90cbc78fe9155c3de1c66483c84dc22acc65aee",
+   "by": "second",
+   "loc": "Préface p14b"
+  },
+  {
+   "n": 28,
+   "file": "oeuvrescomplte23hugouoft-n28.jpg",
+   "sha256": "c9cd8f1d8013b04438f08ba5e0a827c31f2e079fbe0a2aaf0b93e12df3b70fc2",
+   "by": "second",
+   "loc": "Préface p14b"
+  },
+  {
+   "n": 36,
+   "file": "oeuvrescomplte23hugouoft-n36.jpg",
+   "sha256": "263a5b91e9afd21bfe411be6da89e7480f15f1d9cf28e65e0f357fa6a39b478f",
+   "by": "second",
+   "loc": "Préface p23"
+  }
+ ],
+ "places": {
+  "Préface p16": {
+   "transcription": "preface-wikisource.html",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    32
+   ],
+   "printed": [
+    "16"
+   ],
+   "differences": []
+  },
+  "Préface p23": {
+   "transcription": "preface-wikisource.html",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    39
+   ],
+   "printed": [
+    "23"
+   ],
+   "differences": []
+  },
+  "Préface p14": {
+   "transcription": "preface-wikisource.html",
+   "method": "ocr",
+   "share": 0.986,
+   "leaves": [
+    30
+   ],
+   "printed": [
+    "14"
+   ],
+   "differences": [
+    {
+     "transcription": "d'œil",
+     "ocr": "d'oeil",
+     "leaf": 30,
+     "stands": "transcription",
+     "note": "Page 14 reads d’œil, with the ligature."
+    }
+   ]
+  },
+  "Préface p14b": {
+   "transcription": "preface-wikisource.html",
+   "method": "ocr",
+   "share": 0.985,
+   "leaves": [
+    30,
+    31
+   ],
+   "printed": [
+    "14",
+    "15"
+   ],
+   "differences": [
+    {
+     "transcription": "grotesque",
+     "ocr": "gro - PREFACE . 15 tesque",
+     "leaf": 30,
+     "stands": "transcription",
+     "note": "Pages 14–15: grotesque breaks across the page as gro- / tesque, and the mark after esprit is a semicolon."
+    },
+    {
+     "transcription": ";",
+     "ocr": "j",
+     "leaf": 31,
+     "stands": "transcription",
+     "note": "Pages 14–15: grotesque breaks across the page as gro- / tesque, and the mark after esprit is a semicolon."
+    }
+   ]
+  },
+  "Préface p24": {
+   "transcription": "preface-wikisource.html",
+   "method": "ocr",
+   "share": 0.986,
+   "leaves": [
+    40
+   ],
+   "printed": [
+    "24"
+   ],
+   "differences": [
+    {
+     "transcription": ";",
+     "ocr": "?",
+     "leaf": 40,
+     "stands": "transcription",
+     "note": "The corrected place has the semicolon printed on p. 24; the OCR has a question mark."
+    }
+   ]
+  }
+ }
+}

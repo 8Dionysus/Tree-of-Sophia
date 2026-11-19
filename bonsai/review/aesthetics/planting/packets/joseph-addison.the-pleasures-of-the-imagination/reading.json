@@ -1,0 +1,207 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-the-pleasures-of-the-imagination",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read the English text of The Spectator no. 412 in Henry Morley’s 1891 edition against the register readings, comparing the transcription with the scanned page.",
+  "effort": "high"
+ },
+ "note": "After second reading, the former novelty-refreshes-and-charms conception was divided into novelty-refreshes and novelty-charms-a-monster; the earlier review remains as the record of that assessment.",
+ "library": {
+  "agents": {
+   "joseph-addison": {
+    "tree": "tos.agent.joseph-addison"
+   }
+  },
+  "works": {
+   "joseph-addison.the-pleasures-of-the-imagination": {
+    "title": {
+     "ru": "Об удовольствиях воображения",
+     "en": "The Pleasures of the Imagination"
+    },
+    "original": "en",
+    "tree": "tos.work.joseph-addison.the-pleasures-of-the-imagination",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "joseph-addison.the-pleasures-of-the-imagination:greatness-of-a-whole-view",
+   "of": [
+    "A:C021"
+   ],
+   "areas": [
+    "AE01",
+    "AE02"
+   ],
+   "work": "joseph-addison.the-pleasures-of-the-imagination",
+   "locus": "The Spectator, no. 412",
+   "formula": [
+    {
+     "place": "No. 412 p717a"
+    }
+   ],
+   "thesis": {
+    "ru": "Величие означает также обширность целого вида, рассматриваемого как единое целое.",
+    "en": "Greatness means also the largeness of a whole view, considered as one entire piece."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E178"
+   ]
+  },
+  {
+   "id": "joseph-addison.the-pleasures-of-the-imagination:beauty-and-uncommonness-joined-with-grandeur",
+   "of": [
+    "A:C021",
+    "A:C080",
+    "A:C001",
+    "A:C093"
+   ],
+   "areas": [
+    "AE01",
+    "AE02",
+    "AE10",
+    "AE12"
+   ],
+   "work": "joseph-addison.the-pleasures-of-the-imagination",
+   "locus": "The Spectator, no. 412",
+   "formula": [
+    {
+     "place": "No. 412 p717b"
+    }
+   ],
+   "thesis": {
+    "ru": "Когда к величию присоединяется красота или необычность, как в просторном пейзаже с реками, лесами, скалами и лугами, удовольствие растёт, исходя более чем из одного начала.",
+    "en": "When beauty or uncommonness joins grandeur, as in a spacious landscape with rivers, woods, rocks and meadows, pleasure grows as it arises from more than one principle."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E178"
+   ]
+  },
+  {
+   "id": "joseph-addison.the-pleasures-of-the-imagination:novelty-surprise-and-curiosity",
+   "of": [
+    "A:C093",
+    "A:C095",
+    "A:C094"
+   ],
+   "areas": [
+    "AE07",
+    "AE12"
+   ],
+   "work": "joseph-addison.the-pleasures-of-the-imagination",
+   "locus": "The Spectator, no. 412",
+   "formula": [
+    {
+     "place": "No. 412 p717d"
+    }
+   ],
+   "thesis": {
+    "ru": "Новое или необычное доставляет удовольствие воображению, наполняя душу приятным удивлением, удовлетворяя любопытство и давая ей прежде не имевшуюся идею.",
+    "en": "What is new or uncommon raises pleasure in the imagination by filling the soul with agreeable surprise, gratifying its curiosity and giving it an idea it did not have before."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E177"
+   ]
+  },
+  {
+   "id": "joseph-addison.the-pleasures-of-the-imagination:novelty-refreshes",
+   "of": [
+    "A:C093",
+    "A:C096"
+   ],
+   "areas": [
+    "AE07",
+    "AE12"
+   ],
+   "work": "joseph-addison.the-pleasures-of-the-imagination",
+   "locus": "The Spectator, no. 412",
+   "formula": [
+    {
+     "place": "No. 412 p717e"
+    }
+   ],
+   "thesis": {
+    "ru": "Новое или необычное немного разнообразит человеческую жизнь и на время отвлекает ум странностью своего вида; оно освежает и ослабляет пресыщение, на которое мы склонны жаловаться в обычных развлечениях.",
+    "en": "What is new or uncommon contributes a little to vary human life and divert our minds for a while with the strangeness of its appearance; it refreshes us and takes off from the satiety we are apt to complain of in our usual entertainments."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E177"
+   ]
+  },
+  {
+   "id": "joseph-addison.the-pleasures-of-the-imagination:novelty-charms-a-monster",
+   "of": [
+    "A:C093",
+    "A:C058"
+   ],
+   "areas": [
+    "AE07",
+    "AE12"
+   ],
+   "work": "joseph-addison.the-pleasures-of-the-imagination",
+   "locus": "The Spectator, no. 412",
+   "formula": [
+    {
+     "place": "No. 412 p717c"
+    }
+   ],
+   "thesis": {
+    "ru": "Новое или необычное придаёт прелесть чудовищу и делает приятными даже несовершенства природы.",
+    "en": "What is new or uncommon bestows charms on a monster and makes even the imperfections of nature please us."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E177"
+   ],
+   "note": "The previously confirmed page remains intact; its first sentence supplies the context for the novelty that the monster sentence refers to."
+  }
+ ],
+ "links": [
+  {
+   "id": "novelty:gratifies:curiosity",
+   "from_concept": "A:C093",
+   "to_concept": "A:C094",
+   "verb": {
+    "ru": "удовлетворяет",
+    "en": "gratifies"
+   },
+   "grounds": [
+    "joseph-addison.the-pleasures-of-the-imagination:novelty-surprise-and-curiosity"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R184"
+   ]
+  },
+  {
+   "id": "novelty:fills-the-soul-with:surprise",
+   "from_concept": "A:C093",
+   "to_concept": "A:C095",
+   "verb": {
+    "ru": "наполняет душу приятным удивлением",
+    "en": "fills the soul with agreeable surprise"
+   },
+   "grounds": [
+    "joseph-addison.the-pleasures-of-the-imagination:novelty-surprise-and-curiosity"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R185"
+   ]
+  }
+ ],
+ "left": []
+}

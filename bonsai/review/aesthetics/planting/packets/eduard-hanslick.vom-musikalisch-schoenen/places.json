@@ -1,0 +1,83 @@
+{
+ "work": "eduard-hanslick.vom-musikalisch-schoenen",
+ "entry": {
+  "author": {
+   "ru": "Эдуард Ганслик",
+   "en": "Eduard Hanslick"
+  },
+  "title": {
+   "ru": "О музыкально-прекрасном",
+   "en": "On the Musically Beautiful"
+  },
+  "original": "de",
+  "witnesses": {
+   "de": {
+    "edition": "Eduard Hanslick, Vom Musikalisch-Schönen, first edition (Leipzig: Rudolph Weigel, 1854), Internet Archive scan.",
+    "year": 1854,
+    "url": "https://archive.org/details/VomMusikalischSchnen1tea1854",
+    "sources": [
+     "https://archive.org/details/VomMusikalischSchnen1tea1854",
+     "https://www.gutenberg.org/ebooks/26949"
+    ],
+    "licence": "Public domain book; scan at Internet Archive. Project Gutenberg transcription is public domain in the USA, subject to its licence for branded distribution.",
+    "attribution": "Eduard Hanslick, Vom Musikalisch-Schönen (Leipzig: Rudolph Weigel, 1854), compared with the Internet Archive scan; transcription from Project Gutenberg.",
+    "rights": {
+     "basis": "public-domain",
+     "russia": "Общественное достояние: Эдуард Ганслик (автор) — год смерти 1904 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+     "usa": "Public domain: this printing was published in 1854 (before 1930).",
+     "eu": "Public domain: Eduard Hanslick (author) died 1904, more than 70 years ago (Directive 2006/116/EC art. 1).",
+     "reasoning": "Hanslick’s text, transcribed by Project Gutenberg from the 1922 edition and compared with the 1854 first edition scan in Internet Archive. Differences are corrected against the print."
+    }
+   }
+  },
+  "absent": [
+   {
+    "language": "ru",
+    "reason": "No Russian text is taken in this pass: the line plants the original first."
+   },
+   {
+    "language": "en",
+    "reason": "No English text is taken in this pass: the line plants the original first."
+   }
+  ]
+ },
+ "places": {
+  "II p27": {
+   "label": {
+    "ru": "Гл. II, с. 27",
+    "en": "Ch. II, p. 27"
+   },
+   "texts": {
+    "de": "Das gleichmäßige Genügen an die musikalischen und die dramatischen Anforderungen gilt bekanntlich darum mit Recht für das Ideal der Oper. Daß jedoch das Wesen derselben eben dadurch ein steter Kampf ist zwischen dem Princip der dramatischen Genauigkeit und dem der musikalischen Schönheit, ein unaufhörliches Concediren des einen an das andere, dies ist meines Wissens nie erschöpfend entwickelt worden."
+   },
+   "links": {
+    "de": "https://archive.org/details/VomMusikalischSchnen1tea1854/page/n32/mode/1up"
+   },
+   "refs": [
+    [
+     "de",
+     "First edition (Leipzig 1854), p. 27"
+    ]
+   ]
+  }
+ },
+ "corrections": [
+  {
+   "lang": "de",
+   "from": "Prinzip",
+   "to": "Princip",
+   "evidence": "1854 scan p. 27, leaf n32, enlarged lines 72–80%",
+   "place": "eduard-hanslick.vom-musikalisch-schoenen II p27"
+  },
+  {
+   "lang": "de",
+   "from": "Konzedieren",
+   "to": "Concediren",
+   "evidence": "1854 scan p. 27, leaf n32, enlarged lines 72–80%",
+   "place": "eduard-hanslick.vom-musikalisch-schoenen II p27"
+  }
+ ],
+ "checked_on_the_page_image": [
+  "p. 27 (both sentences, including enlarged lines for Princip and Concediren)"
+ ]
+}

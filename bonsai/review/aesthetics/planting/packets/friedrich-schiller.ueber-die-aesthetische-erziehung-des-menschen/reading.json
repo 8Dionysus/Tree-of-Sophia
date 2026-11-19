@@ -1,0 +1,244 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-ueber-die-aesthetische-erziehung-des-men",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "I read the German 1801 printing alongside the waiting register readings, comparing each selected sentence with the page images.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-schiller": {
+    "tree": "tos.agent.friedrich-schiller"
+   }
+  },
+  "works": {
+   "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen": {
+    "title": {
+     "ru": "Письма об эстетическом воспитании человека",
+     "en": "On the Aesthetic Education of Man in a Series of Letters"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:play-drive-unites-drives",
+   "of": [
+    "A:C208",
+    "A:C210",
+    "A:C211"
+   ],
+   "areas": [
+    "AE01"
+   ],
+   "work": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+   "locus": "XIV",
+   "formula": [
+    {
+     "place": "XIV p160"
+    }
+   ],
+   "thesis": {
+    "ru": "Игровое влечение — влечение, в котором чувственное и формальное влечения действуют совместно; оно было бы направлено на согласование становления с абсолютным бытием, изменения с тождеством.",
+    "en": "The play drive is the drive in which the sensuous and form drives act together; it would be directed toward reconciling becoming with absolute being and change with identity."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E175"
+   ],
+   "note": "The register describes the joint activity; the text states the direction of the play drive conditionally: «würde dahin gerichtet seyn»."
+  },
+  {
+   "id": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:living-form",
+   "of": [
+    "A:C209",
+    "A:C208",
+    "A:C001"
+   ],
+   "areas": [
+    "AE01"
+   ],
+   "work": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+   "locus": "XV",
+   "formula": [
+    {
+     "place": "XV p164"
+    },
+    {
+     "place": "XV p165b"
+    }
+   ],
+   "thesis": {
+    "ru": "Предмет игрового влечения, представленный в общей схеме, может называться живой формой; это понятие обозначает эстетические свойства явлений и красоту в самом широком смысле. Мрамор может стать живой формой; чтобы человек был живой формой, его форма должна быть жизнью, а его жизнь — формой.",
+    "en": "The object of the play drive, presented in a general schema, may be called living form, a term denoting the aesthetic qualities of appearances and beauty in the widest sense. Marble can become living form; for a person to be living form, their form must be life and their life form."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E176"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:ideal-of-the-play-drive",
+   "of": [
+    "B:C-C011"
+   ],
+   "areas": [
+    "AE17"
+   ],
+   "work": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+   "locus": "XV",
+   "formula": [
+    {
+     "place": "XV p171"
+    }
+   ],
+   "thesis": {
+    "ru": "Идеал красоты, который устанавливает разум, задаёт и идеал игрового влечения, который человек должен иметь перед глазами во всех своих играх.",
+    "en": "The ideal of beauty established by reason also sets an ideal of the play drive, which the person should keep before their eyes in all their games."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "B:C-I054",
+    "B:C-I043"
+   ],
+   "note": "The register treats the ideal together with autonomy; this place states the ideal of the play drive through the ideal of beauty."
+  },
+  {
+   "id": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:aesthetic-middle-state",
+   "of": [
+    "D:A-035-C07",
+    "D:A-035-C06"
+   ],
+   "areas": [
+    "AE35"
+   ],
+   "work": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+   "locus": "XX; XXIII",
+   "formula": [
+    {
+     "place": "XX p215a"
+    },
+    {
+     "place": "XXIII p236a"
+    }
+   ],
+   "thesis": {
+    "ru": "В среднем эстетическом состоянии чувственность и разум действуют одновременно; переход от ощущения к мышлению и волению совершается через состояние эстетической свободы.",
+    "en": "In the intermediate aesthetic state sensibility and reason act together; the transition from sensation to thinking and willing takes place through a state of aesthetic freedom."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "D:A-035-I01",
+    "D:A-035-I17"
+   ],
+   "note": "The register describes transformative possibility and aesthetic freedom. These passages describe the middle state and transition; education is addressed in the sibling conception."
+  },
+  {
+   "id": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:play-and-humanity",
+   "of": [
+    "C:B-C010"
+   ],
+   "areas": [
+    "AE26"
+   ],
+   "work": "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen",
+   "locus": "XV",
+   "formula": [
+    {
+     "place": "XV p172a"
+    }
+   ],
+   "thesis": {
+    "ru": "Разум утверждает, что с красотой человек должен только играть, и играть он должен только с красотой: человек играет лишь там, где он в полном значении слова человек, и вполне человек лишь там, где он играет.",
+    "en": "Reason declares that a person should only play with beauty and should play only with beauty: a person plays only where they are human in the full sense of the word, and is fully human only where they play."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "C:B-I019"
+   ],
+   "note": "The register describes play as a connecting impulse; the passage states the relation of play and being fully human as the reason for the preceding declaration about beauty."
+  }
+ ],
+ "links": [
+  {
+   "id": "the-play-drive:contains-the-joint-activity-of:the-sensuous-drive",
+   "from_concept": "A:C208",
+   "to_concept": "A:C210",
+   "verb": {
+    "ru": "содержит совместную деятельность",
+    "en": "contains the joint activity of"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:play-drive-unites-drives"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R180"
+   ]
+  },
+  {
+   "id": "the-play-drive:contains-the-joint-activity-of:the-form-drive",
+   "from_concept": "A:C208",
+   "to_concept": "A:C211",
+   "verb": {
+    "ru": "содержит совместную деятельность",
+    "en": "contains the joint activity of"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:play-drive-unites-drives"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R181"
+   ]
+  },
+  {
+   "id": "living-form:designates:the-beautiful",
+   "from_concept": "A:C209",
+   "to_concept": "A:C001",
+   "verb": {
+    "ru": "обозначает",
+    "en": "designates"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:living-form"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R183"
+   ]
+  },
+  {
+   "id": "the-play-drive:has-an-object-which-in-a-general-schema-may-be-called:living-form",
+   "from_concept": "A:C208",
+   "to_concept": "A:C209",
+   "verb": {
+    "ru": "имеет предмет, который в общей схеме может называться",
+    "en": "has an object which, presented in a general schema, may be called"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen:living-form"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:R182"
+   ],
+   "note": "The register states a direction to living form; the place gives a possible name for the object as presented in a general schema."
+  }
+ ],
+ "left": []
+}

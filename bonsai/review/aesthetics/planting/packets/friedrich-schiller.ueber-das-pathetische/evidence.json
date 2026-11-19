@@ -1,0 +1,465 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/10119231bsb/10119231bsb_hocr_searchtext.txt.gz",
+   "file": "10119231bsb.ocr.txt",
+   "sha256": "a92a8bea5db97311fe4ccf3c6a23490b526e408fe62e20048b599db9d9e18cda",
+   "bytes": 355711,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/10119231bsb/10119231bsb_hocr_pageindex.json.gz",
+   "file": "10119231bsb.index.json",
+   "sha256": "6ed195051b6287c9f04c8257661ab1ac8d8a34a78bbc2b4fed45191eeecf0a88",
+   "bytes": 13551,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/10119231bsb/10119231bsb_page_numbers.json",
+   "file": "10119231bsb.pages.json",
+   "sha256": "f37b518065e92ce3ab924b31fdb7e3fe847395def2a76a3dd7afa4c35f7b4d39",
+   "bytes": 66741,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://projekt-gutenberg.org/authors/friedrich-schiller/books/friedrich-schiller-ueber-das-pathetische/",
+   "file": "friedrich-schiller-ueber-das-pathetische",
+   "sha256": "d81a92604eed4dfba57c05635b8ec32fe98ddaea15373733496874fe8dedbdc2",
+   "bytes": 221238,
+   "fetched": "2026-11-10",
+   "text": "friedrich-schiller-ueber-das-pathetische.txt"
+  }
+ ],
+ "scan": {
+  "item": "10119231bsb",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q22670",
+   "name": {
+    "en": "Friedrich Schiller",
+    "ru": "Фридрих Шиллер"
+   },
+   "role": "author",
+   "died": 1805,
+   "source": "https://www.wikidata.org/wiki/Q22670"
+  }
+ ],
+ "published": 1801,
+ "images": [
+  {
+   "n": 5,
+   "file": "10119231bsb-n5.jpg",
+   "sha256": "522b1b9c8799237f7333476f37a78a999c506a3349e2f090c1995d368e8070bf",
+   "by": "maker"
+  },
+  {
+   "n": 3,
+   "file": "10119231bsb-n3.jpg",
+   "sha256": "ab0310bc9d16185a131fc0f35b6544ef71548cc9b0ba4f9c81b9df340487a359",
+   "by": "maker"
+  },
+  {
+   "n": 321,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n321.jpg",
+   "sha256": "a43595a7052551c4c0a62c8b75c49392763485eade207035d163c826f5dc53b2",
+   "by": "maker",
+   "loc": "III p312"
+  },
+  {
+   "n": 321,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n321-z28-34.jpg",
+   "sha256": "4102fa3c7bae6123f06680e8ace95bba2c95adc7ff08d45b4f009f173d13a10f",
+   "by": "maker",
+   "loc": "III p312",
+   "zoom": [
+    28,
+    34
+   ]
+  },
+  {
+   "n": 354,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n354.jpg",
+   "sha256": "3aff46d6a52a2a37beb95b249bb37982a47dbd7a73f2a5a4b0349f25e7483823",
+   "by": "maker",
+   "loc": "III p345"
+  },
+  {
+   "n": 358,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n358.jpg",
+   "sha256": "7fd5b45efc071c97b07077e02cf994848df78a010e85fa2248b923b366acfd92",
+   "by": "maker",
+   "loc": "III p349"
+  },
+  {
+   "n": 359,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n359.jpg",
+   "sha256": "f4e5e2da6737a9615de8ff1f75e301a7697d41a54fa1e6d59424caa78e0960dc",
+   "by": "maker",
+   "loc": "III p349"
+  },
+  {
+   "n": 354,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n354-z22-27.jpg",
+   "sha256": "0a4d9ae5a1337f9d0bcee884f8f1dc6b1e725dfe6e45238e19bead9b5eeb668e",
+   "by": "maker",
+   "loc": "III p345",
+   "zoom": [
+    22,
+    27
+   ]
+  },
+  {
+   "n": 358,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n358-z51-71.jpg",
+   "sha256": "1f307ec236f6b8e4da98c7adc2ca17a9ba7ca58538091803ed2a4ce38df5bf39",
+   "by": "maker",
+   "loc": "III p349",
+   "zoom": [
+    51,
+    71
+   ]
+  },
+  {
+   "n": 359,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n359-z30-52.jpg",
+   "sha256": "a95ed35f9abf0e951fa4eedc16e8c2cc2d4a6bd0d8627e54c837dca0400574e4",
+   "by": "maker",
+   "loc": "III p349",
+   "zoom": [
+    30,
+    52
+   ]
+  },
+  {
+   "n": 359,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n359-z67-71.jpg",
+   "sha256": "2017ae7eaf2fb4384d64d2a196d01be2c852279d06eda566870476e9369556c4",
+   "by": "maker",
+   "loc": "III p349",
+   "zoom": [
+    67,
+    71
+   ]
+  },
+  {
+   "n": 360,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n360.jpg",
+   "sha256": "3a7da3003f22b19aa528b7c53790193de13b492fb02d872c8d84c832be8c9473",
+   "by": "maker",
+   "loc": "III p351"
+  },
+  {
+   "n": 354,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n354-z22-34.jpg",
+   "sha256": "503c9a7b7067b30493d4157524299addb220f02511352b3c8b6c4458dfd4d01a",
+   "by": "second",
+   "loc": "III p345",
+   "zoom": [
+    22,
+    34
+   ]
+  },
+  {
+   "n": 358,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n358-z51-71.jpg",
+   "sha256": "1f307ec236f6b8e4da98c7adc2ca17a9ba7ca58538091803ed2a4ce38df5bf39",
+   "by": "second",
+   "loc": "III p349",
+   "zoom": [
+    51,
+    71
+   ]
+  },
+  {
+   "n": 359,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n359-z30-52.jpg",
+   "sha256": "a95ed35f9abf0e951fa4eedc16e8c2cc2d4a6bd0d8627e54c837dca0400574e4",
+   "by": "second",
+   "loc": "III p349",
+   "zoom": [
+    30,
+    52
+   ]
+  },
+  {
+   "n": 354,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n354-z28-33.jpg",
+   "sha256": "bc8737ab39a4a007e3deacc345dce89968d744ca6a09f8a700ae582804940a42",
+   "by": "maker",
+   "loc": "III p345",
+   "zoom": [
+    28,
+    33
+   ]
+  },
+  {
+   "n": 354,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n354-z32-40.jpg",
+   "sha256": "ccb6291820a69ee5c2ce7256f63bb5f391793f2cc3865c48d0e65ad0fa255729",
+   "by": "maker",
+   "loc": "III p345",
+   "zoom": [
+    32,
+    40
+   ]
+  },
+  {
+   "n": 321,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n321-z28-34.jpg",
+   "sha256": "4102fa3c7bae6123f06680e8ace95bba2c95adc7ff08d45b4f009f173d13a10f",
+   "by": "second",
+   "loc": "III p312",
+   "zoom": [
+    28,
+    34
+   ]
+  },
+  {
+   "n": 354,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n354-z22-27.jpg",
+   "sha256": "0a4d9ae5a1337f9d0bcee884f8f1dc6b1e725dfe6e45238e19bead9b5eeb668e",
+   "by": "second",
+   "loc": "III p345",
+   "zoom": [
+    22,
+    27
+   ]
+  },
+  {
+   "n": 359,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n359-z67-71.jpg",
+   "sha256": "2017ae7eaf2fb4384d64d2a196d01be2c852279d06eda566870476e9369556c4",
+   "by": "second",
+   "loc": "III p349",
+   "zoom": [
+    67,
+    71
+   ]
+  },
+  {
+   "n": 354,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n354-z32-40.jpg",
+   "sha256": "ccb6291820a69ee5c2ce7256f63bb5f391793f2cc3865c48d0e65ad0fa255729",
+   "by": "second",
+   "loc": "III p345",
+   "zoom": [
+    32,
+    40
+   ]
+  },
+  {
+   "n": 354,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n354.jpg",
+   "sha256": "3aff46d6a52a2a37beb95b249bb37982a47dbd7a73f2a5a4b0349f25e7483823",
+   "by": "second",
+   "loc": "III p345"
+  },
+  {
+   "n": 358,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n358.jpg",
+   "sha256": "7fd5b45efc071c97b07077e02cf994848df78a010e85fa2248b923b366acfd92",
+   "by": "second",
+   "loc": "III p349"
+  },
+  {
+   "n": 359,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n359.jpg",
+   "sha256": "f4e5e2da6737a9615de8ff1f75e301a7697d41a54fa1e6d59424caa78e0960dc",
+   "by": "second",
+   "loc": "III p349"
+  },
+  {
+   "n": 360,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n360.jpg",
+   "sha256": "3a7da3003f22b19aa528b7c53790193de13b492fb02d872c8d84c832be8c9473",
+   "by": "second",
+   "loc": "III p351"
+  },
+  {
+   "n": 321,
+   "item": "10119231bsb",
+   "file": "10119231bsb-n321.jpg",
+   "sha256": "a43595a7052551c4c0a62c8b75c49392763485eade207035d163c826f5dc53b2",
+   "by": "second",
+   "loc": "III p312"
+  }
+ ],
+ "places": {
+  "III p312": {
+   "transcription": "friedrich-schiller-ueber-das-pathetische",
+   "scan": "10119231bsb",
+   "method": "ocr",
+   "share": 0.844,
+   "leaves": [
+    321
+   ],
+   "printed": [
+    "312"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": ":",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "lebendigste",
+     "ocr": "lebendigfie",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "der",
+     "ocr": ". oder '",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "erst",
+     "ocr": "eft",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "Wesen",
+     "ocr": "Welen",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "legitimirt",
+     "ocr": "tegitimirt",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    },
+    {
+     "transcription": "Seelenstärke glauben",
+     "ocr": "Seelenlärke Benin",
+     "leaf": 321,
+     "stands": "transcription",
+     "note": "Read every difference on scan p. 312, leaf n321: the remaining differences are OCR errors or artifacts."
+    }
+   ]
+  },
+  "III p345": {
+   "transcription": "friedrich-schiller-ueber-das-pathetische",
+   "scan": "10119231bsb",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the German sentence and the Latin quotation on scan p. 345, leaf n354, including the comma after empfinden and after ipsum."
+   },
+   "images": [
+    354
+   ],
+   "method": "image",
+   "share": 0.484
+  },
+  "III p351": {
+   "transcription": "friedrich-schiller-ueber-das-pathetische",
+   "scan": "10119231bsb",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire sentence at the head of p. 351, leaf n360; transcription matches the page."
+   },
+   "images": [
+    360
+   ],
+   "method": "image",
+   "share": 0.721
+  },
+  "III p349": {
+   "transcription": "friedrich-schiller-ueber-das-pathetische",
+   "scan": "10119231bsb",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the full passage on pp. 349–350, leaves n358–359; spelling and punctuation corrected to the print."
+   },
+   "images": [
+    358,
+    359
+   ],
+   "method": "image",
+   "share": 0.509
+  }
+ }
+}

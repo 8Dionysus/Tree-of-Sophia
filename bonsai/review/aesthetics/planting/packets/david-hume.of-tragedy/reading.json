@@ -1,0 +1,187 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-of-tragedy",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read the English first edition of Four Dissertations (London, 1757), Of Tragedy, beside the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "david-hume": {
+    "tree": "tos.agent.david-hume"
+   }
+  },
+  "works": {
+   "david-hume.of-tragedy": {
+    "title": {
+     "ru": "О трагедии",
+     "en": "Of Tragedy"
+    },
+    "original": "en",
+    "tree": "tos.work.david-hume.of-tragedy",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "david-hume.of-tragedy:affliction-and-delight",
+   "of": [
+    "A:C154",
+    "A:C046",
+    "A:C146",
+    "B:B-C001",
+    "B:B-C002",
+    "B:B-C005"
+   ],
+   "areas": [
+    "AE05",
+    "AE14"
+   ],
+   "work": "david-hume.of-tragedy",
+   "locus": "Dissertation III",
+   "formula": [
+    {
+     "place": "III p185a"
+    },
+    {
+     "place": "III p185b"
+    }
+   ],
+   "thesis": {
+    "ru": "Зрители хорошо написанной трагедии получают удовольствие от скорби, ужаса и тревоги: чем сильнее они тронуты, тем больше наслаждаются зрелищем. Искусство поэта возбуждает и поддерживает сострадание и тревогу зрителей; они довольны соразмерно своему страданию.",
+    "en": "The spectators of a well-wrote tragedy receive pleasure from sorrow, terror and anxiety: the more they are touched, the more they delight in the spectacle. The poet’s art arouses and sustains the audience’s compassion and anxiety; they are pleased in proportion as they are afflicted."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E080",
+    "B:B-I029"
+   ]
+  },
+  {
+   "id": "david-hume.of-tragedy:eloquence-converts-passion",
+   "of": [
+    "A:C154",
+    "A:C046",
+    "B:B-C001",
+    "B:B-C002"
+   ],
+   "areas": [
+    "AE05",
+    "AE14"
+   ],
+   "work": "david-hume.of-tragedy",
+   "locus": "Dissertation III",
+   "formula": [
+    {
+     "place": "III p191"
+    }
+   ],
+   "thesis": {
+    "ru": "Дарование живо изображать предметы, искусство собирать трогательные обстоятельства и суждение, располагающее их, вместе с силой выражения и красотой ораторской речи доставляют слушателям высшее удовлетворение. Тягость печальных страстей подавляется и изглаживается, а всё движение этих страстей обращается в удовольствие и усиливает наслаждение, возбуждаемое красноречием.",
+    "en": "The genius to paint objects vividly, the art of collecting pathetic circumstances and the judgment that disposes them, together with force of expression and the beauty of oratorial numbers, diffuse the highest satisfaction on the audience. The uneasiness of the melancholy passions is overpowered and effaced, while the whole movement of those passions is converted into pleasure and swells the delight raised by eloquence."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E080",
+    "B:B-I029"
+   ]
+  },
+  {
+   "id": "david-hume.of-tragedy:dubos-on-indolence",
+   "of": [
+    "A:C096",
+    "A:C098",
+    "A:C154"
+   ],
+   "areas": [
+    "AE05",
+    "AE12"
+   ],
+   "work": "david-hume.of-tragedy",
+   "locus": "Dissertation III",
+   "formula": [
+    {
+     "place": "III p186"
+    }
+   ],
+   "thesis": {
+    "ru": "По изложению Юма, Дюбо утверждает, что ум ищет развлечения, возбуждающего страсти, чтобы избавиться от томительного состояния бездействия; даже тягостная страсть лучше этой вялости.",
+    "en": "As Hume relates, Dubos holds that the mind seeks amusement that arouses the passions to escape the languid state of indolence; even an afflicting passion is better than that languor."
+   },
+   "distinction": {
+    "ru": "Это изложение объяснения Дюбо.",
+    "en": "This is Hume’s account of Dubos’s explanation."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E081"
+   ]
+  },
+  {
+   "id": "david-hume.of-tragedy:dubos-solution-and-tragedy",
+   "of": [
+    "A:C096",
+    "A:C154"
+   ],
+   "areas": [
+    "AE05",
+    "AE12"
+   ],
+   "work": "david-hume.of-tragedy",
+   "locus": "Dissertation III",
+   "formula": [
+    {
+     "place": "III p186"
+    },
+    {
+     "place": "III p187"
+    }
+   ],
+   "thesis": {
+    "ru": "Юм находит затруднение в полном применении объяснения Дюбо к трагедии: тот же предмет страдания, который нравится в трагедии, в действительности вызвал бы неподдельное беспокойство, хотя и стал бы самым действенным лекарством от вялости и бездействия.",
+    "en": "Hume finds a difficulty in applying Dubos’s solution to tragedy in its full extent: the same object of distress that pleases in a tragedy would, if real, cause unfeigned uneasiness, though it would then be the most effectual cure of languor and indolence."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E081"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "boredom:figures-in-dubos-explanation-of:tragic-pleasure",
+   "from_concept": "A:C096",
+   "to_concept": "A:C154",
+   "verb": {
+    "ru": "входит в объяснение Дюбо, применяемое к",
+    "en": "figures in Dubos’s explanation applied to"
+   },
+   "grounds": [
+    "david-hume.of-tragedy:dubos-on-indolence",
+    "david-hume.of-tragedy:dubos-solution-and-tragedy"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R077"
+   ]
+  }
+ ],
+ "left": [
+  {
+   "key": "A:R076",
+   "reason": "The register proposes a comparison with suffering; the passages state the proportion of delight to affliction and the conversion of the passions, not that comparative relation as a work-internal link."
+  },
+  {
+   "key": "A:R169",
+   "reason": "The comparison with the paradox of horror joins another register reading and is not a relation stated in this work."
+  }
+ ]
+}

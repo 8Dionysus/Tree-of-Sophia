@@ -18,3 +18,22 @@ test('the Tree\'s mark has a drawing of its own for the noon, wherever the mark 
   for(const [style,rule] of noon)expect(style).toContain(rule);
   expect(read('./site-theme.css')).not.toContain('pr-wordmark');
 });
+
+test('every page names the icons with one version, so a browser takes the drawing they carry now',()=>{
+  const versions=new Set();
+  for(const page of ['home','zarathustra','antiquity','not-found']){
+    const html=read(`../../${page}/index.html`);
+    for(const icon of ['favicon.svg','favicon.ico','apple-touch-icon.png']){
+      const found=html.match(new RegExp(`href="/${icon.replace(/\./g,'\\.')}\\?v=([a-z0-9-]+)"`));
+      expect(found,`${page}: ${icon}`).not.toBeNull();
+      versions.add(found[1]);
+    }
+  }
+  expect(versions.size).toBe(1);
+});
+
+test('the desktop app wears the Tree\'s mark on its tile',()=>{
+  const mark=read('../../public/tree-mark.svg'),icon=read('../../constructor/desktop/icon.svg');
+  expect(icon).toContain(mark.slice(mark.indexOf('>')+1,mark.lastIndexOf('<')));
+  expect(icon).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" width="128" height="128"/);
+});

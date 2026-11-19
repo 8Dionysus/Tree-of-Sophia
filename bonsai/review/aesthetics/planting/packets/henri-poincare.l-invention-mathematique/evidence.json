@@ -1,0 +1,294 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/scienceetmthod00poin/scienceetmthod00poin_hocr_searchtext.txt.gz",
+   "file": "scienceetmthod00poin.ocr.txt",
+   "sha256": "79be86c5052d9f593a2ada7ae02f799e6f8a2fb123739373c337e13bc40db3c0",
+   "bytes": 515039,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/scienceetmthod00poin/scienceetmthod00poin_hocr_pageindex.json.gz",
+   "file": "scienceetmthod00poin.index.json",
+   "sha256": "617f8791220354c73d4c09691695e4a8f1349e92c525122fa92e57128f55a6cd",
+   "bytes": 11828,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/scienceetmthod00poin/scienceetmthod00poin_page_numbers.json",
+   "file": "scienceetmthod00poin.pages.json",
+   "sha256": "ef4cd04da00aeb44cae79e5303f7a9eaf32dd160d60f4df93e3c657ca0d7e2dd",
+   "bytes": 56595,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/linventionmath00poin/linventionmath00poin_hocr_searchtext.txt.gz",
+   "file": "linventionmath00poin.ocr.txt",
+   "sha256": "14314bc8d38dd2705f8f3e6556eb055ee359ce22d73ed6df50a80f3a2a0deedc",
+   "bytes": 36735,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/linventionmath00poin/linventionmath00poin_hocr_pageindex.json.gz",
+   "file": "linventionmath00poin.index.json",
+   "sha256": "14cacfa61368950b3d9e1a885fe844d26048254b9bbbf92ad15616b2da1db0dc",
+   "bytes": 1263,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/linventionmath00poin/linventionmath00poin_page_numbers.json",
+   "file": "linventionmath00poin.pages.json",
+   "sha256": "4f5de6f46341e6de230d5a4fd1956a62154b3c0fdb559c2b7f266d9f7ce47dd1",
+   "bytes": 6232,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://fr.wikisource.org/wiki/L%E2%80%99Invention_math%C3%A9matique?action=render",
+   "file": "invention.html",
+   "sha256": "783420ccf7833a2f272b8f985e8a6c402d4435c629f6978d6d6bcbb95b68cca3",
+   "bytes": 47548,
+   "fetched": "2026-11-11",
+   "text": "invention.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "linventionmath00poin",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q81082",
+   "name": {
+    "en": "Henri Poincaré",
+    "ru": "Анри Пуанкаре"
+   },
+   "role": "author",
+   "died": 1912,
+   "source": "https://www.wikidata.org/wiki/Q81082"
+  }
+ ],
+ "published": 1908,
+ "images": [
+  {
+   "n": 25,
+   "item": "linventionmath00poin",
+   "file": "linventionmath00poin-n25.jpg",
+   "sha256": "4aca9b2972b75ab12bbeeeede7dceabd051f32850ee3c4ef4976beb28c99f262",
+   "by": "maker"
+  },
+  {
+   "n": 27,
+   "item": "linventionmath00poin",
+   "file": "linventionmath00poin-n27.jpg",
+   "sha256": "283f855d43aea20292ff015cbcb5189d2296547fc577b249a047b2177b030e29",
+   "by": "maker"
+  },
+  {
+   "n": 24,
+   "item": "linventionmath00poin",
+   "file": "linventionmath00poin-n24.jpg",
+   "sha256": "3230418b8dfe692e1a3710e64d69d31daa14df6fddfca763e20938335640845f",
+   "by": "maker"
+  },
+  {
+   "n": 26,
+   "item": "linventionmath00poin",
+   "file": "linventionmath00poin-n26.jpg",
+   "sha256": "3c4ab0da12ac4b954b2303e1725f49789ec0469c0f6189058b3cdd4e302d8016",
+   "by": "maker"
+  },
+  {
+   "n": 24,
+   "item": "linventionmath00poin",
+   "file": "linventionmath00poin-n24.jpg",
+   "sha256": "3230418b8dfe692e1a3710e64d69d31daa14df6fddfca763e20938335640845f",
+   "by": "second",
+   "loc": "Conférence p12b"
+  },
+  {
+   "n": 26,
+   "item": "linventionmath00poin",
+   "file": "linventionmath00poin-n26.jpg",
+   "sha256": "3c4ab0da12ac4b954b2303e1725f49789ec0469c0f6189058b3cdd4e302d8016",
+   "by": "second",
+   "loc": "Conférence p13"
+  }
+ ],
+ "places": {
+  "Conférence p12a": {
+   "transcription": "invention.html",
+   "scan": "linventionmath00poin",
+   "method": "ocr",
+   "share": 0.987,
+   "leaves": [
+    25
+   ],
+   "printed": [
+    null
+   ],
+   "differences": [
+    {
+     "transcription": "qu'elle",
+     "ocr": "( ju'elle",
+     "leaf": 25,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "Conférence p12b": {
+   "transcription": "invention.html",
+   "scan": "linventionmath00poin",
+   "method": "ocr",
+   "share": 0.918,
+   "leaves": [
+    25,
+    26,
+    27
+   ],
+   "printed": [
+    null,
+    null,
+    null
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "- 13 -",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "fois",
+     "ocr": "l'ois",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "cette",
+     "ocr": "celte",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "et",
+     "ocr": "el",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "une",
+     "ocr": "un (",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "notre",
+     "ocr": "noire",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "et leur donnera",
+     "ocr": "el l \" Mir doiinern",
+     "leaf": 27,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "Conférence p13": {
+   "transcription": "invention.html",
+   "scan": "linventionmath00poin",
+   "method": "ocr",
+   "share": 0.944,
+   "leaves": [
+    25,
+    26,
+    27
+   ],
+   "printed": [
+    null,
+    null,
+    null
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "- 13 -",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "fois",
+     "ocr": "l'ois",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "cette",
+     "ocr": "celte",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "et",
+     "ocr": "el",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "une",
+     "ocr": "un (",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "notre",
+     "ocr": "noire",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "et leur donnera",
+     "ocr": "el l \" Mir doiinern",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "mathématicien",
+     "ocr": "mathématici - m",
+     "leaf": 27,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "flatté",
+     "ocr": "llatté",
+     "leaf": 27,
+     "stands": "transcription"
+    }
+   ]
+  }
+ },
+ "scans": {
+  "scienceetmthod00poin": {
+   "item": "scienceetmthod00poin",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": null
+  },
+  "linventionmath00poin": {
+   "item": "linventionmath00poin",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -1
+  }
+ }
+}

@@ -6,7 +6,7 @@
 // together with that word's history. Records load only when the reader asks
 // for an origin.
 import witness from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
-import {copyLocale,localeText,resolveLocale} from '../public-research/locale.mjs';
+import {copyLocale,localeText,resolveLocale,shownLanguages} from '../public-research/locale.mjs';
 import {chapterTitle} from '../public-research/chapter-title.mjs';
 import {languageName} from './language-names.mjs';
 
@@ -70,7 +70,7 @@ const COPY={
     frequency:'Frequency in the archive by quarter century, {0}–{1}; the quarter of Zarathustra marked',per:'{0}–{1}: {2} uses, {3} per 10,000 nouns',
     nietzsche:"Nietzsche's works in the archive",page:'p. {0}',inBook:'In the book: {0}',part:'part {0}: {1}',archive:'German Text Archive',
     storyNote:'A model told this story from the sources of this sheet; a check matched its numbers, quotations and names, and a second model read it. A sentence’s number leads to its source.',
-    storyMark:'Source {0}',storyPieces:'Places of the book and the translators’ words',storyCredits:'Witness texts',antonovsky:'Antonovsky',common:'Common',tree:'the Tree',firstPlace:'at the first place',treeReads:'The Tree'},
+    storyMark:'Source {0}',storyPieces:'Places of the book and the translators’ words',storyCredits:'Witness texts',antonovsky:'Antonovsky',common:'Common',tree:'The Tree',firstPlace:'at the first place',treeReads:'The Tree'},
 };
 const TIMES={ru:{one:'{0} раз',few:'{0} раза',many:'{0} раз',other:'{0} раза'},en:{one:'once',other:'{0} times'}};
 const RELATION=new Map([['calque','calque'],['borrowed','borrowed'],['derived','derived'],['semantic loan','semantic']]);
@@ -150,9 +150,14 @@ const wiktionary=edition=>`https://${edition}.wiktionary.org/wiki/`;
 const SECTION={de:'German',ru:'Russian'};
 const link=(href,text)=>{const a=el('a','cr-origin-link',text);a.href=href;a.target='_blank';a.rel='noopener';return a;};
 
-/** The editions of Wiktionary in the order the reader reads them: the reader's language, the word's, then English. */
+/**
+ * The editions of Wiktionary a reader is told the word in: their own language, then the original's
+ * (shownLanguages). An edition in another language is the reading of another reader.
+ */
 export function toldOrder(told,locale,language){
-  return [...new Set([resolveLocale(locale),language,'en','ru','de'])].filter(edition=>told?.[edition]?.text);
+  const editions=Object.keys(told??{}).filter(edition=>told[edition]?.text);
+  const [original,translation]=shownLanguages(locale,ORIGINAL,editions.filter(edition=>edition!==ORIGINAL));
+  return [translation,original].filter(edition=>edition&&told?.[edition]?.text);
 }
 
 function telling(parent,edition,item,copy,language,tag=null){
@@ -275,9 +280,9 @@ export function storyOrder(sentences){
   return order;
 }
 
-/** The story in the reader's language (Russian for Russian, else English), each sentence followed by its pieces' numbers. */
+/** The story in the reader's language, each sentence followed by its pieces' numbers; none in another language. */
 function renderStory(parent,story,copy,locale){
-  const language=copyLocale(locale)==='ru'?'ru':'en',sentences=story?.[language]??[];
+  const language=pieceLanguage(locale),sentences=(language&&story?.[language])||[];
   if(!sentences.length)return null;
   const order=storyOrder(sentences);
   const block=el('div','cr-story'),text=el('p','cr-story-text');text.lang=language;
@@ -296,7 +301,8 @@ function renderStory(parent,story,copy,locale){
   return {block,pieces,order};
 }
 
-const pieceLanguage=locale=>copyLocale(locale)==='ru'?'ru':'en';
+/** The translation the reader reads beside the original (shownLanguages): the language of their story and pieces, or none. */
+const pieceLanguage=locale=>shownLanguages(locale,ORIGINAL,['ru','en'])[1]??null;
 
 /** A witness's short name in the reader's language with its licence: the attribution its sentence carries in a story's pieces. */
 function witnessLine(language,locale){
@@ -320,8 +326,8 @@ export function paired(text,language){
 export function renderPiece(item,id,piece,{copy,locale,history=null,onOpenPlace=null}){
   const language=pieceLanguage(locale);
   if(piece?.kind==='book-place'||piece?.kind==='key-place'){
-    item.append(el('p','cr-story-piece-title',piece.title?.[language]??piece.title?.de??piece.chapter));
-    const saidLanguage=piece.text?.[language]?language:ORIGINAL;
+    item.append(el('p','cr-story-piece-title',(language&&piece.title?.[language])||piece.title?.de||piece.chapter));
+    const saidLanguage=language&&piece.text?.[language]?language:ORIGINAL;
     const said=el('q','cr-origin-said',paired(piece.text?.[saidLanguage]??'',saidLanguage));said.lang=saidLanguage;
     item.append(said,el('p','cr-story-witness',witnessLine(saidLanguage,locale)));
     const shown=[saidLanguage];
@@ -330,7 +336,7 @@ export function renderPiece(item,id,piece,{copy,locale,history=null,onOpenPlace=
       item.append(original,el('p','cr-story-witness',witnessLine(ORIGINAL,locale)));shown.push(ORIGINAL);
     }
     item.dataset.witnesses=shown.join(' ');
-    if(piece.why?.[language])item.append(el('p','cr-origin-source',`${copy.treeReads}: ${piece.why[language]}`));
+    if(language&&piece.why?.[language])item.append(el('p','cr-origin-source',`${copy.treeReads}: ${piece.why[language]}`));
     if(piece.unit&&typeof onOpenPlace==='function'){
       const open=el('button','cr-origin-open',copy.open);open.type='button';
       open.addEventListener('click',()=>onOpenPlace({chapter:piece.chapter,unitId:piece.unit,start:piece.start,end:piece.end,language:ORIGINAL}));
@@ -339,21 +345,25 @@ export function renderPiece(item,id,piece,{copy,locale,history=null,onOpenPlace=
     return true;
   }
   if(piece?.kind==='translations'){
+    // The translation of the reader's language alone, and the Tree's word in that language.
+    if(!language)return false;
     const words=list=>(list??[]).map(([word,n])=>`${word} (${n})`).join(', ');
-    const lines=[[copy.antonovsky,piece.words?.ru,piece.first?.ru],[copy.common,piece.words?.en,piece.first?.en]]
-      .filter(([,list,first])=>list?.length||first)
+    const lines=[[language==='ru'?copy.antonovsky:language==='en'?copy.common:null,piece.words?.[language],piece.first?.[language]]]
+      .filter(([who,list,first])=>who&&(list?.length||first))
       .map(([who,list,first])=>`${who}: ${words(list)||first}${first&&list?.length&&list[0][0]!==first?` · ${copy.firstPlace}: ${first}`:''}`);
-    const tree=[piece.tree?.ru,piece.tree?.en].filter(Boolean).join(' / ');
+    const tree=piece.tree?.[language];
     if(tree)lines.push(`${copy.tree}: ${tree}`);
     for(const line of lines)item.append(el('p','cr-origin-line',line));
     return lines.length>0;
   }
   if(piece?.kind==='wiktionary'){
-    const [tag,edition]=id.split('.');
-    telling(item,edition??piece.edition,piece,copy,tag==='W'?ORIGINAL:'ru');
+    const [tag,edition=piece.edition]=id.split('.');
+    // A telling in the reader's language or the original's; V.* tell of the Russian translation's word, the Russian reader's.
+    if(![language,ORIGINAL].includes(edition)||(tag!=='W'&&language!=='ru'))return false;
+    telling(item,edition,piece,copy,tag==='W'?ORIGINAL:'ru');
     return true;
   }
-  if(piece?.kind==='descent'&&piece.text?.[language]){item.append(el('p','cr-origin-line',piece.text[language]));return true;}
+  if(piece?.kind==='descent'&&language&&piece.text?.[language]){item.append(el('p','cr-origin-line',piece.text[language]));return true;}
   if(id==='B'&&history)return Boolean(inBook(item,history,copy,locale));
   return false;
 }

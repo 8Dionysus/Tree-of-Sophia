@@ -1,0 +1,61 @@
+{
+ "reader": {
+  "id": "terra-2026-11-12-the-defence-of-poesie",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-12",
+  "reads": "The English first edition of 1595, alongside the register reading.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "philip-sidney": {
+    "tree": "tos.agent.philip-sidney"
+   }
+  },
+  "works": {
+   "philip-sidney.the-defence-of-poesie": {
+    "title": {
+     "ru": "Защита поэзии",
+     "en": "The Defence of Poesie"
+    },
+    "original": "en",
+    "tree": "tos.work.philip-sidney.the-defence-of-poesie",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "philip-sidney.the-defence-of-poesie:poet-does-not-affirm",
+   "of": [
+    "B:D-C012"
+   ],
+   "areas": [
+    "AE19"
+   ],
+   "work": "philip-sidney.the-defence-of-poesie",
+   "locus": "Refutation",
+   "formula": [
+    {
+     "place": "Refutation p53a"
+    },
+    {
+     "place": "Refutation p53b"
+    }
+   ],
+   "thesis": {
+    "ru": "Поэт ничего не утверждает и потому не лжёт: хотя он рассказывает то, что не истинно, он не выдаёт рассказанное за истину.",
+    "en": "The poet affirms nothing and therefore never lies: though he recounts things not true, he does not tell them for true."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "negation": "he nothing affirmeth, and therefore neuer lieth",
+   "from": [
+    "B:D-I052"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

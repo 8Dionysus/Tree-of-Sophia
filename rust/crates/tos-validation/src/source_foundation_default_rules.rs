@@ -537,6 +537,8 @@ pub struct SourceFoundationDefaultDiscoveryFindings {
     pub schema_requests: Vec<DiscoverySchemaRequest>,
     pub source_event_insertions: Vec<(String, Value)>,
     pub unsupported: Vec<DiscoveryUnsupported>,
+    pub private_artifact_custody:
+        Option<crate::source_foundation_discovery::PrivateArtifactCustodySummary>,
     pub cost: DiscoveryCost,
 }
 
@@ -1146,6 +1148,7 @@ pub fn inspect_source_foundation_default_rules_from_input_stored<
         schema_requests: discovery.schema_requests,
         source_event_insertions: discovery.source_event_insertions,
         unsupported: discovery.unsupported,
+        private_artifact_custody: discovery.private_artifact_custody,
         cost: discovery.cost,
     };
     let closure_limits = remaining_limits(
@@ -1565,6 +1568,7 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
         schema_requests: discovery_report.schema_requests,
         source_event_insertions: discovery_report.source_event_insertions,
         unsupported: discovery_report.unsupported,
+        private_artifact_custody: discovery_report.private_artifact_custody,
         cost: discovery_report.cost,
     };
 

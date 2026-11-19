@@ -1,0 +1,368 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757_hocr_searchtext.txt.gz",
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757.ocr.txt",
+   "sha256": "aed634c05dfd3b1da2012fe6725438655959ae35b2365b383e9c09817156d4a5",
+   "bytes": 298407,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757_hocr_pageindex.json.gz",
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757.index.json",
+   "sha256": "07a47b7a594ec2d0ec31e2c995f7d9fb3e817563304e98f873a6f98d26cced2e",
+   "bytes": 9010,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757_page_numbers.json",
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757.pages.json",
+   "sha256": "bc2757a0fd27b139502da077f69253dffd20e5b456801656483a91ec4dfe82ba",
+   "bytes": 44142,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://en.wikisource.org/w/index.php?title=Four_Dissertations/Of_the_Standard_of_Taste&action=render",
+   "file": "render.html",
+   "sha256": "c36a808aea2a45b538c24499e196397243696b41676c51dcf658d556d4cf0db9",
+   "bytes": 105799,
+   "fetched": "2026-11-10",
+   "text": "render.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q37160",
+   "name": {
+    "en": "David Hume",
+    "ru": "Дэвид Юм"
+   },
+   "role": "author",
+   "died": 1776,
+   "source": "https://www.wikidata.org/wiki/Q37160"
+  }
+ ],
+ "published": 1757,
+ "images": [
+  {
+   "n": 220,
+   "file": "fourdissertatio00humegoog-n220.jpg",
+   "sha256": "6ea5e092808612abe947dafa5341b8fa9c4b291f1a96228918ca0fd0d8119a38",
+   "by": "maker"
+  },
+  {
+   "n": 235,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n235.jpg",
+   "sha256": "febd4a4dfdaf2cde095126faf2bd40a22e652d15a7237389dfdb248bd771a15a",
+   "by": "maker"
+  },
+  {
+   "n": 232,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n232.jpg",
+   "sha256": "9603f2cd12300cfe6b17c88797fc05594165295671e19b8311173c88b42b2f8c",
+   "by": "maker",
+   "loc": "IV p218"
+  },
+  {
+   "n": 233,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n233.jpg",
+   "sha256": "c90000e47b68d20a39cd51a8800ada9efe60b300eb4895a5c8c738fafe5b09e9",
+   "by": "maker",
+   "loc": "IV p218"
+  },
+  {
+   "n": 239,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n239.jpg",
+   "sha256": "05c52cbb7f3c8a186317c37fbad41d007402a91fedb8a606e915fdbd5d4af0e6",
+   "by": "maker",
+   "loc": "IV p224"
+  },
+  {
+   "n": 240,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n240.jpg",
+   "sha256": "6f6af33b0246564926709ff0abb623e5d5272d3be1ed5365e4913b9515e1ba49",
+   "by": "maker",
+   "loc": "IV p224"
+  },
+  {
+   "n": 241,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n241.jpg",
+   "sha256": "1a725487d2ce76c5ec9259d23f319c62c304435bd00e36912529232e2533f839",
+   "by": "maker",
+   "loc": "IV p226"
+  },
+  {
+   "n": 247,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n247.jpg",
+   "sha256": "9185b3e71ae1aeb46a55e274837afdea69adf3f075028c52334b8cc2d82c9a00",
+   "by": "maker",
+   "loc": "IV p232"
+  },
+  {
+   "n": 248,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n248.jpg",
+   "sha256": "e10c32e444f1b38453b9ff14a8ea915ba7f373ccbd1a1522f40f304ddf1b2751",
+   "by": "maker",
+   "loc": "IV p232"
+  },
+  {
+   "n": 248,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n248.jpg",
+   "sha256": "e10c32e444f1b38453b9ff14a8ea915ba7f373ccbd1a1522f40f304ddf1b2751",
+   "by": "second",
+   "loc": "IV p232"
+  },
+  {
+   "n": 243,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n243.jpg",
+   "sha256": "78fc2ea6244b30f3ee7e517eec1eae7bd4fbfa74ba6db604111f536f74bb660d",
+   "by": "maker",
+   "loc": "IV p229"
+  },
+  {
+   "n": 244,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n244.jpg",
+   "sha256": "b29e00f8f27f70cd5d83405a857f2a88feb8e819ace8de22a013e0111fb4eba0",
+   "by": "maker",
+   "loc": "IV p229"
+  },
+  {
+   "n": 232,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n232.jpg",
+   "sha256": "3752dec16aa892d372d1d9fe76b418a25327c25b3c74da408d1583892b40d129",
+   "by": "second",
+   "loc": "IV p218"
+  },
+  {
+   "n": 233,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n233.jpg",
+   "sha256": "528d54100a10ab27e9e6a7620a1a479b578e0fa3dd42bee38d80992dc0050bba",
+   "by": "second",
+   "loc": "IV p218"
+  },
+  {
+   "n": 241,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n241.jpg",
+   "sha256": "06f088a68540a16ed3fda21b7daf6ed749608b61d3babc06640941c1c1402ab7",
+   "by": "second",
+   "loc": "IV p226"
+  },
+  {
+   "n": 239,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n239.jpg",
+   "sha256": "631ccd9056451b891ab2fb58199363ccbb1529ee0c2a59084c6589a6091544be",
+   "by": "second",
+   "loc": "IV p224"
+  },
+  {
+   "n": 240,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n240.jpg",
+   "sha256": "fbda45b45148886ac55ce9613f476c6ea502076d8ec76ea7d403bd08e178d6c9",
+   "by": "second",
+   "loc": "IV p224"
+  },
+  {
+   "n": 244,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n244.jpg",
+   "sha256": "ac2dc7445ce42c81e6932f148cdb0b03a3c732f3f6332bd498872b0f6cd999f4",
+   "by": "second",
+   "loc": "IV p229"
+  },
+  {
+   "n": 247,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n247.jpg",
+   "sha256": "40a223bf88965ccaf8ff44ac46570733996ba48c3748ed0d6595e8f22c21afb1",
+   "by": "second",
+   "loc": "IV p232"
+  },
+  {
+   "n": 243,
+   "file": "bim_eighteenth-century_four-dissertations-i-t_hume-david_1757-n243.jpg",
+   "sha256": "42a463e3f7f8c366382ad34190132a743c3234033d652893c76d0350c3b27652",
+   "by": "second",
+   "loc": "IV p228"
+  }
+ ],
+ "places": {
+  "IV p218": {
+   "transcription": "render.html",
+   "method": "ocr",
+   "share": 0.88,
+   "leaves": [
+    232,
+    233
+   ],
+   "printed": [
+    "217",
+    "218"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "> * ' * ais DIESIS E R TATTOO",
+     "leaf": 233,
+     "stands": "transcription",
+     "note": "Image pages 217–218: the passage reads escape, perceive, composition, call, employ these; header and line break are OCR noise."
+    },
+    {
+     "transcription": "escape",
+     "ocr": "oſcape",
+     "leaf": 233,
+     "stands": "transcription",
+     "note": "Image pages 217–218: the passage reads escape, perceive, composition, call, employ these; header and line break are OCR noise."
+    },
+    {
+     "transcription": "perceive",
+     "ocr": "peroeive",
+     "leaf": 233,
+     "stands": "transcription",
+     "note": "Image pages 217–218: the passage reads escape, perceive, composition, call, employ these; header and line break are OCR noise."
+    },
+    {
+     "transcription": "composition",
+     "ocr": "compoſi - · tion",
+     "leaf": 233,
+     "stands": "transcription",
+     "note": "Image pages 217–218: the passage reads escape, perceive, composition, call, employ these; header and line break are OCR noise."
+    },
+    {
+     "transcription": "call",
+     "ocr": "calb",
+     "leaf": 233,
+     "stands": "transcription",
+     "note": "Image pages 217–218: the passage reads escape, perceive, composition, call, employ these; header and line break are OCR noise."
+    },
+    {
+     "transcription": "employ these",
+     "ocr": "employ'theſe ;",
+     "leaf": 233,
+     "stands": "transcription",
+     "note": "Image pages 217–218: the passage reads escape, perceive, composition, call, employ these; header and line break are OCR noise."
+    }
+   ]
+  },
+  "IV p224": {
+   "transcription": "render.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read entire passage on pages 224–225: orator, audience and critic in the audience situation."
+   },
+   "images": [
+    239,
+    240
+   ],
+   "method": "image",
+   "share": 0.16
+  },
+  "IV p226": {
+   "transcription": "render.html",
+   "method": "ocr",
+   "share": 0.96,
+   "leaves": [
+    241
+   ],
+   "printed": [
+    "226"
+   ],
+   "differences": [
+    {
+     "transcription": "productions",
+     "ocr": "pro ducton :",
+     "leaf": 241,
+     "stands": "transcription",
+     "note": "Page 226: productions, consistence, fitted and punctuation follow the print; OCR adds noise."
+    },
+    {
+     "transcription": "",
+     "ocr": "1",
+     "leaf": 241,
+     "stands": "transcription",
+     "note": "Page 226: productions, consistence, fitted and punctuation follow the print; OCR adds noise."
+    },
+    {
+     "transcription": "",
+     "ocr": ":",
+     "leaf": 241,
+     "stands": "transcription",
+     "note": "Page 226: productions, consistence, fitted and punctuation follow the print; OCR adds noise."
+    },
+    {
+     "transcription": "consistence",
+     "ocr": "conſiflence",
+     "leaf": 241,
+     "stands": "transcription",
+     "note": "Page 226: productions, consistence, fitted and punctuation follow the print; OCR adds noise."
+    },
+    {
+     "transcription": "",
+     "ocr": "|",
+     "leaf": 241,
+     "stands": "transcription",
+     "note": "Page 226: productions, consistence, fitted and punctuation follow the print; OCR adds noise."
+    },
+    {
+     "transcription": ",",
+     "ocr": ";",
+     "leaf": 241,
+     "stands": "transcription",
+     "note": "Page 226: productions, consistence, fitted and punctuation follow the print; OCR adds noise."
+    },
+    {
+     "transcription": "fitted",
+     "ocr": "titted",
+     "leaf": 241,
+     "stands": "transcription",
+     "note": "Page 226: productions, consistence, fitted and punctuation follow the print; OCR adds noise."
+    }
+   ]
+  },
+  "IV p229": {
+   "transcription": "render.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the extended passage on scan pp. 228–229, leaves 243–244: the five defects precede the true judge and joint verdict; the transcription follows the print."
+   },
+   "images": [
+    243,
+    244
+   ],
+   "method": "image",
+   "share": 0.7
+  },
+  "IV p232": {
+   "transcription": "render.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Reread both sentences on scan p. 232, leaf n247: to fix is printed as two words; the corrected text follows the page."
+   },
+   "images": [
+    247,
+    248
+   ],
+   "method": "image",
+   "share": 0.205
+  },
+  "IV p228": {
+   "transcription": "render.html",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the opening sentence on page 228: principles universal and nearly if not entirely the same, yet few qualified."
+   },
+   "images": [
+    243
+   ],
+   "method": "image",
+   "share": 0.565
+  }
+ }
+}

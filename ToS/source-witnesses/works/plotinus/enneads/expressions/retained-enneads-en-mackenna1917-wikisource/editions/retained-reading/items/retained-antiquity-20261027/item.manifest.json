@@ -1,0 +1,442 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.enneads.enneads-en-mackenna1917-wikisource",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.enneads.enneads-en-mackenna1917-wikisource",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.ab6528296257f986a3bfce2efc20052bc0a392a0131875c1be6f3246b05fd540",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "enneads-en-mackenna1917-wikisource.json",
+      "media_type": "application/json",
+      "byte_size": 1234919,
+      "sha256": "ab6528296257f986a3bfce2efc20052bc0a392a0131875c1be6f3246b05fd540",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 1204412,
+      "sha256": "19f6b17465cf4d5362b49d265e408c41570a792bbc8f154114ee21cfbf2054e1",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.8ec70ec5995272f9fb3c5704469255bb52606cdeb311d4a6566816ca3d92aafe",
+      "relative_path": "payload/wikisource-page-01-api.json",
+      "original_basename": "wikisource-page-01-api.json",
+      "media_type": "application/json",
+      "byte_size": 41887,
+      "sha256": "8ec70ec5995272f9fb3c5704469255bb52606cdeb311d4a6566816ca3d92aafe",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.619977776d2118fb3dc82616ef75075a334c24efb2928d9570ac7037b15bbc5d",
+      "relative_path": "payload/wikisource-page-02-api.json",
+      "original_basename": "wikisource-page-02-api.json",
+      "media_type": "application/json",
+      "byte_size": 33883,
+      "sha256": "619977776d2118fb3dc82616ef75075a334c24efb2928d9570ac7037b15bbc5d",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e6a1c56167fb789b53f4bf7e1c66853f750048ba7f3ca38070b8d97e981c50d8",
+      "relative_path": "payload/wikisource-page-03-api.json",
+      "original_basename": "wikisource-page-03-api.json",
+      "media_type": "application/json",
+      "byte_size": 22786,
+      "sha256": "e6a1c56167fb789b53f4bf7e1c66853f750048ba7f3ca38070b8d97e981c50d8",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.d272d59ee2381431e6469a186674e4dd4dbafd9b09257ded84958a914f8746ba",
+      "relative_path": "payload/wikisource-page-04-api.json",
+      "original_basename": "wikisource-page-04-api.json",
+      "media_type": "application/json",
+      "byte_size": 55051,
+      "sha256": "d272d59ee2381431e6469a186674e4dd4dbafd9b09257ded84958a914f8746ba",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.647a1b33b81c179febdc32a68e7921e114115556b4d7973f3f405b3258984ae0",
+      "relative_path": "payload/wikisource-page-05-api.json",
+      "original_basename": "wikisource-page-05-api.json",
+      "media_type": "application/json",
+      "byte_size": 21623,
+      "sha256": "647a1b33b81c179febdc32a68e7921e114115556b4d7973f3f405b3258984ae0",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e21383e4a2d7e09899fb90c638b01db2f01e9c4e45b837d618e884d051000ab6",
+      "relative_path": "payload/wikisource-page-06-api.json",
+      "original_basename": "wikisource-page-06-api.json",
+      "media_type": "application/json",
+      "byte_size": 41266,
+      "sha256": "e21383e4a2d7e09899fb90c638b01db2f01e9c4e45b837d618e884d051000ab6",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.37e31c68395c4ee64a980054fcf3d0effd2bf5e540b055dbca05404667490c57",
+      "relative_path": "payload/wikisource-page-07-api.json",
+      "original_basename": "wikisource-page-07-api.json",
+      "media_type": "application/json",
+      "byte_size": 15519,
+      "sha256": "37e31c68395c4ee64a980054fcf3d0effd2bf5e540b055dbca05404667490c57",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.0e04850f95e74a9a57c4d73e6e18512681d45619b003ca52b5a1739381b3e382",
+      "relative_path": "payload/wikisource-page-08-api.json",
+      "original_basename": "wikisource-page-08-api.json",
+      "media_type": "application/json",
+      "byte_size": 54079,
+      "sha256": "0e04850f95e74a9a57c4d73e6e18512681d45619b003ca52b5a1739381b3e382",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.0236d7922dae7bb07a67fd78ee65df1ce58f1fe52858ce2944bf22c049f7a165",
+      "relative_path": "payload/wikisource-page-09-api.json",
+      "original_basename": "wikisource-page-09-api.json",
+      "media_type": "application/json",
+      "byte_size": 11329,
+      "sha256": "0236d7922dae7bb07a67fd78ee65df1ce58f1fe52858ce2944bf22c049f7a165",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e2596bcec47c6bd8b7426c83475209f66bc7338f089147164c966d340a11e5d6",
+      "relative_path": "payload/wikisource-page-10-api.json",
+      "original_basename": "wikisource-page-10-api.json",
+      "media_type": "application/json",
+      "byte_size": 40005,
+      "sha256": "e2596bcec47c6bd8b7426c83475209f66bc7338f089147164c966d340a11e5d6",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.a233286e1767bcffd2763231576adfbf4451c1651a6cc1c0f539d13f06e18af0",
+      "relative_path": "payload/wikisource-page-11-api.json",
+      "original_basename": "wikisource-page-11-api.json",
+      "media_type": "application/json",
+      "byte_size": 21820,
+      "sha256": "a233286e1767bcffd2763231576adfbf4451c1651a6cc1c0f539d13f06e18af0",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.2a104dc82efa166e6466336d9db0b8a1e0c93bead526f6c78c343238a0b71ec7",
+      "relative_path": "payload/wikisource-page-12-api.json",
+      "original_basename": "wikisource-page-12-api.json",
+      "media_type": "application/json",
+      "byte_size": 60490,
+      "sha256": "2a104dc82efa166e6466336d9db0b8a1e0c93bead526f6c78c343238a0b71ec7",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.4a8a5574b7c091eb81aedbc1fb0c65966ace859d61f18900544ff7fb844a30e6",
+      "relative_path": "payload/wikisource-page-13-api.json",
+      "original_basename": "wikisource-page-13-api.json",
+      "media_type": "application/json",
+      "byte_size": 58289,
+      "sha256": "4a8a5574b7c091eb81aedbc1fb0c65966ace859d61f18900544ff7fb844a30e6",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.a3276317cb3773a2eb57de876fe6f4882a84d3fc9bf1c1e4bd59cddca52f2b71",
+      "relative_path": "payload/wikisource-page-14-api.json",
+      "original_basename": "wikisource-page-14-api.json",
+      "media_type": "application/json",
+      "byte_size": 26676,
+      "sha256": "a3276317cb3773a2eb57de876fe6f4882a84d3fc9bf1c1e4bd59cddca52f2b71",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.50aaffff2e572fb0eb8b43ee1a63caff2ddb20239ce80554736ad413d3d354c2",
+      "relative_path": "payload/wikisource-page-15-api.json",
+      "original_basename": "wikisource-page-15-api.json",
+      "media_type": "application/json",
+      "byte_size": 23296,
+      "sha256": "50aaffff2e572fb0eb8b43ee1a63caff2ddb20239ce80554736ad413d3d354c2",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.71a4f455430b97e5ce6057e1fcb3de1961dc47206ca7c54fab5a7464aa502045",
+      "relative_path": "payload/wikisource-page-16-api.json",
+      "original_basename": "wikisource-page-16-api.json",
+      "media_type": "application/json",
+      "byte_size": 19976,
+      "sha256": "71a4f455430b97e5ce6057e1fcb3de1961dc47206ca7c54fab5a7464aa502045",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.0af5ea4ad79d541c2327b7de93823a16c60c6503d1bbf7448a9c04d3a70a06e6",
+      "relative_path": "payload/wikisource-page-17-api.json",
+      "original_basename": "wikisource-page-17-api.json",
+      "media_type": "application/json",
+      "byte_size": 15597,
+      "sha256": "0af5ea4ad79d541c2327b7de93823a16c60c6503d1bbf7448a9c04d3a70a06e6",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.48c05f7267e1b834a7ffb968d8f7fc0cc1aaf466b1c0ff7c498a871ead8c336a",
+      "relative_path": "payload/wikisource-page-18-api.json",
+      "original_basename": "wikisource-page-18-api.json",
+      "media_type": "application/json",
+      "byte_size": 86535,
+      "sha256": "48c05f7267e1b834a7ffb968d8f7fc0cc1aaf466b1c0ff7c498a871ead8c336a",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ebe7f7e232c78c2245e3ecf16d41e84b7320442c9135f44f9e7e0c84adae4e3e",
+      "relative_path": "payload/wikisource-page-19-api.json",
+      "original_basename": "wikisource-page-19-api.json",
+      "media_type": "application/json",
+      "byte_size": 36871,
+      "sha256": "ebe7f7e232c78c2245e3ecf16d41e84b7320442c9135f44f9e7e0c84adae4e3e",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ef1f561187c8a9148a77aaf707a014ffc1747214f1a0177134ce1fe7f1697758",
+      "relative_path": "payload/wikisource-page-20-api.json",
+      "original_basename": "wikisource-page-20-api.json",
+      "media_type": "application/json",
+      "byte_size": 78427,
+      "sha256": "ef1f561187c8a9148a77aaf707a014ffc1747214f1a0177134ce1fe7f1697758",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.2b4d42ba999117e3c0232726212adc49aac476d4b402d11e24842b7acc8dccb2",
+      "relative_path": "payload/wikisource-page-21-api.json",
+      "original_basename": "wikisource-page-21-api.json",
+      "media_type": "application/json",
+      "byte_size": 35077,
+      "sha256": "2b4d42ba999117e3c0232726212adc49aac476d4b402d11e24842b7acc8dccb2",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.628c80b34fb5aa9d930d31c3a9a2e60ad2b77269679fa91a10a7f8fcae2ce7b8",
+      "relative_path": "payload/wikisource-page-22-api.json",
+      "original_basename": "wikisource-page-22-api.json",
+      "media_type": "application/json",
+      "byte_size": 28800,
+      "sha256": "628c80b34fb5aa9d930d31c3a9a2e60ad2b77269679fa91a10a7f8fcae2ce7b8",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.60fc31052734c1dcda8248c6ba59a7499574cd8eca850603b2fb0ec7c62b3f43",
+      "relative_path": "payload/wikisource-page-23-api.json",
+      "original_basename": "wikisource-page-23-api.json",
+      "media_type": "application/json",
+      "byte_size": 47283,
+      "sha256": "60fc31052734c1dcda8248c6ba59a7499574cd8eca850603b2fb0ec7c62b3f43",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.6ad18090d70d79d3b37fd4fb834237ac147e257b15b418aa80e29801342e1c7c",
+      "relative_path": "payload/wikisource-page-24-api.json",
+      "original_basename": "wikisource-page-24-api.json",
+      "media_type": "application/json",
+      "byte_size": 91300,
+      "sha256": "6ad18090d70d79d3b37fd4fb834237ac147e257b15b418aa80e29801342e1c7c",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.be959094d6f69be41ce406e3e0708f8e6018bdec125eb8182973c442e0fce27b",
+      "relative_path": "payload/wikisource-page-25-api.json",
+      "original_basename": "wikisource-page-25-api.json",
+      "media_type": "application/json",
+      "byte_size": 72151,
+      "sha256": "be959094d6f69be41ce406e3e0708f8e6018bdec125eb8182973c442e0fce27b",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.f8568da901ebbd9e511a78791ecdcfc70484fd00d6105740a47eada7373158b0",
+      "relative_path": "payload/wikisource-page-26-api.json",
+      "original_basename": "wikisource-page-26-api.json",
+      "media_type": "application/json",
+      "byte_size": 54963,
+      "sha256": "f8568da901ebbd9e511a78791ecdcfc70484fd00d6105740a47eada7373158b0",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.77ef0d24214d7ba74d9cb75acbd2312ae5a4a1a5cc7091a1f5b11bae8cef96d1",
+      "relative_path": "payload/wikisource-page-27-api.json",
+      "original_basename": "wikisource-page-27-api.json",
+      "media_type": "application/json",
+      "byte_size": 24371,
+      "sha256": "77ef0d24214d7ba74d9cb75acbd2312ae5a4a1a5cc7091a1f5b11bae8cef96d1",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.082263f3fdbd85a7d9f502ad11731a3a0ede743db31ce8d54224b4331bc294e1",
+      "relative_path": "payload/wikisource-page-28-api.json",
+      "original_basename": "wikisource-page-28-api.json",
+      "media_type": "application/json",
+      "byte_size": 11144,
+      "sha256": "082263f3fdbd85a7d9f502ad11731a3a0ede743db31ce8d54224b4331bc294e1",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.73917c151d3893c27b219ef4f1ad6ad0b4c1d18072e5e155b797c894321dca3b",
+      "relative_path": "payload/wikisource-page-29-api.json",
+      "original_basename": "wikisource-page-29-api.json",
+      "media_type": "application/json",
+      "byte_size": 21341,
+      "sha256": "73917c151d3893c27b219ef4f1ad6ad0b4c1d18072e5e155b797c894321dca3b",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.61242129b26b6dbfebcb01cf2a697e76d6e48c92af8f6db15edcd9aa262d39d5",
+      "relative_path": "payload/wikisource-page-30-api.json",
+      "original_basename": "wikisource-page-30-api.json",
+      "media_type": "application/json",
+      "byte_size": 121698,
+      "sha256": "61242129b26b6dbfebcb01cf2a697e76d6e48c92af8f6db15edcd9aa262d39d5",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.8780e2041e71ea06b9dad56dc463149935f9d26ba3409651e0379628d0e2dd78",
+      "relative_path": "payload/wikisource-page-31-api.json",
+      "original_basename": "wikisource-page-31-api.json",
+      "media_type": "application/json",
+      "byte_size": 164620,
+      "sha256": "8780e2041e71ea06b9dad56dc463149935f9d26ba3409651e0379628d0e2dd78",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ccfd334fc8bc9b1752ce914c5b2ba3b940bbc98ee70b82c77689cfd3adc8912f",
+      "relative_path": "payload/wikisource-page-32-api.json",
+      "original_basename": "wikisource-page-32-api.json",
+      "media_type": "application/json",
+      "byte_size": 48941,
+      "sha256": "ccfd334fc8bc9b1752ce914c5b2ba3b940bbc98ee70b82c77689cfd3adc8912f",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.9cf38d387855427a72ba12e6591d15ea63a4f74e34bca97eb08a0c2c2d064197",
+      "relative_path": "payload/wikisource-page-33-api.json",
+      "original_basename": "wikisource-page-33-api.json",
+      "media_type": "application/json",
+      "byte_size": 22552,
+      "sha256": "9cf38d387855427a72ba12e6591d15ea63a4f74e34bca97eb08a0c2c2d064197",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.9b17f18354ff9e24a2f2c81f95db0905e1bc502fc2919f5d68dadce2c0b708c7",
+      "relative_path": "payload/wikisource-page-34-api.json",
+      "original_basename": "wikisource-page-34-api.json",
+      "media_type": "application/json",
+      "byte_size": 68934,
+      "sha256": "9b17f18354ff9e24a2f2c81f95db0905e1bc502fc2919f5d68dadce2c0b708c7",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.2247cabcb77b4a3b547711f3ec87d508f81b0ad782d9541ecd28690a93edac65",
+      "relative_path": "payload/wikisource-page-35-api.json",
+      "original_basename": "wikisource-page-35-api.json",
+      "media_type": "application/json",
+      "byte_size": 37799,
+      "sha256": "2247cabcb77b4a3b547711f3ec87d508f81b0ad782d9541ecd28690a93edac65",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.fffe43f3a71d1b046286f5f1cd1b0f5c61ff371eea76a0ab291a9c9a5e0a8e8d",
+      "relative_path": "payload/wikisource-page-36-api.json",
+      "original_basename": "wikisource-page-36-api.json",
+      "media_type": "application/json",
+      "byte_size": 22456,
+      "sha256": "fffe43f3a71d1b046286f5f1cd1b0f5c61ff371eea76a0ab291a9c9a5e0a8e8d",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.f8c8e157ecd107d4c1df5e365024bd0359288fa0becf620b00bca46365aefe6b",
+      "relative_path": "payload/wikisource-page-37-api.json",
+      "original_basename": "wikisource-page-37-api.json",
+      "media_type": "application/json",
+      "byte_size": 51032,
+      "sha256": "f8c8e157ecd107d4c1df5e365024bd0359288fa0becf620b00bca46365aefe6b",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.8dcc2252909ad2ae03a44fec5c06180e1ab983c12b44080469b9fa77faa91674",
+      "relative_path": "payload/wikisource-page-38-api.json",
+      "original_basename": "wikisource-page-38-api.json",
+      "media_type": "application/json",
+      "byte_size": 15338,
+      "sha256": "8dcc2252909ad2ae03a44fec5c06180e1ab983c12b44080469b9fa77faa91674",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.5aaf4d9d56fe26ccc1933383856882116d8c161b3cfe85bcfbd7d2cb719a3801",
+      "relative_path": "payload/wikisource-page-39-api.json",
+      "original_basename": "wikisource-page-39-api.json",
+      "media_type": "application/json",
+      "byte_size": 78863,
+      "sha256": "5aaf4d9d56fe26ccc1933383856882116d8c161b3cfe85bcfbd7d2cb719a3801",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.1a00623a456d11c38710fe1d3ea80ce5f44e6b8579a1005913d914a820ecdf1e",
+      "relative_path": "payload/wikisource-page-40-api.json",
+      "original_basename": "wikisource-page-40-api.json",
+      "media_type": "application/json",
+      "byte_size": 18687,
+      "sha256": "1a00623a456d11c38710fe1d3ea80ce5f44e6b8579a1005913d914a820ecdf1e",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.e22b50f74fa0c5df0a5f72e31ff771990d4ea8a51c8e5fc3a194d01da3ed3a27",
+      "relative_path": "payload/wikisource-page-41-api.json",
+      "original_basename": "wikisource-page-41-api.json",
+      "media_type": "application/json",
+      "byte_size": 53738,
+      "sha256": "e22b50f74fa0c5df0a5f72e31ff771990d4ea8a51c8e5fc3a194d01da3ed3a27",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.6e56a3307e8c0e458c5ec90d2b2919a3c219f8d9ed9b7ebc1727977dc7156e2c",
+      "relative_path": "payload/wikisource-page-42-api.json",
+      "original_basename": "wikisource-page-42-api.json",
+      "media_type": "application/json",
+      "byte_size": 25832,
+      "sha256": "6e56a3307e8c0e458c5ec90d2b2919a3c219f8d9ed9b7ebc1727977dc7156e2c",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.4a4567234a00c4c7ac0747e1677d6d705c1ac3750b127d71dae1b5e28112f356",
+      "relative_path": "payload/wikisource-page-43-api.json",
+      "original_basename": "wikisource-page-43-api.json",
+      "media_type": "application/json",
+      "byte_size": 17117,
+      "sha256": "4a4567234a00c4c7ac0747e1677d6d705c1ac3750b127d71dae1b5e28112f356",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.65cade32ed9f23d95c3a882c4f2f4e17afc910d9c976750a6f0cc09fa4614860",
+      "relative_path": "payload/wikisource-page-44-api.json",
+      "original_basename": "wikisource-page-44-api.json",
+      "media_type": "application/json",
+      "byte_size": 54473,
+      "sha256": "65cade32ed9f23d95c3a882c4f2f4e17afc910d9c976750a6f0cc09fa4614860",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.ed945f459c3f0500322128835f2429ee72db0bd9c1155274a077c9185de7c435",
+      "relative_path": "payload/wikisource-page-45-api.json",
+      "original_basename": "wikisource-page-45-api.json",
+      "media_type": "application/json",
+      "byte_size": 42862,
+      "sha256": "ed945f459c3f0500322128835f2429ee72db0bd9c1155274a077c9185de7c435",
+      "fixity_verified_at": "2026-11-10T04:13:57+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.enneads-en-mackenna1917-wikisource.20261027",
+  "rights_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/plotinus/enneads/expressions/retained-enneads-en-mackenna1917-wikisource/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

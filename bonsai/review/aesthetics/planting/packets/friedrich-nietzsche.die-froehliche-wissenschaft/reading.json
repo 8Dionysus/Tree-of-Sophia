@@ -1,0 +1,83 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-die-froehliche-wissenschaft",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read § 290 in German, in the 1887 Leipzig edition against the register reading.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-nietzsche": {
+    "tree": "tos.agent.friedrich-nietzsche"
+   }
+  },
+  "works": {
+   "friedrich-nietzsche.die-froehliche-wissenschaft": {
+    "title": {
+     "ru": "Веселая наука",
+     "en": "The Gay Science"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-nietzsche.die-froehliche-wissenschaft",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "friedrich-nietzsche.die-froehliche-wissenschaft:giving-style-to-character",
+   "of": [
+    "D:A-035-C03"
+   ],
+   "areas": [
+    "AE35"
+   ],
+   "work": "friedrich-nietzsche.die-froehliche-wissenschaft",
+   "locus": "§290",
+   "formula": [
+    {
+     "place": "§290 p207"
+    }
+   ],
+   "thesis": {
+    "ru": "Придающий своему характеру стиль обозревает силы и слабости своей природы и подчиняет их художественному замыслу. Прибавление второй природы и устранение части первой совершаются долгим упражнением и ежедневной работой.",
+    "en": "One who gives style to character surveys the strengths and weaknesses of nature and fits them into an artistic plan. The addition of second nature and the removal of part of the first are accomplished through long practice and daily work."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "D:A-035-I08"
+   ]
+  },
+  {
+   "id": "friedrich-nietzsche.die-froehliche-wissenschaft:the-ugly-hidden-or-reinterpreted",
+   "of": [
+    "D:A-035-C03"
+   ],
+   "areas": [
+    "AE35"
+   ],
+   "work": "friedrich-nietzsche.die-froehliche-wissenschaft",
+   "locus": "§290",
+   "formula": [
+    {
+     "place": "§290 p207b"
+    }
+   ],
+   "thesis": {
+    "ru": "Безобразное, которое не удалось устранить, здесь скрыто, а там переосмыслено как возвышенное.",
+    "en": "The ugly that could not be removed is hidden here and reinterpreted as sublime there."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "D:A-035-I08"
+   ],
+   "negation": "welches sich nicht abtragen liess"
+  }
+ ],
+ "links": [],
+ "left": []
+}

@@ -1,0 +1,161 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-einfache-nachahmung-der-natur-manier-sty",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read Goethe in German in the 1808 Cotta printing, checked against its scan and the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "johann-wolfgang-goethe": {
+    "tree": "tos.agent.johann-wolfgang-goethe"
+   }
+  },
+  "works": {
+   "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl": {
+    "title": {
+     "ru": "Простое подражание природе, манера, стиль",
+     "en": "Simple Imitation of Nature, Manner, Style"
+    },
+    "original": "de",
+    "tree": "tos.work.johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl:style-study-and-general-language",
+   "of": [
+    "C:A-C028",
+    "C:A-C030"
+   ],
+   "areas": [
+    "AE24"
+   ],
+   "work": "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl",
+   "locus": "Styl",
+   "formula": [
+    {
+     "place": "Styl p98"
+    }
+   ],
+   "thesis": {
+    "ru": "Когда искусство через подражание природе, стремление создать общий язык и глубокое изучение предметов всё точнее познаёт свойства вещей и способ их существования, обозревает ряд образов и умеет сопоставлять и подражать различным характерным формам, стиль становится высшей ступенью, которой оно может достичь.",
+    "en": "When, through imitation of nature, the effort to make a general language and deep study of objects, art comes to know ever more precisely the properties of things and the way they exist, surveys the series of forms, and knows how to place the different characteristic forms side by side and imitate them, style becomes the highest degree it can attain."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "C:A-I028",
+    "C:A-I030"
+   ],
+   "note": "The passage relates general language to deep study and knowledge of things; the register’s selection of particulars is not asserted in this sentence."
+  }
+ ],
+ "links": [],
+ "left": [
+  {
+   "key": "C:A-I027",
+   "reason": "The second reader (codex-2026-11-10-goethe-second) does not confirm johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl:manner-language-individual-expression: The passage says «er erfindet sich selbst eine Weise, macht sich selbst eine Sprache» to express what he grasped and give a repeated object its own form. The cut also includes five sentences on faithful imitation, its conditions and its practitioners; those sentences do not say this thesis, exceeding the formula. The opening «eine solche Art zu verfahren» requires the earlier context, but the cut should be reworked to give a bounded, intelligible formula.",
+   "disputed": {
+    "id": "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl:manner-language-individual-expression",
+    "of": [
+     "C:A-C029",
+     "C:A-C035"
+    ],
+    "areas": [
+     "AE24"
+    ],
+    "work": "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl",
+    "locus": "Manier",
+    "formula": [
+     {
+      "place": "Manier p96"
+     }
+    ],
+    "thesis": {
+     "ru": "Художник изобретает собственный способ и создаёт себе язык, чтобы по-своему выразить то, что он схватил душой, и придать предмету собственную характерную форму.",
+     "en": "The artist invents a way and makes a language of his own to express in his own manner what he has grasped with his soul and to give an object a distinctive form of his own."
+    },
+    "status": "text",
+    "verdict": "confirmed",
+    "from": [
+     "C:A-I027",
+     "C:A-I029"
+    ],
+    "note": "Second reader considers the five preceding sentences excessive. They are retained to resolve the opening references: “eine solche Art zu verfahren” refers to “diese Art der Nachbildung”, which in turn refers to the preceding account of faithful imitation of nature. Omitting that account would leave the first sentence dependent on unstated context, as the previous review found. The intervening sentences belong to the continuous passage; they are context, not additional claims of this thesis."
+   }
+  },
+  {
+   "key": "C:A-I029",
+   "reason": "The second reader (codex-2026-11-10-goethe-second) does not confirm johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl:manner-language-individual-expression: The passage says «er erfindet sich selbst eine Weise, macht sich selbst eine Sprache» to express what he grasped and give a repeated object its own form. The cut also includes five sentences on faithful imitation, its conditions and its practitioners; those sentences do not say this thesis, exceeding the formula. The opening «eine solche Art zu verfahren» requires the earlier context, but the cut should be reworked to give a bounded, intelligible formula.",
+   "disputed": {
+    "id": "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl:manner-language-individual-expression",
+    "of": [
+     "C:A-C029",
+     "C:A-C035"
+    ],
+    "areas": [
+     "AE24"
+    ],
+    "work": "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl",
+    "locus": "Manier",
+    "formula": [
+     {
+      "place": "Manier p96"
+     }
+    ],
+    "thesis": {
+     "ru": "Художник изобретает собственный способ и создаёт себе язык, чтобы по-своему выразить то, что он схватил душой, и придать предмету собственную характерную форму.",
+     "en": "The artist invents a way and makes a language of his own to express in his own manner what he has grasped with his soul and to give an object a distinctive form of his own."
+    },
+    "status": "text",
+    "verdict": "confirmed",
+    "from": [
+     "C:A-I027",
+     "C:A-I029"
+    ],
+    "note": "Second reader considers the five preceding sentences excessive. They are retained to resolve the opening references: “eine solche Art zu verfahren” refers to “diese Art der Nachbildung”, which in turn refers to the preceding account of faithful imitation of nature. Omitting that account would leave the first sentence dependent on unstated context, as the previous review found. The intervening sentences belong to the continuous passage; they are context, not additional claims of this thesis."
+   }
+  },
+  {
+   "key": "C:A-I029",
+   "reason": "The second reader (codex-2026-11-10-goethe-second) does not confirm johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl:manner-individual-vision: The passage says «der Geist des Sprechenden unmittelbar ausdrückt» and «jeder Künstler dieser Art, die Welt anders sehen, ergreifen und nachbilden». Its formula also includes the five sentences of Manier p96 on faithful imitation, its conditions and practitioners, which do not say this thesis; Manier p96a repeats the manner passage already in Manier p96. The context and cut need a bounded, intelligible formula.",
+   "disputed": {
+    "id": "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl:manner-individual-vision",
+    "of": [
+     "C:A-C035"
+    ],
+    "areas": [
+     "AE24"
+    ],
+    "work": "johann-wolfgang-goethe.einfache-nachahmung-der-natur-manier-styl",
+    "locus": "Manier",
+    "formula": [
+     {
+      "place": "Manier p96"
+     },
+     {
+      "place": "Manier p96a"
+     },
+     {
+      "place": "Manier p97"
+     }
+    ],
+    "thesis": {
+     "ru": "В языке непосредственно выражается дух говорящего; каждый художник этого рода по-своему видит, схватывает и воспроизводит мир.",
+     "en": "In the language the spirit of the speaker expresses itself directly; each artist of this kind sees, grasps and reproduces the world differently."
+    },
+    "status": "text",
+    "verdict": "confirmed",
+    "from": [
+     "C:A-I029"
+    ],
+    "note": "The continuous longer cut supplies the language and the kind of artist referred to on p. 97. The preceding place supplies the faithful imitation of nature referred to by “eine solche Art zu verfahren” at its opening."
+   }
+  }
+ ]
+}

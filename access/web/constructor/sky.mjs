@@ -1,7 +1,8 @@
 import { SophiaGpuCanvas } from '../src/observatory/gpu-canvas.js';
 import {validateSkyPose} from './sky-pose.mjs';
 import {readPaper} from './sky-paper.mjs';
-import {meetsStar,starCells} from './star-cells.mjs';
+import {countStars,meetsStar,starCells} from './star-cells.mjs';
+import {scaleLabelClear} from './scale-labels.mjs';
 
 // Spatial view over a session-local graph; preserves the observatory atmosphere.
 // Options are opt-in so the constructor keeps its own behaviour: rotate:false
@@ -298,7 +299,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       return n;
     });old.forEach(n=>{n.abandon?.();n.el.remove();});
     const oldClusters=new Map(clusters.map(c=>[c.id,c]));
-    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';c.recede=!!item.recede;if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';c.el.setAttribute('role','button');c.el.tabIndex=0;}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';c.el.removeAttribute('role');c.el.removeAttribute('tabindex');}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
+    clusters=(state.clusters??[]).map(item=>{let c=oldClusters.get(item.id);oldClusters.delete(item.id);if(!c){const el=document.createElement('div'),title=document.createElement('span'),subtitle=document.createElement('small');el.className='tree-cluster';title.className='cluster-title';subtitle.className='cluster-subtitle';el.append(title,subtitle);Object.assign(el.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});clusterLayer.append(el);c={el,title,subtitle,p:[...item.center]};}c.id=item.id;c.target=[...item.center];c.variant=typeof item.variant==='string'?item.variant:'';c.recede=!!item.recede;c.yields=!!item.yields;c.noOverlap=!!item.noOverlap;if(c.variant)c.el.dataset.variant=c.variant;else delete c.el.dataset.variant;c.strip=Number.isFinite(item.strip)?item.strip:null;c.span=Array.isArray(item.span)&&item.span.length===2&&item.span.every(Number.isFinite)?[...item.span]:null;c.align=item.align==='start'||item.align==='end'?item.align:'';if(c.align)c.el.dataset.align=c.align;else delete c.el.dataset.align;c.maxWidth=Number.isFinite(item.maxWidth)?item.maxWidth:null;c.radius=Number.isFinite(item.radius)?item.radius:null;const home=clipped.has(c.variant)?ringLayer:underStars.has(c.variant)?ruleLayer:clusterLayer;if(c.el.parentElement!==home)home.append(c.el);if(item.ref){c.el.dataset.ref=String(item.ref);c.el.style.pointerEvents='auto';c.el.setAttribute('role','button');c.el.tabIndex=0;}else{delete c.el.dataset.ref;c.el.style.pointerEvents='none';c.el.removeAttribute('role');c.el.removeAttribute('tabindex');}if(item.tone)c.el.dataset.tone=String(item.tone);else delete c.el.dataset.tone;if(item.hint&&nativeTitles)c.el.title=item.hint;else c.el.removeAttribute('title');if(item.hint&&!nativeTitles)c.el.dataset.hint=item.hint;else delete c.el.dataset.hint;c.title.textContent=item.title??'';c.subtitle.textContent=item.subtitle??'';c.el.style.setProperty('--cluster-color',hex(item.color,'#a5b7cf'));c.el.style.color=hex(item.color,'#a5b7cf');return c;});oldClusters.forEach(c=>c.el.remove());
     // A measured plane may lie on a backdrop of lines in its own units, such as coastlines.
     // A backdrop line is its points, or its points with a colour, an alpha and a weight in the layout's units.
     shade=state.shade&&Array.isArray(state.shade.center)&&Number.isFinite(state.shade.radius)?state.shade:null;
@@ -494,7 +495,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(c.variant)continue;
       const titleStyle=getComputedStyle(c.title),titleText=c.title.textContent,size=parseFloat(titleStyle.fontSize)||14;
       ng.font=titleStyle.font||`italic ${size}px serif`;
-      let width=Math.min(230,Math.max(110,Math.ceil(ng.measureText(titleText).width+(parseFloat(titleStyle.letterSpacing)||0)*titleText.length)+12));
+      let width=Math.min(230,Math.max(c.el.dataset.tone==='group'?0:110,Math.ceil(ng.measureText(titleText).width+(parseFloat(titleStyle.letterSpacing)||0)*titleText.length)+12));
       let height=parseFloat(titleStyle.lineHeight)||size*1.25;
       if(c.subtitle.textContent){
         const subStyle=getComputedStyle(c.subtitle),spacing=parseFloat(subStyle.letterSpacing)||0,upper=subStyle.textTransform==='uppercase';
@@ -588,6 +589,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // passing over it does not make it flicker; a name that leaves fades where it stood, and one that moves to another of
   // its places slides there. A name already standing keeps its place while that place stays clear.
   const APPEAR_MS=110,GLIDE='opacity .25s,color .25s,left .24s cubic-bezier(.2,.7,.2,1),top .24s cubic-bezier(.2,.7,.2,1)';
+  // A group's name that yields stands over at most this many stars.
+  const GROUP_CROWD=3;
   let labelsSettling=false;
   function presence(item,want,now,dt,instant){
     if(want){if(item.wantSince==null)item.wantSince=now;if(instant||item.fade==null||item.present||now-item.wantSince>=APPEAR_MS)item.present=true;}
@@ -673,7 +676,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A name at the edge of the view needs a view wide enough to leave the stars their room beside it.
       const fits=c.variant==='lane'||c.variant==='ytick'||c.variant==='edge'?area.right-area.left>=24&&area.top>=vt-2&&area.bottom<=vb+2&&(c.variant!=='edge'||vr-vl>=600):text.left>=vl-12&&text.right<=vr+12;
       // A scale never writes over the page's own panels, even when the map is squeezed under a sheet.
-      const shown=fits&&!scaleLabels.some(o=>overlaps(area,o,2))&&!uiObstacles.some(o=>overlaps(area,o,0)),fade=presence(c,shown,now,dt,instant);
+      const shown=fits&&scaleLabelClear(area,scaleLabels,uiObstacles),fade=presence(c,shown,now,dt,instant||c.noOverlap);
       setHidden(c.el,!fade);
       if(fade){setStyle(c.el,'width',(area.right-area.left).toFixed(1)+'px');setStyle(c.el,'transform',`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`);setStyle(c.el,'filter',fade<1?`opacity(${fade.toFixed(3)})`:'');}
       if(shown){scaleLabels.push(area);occupied.push(area);}
@@ -681,18 +684,23 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // A star the view has stepped back lies under the names in front of it, and so does one a chosen star or link has
     // sent back.
     const nodeObstacles=starCells(nodes.filter(n=>!n.el.hidden&&!n.dimmed&&!n.outside).map(n=>{const left=n.screen.x-9,top=n.screen.y-9;return {id:n.id,left,top,right:left+18,bottom:top+18};}));
-    for(const c of clusters){
-      if(c.variant)continue;
+    // The names of groups nearer the eye take their places first, as nearer stars do.
+    const groups=clusters.filter(c=>!c.variant).map(c=>({c,d:project(c.p).d})).sort((a,b)=>b.d-a.d).map(item=>item.c);
+    for(const c of groups){
       const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
       const places=[-101,-76,106,-136,140].map((offset,slot)=>{const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20;return Object.assign(box(p.x-width/2,top,width,height),{slot});});
       const sticky=c.present?c.slot:null,candidates=places.filter(inView).sort((a,b)=>(b.slot===sticky)-(a.slot===sticky));
       // A group's name keeps the place it stands in while that stays clear; else it takes the first place clear of the
-      // stars, and never one over another name.
+      // stars, and never one over another name. With no place clear of stars it takes the one over the fewest; a name
+      // that yields, such as a route's among many, waits for a nearer view rather than lie over a crowd of stars.
       const clear=candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o))&&!meetsStar(nodeObstacles,candidate,2));
-      const area=clear??candidates.find(candidate=>!occupied.some(o=>overlaps(candidate,o)))??null;
+      const covered=candidate=>countStars(nodeObstacles,candidate,0);
+      const least=clear?null:candidates.filter(candidate=>!occupied.some(o=>overlaps(candidate,o))).map(candidate=>({candidate,under:covered(candidate)})).sort((a,b)=>a.under-b.under)[0]??null;
+      const area=clear??(least&&(!c.yields||least.under<=(c.present?GROUP_CROWD+2:GROUP_CROWD))?least.candidate:null);
       setFlag(c.el,'crowded',!!(area&&!clear));
-      // A group that recedes is quieter further back in a space read in depth, as its stars are.
-      setStyle(c.el,'opacity',depthCue&&!measured&&c.recede?(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2):'');
+      // A group that recedes is quieter further back in a space read in depth, as its stars are: its letters fade, and
+      // the ground under them stays whole, so the lines behind never cut through a far name.
+      if(depthCue&&!measured&&c.recede)setVar(c.el,'--depth-alpha',(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2));else if(put(c.el,'--depth-alpha',null))c.el.style.removeProperty('--depth-alpha');
       const fade=presence(c,!!area,now,dt,instant);
       if(area&&c.at&&c.slot!==area.slot&&fade>0&&!instant)c.slide={x:c.at.left+(c.slide?.x??0)-area.left,y:c.at.top+(c.slide?.y??0)-area.top};
       if(area){c.slot=area.slot;occupied.push(area);}

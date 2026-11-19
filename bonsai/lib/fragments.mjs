@@ -17,6 +17,29 @@
 
 export const FRAGMENTS_SCHEMA='tos.bonsai.fragments.v1';
 export const CORPUS_ALIGNMENT_SCHEMA='tos.bonsai.corpus-alignment.v1';
+export const TRANSLATION_SCOPES_SCHEMA='tos.bonsai.translation-scopes.v1';
+/** Shape of explicit original ranges for partial translations. */
+export function translationScopesIssues(module){
+  const issues=[];
+  if(module?.schema!==TRANSLATION_SCOPES_SCHEMA)issues.push('schema');
+  if(!Array.isArray(module?.scopes))return [...issues,'scopes'];
+  const seen=new Set();
+  for(const scope of module.scopes){
+    if(!scope||typeof scope!=='object'){issues.push('scope');continue;}
+    for(const field of ['work','translationVersionId','originalVersionId','firstUnitId','lastUnitId','basis'])if(typeof scope[field]!=='string'||!scope[field].trim())issues.push(`${field} missing`);
+    for(const field of ['originalRevision','translationRevision'])if(!/^[a-f0-9]{64}$/.test(scope[field]??''))issues.push(field);
+    if(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))issues.push('maxSourceSentences');
+    if(scope.translationStart!==undefined&&(typeof scope.translationStart?.unitId!=='string'||!scope.translationStart.unitId.trim()||!Number.isInteger(scope.translationStart?.offset)||scope.translationStart.offset<1))issues.push('translationStart');
+    if(scope.handoverUnitIds!==undefined&&(!Array.isArray(scope.handoverUnitIds)||!scope.handoverUnitIds.length||scope.handoverUnitIds.some(id=>typeof id!=='string'||!id.trim())||new Set(scope.handoverUnitIds).size!==scope.handoverUnitIds.length))issues.push('handoverUnitIds');
+    if(scope.localReferencePairs!==undefined&&(!Array.isArray(scope.localReferencePairs)||!scope.localReferencePairs.length||scope.localReferencePairs.some(pair=>!pair||typeof pair.originalUnitId!=='string'||!pair.originalUnitId.trim()||typeof pair.translationUnitId!=='string'||!pair.translationUnitId.trim()||(pair.includeFollowingContinuation!==undefined&&pair.includeFollowingContinuation!==true))||new Set(scope.localReferencePairs.map(pair=>pair?.originalUnitId)).size!==scope.localReferencePairs.length||new Set(scope.localReferencePairs.map(pair=>pair?.translationUnitId)).size!==scope.localReferencePairs.length))issues.push('localReferencePairs');
+    if(scope.completePreviousUnitIds!==undefined&&(!Array.isArray(scope.completePreviousUnitIds)||!scope.completePreviousUnitIds.length||!Array.isArray(scope.handoverUnitIds)||scope.localReferencePairs!==undefined||new Set(scope.completePreviousUnitIds).size!==scope.completePreviousUnitIds.length||scope.completePreviousUnitIds.some(id=>typeof id!=='string'||!scope.handoverUnitIds.includes(id))))issues.push('completePreviousUnitIds');
+    if(scope.withheld!==undefined&&scope.withheld!==true)issues.push('withheld');
+    if(scope.withheld&&(scope.maxSourceSentences!==undefined||scope.translationStart!==undefined||scope.handoverUnitIds!==undefined||scope.localReferencePairs!==undefined||scope.completePreviousUnitIds!==undefined))issues.push('withheld options');
+    if(!/^https:\/\//.test(scope.source??''))issues.push('source');
+    const key=`${scope.work}:${scope.translationVersionId}`;if(seen.has(key))issues.push(`duplicate ${key}`);seen.add(key);
+  }
+  return issues;
+}
 const BASES=['public-domain','public-domain+licence','short-quotation','locator-only'];
 // What a link opens: the whole work, the page a quotation is taken from, or where a book can be found.
 const OPENS=['work','quotation','book'];

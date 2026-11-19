@@ -1,0 +1,57 @@
+{
+ "reader": {
+  "id": "terra-2026-11-12-das-wissen-von-fremden-ichen",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-12",
+  "reads": "Read the German 1907 original in the University of Wisconsin scan beside register B’s reading of empathy.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "theodor-lipps": {
+    "tree": "tos.agent.theodor-lipps"
+   }
+  },
+  "works": {
+   "theodor-lipps.das-wissen-von-fremden-ichen": {
+    "title": {
+     "ru": "Знание о чужих Я",
+     "en": "The Knowledge of Other Egos"
+    },
+    "original": "de",
+    "tree": "tos.work.theodor-lipps.das-wissen-von-fremden-ichen",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "theodor-lipps.das-wissen-von-fremden-ichen:instinct-of-empathy",
+   "of": [
+    "B:B-C004"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "theodor-lipps.das-wissen-von-fremden-ichen",
+   "locus": "p. 713",
+   "formula": [
+    {
+     "place": "Die Einfühlung p713a"
+    }
+   ],
+   "thesis": {
+    "ru": "Инстинкт вчувствования имеет две стороны: инстинктивное стремление к проявлению жизни и инстинкт подражания.",
+    "en": "The instinct of empathy has two sides: the instinctive drive to express life and the instinct of imitation."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:B-I007"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

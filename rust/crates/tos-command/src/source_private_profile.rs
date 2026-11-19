@@ -21,7 +21,7 @@ use std::sync::atomic::Ordering;
 use std::time::Instant;
 use tos_foundation::{
     Digest256, JsonLimits, JsonString, JsonValue, RelativePath, SourceRevision,
-    emit_python_compact_json,
+    emit_ordered_compact_json_v1,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::MAX_RECORD_BYTES;
@@ -2942,7 +2942,7 @@ fn owner_metadata_snapshot(
         ("owner_context", cmd::string(&context)),
         ("inputs", JsonValue::Array(rows)),
     ]);
-    let raw = emit_python_compact_json(
+    let raw = emit_ordered_compact_json_v1(
         &value,
         JsonLimits {
             max_bytes: MAX_NATIVE_SNAPSHOT_BYTES,

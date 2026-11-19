@@ -1,0 +1,57 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-zum-problem-der-einfuehlung",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read the German first printing of 1917 against the register reading B:B-I008 and the scan of page 9.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "edith-stein": {
+    "tree": "tos.agent.edith-stein"
+   }
+  },
+  "works": {
+   "edith-stein.zum-problem-der-einfuehlung": {
+    "title": {
+     "ru": "К проблеме эмпатии",
+     "en": "On the Problem of Empathy"
+    },
+    "original": "de",
+    "tree": "tos.work.edith-stein.zum-problem-der-einfuehlung",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "edith-stein.zum-problem-der-einfuehlung:empathy-as-experience",
+   "of": [
+    "B:B-C004"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "edith-stein.zum-problem-der-einfuehlung",
+   "locus": "Part II, § 2",
+   "formula": [
+    {
+     "place": "II §2 p9"
+    }
+   ],
+   "thesis": {
+    "ru": "Эмпатия — акт, который как нынешнее переживание является оригинальным, а по своему содержанию — неоригинальным; его содержание есть переживание, способное выступать в различных формах осуществления.",
+    "en": "Empathy is an act that is primordial as a present experience and non-primordial in its content; its content is an experience that can occur in different forms of enactment."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:B-I008"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

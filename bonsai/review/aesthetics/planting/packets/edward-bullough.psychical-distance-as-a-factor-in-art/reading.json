@@ -1,0 +1,110 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-psychical-distance-as-a-factor-in-art",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read Bullough’s English article in the 1912 British Journal of Psychology, volume V, alongside register readings B:A-I013 and B:A-I009, comparing the transcription with the scans.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "edward-bullough": {
+    "tree": "tos.agent.edward-bullough"
+   }
+  },
+  "works": {
+   "edward-bullough.psychical-distance-as-a-factor-in-art": {
+    "title": {
+     "ru": "Психическая дистанция как фактор искусства",
+     "en": "‘Psychical Distance’ as a Factor in Art and an Aesthetic Principle"
+    },
+    "original": "en",
+    "tree": "tos.work.edward-bullough.psychical-distance-as-a-factor-in-art",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "edward-bullough.psychical-distance-as-a-factor-in-art:sea-fog-enjoyment",
+   "of": [
+    "B:A-C005"
+   ],
+   "areas": [
+    "AE13"
+   ],
+   "work": "edward-bullough.psychical-distance-as-a-factor-in-art",
+   "locus": "I",
+   "formula": [
+    {
+     "place": "I p88"
+    }
+   ],
+   "thesis": {
+    "ru": "Если на время отвлечься от опасности и практических неприятностей морского тумана и обратить внимание на черты самого явления, переживание может приобрести остроту и наслаждение в причудливом смешении покоя и ужаса.",
+    "en": "If one abstracts for the moment from the danger and practical unpleasantness of sea fog and attends to the features of the phenomenon, the experience may acquire poignancy and delight in its uncanny mingling of repose and terror."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "B:A-I013",
+    "B:A-I009"
+   ],
+   "note": "The passage calls for abstracting from danger and practical unpleasantness for the moment; it describes repose and terror rather than a claim about panic."
+  },
+  {
+   "id": "edward-bullough.psychical-distance-as-a-factor-in-art:personal-relation-filtered",
+   "of": [
+    "B:A-C003",
+    "B:A-C005"
+   ],
+   "areas": [
+    "AE13"
+   ],
+   "work": "edward-bullough.psychical-distance-as-a-factor-in-art",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p91"
+    }
+   ],
+   "thesis": {
+    "ru": "Дистанция описывает личное, часто эмоционально окрашенное отношение, очищенное от практического, конкретного характера воздействия при сохранении его первоначального состава.",
+    "en": "Distance describes a personal, often emotionally coloured relation, cleared of the practical, concrete nature of its appeal while retaining its original constitution."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:A-I009"
+   ]
+  },
+  {
+   "id": "edward-bullough.psychical-distance-as-a-factor-in-art:distance-varies",
+   "of": [
+    "B:A-C005"
+   ],
+   "areas": [
+    "AE13"
+   ],
+   "work": "edward-bullough.psychical-distance-as-a-factor-in-art",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p94"
+    }
+   ],
+   "thesis": {
+    "ru": "Дистанция изменяется в зависимости от способности индивида дистанцироваться и от характера объекта.",
+    "en": "Distance varies according to the distancing-power of the individual and the character of the object."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:A-I013"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

@@ -1,0 +1,154 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/z419186/Z_IV_1918_6_hocr_searchtext.txt.gz",
+   "file": "z419186.ocr.txt",
+   "sha256": "85ce495d215e41e8ad3ad5d90603c5f3117016e381ccefca862fa8e43672a522",
+   "bytes": 232469,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/z419186/Z_IV_1918_6_hocr_pageindex.json.gz",
+   "file": "z419186.index.json",
+   "sha256": "ae2911a89834a1df5ab6c0de136d09ca6192787a43333c9306a97afc0d0f2df8",
+   "bytes": 2953,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/z419186/Z_IV_1918_6_page_numbers.json",
+   "file": "z419186.pages.json",
+   "sha256": "5f28f505f0b04b08939ea8e91e79ce7527ecb3d2329e3bc5df8b0606385e37a1",
+   "bytes": 14529,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.textlog.de/freud/aufsaetze/trauer-und-melancholie",
+   "file": "trauer-und-melancholie",
+   "sha256": "43b94cca375f7e1c0dc472b5e9936995441bcbaa9a4cbc43af1a0a87ee17b52f",
+   "bytes": 84910,
+   "fetched": "2026-11-11",
+   "text": "trauer-und-melancholie.txt",
+   "why": "Wikisource, Deutsches Textarchiv, Zeno, TextGrid and Project Gutenberg search pages were attempted directly; none answered through the browser. Textlog supplies a full transcription; its note names Gesammelte Werke volume 10 and the first publication."
+  }
+ ],
+ "scan": {
+  "item": "z419186",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q9215",
+   "name": {
+    "en": "Sigmund Freud",
+    "ru": "Зигмунд Фрейд"
+   },
+   "role": "author",
+   "died": 1939,
+   "source": "https://www.wikidata.org/wiki/Q9215"
+  }
+ ],
+ "published": 1918,
+ "images": [
+  {
+   "n": 26,
+   "item": "z419186",
+   "file": "z419186-n26.jpg",
+   "sha256": "95ea98920d24b287768c7e13ed4e1802d79e194eb249fc5cec347465c94a18df",
+   "by": "maker"
+  },
+  {
+   "n": 22,
+   "item": "z419186",
+   "file": "z419186-n22.jpg",
+   "sha256": "8d52e4d8b58c2261d16a4808cd0ef38b2c9c113530e3fb9fc7e097a83712c807",
+   "by": "maker"
+  },
+  {
+   "n": 22,
+   "item": "z419186",
+   "file": "z419186-n22.jpg",
+   "sha256": "8d52e4d8b58c2261d16a4808cd0ef38b2c9c113530e3fb9fc7e097a83712c807",
+   "by": "second",
+   "loc": "Aufsatz p289"
+  },
+  {
+   "n": 25,
+   "item": "z419186",
+   "file": "z419186-n25.jpg",
+   "sha256": "6c110299b54d4f1dcb10b68bf78cb6a1f00813032acaa181ecca52302f9642a8",
+   "by": "second",
+   "loc": "Aufsatz p292"
+  },
+  {
+   "n": 26,
+   "item": "z419186",
+   "file": "z419186-n26.jpg",
+   "sha256": "95ea98920d24b287768c7e13ed4e1802d79e194eb249fc5cec347465c94a18df",
+   "by": "second",
+   "loc": "Aufsatz p293"
+  }
+ ],
+ "places": {
+  "Aufsatz p289": {
+   "transcription": "trauer-und-melancholie",
+   "scan": "z419186",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    22
+   ],
+   "printed": [
+    "289"
+   ],
+   "differences": []
+  },
+  "Aufsatz p292": {
+   "transcription": "trauer-und-melancholie",
+   "scan": "z419186",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    25
+   ],
+   "printed": [
+    "292"
+   ],
+   "differences": []
+  },
+  "Aufsatz p293": {
+   "transcription": "trauer-und-melancholie",
+   "scan": "z419186",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    26
+   ],
+   "printed": [
+    "293"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": ", Von den Voraussetzungen und Ergebnissen eines solchen Vorganges läßt sich einiges unmittelbar erraten",
+     "leaf": 26,
+     "stands": "transcription",
+     "note": "The page ends the selected sentence at Ich; OCR comparison includes the following paragraph, which lies outside the place."
+    }
+   ]
+  }
+ },
+ "scans": {
+  "z419186": {
+   "item": "z419186",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": 0
+  }
+ }
+}

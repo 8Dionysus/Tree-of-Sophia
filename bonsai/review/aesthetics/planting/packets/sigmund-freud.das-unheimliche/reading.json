@@ -1,0 +1,431 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-das-unheimliche",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "The German text in Imago 5, no. 5–6 (1919), beside the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "sigmund-freud": {
+    "tree": "tos.agent.sigmund-freud"
+   }
+  },
+  "works": {
+   "sigmund-freud.das-unheimliche": {
+    "title": {
+     "ru": "Жуткое",
+     "en": "The Uncanny"
+    },
+    "original": "de",
+    "tree": "tos.work.sigmund-freud.das-unheimliche",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "sigmund-freud.das-unheimliche:intellectual-uncertainty",
+   "of": [
+    "A:C066",
+    "A:C176"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "I",
+   "formula": [
+    {
+     "place": "I p298"
+    }
+   ],
+   "thesis": {
+    "ru": "Йенч находит существенное условие жуткого чувства в интеллектуальной неуверенности; Фрейд считает эту характеристику неисчерпывающей.",
+    "en": "Jentsch finds the essential condition of the uncanny feeling in intellectual uncertainty; Freud considers this characterization incomplete."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E117"
+   ],
+   "note": "The passage discusses uncertainty generally; uncertain animateness is addressed separately in the Sandman discussion."
+  },
+  {
+   "id": "sigmund-freud.das-unheimliche:heimlich-and-unheimlich",
+   "of": [
+    "A:C066"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "I",
+   "formula": [
+    {
+     "place": "I p301"
+    }
+   ],
+   "thesis": {
+    "ru": "Одно из значений heimlich совпадает со своей противоположностью unheimlich; heimlich принадлежит кругам знакомого и сокрытого.",
+    "en": "One meaning of heimlich coincides with its opposite unheimlich; heimlich belongs to the spheres of the familiar and the concealed."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E118"
+   ],
+   "note": "The lexical passage names the familiar and concealed senses of heimlich; the uncanny returning to the long familiar is stated separately on p. 298."
+  },
+  {
+   "id": "sigmund-freud.das-unheimliche:sandman-and-eyes",
+   "of": [
+    "A:C066",
+    "A:C177"
+   ],
+   "areas": [
+    "AE05",
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p306"
+    }
+   ],
+   "thesis": {
+    "ru": "Жуткое чувство в «Песочном человеке» связано с фигурой Песочного человека и представлением о лишении глаз; сомнение в одушевлённости Олимпии здесь не имеет значения.",
+    "en": "The uncanny feeling in the Sandman is attached to the Sandman and the idea of being robbed of one’s eyes; doubt about Olympia’s animation does not apply to this stronger example."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E119"
+   ],
+   "note": "The place names the idea of losing eyes rather than fear as a separate concept; fear is not assigned."
+  },
+  {
+   "id": "sigmund-freud.das-unheimliche:double-becomes-harbinger",
+   "of": [
+    "A:C067",
+    "A:C066"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p309"
+    }
+   ],
+   "thesis": {
+    "ru": "Двойник был гарантией против гибели Я; после преодоления первичного нарциссизма он становится жутким предвестником смерти.",
+    "en": "The double was an insurance against the destruction of the ego; after primary narcissism is surmounted it becomes an uncanny harbinger of death."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E120"
+   ],
+   "note": "This passage traces the changing meaning of the double; it does not itself state the return of the repressed."
+  },
+  {
+   "id": "sigmund-freud.das-unheimliche:repetition-of-the-same",
+   "of": [
+    "A:C066"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p311"
+    }
+   ],
+   "thesis": {
+    "ru": "Повторение одинакового при определённых условиях вызывает жуткое чувство, напоминающее беспомощность некоторых сновидений.",
+    "en": "Repetition of the same, under certain conditions, evokes an uncanny feeling reminiscent of the helplessness of some dreams."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E121"
+   ],
+   "note": "The cited sentences discuss repetition, not the distinct mechanism of repetition compulsion."
+  },
+  {
+   "id": "sigmund-freud.das-unheimliche:experience-and-fiction",
+   "of": [
+    "A:C066"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "III",
+   "formula": [
+    {
+     "place": "III p319"
+    }
+   ],
+   "thesis": {
+    "ru": "Примеры из вымысла подсказывают различие между пережитым жутким и жутким, которое представляют себе или о котором читают.",
+    "en": "Examples from fiction suggest a distinction between the uncanny one experiences and the uncanny one imagines or reads about."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E122"
+   ],
+   "note": "The distinction is stated here; the adjacent conception states Freud’s account of experienced uncanny."
+  },
+  {
+   "id": "sigmund-freud.das-unheimliche:experienced-uncanny",
+   "of": [
+    "A:C066"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "III",
+   "formula": [
+    {
+     "place": "III p319b"
+    }
+   ],
+   "thesis": {
+    "ru": "Жуткое переживания имеет более простые условия и, по Фрейду, допускает в каждом случае возвращение к давно знакомому вытесненному.",
+    "en": "The uncanny of experience has simpler conditions and, Freud holds, can in every case be traced back to the long familiar repressed."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E122"
+   ],
+   "note": "This place traces experienced uncanny back to the familiar repressed; the return of the repressed is stated separately on p. 320."
+  },
+  {
+   "id": "sigmund-freud.das-unheimliche:uncanny-and-the-long-familiar",
+   "of": [
+    "A:C066",
+    "A:C068"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "I",
+   "formula": [
+    {
+     "place": "I p298b"
+    }
+   ],
+   "thesis": {
+    "ru": "Жуткое — род страшного, восходящий к давно известному, издавна знакомому.",
+    "en": "The uncanny is a species of the frightening that goes back to what is long known and familiar."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage states the uncanny’s relation to the long familiar; the lexical meanings of heimlich stand separately on p. 301.",
+   "from": [
+    "A:E118"
+   ]
+  },
+  {
+   "id": "sigmund-freud.das-unheimliche:jentsch-doubt-about-animation",
+   "of": [
+    "A:C177",
+    "A:C066"
+   ],
+   "areas": [
+    "AE05",
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p303"
+    }
+   ],
+   "thesis": {
+    "ru": "Йенч выделяет как пример жуткого сомнение в одушевлённости кажущегося живым существа или в одушевлённости неживого предмета.",
+    "en": "Jentsch singles out as an example of the uncanny doubt about the animation of an apparently living being or whether a lifeless object is animated."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The example is attributed to Jentsch; Freud distinguishes the stronger Sandman effect on p. 306.",
+   "from": [
+    "A:E119"
+   ]
+  },
+  {
+   "id": "sigmund-freud.das-unheimliche:reminders-of-repetition-compulsion",
+   "of": [
+    "A:C179",
+    "A:C066"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "II",
+   "formula": [
+    {
+     "place": "II p312"
+    }
+   ],
+   "thesis": {
+    "ru": "То, что может напомнить о внутреннем навязчивом повторении, будет ощущаться как жуткое.",
+    "en": "What can remind one of the inner compulsion to repeat will be experienced as uncanny."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage relates reminders of the inner compulsion to uncanny feeling, rather than asserting that compulsion itself causes every repetition.",
+   "from": [
+    "A:E121"
+   ]
+  },
+  {
+   "id": "sigmund-freud.das-unheimliche:return-of-repressed-complexes",
+   "of": [
+    "A:C178",
+    "A:C066"
+   ],
+   "areas": [
+    "AE08"
+   ],
+   "work": "sigmund-freud.das-unheimliche",
+   "locus": "III",
+   "formula": [
+    {
+     "place": "III p320"
+    }
+   ],
+   "thesis": {
+    "ru": "В жутком из инфантильных комплексов психическая реальность занимает место материальной; речь идёт о действительном вытеснении содержания и возвращении вытесненного.",
+    "en": "In the uncanny arising from infantile complexes, psychical reality takes the place of material reality; it concerns the actual repression of a content and the return of the repressed."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage is confined to uncanny arising from infantile complexes.",
+   "from": [
+    "A:E122"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "uncertain-animateness:is-an-example-of:the-uncanny",
+   "from_concept": "A:C177",
+   "to_concept": "A:C066",
+   "verb": {
+    "ru": "представлена Йенчем как пример",
+    "en": "is an example for Jentsch of"
+   },
+   "grounds": [
+    "sigmund-freud.das-unheimliche:jentsch-doubt-about-animation"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Jentsch presents doubt about animation as an example; attribution is retained.",
+   "from": [
+    "A:R111"
+   ]
+  },
+  {
+   "id": "repetition-compulsion:can-be-recalled-in:the-uncanny",
+   "from_concept": "A:C179",
+   "to_concept": "A:C066",
+   "verb": {
+    "ru": "может напоминать о себе в том, что ощущается как",
+    "en": "can be recalled in what is experienced as"
+   },
+   "grounds": [
+    "sigmund-freud.das-unheimliche:reminders-of-repetition-compulsion"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Freud says what reminds one of the compulsion will be felt uncanny.",
+   "from": [
+    "A:R114"
+   ]
+  },
+  {
+   "id": "the-return-of-the-repressed:is-involved-when-infantile-complexes-give-rise-to:the-uncanny",
+   "from_concept": "A:C178",
+   "to_concept": "A:C066",
+   "verb": {
+    "ru": "имеет место, когда инфантильные комплексы порождают",
+    "en": "is involved when infantile complexes give rise to"
+   },
+   "grounds": [
+    "sigmund-freud.das-unheimliche:return-of-repressed-complexes"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Freud speaks of the return of the repressed in the uncanny arising from infantile complexes.",
+   "from": [
+    "A:R115"
+   ]
+  }
+ ],
+ "left": [
+  {
+   "key": "A:R176",
+   "reason": "The passage distinguishes experienced and fictional uncanny; it does not compare uncanny with art-horror."
+  },
+  {
+   "key": "A:R112",
+   "reason": "The second reader (codex-2026-11-10-das-unheimliche-second) does not confirm disquieting-familiarity:is-the-long-familiar-to-which-goes-back:the-uncanny, or its ground is disputed: The place calls the uncanny «jene Art des Schreckhaften, welche auf das Altbekannte, Längstvertraute zurückgeht». It does not identify disquieting familiarity itself with the long familiar to which the uncanny goes back.",
+   "disputed": {
+    "id": "disquieting-familiarity:is-the-long-familiar-to-which-goes-back:the-uncanny",
+    "from_concept": "A:C068",
+    "to_concept": "A:C066",
+    "verb": {
+     "ru": "есть давно знакомое, к которому восходит",
+     "en": "is the long familiar to which goes back"
+    },
+    "grounds": [
+     "sigmund-freud.das-unheimliche:uncanny-and-the-long-familiar"
+    ],
+    "status": "text",
+    "verdict": "revise",
+    "note": "The verb follows Freud’s direction: the uncanny goes back to the long familiar.",
+    "from": [
+     "A:R112"
+    ]
+   }
+  },
+  {
+   "key": "A:R113",
+   "reason": "The second reader (codex-2026-11-10-das-unheimliche-second-independent) does not confirm the-double:is-among-the-motifs-to-which-freud-would-attribute-in-hoffmanns-the-devils-elixirs-the-effect-of:the-uncanny, or its ground is disputed: its conception left the reading",
+   "disputed": {
+    "id": "the-double:is-among-the-motifs-to-which-freud-would-attribute-in-hoffmanns-the-devils-elixirs-the-effect-of:the-uncanny",
+    "from_concept": "A:C067",
+    "to_concept": "A:C066",
+    "verb": {
+     "ru": "выделяется среди мотивов «Эликсиров дьявола» Гофмана, которым Фрейд предлагает приписать действие",
+     "en": "is among the motifs to which Freud would attribute, in Hoffmann’s The Devil’s Elixirs, the effect of"
+    },
+    "grounds": [
+     "sigmund-freud.das-unheimliche:double-as-uncanny-motif"
+    ],
+    "status": "text",
+    "verdict": "revise",
+    "note": "Freud singles out the double among motifs of Hoffmann’s novel to which one would attribute the uncanny effect of the story; the attribution remains qualified.",
+    "from": [
+     "A:R113"
+    ]
+   }
+  }
+ ]
+}

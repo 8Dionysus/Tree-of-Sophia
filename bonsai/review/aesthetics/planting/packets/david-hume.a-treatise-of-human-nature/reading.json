@@ -1,0 +1,109 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-a-treatise-of-human-nature",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "The English first edition of 1739, books I and II, beside the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "david-hume": {
+    "tree": "tos.agent.david-hume"
+   }
+  },
+  "works": {
+   "david-hume.a-treatise-of-human-nature": {
+    "title": {
+     "ru": "Трактат о человеческой природе",
+     "en": "A Treatise of Human Nature"
+    },
+    "original": "en",
+    "tree": "tos.work.david-hume.a-treatise-of-human-nature",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "david-hume.a-treatise-of-human-nature:calm-and-violent-impressions",
+   "of": [
+    "B:B-C003"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "david-hume.a-treatise-of-human-nature",
+   "locus": "II.1.1",
+   "formula": [
+    {
+     "place": "II.1.1 p3"
+    }
+   ],
+   "thesis": {
+    "ru": "Рефлективные впечатления можно разделить на спокойные и сильные: к первым относится чувство красоты и безобразия, ко вторым — страсти; это деление далеко от точного.",
+    "en": "Reflective impressions may be divided into calm and violent: the sense of beauty and deformity belongs to the first, the passions to the second; this division is far from exact."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:B-I005"
+   ]
+  },
+  {
+   "id": "david-hume.a-treatise-of-human-nature:sympathy-converts-idea-to-impression",
+   "of": [
+    "B:B-C004"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "david-hume.a-treatise-of-human-nature",
+   "locus": "II.1.11",
+   "formula": [
+    {
+     "place": "II.1.11 p74"
+    }
+   ],
+   "thesis": {
+    "ru": "Аффекция, переданная через симпатию, сначала познаётся по её внешним признакам; её идея обращается во впечатление и становится самой страстью.",
+    "en": "An affection infused by sympathy is first known by its external signs; its idea is converted into an impression and becomes the passion itself."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:B-I006"
+   ]
+  },
+  {
+   "id": "david-hume.a-treatise-of-human-nature:liberty-of-imagination",
+   "of": [
+    "B:D-C009",
+    "B:D-C010"
+   ],
+   "areas": [
+    "AE19"
+   ],
+   "work": "david-hume.a-treatise-of-human-nature",
+   "locus": "I.1.3",
+   "formula": [
+    {
+     "place": "I.1.3 p25"
+    }
+   ],
+   "thesis": {
+    "ru": "Воображение свободно переставляет и изменяет свои идеи; Юм называет эту свободу также свободой фантазии.",
+    "en": "The imagination is free to transpose and change its ideas; Hume also calls this the liberty of the fancy."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The selected place presents the liberty of imagination and fancy; the register’s comparison with memory is not asserted by this formula.",
+   "from": [
+    "B:D-I062"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

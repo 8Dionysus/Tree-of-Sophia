@@ -1,0 +1,133 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-discours-sur-le-style",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Французский текст речи по изданию Œuvres complètes de Buffon, том 1 (Париж, 1829), сопоставленному со сканом, рядом с тремя чтениями регистра.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "buffon": {
+    "tree": "tos.agent.buffon"
+   }
+  },
+  "works": {
+   "buffon.discours-sur-le-style": {
+    "title": {
+     "ru": "Речь о стиле",
+     "en": "Discourse on Style"
+    },
+    "original": "fr",
+    "tree": "tos.work.buffon.discours-sur-le-style",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "buffon.discours-sur-le-style:style-order-and-movement",
+   "of": [
+    "C:A-C028"
+   ],
+   "areas": [
+    "AE24"
+   ],
+   "work": "buffon.discours-sur-le-style",
+   "locus": "Discours",
+   "formula": [
+    {
+     "place": "Discours p5a"
+    }
+   ],
+   "thesis": {
+    "ru": "Стиль есть порядок и движение, которые придают своим мыслям.",
+    "en": "Style is the order and movement one gives to one’s thoughts."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I072"
+   ]
+  },
+  {
+   "id": "buffon.discours-sur-le-style:style-is-the-man",
+   "of": [
+    "C:A-C035"
+   ],
+   "areas": [
+    "AE24"
+   ],
+   "work": "buffon.discours-sur-le-style",
+   "locus": "Discours",
+   "formula": [
+    {
+     "place": "Discours p12"
+    }
+   ],
+   "thesis": {
+    "ru": "Знания, факты и открытия находятся вне человека и легко переносятся; стиль есть сам человек.",
+    "en": "Knowledge, facts and discoveries are outside the man and are easily transferred; style is the man himself."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "C:A-I073"
+   ],
+   "note": "Текст противопоставляет стиль переносимым знаниям, фактам и открытиям, но не говорит здесь об организации личности."
+  },
+  {
+   "id": "buffon.discours-sur-le-style:first-plan",
+   "of": [
+    "A:C195"
+   ],
+   "areas": [
+    "AE21"
+   ],
+   "work": "buffon.discours-sur-le-style",
+   "locus": "Discours",
+   "formula": [
+    {
+     "place": "Discours p5b"
+    }
+   ],
+   "thesis": {
+    "ru": "Первый план располагает основные идеи, очерчивает предмет и определяет промежутки, заполняемые добавочными и промежуточными идеями.",
+    "en": "The first plan places the principal ideas, defines the subject and determines the intervals filled by accessory and intermediate ideas."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I074"
+   ]
+  },
+  {
+   "id": "buffon.discours-sur-le-style:continuity-of-the-thread",
+   "of": [
+    "A:C195"
+   ],
+   "areas": [
+    "AE21"
+   ],
+   "work": "buffon.discours-sur-le-style",
+   "locus": "Discours",
+   "formula": [
+    {
+     "place": "Discours p6"
+    }
+   ],
+   "thesis": {
+    "ru": "Замысел автора даёт себя почувствовать непрерывностью нити, гармонической зависимостью идей, последовательным развитием, выдержанной градацией и равномерным движением.",
+    "en": "The author’s design makes itself felt through continuity of the thread, the harmonious dependence of ideas, successive development, sustained gradation and uniform movement."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I074"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

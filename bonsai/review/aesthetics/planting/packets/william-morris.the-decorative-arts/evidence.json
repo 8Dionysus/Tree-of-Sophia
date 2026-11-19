@@ -1,0 +1,186 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/hopesfearsforart1919morr/hopesfearsforart1919morr_hocr_searchtext.txt.gz",
+   "file": "hopesfearsforart1919morr.ocr.txt",
+   "sha256": "316096fcda1c0e15e8901d79d748bfbe782f2eb150de168d6011754b2727f2c4",
+   "bytes": 372822,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/hopesfearsforart1919morr/hopesfearsforart1919morr_hocr_pageindex.json.gz",
+   "file": "hopesfearsforart1919morr.index.json",
+   "sha256": "4d2ad33b5c6d367b1b707aef1aee1a067bb96275dc9bff021e0d1fed4071b14f",
+   "bytes": 8417,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/hopesfearsforart1919morr/hopesfearsforart1919morr_page_numbers.json",
+   "file": "hopesfearsforart1919morr.pages.json",
+   "sha256": "663fa455fcf04e2512af85d52a81f7f1c74991dbb39e75591f20069f1c1948e0",
+   "bytes": 41060,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.gutenberg.org/cache/epub/3773/pg3773-images.html",
+   "file": "pg3773-images.html",
+   "sha256": "40115084a497bc38c7709e4833e96e22c3542129007dbce0f2792a4feb217efd",
+   "bytes": 352374,
+   "fetched": "2026-11-11",
+   "text": "pg3773-images.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "hopesfearsforart1919morr",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q182589",
+   "name": {
+    "en": "William Morris",
+    "ru": "Уильям Моррис"
+   },
+   "role": "author",
+   "died": 1896,
+   "source": "https://www.wikidata.org/wiki/Q182589"
+  }
+ ],
+ "published": 1919,
+ "images": [
+  {
+   "n": 18,
+   "item": "hopesfearsforart1919morr",
+   "file": "hopesfearsforart1919morr-n18.jpg",
+   "sha256": "9f693565273388d8fe6fbd1e4b4059f6b21590282ed0c037b999c864244f958d",
+   "by": "maker"
+  },
+  {
+   "n": 17,
+   "item": "hopesfearsforart1919morr",
+   "file": "hopesfearsforart1919morr-n17.jpg",
+   "sha256": "bac8bbc194f6dfdf98874cddfbb9dc059f668b6bb552c5208c1255d79815f700",
+   "by": "maker"
+  },
+  {
+   "n": 47,
+   "item": "hopesfearsforart1919morr",
+   "file": "hopesfearsforart1919morr-n47.jpg",
+   "sha256": "8247a9278dea93ffe741f550d02c2dc698d169832c543c73b61ed8ae249e0b54",
+   "by": "maker",
+   "loc": "Lesser Arts p34b"
+  },
+  {
+   "n": 48,
+   "item": "hopesfearsforart1919morr",
+   "file": "hopesfearsforart1919morr-n48.jpg",
+   "sha256": "1e9cbdcc707f6f2040a4840f35fcf657698b1743dbde2b2c5347e2a0c0e5661e",
+   "by": "maker",
+   "loc": "Lesser Arts p34b"
+  },
+  {
+   "n": 16,
+   "item": "hopesfearsforart1919morr",
+   "file": "hopesfearsforart1919morr-n16.jpg",
+   "sha256": "a99502984f9ff12eda31c4df03157c4b1e65f6f0731edc3122542fd041766d25",
+   "by": "second",
+   "loc": "Lesser Arts p3"
+  },
+  {
+   "n": 17,
+   "item": "hopesfearsforart1919morr",
+   "file": "hopesfearsforart1919morr-n17.jpg",
+   "sha256": "bac8bbc194f6dfdf98874cddfbb9dc059f668b6bb552c5208c1255d79815f700",
+   "by": "second",
+   "loc": "Lesser Arts p4"
+  },
+  {
+   "n": 47,
+   "item": "hopesfearsforart1919morr",
+   "file": "hopesfearsforart1919morr-n47.jpg",
+   "sha256": "8247a9278dea93ffe741f550d02c2dc698d169832c543c73b61ed8ae249e0b54",
+   "by": "second",
+   "loc": "Lesser Arts p34b"
+  },
+  {
+   "n": 48,
+   "item": "hopesfearsforart1919morr",
+   "file": "hopesfearsforart1919morr-n48.jpg",
+   "sha256": "1e9cbdcc707f6f2040a4840f35fcf657698b1743dbde2b2c5347e2a0c0e5661e",
+   "by": "second",
+   "loc": "Lesser Arts p34b"
+  }
+ ],
+ "places": {
+  "Lesser Arts p34": {
+   "transcription": "pg3773-images.html",
+   "scan": "hopesfearsforart1919morr",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    48
+   ],
+   "printed": [
+    "34"
+   ],
+   "differences": []
+  },
+  "Lesser Arts p35": {
+   "transcription": "pg3773-images.html",
+   "scan": "hopesfearsforart1919morr",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    49
+   ],
+   "printed": [
+    "35"
+   ],
+   "differences": []
+  },
+  "Lesser Arts p34b": {
+   "transcription": "pg3773-images.html",
+   "scan": "hopesfearsforart1919morr",
+   "method": "ocr",
+   "share": 0.971,
+   "leaves": [
+    48,
+    49
+   ],
+   "printed": [
+    "34",
+    "35"
+   ],
+   "differences": [
+    {
+     "transcription": "open - heartedness",
+     "ocr": "openheartedness",
+     "leaf": 48,
+     "stands": "transcription",
+     "note": "Page 34 prints open- at line end followed by heartedness; the transcription preserves the compound."
+    },
+    {
+     "transcription": "",
+     "ocr": "The Lesser Arts 35",
+     "leaf": 49,
+     "stands": "transcription",
+     "note": "The page has The Lesser Arts and 35 as running header, not part of the sentence."
+    }
+   ]
+  }
+ },
+ "scans": {
+  "hopesfearsforart1919morr": {
+   "item": "hopesfearsforart1919morr",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -1
+  }
+ }
+}

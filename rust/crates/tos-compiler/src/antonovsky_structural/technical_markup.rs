@@ -508,6 +508,33 @@ pub fn run(
     };
     let (plan, screening) = plans(&ctx)?;
     if matches!(action, Action::ValidateTracked) {
+        const PRIVATE_OUTPUTS: &[&str] = &[
+            "citation-spine.v1.jsonl",
+            "heading-candidates.v1.jsonl",
+            "heading-screening.v1.jsonl",
+            "paragraph-segment-overlay.v1.jsonl",
+            "region-candidates.v1.jsonl",
+            "screening-summary.v1.json",
+            "source-text-unit.v1.json",
+            "summary.v1.json",
+        ];
+        let missing = crate::private_custody::verify_family_missing(
+            &ctx,
+            &format!("{V1}/r2-manifest.v1.json"),
+            PRIVATE_OUTPUTS,
+        )?;
+        if !missing.is_empty() {
+            let checked = validation::tracked_partial(&ctx, &plan, &screening, &missing)?;
+            ctx.check()?;
+            return Ok(format!(
+                "private custody: {} not hydrated, manifest verified; {} present outputs checked; content validation incomplete; checked: {}; full cross-output validation not run for absent: {}\n",
+                missing.len(),
+                PRIVATE_OUTPUTS.len() + 1 - missing.len(),
+                checked.join(", "),
+                missing.join(", "),
+            )
+            .into_bytes());
+        }
         let (summary, screen) = validation::tracked(&ctx, &plan, &screening)?;
         ctx.check()?;
         return Ok(format!("antonovsky technical markup tracked validation passed: units={} blocks={} headings={} screened_headings={} split_boundaries={}\n",n(&summary["tracked_unit_count"]),n(&summary["layout_block_paragraph_candidate_count"]),n(&summary["heading_candidate_count"]),n(&screen["heading_candidate_count"]),n(&screen["split_boundary_count"])).into_bytes());

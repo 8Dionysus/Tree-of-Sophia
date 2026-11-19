@@ -1,0 +1,85 @@
+{
+  "reader": {
+    "id": "terra-2026-11-11-vorschule-der-aesthetik",
+    "model": "gpt-6.1-terra",
+    "date": "2026-11-11",
+    "reads": "The German first edition of 1876, chapter I, read alongside both register readings and the page images."
+  },
+  "note": "",
+  "library": {
+    "agents": {
+      "gustav-theodor-fechner": {
+        "tree": "tos.agent.gustav-theodor-fechner"
+      }
+    },
+    "works": {
+      "gustav-theodor-fechner.vorschule-der-aesthetik": {
+        "title": {
+          "ru": "Введение в эстетику",
+          "en": "Introduction to Aesthetics"
+        },
+        "original": "de",
+        "tree": "tos.work.gustav-theodor-fechner.vorschule-der-aesthetik",
+        "places": "fragments"
+      }
+    }
+  },
+  "conceptions": [
+    {
+      "id": "gustav-theodor-fechner.vorschule-der-aesthetik:experience-and-generalization",
+      "of": [
+        "D:B-C3608"
+      ],
+      "areas": [
+        "AE36"
+      ],
+      "work": "gustav-theodor-fechner.vorschule-der-aesthetik",
+      "locus": "Ch. I",
+      "formula": [
+        {
+          "place": "I p1a"
+        },
+        {
+          "place": "I p1b"
+        }
+      ],
+      "thesis": {
+        "ru": "Эстетика снизу исходит из опыта того, что нравится и вызывает неудовольствие, и на его основе обобщает понятия и законы эстетики, учитывая законы должного, которым подчинены законы удовольствия.",
+        "en": "Aesthetics from below begins with experience of what pleases and displeases and on that basis generalizes its concepts and laws, taking account of the laws of what ought to be, to which the laws of pleasure remain subordinate."
+      },
+      "status": "text",
+      "verdict": "revise",
+      "note": "The register mentions experiments; these opening sentences speak of experience, not experiments.",
+      "from": [
+        "D:B-I138"
+      ]
+    },
+    {
+      "id": "gustav-theodor-fechner.vorschule-der-aesthetik:complementary-directions",
+      "of": [
+        "D:B-C3608"
+      ],
+      "areas": [
+        "AE36"
+      ],
+      "work": "gustav-theodor-fechner.vorschule-der-aesthetik",
+      "locus": "Ch. I",
+      "formula": [
+        {
+          "place": "I p2"
+        }
+      ],
+      "thesis": {
+        "ru": "Философский и эмпирический способы проходят одну область в противоположных направлениях; возможность движения в одном направлении дополняется возможностью движения в другом.",
+        "en": "The philosophical and empirical approaches traverse the same field in opposite directions; the possibility of movement in one direction is complemented by movement in the other."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "D:B-I139"
+      ]
+    }
+  ],
+  "links": [],
+  "left": []
+}

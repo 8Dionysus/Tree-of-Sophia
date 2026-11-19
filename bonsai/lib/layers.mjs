@@ -11,7 +11,10 @@
 //                            site's copy (TOS_LAYERS_MIRROR), then from the transfer branch
 //   send <home>              put files that no store holds yet on the transfer branch (layers/transfer)
 //   upload <home>            put every file R2 lacks into R2 and read it back (R2_* credentials)
-//   mirror <home> <dir>      copy the files into <dir>/layers/sha256/<hex>, the site's copy
+//   mirror <home> <dir>      copy the files into <dir>/sha256/<hex>, the site's copy
+//   homes                    the homes of the checkout: every directory whose layers.json is a layers manifest
+//   place <dir>              the site's copy of every home of the checkout in <dir>/sha256/<hex>, each missing
+//                            file fetched first; the public-research build runs it into its output
 //   prune <home>...          keep on the transfer branch only what R2 still lacks (R2_* credentials)
 //
 // Every byte that arrives is checked against its SHA-256 and size before it is written.
@@ -231,6 +234,35 @@ export async function fetchLayers(home,{sources,log=()=>{}}){
   return {fetched:missing.length-unresolved.length,unresolved};
 }
 
+/** The homes of a checkout's layers: every directory whose layers.json, tracked or new, is a layers manifest. */
+export function layerHomes(repo){
+  const listed=git(repo,['ls-files','-z','--cached','--others','--exclude-standard','--','layers.json',':(glob)**/layers.json'],{encoding:'utf8'});
+  return [...new Set(listed.split('\0').filter(Boolean))].map(path=>resolve(repo,dirname(path)))
+    .filter(home=>readLayers(home)?.schema===LAYERS_SCHEMA).sort();
+}
+
+/** The stores a checkout brings layer files from, in order: R2 when its credentials are set, the site's copy, the transfer branch. */
+export function layerSources(repo,env=process.env){
+  const client=r2FromEnv(env);
+  return [...(client?[{name:'R2',get:hex=>client.get(hex)}]:[]),mirrorSource(env.TOS_LAYERS_MIRROR||DEFAULT_MIRROR),transferSource(repo)];
+}
+
+/**
+ * The site's copy of every home's layers in dir/sha256/<hex>. A file missing from the checkout comes from the stores
+ * first; one that no store holds stops the copy, so a site is never built without the layers its pages address.
+ */
+export async function placeLayers(repo,dir,{sources=null,log=()=>{}}={}){
+  const homes=layerHomes(repo);let files=0;
+  for(const home of homes){
+    if(layerStatus(home).some(entry=>entry.state!=='present')){
+      const {unresolved}=await fetchLayers(home,{sources:sources??layerSources(repo),log});
+      if(unresolved.length)throw new Error(`${relative(repo,home)||'.'}: layer files no store holds:\n${unresolved.join('\n')}`);
+    }
+    files+=mirrorLayers(home,dir);
+  }
+  return {homes:homes.map(home=>relative(repo,home)||'.'),files};
+}
+
 /** Put every file R2 lacks into R2 and read each back. The files must be present. */
 export async function uploadLayers(home,{r2,log=()=>{}}){
   const layers=readLayers(home);let uploaded=0;
@@ -281,7 +313,8 @@ export async function pruneTransfer(repo,{r2,log=()=>{}}){
 }
 
 async function main([command,...args]){
-  const home=args[0]&&resolve(args[0]);
+  const home=!['place','homes'].includes(command)&&args[0]&&resolve(args[0]);
+  const checkout=()=>git(process.cwd(),['rev-parse','--show-toplevel'],{encoding:'utf8'}).trim();
   const repo=home&&git(home,['rev-parse','--show-toplevel'],{encoding:'utf8'}).trim();
   const log=line=>console.log(line);
   const r2=()=>{const client=r2FromEnv();if(!client)throw new Error('R2 credentials are not set (R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY)');return client;};
@@ -295,9 +328,7 @@ async function main([command,...args]){
       return counts.present===states.length?0:1;
     }
     case 'fetch':{
-      const client=r2FromEnv();
-      const sources=[...(client?[{name:'R2',get:hex=>client.get(hex)}]:[]),mirrorSource(),transferSource(repo)];
-      const {fetched,unresolved}=await fetchLayers(home,{sources,log});
+      const {fetched,unresolved}=await fetchLayers(home,{sources:layerSources(repo),log});
       console.log(`${fetched} files fetched`);
       if(unresolved.length){console.error(`not found in any store:\n${unresolved.join('\n')}`);return 1;}
       return 0;
@@ -310,9 +341,15 @@ async function main([command,...args]){
     }
     case 'upload':{const {uploaded}=await uploadLayers(home,{r2:r2(),log});console.log(`${uploaded} files uploaded to R2`);return 0;}
     case 'mirror':{if(!args[1])throw new Error('mirror needs a target directory');const count=mirrorLayers(home,resolve(args[1]));console.log(`${count} files copied`);return 0;}
+    case 'homes':{const root=checkout();for(const item of layerHomes(root))console.log(relative(root,item)||'.');return 0;}
+    case 'place':{
+      if(!args[0])throw new Error('place needs a target directory');
+      const {homes,files}=await placeLayers(checkout(),resolve(args[0]),{log});
+      console.log(`${files} files of ${homes.join(', ')||'no home'} placed`);return 0;
+    }
     case 'prune':{const {kept,removed}=await pruneTransfer(repo,{r2:r2(),log});console.log(`${removed} removed, ${kept} still wait on ${TRANSFER_BRANCH}`);return 0;}
     default:
-      console.error('usage: layers.mjs manifest|status|fetch|send|upload|prune <bonsai home> | mirror <bonsai home> <dir>');
+      console.error('usage: layers.mjs manifest|status|fetch|send|upload|prune <bonsai home> | mirror <bonsai home> <dir> | homes | place <dir>');
       return 2;
   }
 }

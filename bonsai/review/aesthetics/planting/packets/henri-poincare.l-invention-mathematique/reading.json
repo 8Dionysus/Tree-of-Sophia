@@ -1,0 +1,114 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-l-invention-mathematique",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "The French 1908 Paris printing of L’Invention mathématique, read against the two register readings and the page images.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "henri-poincare": {
+    "tree": "tos.agent.henri-poincare"
+   }
+  },
+  "works": {
+   "henri-poincare.l-invention-mathematique": {
+    "title": {
+     "ru": "Математическое изобретение",
+     "en": "Mathematical Invention"
+    },
+    "original": "fr",
+    "tree": "tos.work.henri-poincare.l-invention-mathematique",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "henri-poincare.l-invention-mathematique:harmony-and-the-whole",
+   "of": [
+    "B:D-C008",
+    "B:D-C002"
+   ],
+   "areas": [
+    "AE18"
+   ],
+   "work": "henri-poincare.l-invention-mathematique",
+   "locus": "p. 12",
+   "formula": [
+    {
+     "place": "Conférence p12a"
+    }
+   ],
+   "thesis": {
+    "ru": "Красота и элегантность математических объектов состоят в гармоничном расположении элементов, позволяющем уму без усилия охватить целое и проникнуть в детали; гармония удовлетворяет эстетические потребности и направляет ум.",
+    "en": "The beauty and elegance of mathematical objects lie in the harmonious arrangement of their elements, allowing the mind effortlessly to grasp the whole while penetrating the details; harmony satisfies aesthetic needs and guides the mind."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:D-I022"
+   ]
+  },
+  {
+   "id": "henri-poincare.l-invention-mathematique:harmonious-combinations-and-attention",
+   "of": [
+    "B:D-C008"
+   ],
+   "areas": [
+    "AE18"
+   ],
+   "work": "henri-poincare.l-invention-mathematique",
+   "locus": "pp. 12–13",
+   "formula": [
+    {
+     "place": "Conférence p12b"
+    }
+   ],
+   "thesis": {
+    "ru": "Немногие гармоничные сочетания способны взволновать особую чувствительность геометра, которая привлекает к ним внимание и даёт им возможность стать сознательными.",
+    "en": "The few harmonious combinations can move the geometer’s special sensibility, which draws attention to them and gives them the opportunity to become conscious."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:D-I022"
+   ],
+   "distinction": {
+    "ru": "Пуанкаре называет это гипотезой.",
+    "en": "Poincaré calls this a hypothesis."
+   }
+  },
+  {
+   "id": "henri-poincare.l-invention-mathematique:false-illumination-and-elegance",
+   "of": [
+    "B:D-C008"
+   ],
+   "areas": [
+    "AE18"
+   ],
+   "work": "henri-poincare.l-invention-mathematique",
+   "locus": "pp. 12–13",
+   "formula": [
+    {
+     "place": "Conférence p13"
+    }
+   ],
+   "thesis": {
+    "ru": "Внезапное озарение иногда не выдерживает проверки; ложная идея, будь она верной, почти всегда льстила бы естественному инстинкту математической элегантности.",
+    "en": "A sudden illumination sometimes fails verification; the false idea, had it been correct, would almost always have pleased the natural instinct for mathematical elegance."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage concerns mathematical elegance and a false idea under verification; it does not speak of artistic truth, so B:D-C003 is dropped.",
+   "from": [
+    "B:D-I023"
+   ],
+   "negation": "elle ne supporte pas l’épreuve d’une vérification"
+  }
+ ],
+ "links": [],
+ "left": []
+}

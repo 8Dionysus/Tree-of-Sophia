@@ -363,11 +363,16 @@ function keyFor(documentId, versionId) {
   return `${documentId}\u0000${versionId}`;
 }
 
+const ORIGINAL_ROLES = new Set(['original', 'source_language', 'critical_text']);
+
 function availableVersion(document, versionId, locale) {
   const versions = list(document?.versions);
   if (versionId) return versions.find(item => item.id === versionId || item.versionId === versionId) || null;
+  // With no edition asked for, the reader opens the work in the language of the Tree they read, else in its
+  // original: another language's translation opens only on the reader's own choice.
   return versions.find(item => item.id === versionId || item.versionId === versionId)
     || versions.find(item => item.language === locale)
+    || versions.find(item => ORIGINAL_ROLES.has(item.role) && item.available !== false)
     || versions.find(item => item.available)
     || versions[0]
     || null;

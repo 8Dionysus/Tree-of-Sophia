@@ -1,4 +1,4 @@
-import {PUBLIC_LOCALES,LOCALE_NAMES,resolveLocale} from '../public-research/locale.mjs';
+import {PUBLIC_LOCALES,LOCALE_NAMES,resolveLocale,shownLanguages} from '../public-research/locale.mjs';
 import {localeText,copyLocale} from '../public-research/locale.mjs';
 import './reader.css';
 import {createNoteDraftJournal} from './note-draft.mjs';
@@ -14,7 +14,7 @@ import {
   unitReference,
 } from './view-model.mjs';
 import {createNotebookMetadataResolver,notebookFallbackLabel,notebookReferenceWorkId} from './notebook-labels.mjs';
-import {languageName,sourceLinkLabel,corpusWorkTitle,corpusSectionLabel} from '../observatory/human-presentation.mjs';
+import {languageName,sourceLinkLabel,corpusAuthorName,corpusWorkTitle,corpusSectionLabel} from '../observatory/human-presentation.mjs';
 import {bindPhilologyResult,philologyMarkIntervals,renderPhilology,selectedPhilologyForm,isSingleWordSelection} from './philology.mjs';
 import {renderOrigin} from './word-origin.mjs';
 import {createSelectionMenu} from './selection-menu.mjs';
@@ -25,7 +25,7 @@ import {editionRepresentationKind,groupEditionRepresentations} from './edition-g
 import {readableUnitLocator} from './location-label.mjs';
 import {editorialRanges,editorialLabel,editorialKindForMatch,hasEditorialProjection,quotationWithEditorialRoles,sourceLayerKind} from './editorial.mjs';
 import {selectedSourceContext} from './source-context.mjs';
-import {isPreReform,respell} from '../public-research/orthography.mjs';
+import {needsRespelling,respell} from '../public-research/orthography.mjs';
 import {retainedLibrary,loadRetainedLibrary} from './retained-library.mjs';
 import variants from '../../../public-corpus/reader-textual-variants.v1.json' with {type:'json'};
 
@@ -113,6 +113,7 @@ const button = (label, action, className = '') => {
   node.addEventListener('click', action);
   return node;
 };
+const ORIGINAL_ROLES = new Set(['original', 'source_language', 'critical_text']);
 const localized = (value, locale) => {
   if (typeof value === 'string') return value;
   if (!value || typeof value !== 'object') return '';
@@ -162,7 +163,7 @@ function selectedOffsets(row, node, offset) {
 
 function quoteAttribution({document, version, unit, quote, locale}) {
   const title = corpusWorkTitle(document, locale) || document?.id || '';
-  const author = localized(document?.author, locale);
+  const author = corpusAuthorName(document?.author, locale);
   const work = localized(document?.work, locale);
   const originalTitle = localized(document?.title, locale);
   const edition = localized(version?.edition, locale) || version?.label || version?.id || '';
@@ -195,7 +196,6 @@ export function mountCorpusReader({
   root.hidden = true;
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-modal', 'true');
-  root.setAttribute('aria-label', WORDING.ru.reading);
   root.tabIndex = -1;
   host.append(root);
 
@@ -261,6 +261,7 @@ export function mountCorpusReader({
   const notebookMetadataResolver = createNotebookMetadataResolver({readDocument: documentId => model.readDocumentMetadata(documentId)});
 
   const t = key => localeText(WORDING[copyLocale(uiLocale)][key] || key,uiLocale,[],key==='reading'?'corpus-reader':null);
+  root.setAttribute('aria-label', t('reading'));
   const modelState = () => renderSnapshot ?? model.snapshot();
   const activeDocument = () => modelState().document;
   const activeVersion = versionId => activeDocument()?.versions?.find(item => item.id === versionId) || null;
@@ -725,7 +726,7 @@ export function mountCorpusReader({
     const title = element('div', 'cr-title');
     title.append(element('span', 'cr-kicker', `✧ ${t('reading')}`));
     title.append(element('h1', '', state.document ? documentTitle(state.document) : t('reading')));
-    const author = localized(state.document?.author, uiLocale());
+    const author = corpusAuthorName(state.document?.author, uiLocale());
     if (author) title.append(element('p', '', author));
     const jump=button(t('jumpToText'),()=>root.querySelector('.cr-pane')?.focus({preventScroll:true}),'cr-jump-text');
     jump.disabled=!state.document;
@@ -774,7 +775,7 @@ export function mountCorpusReader({
       item.dataset.current = String(document.id === state.document?.id);
       item.dataset.available = String(isTextAvailable(document));
       item.append(element('strong', '', documentTitle(document)));
-      const author = localized(document.author, uiLocale());
+      const author = corpusAuthorName(document.author, uiLocale());
       const descriptor = localized(document.locator, uiLocale()) || author;
       const availability = catalogAvailability(document);
       const count = Number.isSafeInteger(document.unitCount) && document.unitCount >= 0
@@ -851,8 +852,21 @@ export function mountCorpusReader({
     return result;
   }
 
+  // A reader of the Tree reads a work in its original and in the language of the Tree they read
+  // (shownLanguages); the work's other translations belong to the readers of their languages. The edition
+  // open now stays listed, so a choice made elsewhere is never hidden from the one who made it.
+  function shownVersions(document) {
+    const all = document?.versions || [];
+    const base = value => String(value ?? '').split('-')[0];
+    const original = base(all.find(version => ORIGINAL_ROLES.has(version.role))?.language ?? all[0]?.language);
+    if (!original) return all;
+    const languages = shownLanguages(uiLocale(), original, all.map(version => base(version.language)).filter(Boolean));
+    const active = modelState().activeVersionId;
+    return all.filter(version => !version.language || languages.includes(base(version.language)) || version.id === active);
+  }
+
   function chooseVersions(document, state) {
-    const allVersions = document?.versions || [];
+    const allVersions = shownVersions(document);
     const versions = allVersions.filter(isTextAvailable);
     // Keep an explicitly selected unavailable version visible so its rights or
     // delivery state is inspectable; silently falling back would retarget the
@@ -951,7 +965,7 @@ export function mountCorpusReader({
 
   function renderVersionBar(state, versions) {
     const toolbar = element('nav', 'cr-toolbar'); toolbar.setAttribute('aria-label', t('edition'));
-    const allVersions = state.document?.versions || [];
+    const allVersions = shownVersions(state.document);
     toolbar.append(renderVersionChoices(allVersions, 'cr-desktop-editions'));
     const picker = element('details', 'cr-edition-picker');
     picker.setAttribute('aria-label', t('mobileEditions'));
@@ -961,7 +975,7 @@ export function mountCorpusReader({
     mobileSummary.dataset.focusKey='mobile-edition';picker.append(mobileSummary);
     picker.append(renderVersionChoices(allVersions));
     toolbar.append(picker);
-    if ((state.document?.versions || []).length > 1) {
+    if (allVersions.length > 1) {
       toolbar.append(button(mode === 'parallel' ? t('one') : t('parallel'), async () => {
         if(!(await flushNote()))return;
         capturePanePositions();
@@ -977,7 +991,7 @@ export function mountCorpusReader({
       const label = element('label', 'cr-compare'); label.append(element('span', '', t('compare')));
       const select = element('select'); select.setAttribute('aria-label', t('compare'));
       select.dataset.focusKey='compare-target';
-      for (const version of state.document.versions.filter(item => item.id !== state.activeVersionId && isTextAvailable(item))) {
+      for (const version of allVersions.filter(item => item.id !== state.activeVersionId && isTextAvailable(item))) {
         const option = element('option', '', [editionRepresentationLabel(version),versionLabel(version)].filter(Boolean).join(' · ')); option.value = version.id; select.append(option);
       }
       select.value = versions[1]?.id || '';
@@ -1124,7 +1138,7 @@ export function mountCorpusReader({
     const editorial=editorialRanges(version,unit);
     // Respell complete words before splitting highlights; each boundary still
     // names the source's code points, and the row keeps the reverse mapping.
-    const spelling=(version?.language??unit.language)==='ru'&&isPreReform(unit.text)?respell(unit.text):null;
+    const spelling=(version?.language??unit.language)==='ru'&&needsRespelling(unit.text)?respell(unit.text):null;
     const offsets=spelling?[0]:null;
     if(offsets)for(const character of unit.text)offsets.push(offsets.at(-1)+character.length);
     const boundaries=[...new Set([0,codePoints,...intervals.flatMap(value=>[value.start,value.end]),...editorial.flatMap(value=>[value.start,value.end])])].sort((a,b)=>a-b);
@@ -1175,6 +1189,11 @@ export function mountCorpusReader({
     head.append(element('span','cr-kicker',versionLabel(version)),element('h2','',documentTitle({id:state.document.id,title:version.title||state.document.title},[version.id])));
     const meta=[localized(version.edition,uiLocale()),localized(version.translator,uiLocale()),localized(version.locator,uiLocale())].filter(Boolean).join(' · ');
     if(meta)head.append(element('p','cr-muted',meta));pane.append(head);
+    if(version.license?.url==='https://www.gutenberg.org/policy/license.html'){
+      const notice=element('p','cr-editorial-notice');
+      notice.append(document.createTextNode('This eBook is for the use of anyone anywhere in the United States and most other parts of the world at no cost and with almost no restrictions whatsoever. You may copy it, give it away or re-use it under the terms of the Project Gutenberg License included with this eBook or online at www.gutenberg.org. If you are not located in the United States, you will have to check the laws of the country where you are located before using this eBook. '));
+      const link=element('a','','Project Gutenberg License');link.href=version.license.url;link.target='_blank';link.rel='noopener noreferrer';notice.append(link);head.append(notice);
+    }
     if(hasEditorialProjection(version))head.append(element('p','cr-editorial-notice',copyLocale(uiLocale)==='en'
       ?localeText('Source markup is shown where matched; consult the edition for its complete apparatus.',locale)
       :'Пометы источника показаны там, где их удалось сопоставить; полный аппарат проверяйте в издании.'));
@@ -1402,7 +1421,7 @@ export function mountCorpusReader({
 
   function renderSource(body, state) {
     body.append(element('h2', 'cr-inspector-title', t('source')));
-    for (const version of state.document?.versions || []) {
+    for (const version of shownVersions(state.document)) {
       const status = isTextAvailable(version) ? '' : catalogAvailability(version);
       const section = element('section', 'cr-source'); section.append(element('h3', '', [editionRepresentationLabel(version),versionLanguage(version), localized(version.edition, uiLocale()), status].filter(Boolean).join(' · ') || t('edition')));
       const sourceUrl = safeExternalUrl(attr(version.sourceUrl || version.source_url || version.source?.url || version.source?.href));

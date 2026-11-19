@@ -90,6 +90,52 @@ image of the work — the lion, the child, the wheel, the ring, the gateway, the
 paths, the bite, the dance, the circle — the node is an image of thought, and the
 conceptions it presents are joined to it by `image-presents-conception`.
 
+## A core across works
+
+Version 1, 2026-11-09. Instance: [`aesthetics/field.json`](aesthetics/field.json).
+
+The core above measures the thought of one work. A field of thought — a
+discipline such as aesthetics — is measured the other way round: one question
+is put to many works, and each work answers in its own place and voice. The
+principles of a node hold unchanged; what changes is which of them carries the
+structure. In a work's core every concept has one conception, the work's. In a
+field's core a crosscutting concept gathers the conceptions of many works, and
+the question that joins them is the continuity criterion of principle 2.
+
+| Object | Minimal data | Invariants | Tree type |
+| --- | --- | --- | --- |
+| Area | id, number, group, title, question | an area asks a question any author can address; an area without a question is a heading and is not kept | navigation-region, question |
+| Concept | id, title, terms as the works write them, areas | a category of the field is typed as one; every other concept is a candidate until a reading of a place types it | philosophical-category, concept, later crosscutting-concept |
+| Conception | the concepts it is of, work, authors, voice, locator, formula, thesis, distinction | the formula is the work's own words at a cited place of the original and runs over whole sentences; the thesis is ours and affirms what that sentence affirms; the voice is named where the author lets another speak | conception |
+| Link | from, verb, to, relation?, grounds | the verb is the work's predicate; the grounds are conceptions the field holds, so both ends are shown by places of works | relation claim |
+| Assessment | status, reading (reader, verdict, note), admission, the research records it grew from | the reader reads the place in the work, never the maker's reasoning; an admission rests only on a verdict that allows it | assessment |
+
+**Growth.** A research register proposes: its readings are paraphrases with
+locators, kept whole in the bonsai's review layer. A reader opens the place in
+the work itself, cites the formula, writes the thesis and gives the verdict
+(`confirmed`, `revise` with what changed, `rejected`, `undecided`). Only then
+does the reading stand in the field as a conception; the register's paraphrase
+stays in the layer as the record of where it came from. A link enters after the
+conceptions it rests on. Links the register marks as its compiler's comparison
+wait in the layer and are grown with the operator.
+
+**One conception, several readings.** Registers made by separate passes often
+read the same place. Their readings meet in one conception, which names all of
+them under `grew_from`; where they place it differently, the reader's note says
+which placing the text bears out.
+
+**What the reader makes.** A conception or a link the reader draws from the
+text with no register behind it has its maker and no reviewer yet. Its verdict
+is `undecided` and the stand holds it back until another reader has read the
+place. A link stands on the map only where at least one of the conceptions it
+rests on stands there.
+
+**A work outside the public corpus.** Its cited places stand in the bonsai's
+`fragments.json`, in the original and in the translations whose rights allow
+it, each witness with its edition, source and rights. A place is the formula
+of a conception: whole sentences of the work, read on the printed page where a
+transcription and the page differ.
+
 ## Subject, claim and representation
 
 - **The place** is what the work says: the witness's text at a stable address.

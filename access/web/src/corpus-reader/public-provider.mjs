@@ -29,7 +29,7 @@ const AUTHOR_ALIASES={
   aristotle:'Аристотель', cicero:'Цицерон Марк Туллий', 'diogenes laertius':'Диоген Лаэртский',
   epictetus:'Эпиктет', 'friedrich nietzsche':'Фридрих Ницше', 'hippocratic corpus':'Гиппократ Гиппократов корпус',
   lucretius:'Лукреций', 'marcus aurelius':'Марк Аврелий', plato:'Платон', plotinus:'Плотин',
-  plutarch:'Плутарх', porphyry:'Порфирий', seneca:'Сенека',
+  plutarch:'Плутарх', porphyry:'Порфирий', seneca:'Сенека', xenophon:'Ксенофонт',
 };
 const authorSearchAliases=author=>typeof author==='string'?[AUTHOR_ALIASES[author.trim().toLowerCase()]||'',...PUBLIC_LOCALES.map(language=>localeText(author,language))].join(' '):'';
 
@@ -70,7 +70,9 @@ function documentView(document){
       const {pages,units,structure,searchIndex,analysis,...metadata}=version;
       const witness = version.id === bonsaiWitnesses.corpus.ru?.versionId ? bonsaiWitnesses.witnesses.ru
         : version.id === bonsaiWitnesses.corpus.dta?.versionId ? bonsaiWitnesses.witnesses.de : null;
-      return {...metadata,...(witness ? {witnessNote:witness.omits,transcriptionNote:witness.quality,witnessSources:witness.sources} : {}),status:'available',visibility:'public',available:true,textAvailable:true};
+      // The stand names its editions in every language of its interface; the release's own label stays the source form.
+      const named = Object.values(bonsaiWitnesses.corpus ?? {}).find(entry => entry?.versionId === version.id)?.label;
+      return {...metadata,...(named ? {edition:named} : {}),...(witness ? {witnessNote:witness.omits,transcriptionNote:witness.quality,witnessSources:witness.sources} : {}),status:'available',visibility:'public',available:true,textAvailable:true};
     })};
 }
 

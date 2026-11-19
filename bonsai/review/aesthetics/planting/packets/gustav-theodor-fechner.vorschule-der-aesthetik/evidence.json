@@ -1,0 +1,172 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/vorschulederaest12fechuoft/vorschulederaest12fechuoft_hocr_searchtext.txt.gz",
+   "file": "vorschulederaest12fechuoft.ocr.txt",
+   "sha256": "4adad3c164f2cfcd13ecda4f5d0b7db4d22f51040aa7b69532ce324bf191eb5e",
+   "bytes": 1594401,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/vorschulederaest12fechuoft/vorschulederaest12fechuoft_hocr_pageindex.json.gz",
+   "file": "vorschulederaest12fechuoft.index.json",
+   "sha256": "0185dae895a83f4d6b2e61cf645474716e6fd129591ffec9dd5755bf0a4d57d6",
+   "bytes": 23291,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/vorschulederaest12fechuoft/vorschulederaest12fechuoft_page_numbers.json",
+   "file": "vorschulederaest12fechuoft.pages.json",
+   "sha256": "85922b5b1f9e4a0fcca7bff34ac788cea65fc87d9e45ff6db7bc1ac97728c2bf",
+   "bytes": 102772,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://projekt-gutenberg.org/authors/gustav-theodor-fechner/books/vorschule-der-aesthetik/chapter/3/",
+   "file": "3",
+   "sha256": "b4df9e0f77342634e6f08ef330651cf2f8f3701b26075944947b0bfa1f6cc0a0",
+   "bytes": 141712,
+   "fetched": "2026-11-11",
+   "text": "3.txt"
+  }
+ ],
+ "scan": {
+  "item": "vorschulederaest12fechuoft",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q76881",
+   "name": {
+    "en": "Gustav Fechner",
+    "ru": "Густав Теодор Фехнер"
+   },
+   "role": "author",
+   "died": 1887,
+   "source": "https://www.wikidata.org/wiki/Q76881"
+  }
+ ],
+ "published": 1876,
+ "images": [
+  {
+   "n": 14,
+   "item": "vorschulederaest12fechuoft",
+   "file": "vorschulederaest12fechuoft-n14.jpg",
+   "sha256": "70d4db573e5fbd3df624ccb927d1cf04788b26b75c0d7b2408e07fe10a9b89e1",
+   "by": "maker"
+  },
+  {
+   "n": 15,
+   "item": "vorschulederaest12fechuoft",
+   "file": "vorschulederaest12fechuoft-n15.jpg",
+   "sha256": "319b0a1d39d2ecab484b94743d755683bf0a612dece1036963aa7158e60b1220",
+   "by": "maker"
+  },
+  {
+   "n": 14,
+   "item": "vorschulederaest12fechuoft",
+   "file": "vorschulederaest12fechuoft-n14.jpg",
+   "sha256": "70d4db573e5fbd3df624ccb927d1cf04788b26b75c0d7b2408e07fe10a9b89e1",
+   "by": "second",
+   "loc": "I p1b"
+  },
+  {
+   "n": 15,
+   "item": "vorschulederaest12fechuoft",
+   "file": "vorschulederaest12fechuoft-n15.jpg",
+   "sha256": "319b0a1d39d2ecab484b94743d755683bf0a612dece1036963aa7158e60b1220",
+   "by": "second",
+   "loc": "I p2"
+  }
+ ],
+ "places": {
+  "I p1a": {
+   "scan": "vorschulederaest12fechuoft",
+   "method": "ocr",
+   "share": 0.986,
+   "leaves": [
+    15
+   ],
+   "printed": [
+    null
+   ],
+   "differences": [
+    {
+     "transcription": "Erkenntniss",
+     "ocr": "Erkenntnisse",
+     "leaf": 15,
+     "stands": "transcription",
+     "note": "Page 1 n14 reads Erkenntniss; OCR adds e."
+    }
+   ]
+  },
+  "I p1b": {
+   "scan": "vorschulederaest12fechuoft",
+   "method": "ocr",
+   "share": 0.951,
+   "leaves": [
+    15
+   ],
+   "printed": [
+    null
+   ],
+   "differences": [
+    {
+     "transcription": "irdisch - empirische",
+     "ocr": "irdischempirische",
+     "leaf": 15,
+     "stands": "transcription",
+     "note": "Page 1 n14 reads irdisch-empirische at the line break, Massstabe and Gefallens."
+    },
+    {
+     "transcription": "Massstabe",
+     "ocr": "Massslabe",
+     "leaf": 15,
+     "stands": "transcription",
+     "note": "Page 1 n14 reads irdisch-empirische at the line break, Massstabe and Gefallens."
+    },
+    {
+     "transcription": "Gefallens",
+     "ocr": "Gelallens",
+     "leaf": 15,
+     "stands": "transcription",
+     "note": "Page 1 n14 reads irdisch-empirische at the line break, Massstabe and Gefallens."
+    }
+   ]
+  },
+  "I p2": {
+   "scan": "vorschulederaest12fechuoft",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    16
+   ],
+   "printed": [
+    "2"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 16,
+     "stands": "transcription",
+     "note": "Page 2 n15 has no full stop before Widerspruch."
+    }
+   ]
+  }
+ },
+ "scans": {
+  "vorschulederaest12fechuoft": {
+   "item": "vorschulederaest12fechuoft",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -1
+  }
+ }
+}

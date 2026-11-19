@@ -1,0 +1,86 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-ueber-die-tragische-kunst",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read the German text in the 1879 Maltzahn edition against the register reading A:E082.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-schiller": {
+    "tree": "tos.agent.friedrich-schiller"
+   }
+  },
+  "works": {
+   "friedrich-schiller.ueber-die-tragische-kunst": {
+    "title": {
+     "ru": "О трагическом искусстве",
+     "en": "On Tragic Art"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-schiller.ueber-die-tragische-kunst",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "friedrich-schiller.ueber-die-tragische-kunst:morality-and-sensuous-suffering",
+   "of": [
+    "A:C046"
+   ],
+   "areas": [
+    "AE01",
+    "AE05"
+   ],
+   "work": "friedrich-schiller.ueber-die-tragische-kunst",
+   "locus": "p. 163–164",
+   "formula": [
+    {
+     "place": "III p163"
+    }
+   ],
+   "thesis": {
+    "ru": "Против страданий чувственности душа находит помощь только в нравственности: трагический художник продлевает муки чувственности, чтобы настоятельнее призвать нравственность, и показывает чувственности также и удовлетворения, чтобы сделать победу нравственности более трудной и славной.",
+    "en": "Against the sufferings of sensibility the mind finds help only in morality: the tragic artist prolongs the torments of sensibility to call morality forth more urgently and also shows sensibility satisfactions to make morality’s victory harder and more glorious."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "A:E082 speaks of moral freedom and dignity; this place speaks instead of morality aiding the mind against sensuous suffering and of its victory. Dignity is not attributed to this place.",
+   "from": [
+    "A:E082"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-die-tragische-kunst:tragic-art-moves-and-delights",
+   "of": [
+    "A:C154"
+   ],
+   "areas": [
+    "AE01",
+    "AE05"
+   ],
+   "work": "friedrich-schiller.ueber-die-tragische-kunst",
+   "locus": "p. 164",
+   "formula": [
+    {
+     "place": "III p164"
+    }
+   ],
+   "thesis": {
+    "ru": "Трагедия изображает действие, чтобы трогать и через трогательное воздействие доставлять удовольствие.",
+    "en": "Tragedy represents an action in order to move and through that emotion to delight."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register links tragic effect to moral freedom; this sentence states the poetic purpose of tragedy as moving and delighting.",
+   "from": [
+    "A:E082"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

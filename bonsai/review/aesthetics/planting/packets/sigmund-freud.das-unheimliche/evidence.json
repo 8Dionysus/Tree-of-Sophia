@@ -1,0 +1,919 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464/Imago_1919_5_5-6_hocr_searchtext.txt.gz",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464.ocr.txt",
+   "sha256": "b07d438b0e9091293a6bb62afaca8afdebc088d9d9abbfc8c1d8ea8158341ac4",
+   "bytes": 314899,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464/Imago_1919_5_5-6_hocr_pageindex.json.gz",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464.index.json",
+   "sha256": "2ae271d84330143f35572a4eeeaf4de5b591453c350220d50122ccf2631b531f",
+   "bytes": 3839,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464/Imago_1919_5_5-6_page_numbers.json",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464.pages.json",
+   "sha256": "d7e2d19ea32c4d3bc4e541151fd8d8779d2ee95a91084a804b2369d352ba434f",
+   "bytes": 21329,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.gutenberg.org/cache/epub/34222/pg34222.txt",
+   "file": "pg34222.txt",
+   "sha256": "def8e246cadcd4b4d880930d21095c8c2c60825cdab536126a829ca287fe0d0e",
+   "bytes": 106484,
+   "fetched": "2026-11-10",
+   "text": "pg34222.txt.txt"
+  }
+ ],
+ "scan": {
+  "item": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q9215",
+   "name": {
+    "en": "Sigmund Freud",
+    "ru": "Зигмунд Фрейд"
+   },
+   "role": "author",
+   "died": 1939,
+   "source": "https://www.wikidata.org/wiki/Q9215"
+  }
+ ],
+ "published": 1919,
+ "images": [
+  {
+   "n": 3,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n3.jpg",
+   "sha256": "2706670c1ea7ed2db18dc82d8a0d860315b843c10d36cb7b23e27392bfdf306e",
+   "by": "maker"
+  },
+  {
+   "n": 4,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n4.jpg",
+   "sha256": "5530d04f137ef1e9dfe42d82d1477877946acde11fc730087e3dda4de415092b",
+   "by": "maker"
+  },
+  {
+   "n": 6,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n6.jpg",
+   "sha256": "ca382f50e5c5fc342d88cb51cc4d00dd1e4a97e26adddbc41208cc341584574f",
+   "by": "maker"
+  },
+  {
+   "n": 11,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n11.jpg",
+   "sha256": "7beaccf2259d79a26d22e12b8bc077eb7b19002ee876e1c153bb8d947523aebb",
+   "by": "maker"
+  },
+  {
+   "n": 15,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n15.jpg",
+   "sha256": "f1dd02e7cc063d1aa343caf5c99baf396b51ea2423b22b110a3e355036a5f602",
+   "by": "maker"
+  },
+  {
+   "n": 16,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n16.jpg",
+   "sha256": "c4084654981f83d9540a77b3a2efa35bd90b95f4d49a489a92e8dba7c92fe9f2",
+   "by": "maker"
+  },
+  {
+   "n": 24,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n24.jpg",
+   "sha256": "1dd30406063d430203389a5cb98e6771fbaaa03b8697388738780b7664bfb494",
+   "by": "maker"
+  },
+  {
+   "n": 4,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n4.jpg",
+   "sha256": "5530d04f137ef1e9dfe42d82d1477877946acde11fc730087e3dda4de415092b",
+   "by": "second",
+   "loc": "I p298"
+  },
+  {
+   "n": 24,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n24.jpg",
+   "sha256": "1dd30406063d430203389a5cb98e6771fbaaa03b8697388738780b7664bfb494",
+   "by": "second",
+   "loc": "III p319b"
+  },
+  {
+   "n": 8,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n8.jpg",
+   "sha256": "71e2ccfbe51ece28e98d6b2d4df46234df49e9888b11d22b85c7d52c68d416d9",
+   "by": "maker"
+  },
+  {
+   "n": 17,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n17.jpg",
+   "sha256": "762795750a4f0556b8d443fbbccad0492222f4cce5fee48dc174a1cd8359cdf3",
+   "by": "maker"
+  },
+  {
+   "n": 8,
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n8.jpg",
+   "sha256": "71e2ccfbe51ece28e98d6b2d4df46234df49e9888b11d22b85c7d52c68d416d9",
+   "by": "second",
+   "loc": "II p303"
+  },
+  {
+   "n": 25,
+   "item": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n25.jpg",
+   "sha256": "5a6e656b5606bc160d7b7169ea6f5578801f737fa6a88053122c5d93faf54c18",
+   "by": "maker"
+  },
+  {
+   "n": 6,
+   "item": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n6.jpg",
+   "sha256": "ca382f50e5c5fc342d88cb51cc4d00dd1e4a97e26adddbc41208cc341584574f",
+   "by": "second",
+   "loc": "I p301"
+  },
+  {
+   "n": 17,
+   "item": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n17.jpg",
+   "sha256": "762795750a4f0556b8d443fbbccad0492222f4cce5fee48dc174a1cd8359cdf3",
+   "by": "second",
+   "loc": "II p312"
+  },
+  {
+   "n": 25,
+   "item": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n25.jpg",
+   "sha256": "5a6e656b5606bc160d7b7169ea6f5578801f737fa6a88053122c5d93faf54c18",
+   "by": "second",
+   "loc": "III p320"
+  },
+  {
+   "n": 14,
+   "item": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n14.jpg",
+   "sha256": "b4879eeab5b414913a335aafa5ae2decca875f11ec176ecd96f53d7b7de3ca89",
+   "by": "maker"
+  },
+  {
+   "n": 3,
+   "item": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n3.jpg",
+   "sha256": "2706670c1ea7ed2db18dc82d8a0d860315b843c10d36cb7b23e27392bfdf306e",
+   "by": "second",
+   "loc": "I p298b"
+  },
+  {
+   "n": 14,
+   "item": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n14.jpg",
+   "sha256": "b4879eeab5b414913a335aafa5ae2decca875f11ec176ecd96f53d7b7de3ca89",
+   "by": "second",
+   "loc": "II p309b"
+  },
+  {
+   "n": 16,
+   "item": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "file": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464-n16.jpg",
+   "sha256": "c4084654981f83d9540a77b3a2efa35bd90b95f4d49a489a92e8dba7c92fe9f2",
+   "by": "second",
+   "loc": "II p311"
+  }
+ ],
+ "places": {
+  "I p298": {
+   "transcription": "pg34222.txt",
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.891,
+   "leaves": [
+    3,
+    4
+   ],
+   "printed": [
+    "298",
+    "299"
+   ],
+   "differences": [
+    {
+     "transcription": "Nichtvertrauten",
+     "ocr": "Nictvertrauten",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "wesentliche",
+     "ocr": "wesentlihe",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "Unheimliche",
+     "ocr": "Unheimlihe",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "",
+     "ocr": "u a An Tu nn nn Bene ne ut lt BEE Gene eine ARE Finn site sbeeeinten asus antneie a en re A Sr u nr mia arte Das Unheimliche | 299",
+     "leaf": 4,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "Mensch",
+     "ocr": "Mensh",
+     "leaf": 4,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "leicht",
+     "ocr": "leiht",
+     "leaf": 4,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "",
+     "ocr": "vu | a",
+     "leaf": 4,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "leicht",
+     "ocr": "leiht",
+     "leaf": 4,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "Kennzeichnung",
+     "ocr": "Kennzeihnung",
+     "leaf": 4,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "erschöpfend",
+     "ocr": "ershöpfend",
+     "leaf": 4,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "versuchen",
+     "ocr": "versuhen",
+     "leaf": 4,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "Gleichung",
+     "ocr": "Gleihung",
+     "leaf": 4,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    },
+    {
+     "transcription": "=",
+     "ocr": "-",
+     "leaf": 4,
+     "stands": "transcription",
+     "note": "Pages 298–299: OCR loses ch and includes the page boundary; print has the equality sign."
+    }
+   ]
+  },
+  "I p301": {
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.913,
+   "leaves": [
+    6
+   ],
+   "printed": [
+    "301"
+   ],
+   "differences": [
+    {
+     "transcription": "heimlich",
+     "ocr": "heimlih",
+     "leaf": 6,
+     "stands": "transcription",
+     "note": "Page 301: OCR loses letters of ch; print has comma after unheimlichen."
+    },
+    {
+     "transcription": "auch",
+     "ocr": "aud",
+     "leaf": 6,
+     "stands": "transcription",
+     "note": "Page 301: OCR loses letters of ch; print has comma after unheimlichen."
+    },
+    {
+     "transcription": "heimliche",
+     "ocr": "heimlihe",
+     "leaf": 6,
+     "stands": "transcription",
+     "note": "Page 301: OCR loses letters of ch; print has comma after unheimlichen."
+    },
+    {
+     "transcription": "unheimlichen",
+     "ocr": "unheimlihen",
+     "leaf": 6,
+     "stands": "transcription",
+     "note": "Page 301: OCR loses letters of ch; print has comma after unheimlichen."
+    },
+    {
+     "transcription": "unheimlich",
+     "ocr": "unheimlih",
+     "leaf": 6,
+     "stands": "transcription",
+     "note": "Page 301: OCR loses letters of ch; print has comma after unheimlichen."
+    },
+    {
+     "transcription": "heimlich",
+     "ocr": "heimlih",
+     "leaf": 6,
+     "stands": "transcription",
+     "note": "Page 301: OCR loses letters of ch; print has comma after unheimlichen."
+    },
+    {
+     "transcription": "heimlich",
+     "ocr": "heimlih",
+     "leaf": 6,
+     "stands": "transcription",
+     "note": "Page 301: OCR loses letters of ch; print has comma after unheimlichen."
+    },
+    {
+     "transcription": "gegensätzlich",
+     "ocr": "gegensätzlih",
+     "leaf": 6,
+     "stands": "transcription",
+     "note": "Page 301: OCR loses letters of ch; print has comma after unheimlichen."
+    },
+    {
+     "transcription": "Behaglichen",
+     "ocr": "Behaglihen",
+     "leaf": 6,
+     "stands": "transcription",
+     "note": "Page 301: OCR loses letters of ch; print has comma after unheimlichen."
+    }
+   ]
+  },
+  "II p306": {
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.962,
+   "leaves": [
+    11
+   ],
+   "printed": [
+    "306"
+   ],
+   "differences": [
+    {
+     "transcription": "Unheimlichen",
+     "ocr": "Unheimlihen",
+     "leaf": 11,
+     "stands": "transcription",
+     "note": "Page 306: OCR loses letters of ch."
+    },
+    {
+     "transcription": "nichts",
+     "ocr": "nihts",
+     "leaf": 11,
+     "stands": "transcription",
+     "note": "Page 306: OCR loses letters of ch."
+    },
+    {
+     "transcription": "Unheimlichen",
+     "ocr": "Unheimlihen",
+     "leaf": 11,
+     "stands": "transcription",
+     "note": "Page 306: OCR loses letters of ch."
+    }
+   ]
+  },
+  "II p309": {
+   "transcription": "pg34222.txt",
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.905,
+   "leaves": [
+    14,
+    15
+   ],
+   "printed": [
+    "309",
+    "310"
+   ],
+   "differences": [
+    {
+     "transcription": "Versicherung",
+     "ocr": "Versiherung",
+     "leaf": 14,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "energische",
+     "ocr": "energishe",
+     "leaf": 14,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "Todes \"",
+     "ocr": "Todess",
+     "leaf": 14,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "O",
+     "ocr": "OÖ",
+     "leaf": 14,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "wahrscheinlich",
+     "ocr": "wahrsceinlic",
+     "leaf": 14,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "unsterbliche \"",
+     "ocr": "unsterblihes",
+     "leaf": 14,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "solchen",
+     "ocr": "solhen",
+     "leaf": 14,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "Vernichtung",
+     "ocr": "\" Vernihtung",
+     "leaf": 14,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "durch",
+     "ocr": "durh",
+     "leaf": 14,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "",
+     "ocr": "1 O , Rank , Der Doppelgänger , Imago III , 1914 , Wr - 310 Sigsm . Freud",
+     "leaf": 14,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "uneingeschränkten",
+     "ocr": "uneingeshränkten",
+     "leaf": 15,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "Vorzeichen",
+     "ocr": "Vorzeihen",
+     "leaf": 15,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "Versicherung",
+     "ocr": "Versiherung",
+     "leaf": 15,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    },
+    {
+     "transcription": "",
+     "ocr": ", Die Vorstellung des Doppelgängers braucht nicht mit diesem uranfänglihen Narzißmus unterzugehen , denn sie kann aus den späteren Entwicklungsstufen des Ichs neuen Inhalt gewinnen",
+     "leaf": 15,
+     "stands": "transcription",
+     "note": "Pages 309–310: OCR loses ch and includes footnote and page boundary or subsequent sentence; quotation marks are printed."
+    }
+   ]
+  },
+  "II p311": {
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.917,
+   "leaves": [
+    16
+   ],
+   "printed": [
+    "311"
+   ],
+   "differences": [
+    {
+     "transcription": "unheimlichen",
+     "ocr": "unheimlihen",
+     "leaf": 16,
+     "stands": "transcription",
+     "note": "Page 311: OCR loses ch and inserts a point at line break."
+    },
+    {
+     "transcription": "vielleicht",
+     "ocr": "vielleiht",
+     "leaf": 16,
+     "stands": "transcription",
+     "note": "Page 311: OCR loses ch and inserts a point at line break."
+    },
+    {
+     "transcription": "Anerkennung",
+     "ocr": ". Änerkennung",
+     "leaf": 16,
+     "stands": "transcription",
+     "note": "Page 311: OCR loses ch and inserts a point at line break."
+    },
+    {
+     "transcription": "Beobachtungen",
+     "ocr": "Beobadhtungen",
+     "leaf": 16,
+     "stands": "transcription",
+     "note": "Page 311: OCR loses ch and inserts a point at line break."
+    }
+   ]
+  },
+  "III p319": {
+   "transcription": "pg34222.txt",
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.926,
+   "leaves": [
+    24
+   ],
+   "printed": [
+    "319"
+   ],
+   "differences": [
+    {
+     "transcription": "widersprechen",
+     "ocr": "widersprehen",
+     "leaf": 24,
+     "stands": "transcription",
+     "note": "Page 319: OCR loses ch and mistakes the point after entnommen for a comma."
+    },
+    {
+     "transcription": ".",
+     "ocr": ",",
+     "leaf": 24,
+     "stands": "transcription",
+     "note": "Page 319: OCR loses ch and mistakes the point after entnommen for a comma."
+    },
+    {
+     "transcription": "zwischen",
+     "ocr": "zwishen",
+     "leaf": 24,
+     "stands": "transcription",
+     "note": "Page 319: OCR loses ch and mistakes the point after entnommen for a comma."
+    },
+    {
+     "transcription": "Unheimlichen",
+     "ocr": "Unheimlihen",
+     "leaf": 24,
+     "stands": "transcription",
+     "note": "Page 319: OCR loses ch and mistakes the point after entnommen for a comma."
+    }
+   ]
+  },
+  "III p319b": {
+   "transcription": "pg34222.txt",
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.824,
+   "leaves": [
+    24
+   ],
+   "printed": [
+    "319"
+   ],
+   "differences": [
+    {
+     "transcription": "Unheimliche",
+     "ocr": "man sich bloß vorstellt , oder von dem man liest . Das Unheimlihe",
+     "leaf": 24,
+     "stands": "transcription",
+     "note": "Page 319: OCR includes preceding line and loses letters of ch."
+    },
+    {
+     "transcription": "zahlreiche",
+     "ocr": "zahlreihe",
+     "leaf": 24,
+     "stands": "transcription",
+     "note": "Page 319: OCR includes preceding line and loses letters of ch."
+    },
+    {
+     "transcription": "Ich",
+     "ocr": "Ih",
+     "leaf": 24,
+     "stands": "transcription",
+     "note": "Page 319: OCR includes preceding line and loses letters of ch."
+    },
+    {
+     "transcription": "sich",
+     "ocr": "sih",
+     "leaf": 24,
+     "stands": "transcription",
+     "note": "Page 319: OCR includes preceding line and loses letters of ch."
+    },
+    {
+     "transcription": "Lösungsversuch",
+     "ocr": "Lösungsversudh",
+     "leaf": 24,
+     "stands": "transcription",
+     "note": "Page 319: OCR includes preceding line and loses letters of ch."
+    },
+    {
+     "transcription": "Zurückführung",
+     "ocr": "Zurükführung",
+     "leaf": 24,
+     "stands": "transcription",
+     "note": "Page 319: OCR includes preceding line and loses letters of ch."
+    }
+   ]
+  },
+  "I p298b": {
+   "transcription": "pg34222.txt",
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.919,
+   "leaves": [
+    3
+   ],
+   "printed": [
+    "298"
+   ],
+   "differences": [
+    {
+     "transcription": "nachsuchen",
+     "ocr": "nachhsuchen",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Page 298: OCR misreads ch and inserts stray punctuation; the printed sentences follow the transcription."
+    },
+    {
+     "transcription": "Sprachentwicklung",
+     "ocr": "Sprahentwicklung",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Page 298: OCR misreads ch and inserts stray punctuation; the printed sentences follow the transcription."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Page 298: OCR misreads ch and inserts stray punctuation; the printed sentences follow the transcription."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Page 298: OCR misreads ch and inserts stray punctuation; the printed sentences follow the transcription."
+    },
+    {
+     "transcription": "Unheimlichen",
+     "ocr": "Unheimlihen",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Page 298: OCR misreads ch and inserts stray punctuation; the printed sentences follow the transcription."
+    },
+    {
+     "transcription": "wachruft",
+     "ocr": "wadruft",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Page 298: OCR misreads ch and inserts stray punctuation; the printed sentences follow the transcription."
+    },
+    {
+     "transcription": "Ich",
+     "ocr": "Ih",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Page 298: OCR misreads ch and inserts stray punctuation; the printed sentences follow the transcription."
+    },
+    {
+     "transcription": "nämlichen",
+     "ocr": "nämlihen",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Page 298: OCR misreads ch and inserts stray punctuation; the printed sentences follow the transcription."
+    },
+    {
+     "transcription": "Unheimliche",
+     "ocr": "Unheimlihe",
+     "leaf": 3,
+     "stands": "transcription",
+     "note": "Page 298: OCR misreads ch and inserts stray punctuation; the printed sentences follow the transcription."
+    }
+   ]
+  },
+  "II p303": {
+   "transcription": "pg34222.txt",
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.946,
+   "leaves": [
+    8
+   ],
+   "printed": [
+    "303"
+   ],
+   "differences": [
+    {
+     "transcription": "Unheimlichen",
+     "ocr": "Unheimlihen",
+     "leaf": 8,
+     "stands": "transcription",
+     "note": "Page 303: OCR loses ch and misreads the closing quotation mark."
+    },
+    {
+     "transcription": "Deutlichkeit",
+     "ocr": "Deutlihkeit",
+     "leaf": 8,
+     "stands": "transcription",
+     "note": "Page 303: OCR loses ch and misreads the closing quotation mark."
+    },
+    {
+     "transcription": "sei \"",
+     "ocr": "seis",
+     "leaf": 8,
+     "stands": "transcription",
+     "note": "Page 303: OCR loses ch and misreads the closing quotation mark."
+    },
+    {
+     "transcription": "Wachsfiguren",
+     "ocr": "Wadsfiguren",
+     "leaf": 8,
+     "stands": "transcription",
+     "note": "Page 303: OCR loses ch and misreads the closing quotation mark."
+    }
+   ]
+  },
+  "II p312": {
+   "transcription": "pg34222.txt",
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.903,
+   "leaves": [
+    17
+   ],
+   "printed": [
+    "312"
+   ],
+   "differences": [
+    {
+     "transcription": "Unbewußten",
+     "ocr": "UInbewußten",
+     "leaf": 17,
+     "stands": "transcription",
+     "note": "Page 312: OCR loses ch, misreads letters and includes the following paragraph."
+    },
+    {
+     "transcription": "sich",
+     "ocr": "sih",
+     "leaf": 17,
+     "stands": "transcription",
+     "note": "Page 312: OCR loses ch, misreads letters and includes the following paragraph."
+    },
+    {
+     "transcription": "wahrscheinlich",
+     "ocr": "wahrscheinlih",
+     "leaf": 17,
+     "stands": "transcription",
+     "note": "Page 312: OCR loses ch, misreads letters and includes the following paragraph."
+    },
+    {
+     "transcription": "Seelenlebens",
+     "ocr": "Serlönlebens",
+     "leaf": 17,
+     "stands": "transcription",
+     "note": "Page 312: OCR loses ch, misreads letters and includes the following paragraph."
+    },
+    {
+     "transcription": "dämonischen",
+     "ocr": "dämonishen",
+     "leaf": 17,
+     "stands": "transcription",
+     "note": "Page 312: OCR loses ch, misreads letters and includes the following paragraph."
+    },
+    {
+     "transcription": "sich",
+     "ocr": "sih",
+     "leaf": 17,
+     "stands": "transcription",
+     "note": "Page 312: OCR loses ch, misreads letters and includes the following paragraph."
+    },
+    {
+     "transcription": "noch",
+     "ocr": "noc",
+     "leaf": 17,
+     "stands": "transcription",
+     "note": "Page 312: OCR loses ch, misreads letters and includes the following paragraph."
+    },
+    {
+     "transcription": "beherrscht",
+     "ocr": "beherrsht",
+     "leaf": 17,
+     "stands": "transcription",
+     "note": "Page 312: OCR loses ch, misreads letters and includes the following paragraph."
+    },
+    {
+     "transcription": "unheimlich",
+     "ocr": "unheimlih",
+     "leaf": 17,
+     "stands": "transcription",
+     "note": "Page 312: OCR loses ch, misreads letters and includes the following paragraph."
+    },
+    {
+     "transcription": "",
+     "ocr": ", Nun , denke ih aber , ist es Zeit uns von diesen immerhin schwierig zu beurteilenden Verhältnissen abzuwenden und unzweifelhafte Fälle des Unheimlihen aufzusuhen , von deren Analyse wir die endgültige Entscheidung über die Geltung unserer Annahme erwarten dürfen",
+     "leaf": 17,
+     "stands": "transcription",
+     "note": "Page 312: OCR loses ch, misreads letters and includes the following paragraph."
+    }
+   ]
+  },
+  "III p320": {
+   "transcription": "pg34222.txt",
+   "scan": "Imago-ZeitschriftFuumlrAnwendungDerPsychoanalyseAufDie_464",
+   "method": "ocr",
+   "share": 0.902,
+   "leaves": [
+    25
+   ],
+   "printed": [
+    "320"
+   ],
+   "differences": [
+    {
+     "transcription": "Unheimlichen",
+     "ocr": "Unheimlihen",
+     "leaf": 25,
+     "stands": "transcription",
+     "note": "Read page 320: OCR misreads ch and letters; the transcription agrees with the print."
+    },
+    {
+     "transcription": "infantilen",
+     "ocr": "infantiien",
+     "leaf": 25,
+     "stands": "transcription",
+     "note": "Read page 320: OCR misreads ch and letters; the transcription agrees with the print."
+    },
+    {
+     "transcription": "psychische",
+     "ocr": "psycische",
+     "leaf": 25,
+     "stands": "transcription",
+     "note": "Read page 320: OCR misreads ch and letters; the transcription agrees with the print."
+    },
+    {
+     "transcription": "sich",
+     "ocr": "sih",
+     "leaf": 25,
+     "stands": "transcription",
+     "note": "Read page 320: OCR misreads ch and letters; the transcription agrees with the print."
+    },
+    {
+     "transcription": "nicht",
+     "ocr": "niht",
+     "leaf": 25,
+     "stands": "transcription",
+     "note": "Read page 320: OCR misreads ch and letters; the transcription agrees with the print."
+    }
+   ]
+  }
+ }
+}

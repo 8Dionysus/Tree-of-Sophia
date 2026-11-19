@@ -1,0 +1,157 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/laokoonoderueber00less/laokoonoderueber00less_hocr_searchtext.txt.gz",
+   "file": "laokoonoderueber00less.ocr.txt",
+   "sha256": "f11e80c5ebc3196ff609c42bbe7ee6dd615ffa73d529ef2af5182f410b1c34a1",
+   "bytes": 478589,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/laokoonoderueber00less/laokoonoderueber00less_hocr_pageindex.json.gz",
+   "file": "laokoonoderueber00less.index.json",
+   "sha256": "4b9bb49f112b372fc93d215851917c64670c74e79eccc29269f8c57dd9629191",
+   "bytes": 11080,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/laokoonoderueber00less/laokoonoderueber00less_page_numbers.json",
+   "file": "laokoonoderueber00less.pages.json",
+   "sha256": "83520d4e08ddd100988372d921ba27966d19c3df528d35692b253cfc95ee11c2",
+   "bytes": 53156,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://projekt-gutenberg.org/authors/gotthold-ephraim-lessing/books/gotthold-ephraim-lessing-laokoon/chapter/19/",
+   "file": "19",
+   "sha256": "e88a7a8aec3c7dbd3caf0265eca02e4d6624f8745f0243b600573ee7a0f28f50",
+   "bytes": 154593,
+   "fetched": "2026-11-11",
+   "text": "19.txt"
+  }
+ ],
+ "scan": {
+  "item": "laokoonoderueber00less",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q34628",
+   "name": {
+    "en": "Gotthold Ephraim Lessing",
+    "ru": "Готхольд Эфраим Лессинг"
+   },
+   "role": "author",
+   "died": 1781,
+   "source": "https://www.wikidata.org/wiki/Q34628"
+  }
+ ],
+ "published": 1766,
+ "images": [
+  {
+   "n": 120,
+   "item": "laokoonoderueber00less",
+   "file": "laokoonoderueber00less-n120.jpg",
+   "sha256": "482a62fe42c6c8bd20fb253f20facee4a6c31829c545e99c14930e6b2662c52b",
+   "by": "maker"
+  },
+  {
+   "n": 170,
+   "item": "laokoonoderueber00less",
+   "file": "laokoonoderueber00less-n170.jpg",
+   "sha256": "3b6cebf4826de01a2a699602830075afcf36e4415bb7637466869e8e1ab81d24",
+   "by": "maker",
+   "loc": "XVI p?"
+  },
+  {
+   "n": 160,
+   "item": "laokoonoderueber00less",
+   "file": "laokoonoderueber00less-n160.jpg",
+   "sha256": "fd6f60bdee579007182b8ebdeea829c2ef09fa03c21ad94a60c040375deff4a0",
+   "by": "maker",
+   "loc": "XVI p?"
+  },
+  {
+   "n": 163,
+   "item": "laokoonoderueber00less",
+   "file": "laokoonoderueber00less-n163.jpg",
+   "sha256": "13fb0caaac58f4386e56a7209e1d2a9b37f3ad3c9b88091d5aa0e41ca0430583",
+   "by": "maker",
+   "loc": "XVI p?"
+  },
+  {
+   "n": 165,
+   "item": "laokoonoderueber00less",
+   "file": "laokoonoderueber00less-n165.jpg",
+   "sha256": "d8bdad70df862d99f200a96125626a689548ffeafb9bbc1cd1bcceef2c63bbcb",
+   "by": "maker",
+   "loc": "XVI p153b"
+  },
+  {
+   "n": 164,
+   "item": "laokoonoderueber00less",
+   "file": "laokoonoderueber00less-n164.jpg",
+   "sha256": "ae082d606cd6a2e989d9f10c9889cfefd6e573404ef76884ac09b3a8a03965ba",
+   "by": "maker"
+  },
+  {
+   "n": 164,
+   "item": "laokoonoderueber00less",
+   "file": "laokoonoderueber00less-n164.jpg",
+   "sha256": "ae082d606cd6a2e989d9f10c9889cfefd6e573404ef76884ac09b3a8a03965ba",
+   "by": "second",
+   "loc": "XVI p153b"
+  },
+  {
+   "n": 165,
+   "item": "laokoonoderueber00less",
+   "file": "laokoonoderueber00less-n165.jpg",
+   "sha256": "d8bdad70df862d99f200a96125626a689548ffeafb9bbc1cd1bcceef2c63bbcb",
+   "by": "second",
+   "loc": "XVI p153b"
+  }
+ ],
+ "places": {
+  "XVI p153a": {
+   "transcription": "19",
+   "scan": "laokoonoderueber00less",
+   "images": [
+    164
+   ],
+   "method": "image",
+   "share": 0.134,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the full sentence on printed p. 153, image n164; corrected the transcription to the spelling and punctuation of the page."
+   }
+  },
+  "XVI p153b": {
+   "transcription": "19",
+   "scan": "laokoonoderueber00less",
+   "images": [
+    164,
+    165
+   ],
+   "method": "image",
+   "share": 0.473,
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the full four sentences on pp. 153–154, images n164–165; corrected the transcription to the spelling and punctuation of the pages."
+   }
+  }
+ },
+ "scans": {
+  "laokoonoderueber00less": {
+   "item": "laokoonoderueber00less",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": -1
+  }
+ }
+}

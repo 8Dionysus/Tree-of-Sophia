@@ -1,6 +1,6 @@
 {
   "schema_version": "tos_public_corpus_snapshot_v1",
-  "revision": "8254c9aa4e0fb6c843e250cac665edd5b7769f5dc6f0e6786c287a216fd333eb",
+  "revision": "06ef01a01d9081f504e51ba219953165d294796fd47abe8b65d49b30326a5acc",
   "profiles": {
     "zarathustra": {
       "label": "Заратустра",
@@ -54,7 +54,8 @@
         "tos.work.retained-antiquity.ancient-medicine",
         "tos.work.retained-antiquity.sacred-disease",
         "tos.work.retained-antiquity.isagoge",
-        "tos.work.retained-antiquity.enneads"
+        "tos.work.retained-antiquity.enneads",
+        "tos.work.xenophon.memorabilia"
       ],
       "initialDocumentId": "tos.work.friedrich-nietzsche.also-sprach-zarathustra",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.zarathustra.v1.json",
@@ -290,7 +291,8 @@
         "tos.work.retained-antiquity.ancient-medicine",
         "tos.work.retained-antiquity.sacred-disease",
         "tos.work.retained-antiquity.isagoge",
-        "tos.work.retained-antiquity.enneads"
+        "tos.work.retained-antiquity.enneads",
+        "tos.work.xenophon.memorabilia"
       ],
       "initialDocumentId": "tos.work.plato.meno",
       "journeysRef": "ToS/research-packets/public-prototypes-20261026/journeys.antiquity.v1.json",
@@ -823,9 +825,9 @@
       "title": "Академические исследования",
       "author": "Cicero",
       "manifest": {
-        "path": "documents/1800b7a1da7571031b19673ff38faa2334deb3a9b5a97153a382b6cb3cf0751a.json",
-        "sha256": "1800b7a1da7571031b19673ff38faa2334deb3a9b5a97153a382b6cb3cf0751a",
-        "bytes": 20795
+        "path": "documents/d0700756acf508ce14989c29ad8f0ab6e0ef6f4a7fc54099019be6fef67fe354.json",
+        "sha256": "d0700756acf508ce14989c29ad8f0ab6e0ef6f4a7fc54099019be6fef67fe354",
+        "bytes": 23338
       }
     },
     {
@@ -953,9 +955,19 @@
       "title": "Эннеады",
       "author": "Plotinus",
       "manifest": {
-        "path": "documents/95bfe95fc273304df668fdf058bf760a35054e75d078fd4a25f0cca7a0c9f5fa.json",
-        "sha256": "95bfe95fc273304df668fdf058bf760a35054e75d078fd4a25f0cca7a0c9f5fa",
-        "bytes": 19605
+        "path": "documents/f56d0d836ed39f93357730f35a50306ad8c4f832ec9fe8a8840c443c1f8337d7.json",
+        "sha256": "f56d0d836ed39f93357730f35a50306ad8c4f832ec9fe8a8840c443c1f8337d7",
+        "bytes": 53803
+      }
+    },
+    {
+      "id": "tos.work.xenophon.memorabilia",
+      "title": "Memorabilia",
+      "author": "Xenophon",
+      "manifest": {
+        "path": "documents/8dc7e4d11dacd06717015a822d4965b9763355ed3f85f1c31cf0bde80aa216fc.json",
+        "sha256": "8dc7e4d11dacd06717015a822d4965b9763355ed3f85f1c31cf0bde80aa216fc",
+        "bytes": 13445
       }
     }
   ]

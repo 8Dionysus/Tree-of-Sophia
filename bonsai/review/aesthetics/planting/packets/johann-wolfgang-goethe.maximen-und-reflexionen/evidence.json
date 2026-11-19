@@ -1,0 +1,170 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/werkegoeth48goetuoft/werkegoeth48goetuoft_hocr_searchtext.txt.gz",
+   "file": "werkegoeth48goetuoft.ocr.txt",
+   "sha256": "19cb960dc5945870aeedc4a8800cd63b64cc23a338fb9210ecb3e95b2f1ec61c",
+   "bytes": 436597,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/werkegoeth48goetuoft/werkegoeth48goetuoft_hocr_pageindex.json.gz",
+   "file": "werkegoeth48goetuoft.index.json",
+   "sha256": "c3276eb9cadedd0cefb58df0b879cfa0e27974a99e902a870820e3cc2bc66e42",
+   "bytes": 11465,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/werkegoeth48goetuoft/werkegoeth48goetuoft_page_numbers.json",
+   "file": "werkegoeth48goetuoft.pages.json",
+   "sha256": "c45b6aae86fadc43002939eac743f0de2f75067245e2a54d0fee54111dd3478f",
+   "bytes": 54963,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.textgridrep.org/browse/11d2x.0",
+   "file": "11d2x.0",
+   "sha256": "e86c677cf422e8426406ce98ef51fcf26335bb96925cca5345fafe8a3fc93ad1",
+   "bytes": 391440,
+   "fetched": "2026-11-11",
+   "text": "11d2x.0.txt",
+   "why": "TextGrid Digitale Bibliothek is the named German transcription project in MAKER.md: its full Maximen und Reflexionen includes both complete passages, while its Berlin 1960 text differs from the Weimar 1897 scan and is corrected against that print."
+  }
+ ],
+ "scan": {
+  "item": "werkegoeth48goetuoft",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q5879",
+   "name": {
+    "en": "Johann Wolfgang von Goethe",
+    "ru": "Иоганн Вольфганг фон Гёте"
+   },
+   "role": "author",
+   "died": 1832,
+   "source": "https://www.wikidata.org/wiki/Q5879"
+  },
+  {
+   "qid": "Q119170",
+   "name": {
+    "en": "Otto Harnack",
+    "ru": "Отто Гарнак"
+   },
+   "role": "editor",
+   "died": 1914,
+   "source": "https://www.wikidata.org/wiki/Q119170"
+  },
+  {
+   "qid": "Q91163",
+   "name": {
+    "en": "Bernhard Suphan",
+    "ru": "Бернхард Людвиг Зуфан"
+   },
+   "role": "editor",
+   "died": 1911,
+   "source": "https://www.wikidata.org/wiki/Q91163"
+  },
+  {
+   "qid": "Q1109076",
+   "name": {
+    "en": "Julius Wahle",
+    "ru": "Julius Wahle"
+   },
+   "role": "editor",
+   "died": 1940,
+   "source": "https://www.wikidata.org/wiki/Q1109076"
+  }
+ ],
+ "published": 1897,
+ "images": [
+  {
+   "n": 224,
+   "item": "werkegoeth48goetuoft",
+   "file": "werkegoeth48goetuoft-n224.jpg",
+   "sha256": "412bfca9e44c00e8c1adab6cf5fcdae37654bd0a945b672fa16224d0b8983ad0",
+   "by": "maker"
+  },
+  {
+   "n": 222,
+   "item": "werkegoeth48goetuoft",
+   "file": "werkegoeth48goetuoft-n222.jpg",
+   "sha256": "3817cab3796889fd1fbab2ff9331c58bb309f06632d59667f6fb7b146d54aa98",
+   "by": "maker",
+   "loc": "Kunst p205"
+  },
+  {
+   "n": 223,
+   "item": "werkegoeth48goetuoft",
+   "file": "werkegoeth48goetuoft-n223.jpg",
+   "sha256": "32da5dc456cb0f624e9f9579782b3e9bc7f04160058411d0577bd24299e8d31d",
+   "by": "maker",
+   "loc": "Kunst p206"
+  },
+  {
+   "n": 222,
+   "item": "werkegoeth48goetuoft",
+   "file": "werkegoeth48goetuoft-n222.jpg",
+   "sha256": "3817cab3796889fd1fbab2ff9331c58bb309f06632d59667f6fb7b146d54aa98",
+   "by": "second",
+   "loc": "Kunst p205"
+  },
+  {
+   "n": 223,
+   "item": "werkegoeth48goetuoft",
+   "file": "werkegoeth48goetuoft-n223.jpg",
+   "sha256": "32da5dc456cb0f624e9f9579782b3e9bc7f04160058411d0577bd24299e8d31d",
+   "by": "second",
+   "loc": "Kunst p206"
+  }
+ ],
+ "places": {
+  "Kunst p205": {
+   "transcription": "11d2x.0",
+   "scan": "werkegoeth48goetuoft",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire maxim on the image of p. 205, bottom, after correcting begränzt; the text and punctuation match."
+   },
+   "images": [
+    222
+   ],
+   "method": "image",
+   "share": 0.385
+  },
+  "Kunst p206": {
+   "transcription": "11d2x.0",
+   "scan": "werkegoeth48goetuoft",
+   "whole": {
+    "stands": "transcription",
+    "note": "Read the entire maxim on the image of p. 206, top; the text and punctuation match."
+   },
+   "images": [
+    223
+   ],
+   "method": "image",
+   "share": 0.2
+  }
+ },
+ "scans": {
+  "bub_gb_278nAAAAYAAJ": {
+   "item": "bub_gb_278nAAAAYAAJ",
+   "ocr": false,
+   "long_s": true,
+   "image_offset": null
+  },
+  "werkegoeth48goetuoft": {
+   "item": "werkegoeth48goetuoft",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": -1
+  }
+ }
+}

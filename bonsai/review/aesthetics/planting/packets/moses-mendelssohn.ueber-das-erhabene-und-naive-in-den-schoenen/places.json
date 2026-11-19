@@ -1,0 +1,82 @@
+{
+  "work": "moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen",
+  "entry": {
+    "author": {
+      "ru": "Мозес Мендельсон",
+      "en": "Moses Mendelssohn"
+    },
+    "title": {
+      "ru": "О возвышенном и наивном в изящных науках",
+      "en": "On the Sublime and the Naive in the Fine Sciences"
+    },
+    "original": "de",
+    "witnesses": {
+      "de": {
+        "edition": "Moses Mendelssohns Philosophische Schriften, part 2, second edition (Berlin: Christian Friedrich Voß, 1771), Bayerische Staatsbibliothek copy Ph.u. 351 c-1/2.",
+        "year": 1771,
+        "url": "https://archive.org/details/10046454bsb",
+        "sources": [
+          "https://archive.org/details/10046454bsb"
+        ],
+        "licence": "Public domain book; Internet Archive scan of the Bayerische Staatsbibliothek copy, Public Domain Mark.",
+        "attribution": "Moses Mendelssohn, Philosophische Schriften, part 2 (Berlin: Christian Friedrich Voß, 1771), p. 161; words from the scan OCR checked against the page image.",
+        "rights": {
+          "basis": "public-domain",
+          "russia": "Общественное достояние: Мозес Мендельсон (автор) — год смерти 1786 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
+          "usa": "Public domain: this printing was published in 1771 (before 1930).",
+          "eu": "Public domain: Moses Mendelssohn (author) died 1786, more than 70 years ago (Directive 2006/116/EC art. 1).",
+          "reasoning": "Moses Mendelssohn’s German text in the second edition of 1771; the words are cut from the Internet Archive scan OCR of the Bayerische Staatsbibliothek copy and corrected against its page. The kit joins line breaks, normalises long s to s and decomposed umlauts."
+        }
+      }
+    },
+    "absent": [
+      {
+        "language": "ru",
+        "reason": "No translation is taken in this pass; the line plants the original first."
+      },
+      {
+        "language": "en",
+        "reason": "No translation is taken in this pass; the line plants the original first."
+      }
+    ]
+  },
+  "places": {
+    "III p161": {
+      "label": {
+        "ru": "Ч. III, с. 161",
+        "en": "Part III, p. 161"
+      },
+      "texts": {
+        "de": "In den schoͤnen Kuͤnsten und Wissenschaften wird die sinnlich vollkommene Vorstellung des Unermeßlichen, groß, stark oder erhaben seyn, nachdem die Groͤße eine Ausdehnung und Menge, oder einen Grad der Kraft, oder ins besondere einen Grad der Vollkommenheit betrift."
+      },
+      "links": {
+        "de": "https://archive.org/details/10046454bsb/page/n164/mode/1up"
+      },
+      "refs": [
+        [
+          "de",
+          "Second edition (Berlin 1771), p. 161"
+        ]
+      ]
+    }
+  },
+  "corrections": [
+    {
+      "lang": "de",
+      "from": "Wisenschasten",
+      "to": "Wissenschaften",
+      "evidence": "Scan p. 161, Internet Archive 10046454bsb, leaf n164: page reads Wissenschaften.",
+      "place": "moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen III p161"
+    },
+    {
+      "lang": "de",
+      "from": "Wenge",
+      "to": "Menge",
+      "evidence": "Scan p. 161, Internet Archive 10046454bsb, leaf n164: page reads Menge.",
+      "place": "moses-mendelssohn.ueber-das-erhabene-und-naive-in-den-schoenen III p161"
+    }
+  ],
+  "checked_on_the_page_image": [
+    "p. 161 (whole sentence, middle of the page)"
+  ]
+}

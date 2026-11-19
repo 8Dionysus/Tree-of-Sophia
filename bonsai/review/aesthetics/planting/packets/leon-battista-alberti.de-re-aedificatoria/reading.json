@@ -1,0 +1,57 @@
+{
+ "reader": {
+  "id": "terra-2026-11-12-de-re-aedificatoria",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-12",
+  "reads": "I read Alberti’s Latin in the 1541 Strasbourg edition beside the register reading, using the ECHO transcription of the 1485 edition and the Getty scan.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "leon-battista-alberti": {
+    "tree": "tos.agent.leon-battista-alberti"
+   }
+  },
+  "works": {
+   "leon-battista-alberti.de-re-aedificatoria": {
+    "title": {
+     "ru": "Десять книг о зодчестве",
+     "en": "On the Art of Building"
+    },
+    "original": "la",
+    "tree": "tos.work.leon-battista-alberti.de-re-aedificatoria",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "leon-battista-alberti.de-re-aedificatoria:beauty-as-concord-of-parts",
+   "of": [
+    "C:A-C006"
+   ],
+   "areas": [
+    "AE21"
+   ],
+   "work": "leon-battista-alberti.de-re-aedificatoria",
+   "locus": "IX.5",
+   "formula": [
+    {
+     "place": "IX.5 p136v"
+    }
+   ],
+   "thesis": {
+    "ru": "Красота есть согласие и созвучие частей согласно определённым числу, очертанию и расположению, как того требует concinnitas — основной закон природы; зодчество следует ей.",
+    "en": "Beauty is the agreement and consonance of parts according to a definite number, outline and placement, as concinnitas, the primary law of nature, requires; the art of building follows it."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I099"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

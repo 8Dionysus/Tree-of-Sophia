@@ -1,0 +1,84 @@
+{
+ "reader": {
+  "id": "terra-2026-11-12-preface-to-the-picture-of-dorian-gray",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-12",
+  "reads": "Read Wilde’s English preface in the 1891 Ward, Lock printing against register D’s reading.",
+  "effort": "high"
+ },
+ "note": "The register’s distinction about an author’s conduct is not stated in these places and is not attributed to the work.",
+ "library": {
+  "agents": {
+   "oscar-wilde": {
+    "tree": "tos.agent.oscar-wilde"
+   }
+  },
+  "works": {
+   "oscar-wilde.preface-to-the-picture-of-dorian-gray": {
+    "title": {
+     "ru": "Предисловие к «Портрету Дориана Грея»",
+     "en": "Preface to The Picture of Dorian Gray"
+    },
+    "original": "en",
+    "tree": "tos.work.oscar-wilde.preface-to-the-picture-of-dorian-gray",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "oscar-wilde.preface-to-the-picture-of-dorian-gray:books-and-writing",
+   "of": [
+    "D:B-C3202",
+    "D:B-C3203"
+   ],
+   "areas": [
+    "AE32"
+   ],
+   "work": "oscar-wilde.preface-to-the-picture-of-dorian-gray",
+   "locus": "Preface",
+   "formula": [
+    {
+     "place": "Preface p6a"
+    }
+   ],
+   "thesis": {
+    "ru": "Не существует нравственных или безнравственных книг: книги бывают хорошо или плохо написаны.",
+    "en": "There is no such thing as a moral or an immoral book: books are well written or badly written."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "D:B-I023"
+   ]
+  },
+  {
+   "id": "oscar-wilde.preface-to-the-picture-of-dorian-gray:morality-of-art",
+   "of": [
+    "D:B-C3202",
+    "D:B-C3203"
+   ],
+   "areas": [
+    "AE32"
+   ],
+   "work": "oscar-wilde.preface-to-the-picture-of-dorian-gray",
+   "locus": "Preface",
+   "formula": [
+    {
+     "place": "Preface p6b"
+    }
+   ],
+   "thesis": {
+    "ru": "Нравственная жизнь человека составляет часть предмета художника, а нравственность искусства состоит в совершенном использовании несовершенного средства.",
+    "en": "The moral life of man forms part of the artist’s subject-matter, while the morality of art consists in the perfect use of an imperfect medium."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "D:B-I023"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

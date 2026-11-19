@@ -1,0 +1,436 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/dli.calcutta.04644/H01831_hocr_searchtext.txt.gz",
+   "file": "dli.calcutta.04644.ocr.txt",
+   "sha256": "bfe3db52b0ef2211332381f86c7c83fa75f5103f122af9c8081f5bf4526617e8",
+   "bytes": 1063569,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/dli.calcutta.04644/H01831_hocr_pageindex.json.gz",
+   "file": "dli.calcutta.04644.index.json",
+   "sha256": "f0018ae58a3c44568c209b66b62465d73fdb39c909ed457074262983d118605c",
+   "bytes": 17463,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/dli.calcutta.04644/H01831_page_numbers.json",
+   "file": "dli.calcutta.04644.pages.json",
+   "sha256": "09e46459327e51cea9ca1b836f3025e33cde0773edd878592fa0da16d78b1bbb",
+   "bytes": 93433,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://persweb.wabash.edu/facstaff/helmang/phi220txtbrwsr/Bullough/Bullough.html",
+   "file": "Bullough.html",
+   "sha256": "e3a2df2eeae6d38ede86df8678673db959f85f8b8e382e50eea8723879b89854",
+   "bytes": 95760,
+   "fetched": "2026-11-11",
+   "text": "Bullough.html.txt",
+   "why": "Wikisource and Project Gutenberg searched on their own sites for Edward Bullough and Psychical Distance; neither has the work. Wabash provides the article as a transcription of the 1912 journal text."
+  }
+ ],
+ "scan": {
+  "item": "dli.calcutta.04644",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q5342062",
+   "name": {
+    "en": "Edward Bullough",
+    "ru": "Эдвард Буллоу"
+   },
+   "role": "author",
+   "died": 1934,
+   "source": "https://www.wikidata.org/wiki/Q5342062"
+  }
+ ],
+ "published": 1913,
+ "images": [
+  {
+   "n": 93,
+   "item": "dli.calcutta.04644",
+   "file": "dli.calcutta.04644-n93.jpg",
+   "sha256": "e86c1b691ab85d496d8768137931b3d8c125b980b592471ee984063353d4be2a",
+   "by": "maker"
+  },
+  {
+   "n": 100,
+   "item": "britishjournalp00socigoog",
+   "file": "britishjournalp00socigoog-n100.jpg",
+   "sha256": "bb826b206c8c8d8418de5445f63d1dcd68e72ce36135777539b4fa666c67809e",
+   "by": "maker"
+  },
+  {
+   "n": 104,
+   "item": "britishjournalp00socigoog",
+   "file": "britishjournalp00socigoog-n104.jpg",
+   "sha256": "4559ed0a8cd47294e5186e61d09a472660479e468b657787dcc11b95c3aff968",
+   "by": "maker"
+  },
+  {
+   "n": 105,
+   "item": "britishjournalp00socigoog",
+   "file": "britishjournalp00socigoog-n105.jpg",
+   "sha256": "8b68f0bd66cf747ce7cc1e41fb96e504bf335c2b096a25346165704f6599e42b",
+   "by": "maker"
+  },
+  {
+   "n": 110,
+   "item": "britishjournalp00socigoog",
+   "file": "britishjournalp00socigoog-n110.jpg",
+   "sha256": "8aad999185cd5d687fa44dd3557a080c336f845ed61f1948996c5bd30d56903c",
+   "by": "maker"
+  },
+  {
+   "n": 94,
+   "item": "dli.calcutta.04644",
+   "file": "dli.calcutta.04644-n94.jpg",
+   "sha256": "8cbc518a4984f8f00a785d86ce81d59ebe93ff3a04e61e1cf3730155b13a3043",
+   "by": "maker"
+  },
+  {
+   "n": 96,
+   "item": "dli.calcutta.04644",
+   "file": "dli.calcutta.04644-n96.jpg",
+   "sha256": "75b3bc3b31144143fcf5c3024dcaca4436e352f7c4315a880ecc68581da5f1dc",
+   "by": "maker"
+  },
+  {
+   "n": 107,
+   "item": "britishjournalp00socigoog",
+   "file": "britishjournalp00socigoog-n107.jpg",
+   "sha256": "7330725ac463b20178ddbb44837708fe14a0cb17506e4b207b1665367c1aade3",
+   "by": "maker"
+  },
+  {
+   "n": 93,
+   "item": "dli.calcutta.04644",
+   "file": "dli.calcutta.04644-n93.jpg",
+   "sha256": "e86c1b691ab85d496d8768137931b3d8c125b980b592471ee984063353d4be2a",
+   "by": "second",
+   "loc": "I p88"
+  },
+  {
+   "n": 94,
+   "item": "dli.calcutta.04644",
+   "file": "dli.calcutta.04644-n94.jpg",
+   "sha256": "8cbc518a4984f8f00a785d86ce81d59ebe93ff3a04e61e1cf3730155b13a3043",
+   "by": "second",
+   "loc": "I p88"
+  },
+  {
+   "n": 96,
+   "item": "dli.calcutta.04644",
+   "file": "dli.calcutta.04644-n96.jpg",
+   "sha256": "75b3bc3b31144143fcf5c3024dcaca4436e352f7c4315a880ecc68581da5f1dc",
+   "by": "second",
+   "loc": "II p91"
+  },
+  {
+   "n": 99,
+   "item": "dli.calcutta.04644",
+   "file": "dli.calcutta.04644-n99.jpg",
+   "sha256": "bada24548c9daa507514aabacf57f577ea86237198047839a8bc2826c1e0d6fb",
+   "by": "second",
+   "loc": "II p94"
+  },
+  {
+   "n": 104,
+   "item": "britishjournalp00socigoog",
+   "file": "britishjournalp00socigoog-n104.jpg",
+   "sha256": "4559ed0a8cd47294e5186e61d09a472660479e468b657787dcc11b95c3aff968",
+   "by": "second",
+   "loc": "I p88"
+  },
+  {
+   "n": 105,
+   "item": "britishjournalp00socigoog",
+   "file": "britishjournalp00socigoog-n105.jpg",
+   "sha256": "8b68f0bd66cf747ce7cc1e41fb96e504bf335c2b096a25346165704f6599e42b",
+   "by": "second",
+   "loc": "I p88"
+  },
+  {
+   "n": 107,
+   "item": "britishjournalp00socigoog",
+   "file": "britishjournalp00socigoog-n107.jpg",
+   "sha256": "7330725ac463b20178ddbb44837708fe14a0cb17506e4b207b1665367c1aade3",
+   "by": "second",
+   "loc": "II p91"
+  }
+ ],
+ "places": {
+  "I p88": {
+   "transcription": "Bullough.html",
+   "dropped": [
+    "89(?=and)"
+   ],
+   "scan": "dli.calcutta.04644",
+   "method": "ocr",
+   "share": 0.906,
+   "leaves": [
+    93,
+    94
+   ],
+   "printed": [
+    "88",
+    "89"
+   ],
+   "differences": [
+    {
+     "transcription": "one",
+     "ocr": "on",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "labour",
+     "ocr": "labou",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "incidentally",
+     "ocr": "incidental !",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "to",
+     "ocr": "",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "the",
+     "ocr": "tbe",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "surrounding",
+     "ocr": "s rounding",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "of",
+     "ocr": "lof",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "blurring",
+     "ocr": "blurri",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "their",
+     "ocr": "thoi",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "grotesqueness",
+     "ocr": "grotesq ness",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "air ,",
+     "ocr": "pis",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "impression",
+     "ocr": "impr",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "",
+     "ocr": "^",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "your",
+     "ocr": "",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "note the",
+     "ocr": "not",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "hypocritically denying as it",
+     "ocr": "h \\ pocritically denyin",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "",
+     "ocr": "\\",
+     "leaf": 93,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "solitude",
+     "ocr": "Epwanp BurLovaH 89",
+     "leaf": 94,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "and",
+     "ocr": "dad",
+     "leaf": 94,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    },
+    {
+     "transcription": "",
+     "ocr": "'",
+     "leaf": 94,
+     "stands": "transcription",
+     "note": "Compared every difference with Google scan britishjournalp00socigoog leaves n104–105, pp. 88–89; the Calcutta scan has a damaged right edge."
+    }
+   ]
+  },
+  "II p91": {
+   "transcription": "Bullough.html",
+   "scan": "dli.calcutta.04644",
+   "method": "ocr",
+   "share": 0.955,
+   "leaves": [
+    96
+   ],
+   "printed": [
+    "91"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": ".",
+     "leaf": 96,
+     "stands": "transcription",
+     "note": "Read Google scan britishjournalp00socigoog leaf n107, p. 91, including the added account of science; Calcutta OCR has errors and damaged left edge."
+    },
+    {
+     "transcription": ", ' i . e",
+     "ocr": "; ie",
+     "leaf": 96,
+     "stands": "transcription",
+     "note": "Read Google scan britishjournalp00socigoog leaf n107, p. 91, including the added account of science; Calcutta OCR has errors and damaged left edge."
+    },
+    {
+     "transcription": "particular",
+     "ocr": "partiqular",
+     "leaf": 96,
+     "stands": "transcription",
+     "note": "Read Google scan britishjournalp00socigoog leaf n107, p. 91, including the added account of science; Calcutta OCR has errors and damaged left edge."
+    },
+    {
+     "transcription": "personal",
+     "ocr": "sonal",
+     "leaf": 96,
+     "stands": "transcription",
+     "note": "Compared each difference with Google scan britishjournalp00socigoog leaf n107, p. 91; the Calcutta OCR loses the left edge."
+    },
+    {
+     "transcription": "character",
+     "ocr": "racter",
+     "leaf": 96,
+     "stands": "transcription",
+     "note": "Compared each difference with Google scan britishjournalp00socigoog leaf n107, p. 91; the Calcutta OCR loses the left edge."
+    },
+    {
+     "transcription": "relation",
+     "ocr": "lation",
+     "leaf": 96,
+     "stands": "transcription",
+     "note": "Compared each difference with Google scan britishjournalp00socigoog leaf n107, p. 91; the Calcutta OCR loses the left edge."
+    },
+    {
+     "transcription": "practical",
+     "ocr": "tical",
+     "leaf": 96,
+     "stands": "transcription",
+     "note": "Compared each difference with Google scan britishjournalp00socigoog leaf n107, p. 91; the Calcutta OCR loses the left edge."
+    },
+    {
+     "transcription": "losing",
+     "ocr": "ing",
+     "leaf": 96,
+     "stands": "transcription",
+     "note": "Compared each difference with Google scan britishjournalp00socigoog leaf n107, p. 91; the Calcutta OCR loses the left edge."
+    }
+   ]
+  },
+  "II p94": {
+   "transcription": "Bullough.html",
+   "scan": "dli.calcutta.04644",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    99
+   ],
+   "printed": [
+    "94"
+   ],
+   "differences": []
+  }
+ },
+ "scans": {
+  "britishjournalp00socigoog": {
+   "item": "britishjournalp00socigoog",
+   "ocr": false,
+   "long_s": false,
+   "image_offset": null
+  },
+  "dli.calcutta.04644": {
+   "item": "dli.calcutta.04644",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": 0
+  }
+ }
+}

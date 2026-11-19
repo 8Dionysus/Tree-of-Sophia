@@ -1,0 +1,216 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-preface-de-cromwell",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "The French preface in the 1912 Ollendorff Théâtre I printing, compared with the three register readings and links.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "victor-hugo": {
+    "tree": "tos.agent.victor-hugo"
+   }
+  },
+  "works": {
+   "victor-hugo.preface-de-cromwell": {
+    "title": {
+     "ru": "Предисловие к «Кромвелю»",
+     "en": "Preface to Cromwell"
+    },
+    "original": "fr",
+    "tree": "tos.work.victor-hugo.preface-de-cromwell",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "victor-hugo.preface-de-cromwell:drama-combines-sublime-and-grotesque",
+   "of": [
+    "A:C007",
+    "A:C002",
+    "A:C059"
+   ],
+   "areas": [
+    "AE02",
+    "AE07"
+   ],
+   "work": "victor-hugo.preface-de-cromwell",
+   "locus": "Préface, p. 23",
+   "formula": [
+    {
+     "place": "Préface p23"
+    }
+   ],
+   "thesis": {
+    "ru": "Реальное составляет характер драмы и возникает из естественного сочетания возвышенного и гротескного, которые пересекаются в драме, жизни и творении.",
+    "en": "The real is the character of drama and arises from the natural combination of the sublime and the grotesque, which cross in drama, life and creation."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E106"
+   ]
+  },
+  {
+   "id": "victor-hugo.preface-de-cromwell:grotesque-creates-horrible-and-comic",
+   "of": [
+    "A:C007",
+    "A:C006"
+   ],
+   "areas": [
+    "AE06",
+    "AE07"
+   ],
+   "work": "victor-hugo.preface-de-cromwell",
+   "locus": "Préface, p. 16",
+   "formula": [
+    {
+     "place": "Préface p16"
+    }
+   ],
+   "thesis": {
+    "ru": "В мысли современных людей гротескное играет огромную роль: оно создаёт уродливое и ужасное, комическое и шутовское.",
+    "en": "In the thought of modern people the grotesque has an immense role: it creates the deformed and the horrible, the comic and the buffoonish."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E107"
+   ],
+   "note": "The place speaks of the deformed and horrible, rather than naming the monstrous; it says the grotesque creates the comic."
+  },
+  {
+   "areas": [
+    "AE01",
+    "AE03",
+    "AE07"
+   ],
+   "work": "victor-hugo.preface-de-cromwell",
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E108"
+   ],
+   "id": "victor-hugo.preface-de-cromwell:modern-muse-sees-ugly-beside-beautiful",
+   "of": [
+    "A:C007",
+    "A:C001"
+   ],
+   "locus": "Préface, p. 14",
+   "formula": [
+    {
+     "place": "Préface p14"
+    }
+   ],
+   "thesis": {
+    "ru": "Современная муза увидит безобразное рядом с прекрасным и гротескное на обороте возвышенного в творении.",
+    "en": "The modern muse will see the ugly beside the beautiful and the grotesque on the reverse of the sublime in creation."
+   },
+   "note": "The second reader correctly observes that the place describes the modern muse’s perception of creation, not the representation of the ugly in art; A:C033 is therefore removed from this conception. The register’s ordinary is not named."
+  },
+  {
+   "areas": [
+    "AE01",
+    "AE03",
+    "AE07"
+   ],
+   "work": "victor-hugo.preface-de-cromwell",
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E108"
+   ],
+   "id": "victor-hugo.preface-de-cromwell:poetry-mixes-grotesque-and-sublime",
+   "of": [
+    "A:C007"
+   ],
+   "locus": "Préface, pp. 14–15",
+   "formula": [
+    {
+     "place": "Préface p14b"
+    }
+   ],
+   "thesis": {
+    "ru": "Поэзия станет, как природа, смешивать в своих созданиях гротескное с возвышенным, не сливая их.",
+    "en": "Poetry will, like nature, mix the grotesque with the sublime in its creations without confounding them."
+   },
+   "note": "The place speaks of poetry mixing the grotesque and the sublime; the register’s ordinary is not named."
+  },
+  {
+   "id": "victor-hugo.preface-de-cromwell:tartufe-and-pourceaugnac-are-admirable-art",
+   "of": [
+    "A:C033",
+    "A:C001"
+   ],
+   "areas": [
+    "AE01",
+    "AE03",
+    "AE07"
+   ],
+   "work": "victor-hugo.preface-de-cromwell",
+   "locus": "Préface, p. 24",
+   "formula": [
+    {
+     "place": "Préface p24"
+    }
+   ],
+   "thesis": {
+    "ru": "Тартюф некрасив, Пурсоньяк неблагороден; Пурсоньяк и Тартюф — восхитительные создания искусства.",
+    "en": "Tartufe is not beautiful, Pourceaugnac is not noble; Pourceaugnac and Tartufe are admirable creations of art."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "In answering an objection to the ugly as an object of imitation in art, Hugo names these examples; the register’s ordinary and the general pairing with the beautiful are not asserted in this place.",
+   "negation": "Tartufe n’est pas beau, Pourceaugnac n’est pas noble",
+   "from": [
+    "A:E108"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "the-grotesque:crosses-with:the-sublime",
+   "from_concept": "A:C007",
+   "to_concept": "A:C002",
+   "verb": {
+    "ru": "пересекается с",
+    "en": "crosses with"
+   },
+   "grounds": [
+    "victor-hugo.preface-de-cromwell:drama-combines-sublime-and-grotesque"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R099"
+   ]
+  },
+  {
+   "id": "the-grotesque:creates:the-comic",
+   "from_concept": "A:C007",
+   "to_concept": "A:C006",
+   "verb": {
+    "ru": "создаёт",
+    "en": "creates"
+   },
+   "grounds": [
+    "victor-hugo.preface-de-cromwell:grotesque-creates-horrible-and-comic"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The place says creates rather than includes.",
+   "from": [
+    "A:R100"
+   ]
+  }
+ ],
+ "left": [
+  {
+   "key": "A:R101",
+   "reason": "The selected passage says the grotesque creates the deformed and horrible, not that it includes the monstrous; the adjacent page names monsters but does not state this link in these terms."
+  }
+ ]
+}

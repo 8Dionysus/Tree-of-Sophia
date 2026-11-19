@@ -5,6 +5,7 @@
 // writes them; what it shows on a lens comes from here, with the sources and
 // footing each module keeps.
 
+import aestheticsManifest from '../../../../bonsai/aesthetics/bonsai.json' with {type:'json'};
 import antiquityManifest from '../../../../bonsai/antiquity/bonsai.json' with {type:'json'};
 import zarathustraManifest from '../../../../bonsai/zarathustra/bonsai.json' with {type:'json'};
 import {readMedia} from '../../../../bonsai/lib/media.mjs';
@@ -24,6 +25,13 @@ export function loadAntiquityCollection(){
 const RENDERINGS=import.meta.glob('../../../../bonsai/*/renderings.json',{import:'default'});
 const renderingsOf=profile=>RENDERINGS[`../../../../bonsai/${profile}/renderings.json`]?.()??Promise.resolve(null);
 const LOADERS=Object.freeze({
+  aesthetics:()=>Promise.all([
+    import('../../../../bonsai/aesthetics/field.json'),
+    import('../../../../bonsai/aesthetics/library.json'),
+    import('../../../../bonsai/aesthetics/chronology.json'),
+    import('../../../../bonsai/aesthetics/identities.json'),
+    import('../../../../bonsai/aesthetics/fragments.json'),
+  ]).then(([field,library,chronology,identities,fragments])=>({field:json(field),library:json(library),chronology:json(chronology),identities:json(identities),fragments:json(fragments)})),
   antiquity:()=>Promise.all([
     loadAntiquityCollection().then(collection=>({default:collection})),
     import('../../../../bonsai/antiquity/first-branches.json'),
@@ -52,6 +60,7 @@ const LOADERS=Object.freeze({
   ]).then(([chronology,places,identities,basemap,core,renderings])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core,renderings})),
 });
 const BONSAI={
+  aesthetics:Object.freeze({manifest:aestheticsManifest}),
   antiquity:Object.freeze({manifest:antiquityManifest}),
   zarathustra:Object.freeze({manifest:zarathustraManifest}),
 };
@@ -68,13 +77,15 @@ export function loadBonsai(profile){
 }
 
 // The images on a stand's cards (bonsai/<stand>/media.json) come when a card first asks for them: the space never waits for media.
+// The Tree's names of their works in the reader's language (media-names.json) come with them.
 const MEDIA=import.meta.glob('../../../../bonsai/*/media.json',{import:'default'});
+const MEDIA_NAMES=import.meta.glob('../../../../bonsai/*/media-names.json',{import:'default'});
 const mediaLoads=new Map();
-/** A stand's media module, read with `readMedia`, loaded once; null where the stand keeps none. */
+/** A stand's media module, read with `readMedia` and its names, loaded once; null where the stand keeps none. */
 export function loadMedia(profile){
-  const load=MEDIA[`../../../../bonsai/${profile}/media.json`];
+  const load=MEDIA[`../../../../bonsai/${profile}/media.json`],names=MEDIA_NAMES[`../../../../bonsai/${profile}/media-names.json`];
   if(!load)return Promise.resolve(null);
-  if(!mediaLoads.has(profile))mediaLoads.set(profile,load().then(readMedia).catch(error=>{mediaLoads.delete(profile);throw error;}));
+  if(!mediaLoads.has(profile))mediaLoads.set(profile,Promise.all([load(),names?.()??null]).then(([module,named])=>readMedia(module,named)).catch(error=>{mediaLoads.delete(profile);throw error;}));
   return mediaLoads.get(profile);
 }
 
@@ -95,3 +106,9 @@ export function lensPositions(profile,lensId){
   const declared=BONSAI[profile]?.manifest?.lenses?.[lensId];
   return declared??{positions:'group'};
 }
+
+// The public corpus publishes its works under a profile per stand, and a stand's profile appears in the published
+// manifest only with the next corpus publication. Until `profiles.aesthetics` is published (it is declared in
+// access/public-corpus/selection.v1.json), Aesthetics reads the three corpus works its alignment names through
+// Antiquity's selection, which holds them. Remove this mapping when the manifest carries the profile.
+export const corpusProfile=profile=>profile==='aesthetics'?'antiquity':profile;

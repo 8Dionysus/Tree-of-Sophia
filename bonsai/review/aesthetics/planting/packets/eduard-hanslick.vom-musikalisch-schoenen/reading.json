@@ -1,0 +1,58 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-vom-musikalisch-schoenen",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Немецкий текст первого издания 1854 года прочитан по скану рядом с чтением регистра об опере.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "eduard-hanslick": {
+    "tree": "tos.agent.eduard-hanslick"
+   }
+  },
+  "works": {
+   "eduard-hanslick.vom-musikalisch-schoenen": {
+    "title": {
+     "ru": "О музыкально-прекрасном",
+     "en": "On the Musically Beautiful"
+    },
+    "original": "de",
+    "tree": "tos.work.eduard-hanslick.vom-musikalisch-schoenen",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "eduard-hanslick.vom-musikalisch-schoenen:operatic-demands",
+   "of": [
+    "A:C014"
+   ],
+   "areas": [
+    "AE21"
+   ],
+   "work": "eduard-hanslick.vom-musikalisch-schoenen",
+   "locus": "Ch. II",
+   "formula": [
+    {
+     "place": "II p27"
+    }
+   ],
+   "thesis": {
+    "ru": "Идеал оперы — одинаковое удовлетворение музыкальных и драматических требований; её существо — непрерывная борьба драматической точности и музыкальной красоты, постоянная уступка одного принципа другому.",
+    "en": "The ideal of opera is equal satisfaction of musical and dramatic demands; its nature is a continuous struggle between dramatic accuracy and musical beauty, with each principle continually yielding to the other."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The register assigns content (C:A-C002) and speaks of musical and dramatic coherence. The cited sentences instead name musical beauty and dramatic accuracy: artistic beauty (A:C014) is the closest existing registry concept for the musical beauty at issue; no claim about content is assigned to this place.",
+   "from": [
+    "C:A-I098"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

@@ -1,0 +1,177 @@
+{
+ "sources": [
+  {
+   "role": "transcription",
+   "url": "https://www.gutenberg.org/files/887/887-0.txt",
+   "file": "887-0.txt",
+   "sha256": "616be6357e2fbcf4ba02c1163c4328a94629bf93c8a2f2a3a022c514c95f13b3",
+   "bytes": 361294,
+   "fetched": "2026-11-10",
+   "text": "887-0.txt.txt"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/decayoflyingpenp00wild/decayoflyingpenp00wild_hocr_searchtext.txt.gz",
+   "file": "decayoflyingpenp00wild.ocr.txt",
+   "sha256": "b7bbaa487290f133f644edaa101e464c83063811757a778068ae3ddf11bc834c",
+   "bytes": 411036,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/decayoflyingpenp00wild/decayoflyingpenp00wild_hocr_pageindex.json.gz",
+   "file": "decayoflyingpenp00wild.index.json",
+   "sha256": "61e6716a8d8ce0a652279a78a7ff18c23da7c5af0faf969bf2fe1649978afe63",
+   "bytes": 10393,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/decayoflyingpenp00wild/decayoflyingpenp00wild_page_numbers.json",
+   "file": "decayoflyingpenp00wild.pages.json",
+   "sha256": "a39fe8906d81e2935da52d4fe03bda86c65bb8683c99834a5c4a895e5c3e2161",
+   "bytes": 50235,
+   "fetched": "2026-11-10"
+  }
+ ],
+ "scan": {
+  "item": "decayoflyingpenp00wild",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -3
+ },
+ "persons": [
+  {
+   "qid": "Q30875",
+   "name": {
+    "en": "Oscar Wilde",
+    "ru": "Оскар Уайльд"
+   },
+   "role": "author",
+   "died": 1900,
+   "source": "https://www.wikidata.org/wiki/Q30875"
+  }
+ ],
+ "published": 1905,
+ "images": [
+  {
+   "n": 50,
+   "item": "decayoflyingpenp00wild",
+   "file": "decayoflyingpenp00wild-n50.jpg",
+   "sha256": "8135adf57d26e69dd3e76afb5cc06fe2b5928c1084803947c43b43912b770201",
+   "by": "maker"
+  },
+  {
+   "n": 47,
+   "item": "decayoflyingpenp00wild",
+   "file": "decayoflyingpenp00wild-n47.jpg",
+   "sha256": "b7fec7467cb0d246e1eccfce80a7c338d087135b5d2f744a85766d891e0e6521",
+   "by": "maker"
+  },
+  {
+   "n": 46,
+   "item": "decayoflyingpenp00wild",
+   "file": "decayoflyingpenp00wild-n46.jpg",
+   "sha256": "1cbecbbcb486789ec63b8624842f68280256078eb3eecf360aca018174766aab",
+   "by": "maker"
+  },
+  {
+   "n": 66,
+   "item": "decayoflyingpenp00wild",
+   "file": "decayoflyingpenp00wild-n66.jpg",
+   "sha256": "d11c381254b76e1a502c81de22b3042296d8de159d3168215bb5f012e4c51eee",
+   "by": "maker"
+  },
+  {
+   "n": 47,
+   "item": "decayoflyingpenp00wild",
+   "file": "decayoflyingpenp00wild-n47.jpg",
+   "sha256": "b7fec7467cb0d246e1eccfce80a7c338d087135b5d2f744a85766d891e0e6521",
+   "by": "second",
+   "loc": "Dialogue p22"
+  },
+  {
+   "n": 79,
+   "item": "decayoflyingpenp00wild",
+   "file": "decayoflyingpenp00wild-n79.jpg",
+   "sha256": "b25d882e6567548220844126201398c9e040ef1aa8b7c1cc33ab8b66bb76da6a",
+   "by": "second",
+   "loc": "Dialogue p54"
+  },
+  {
+   "n": 57,
+   "item": "decayoflyingpenp00wild",
+   "file": "decayoflyingpenp00wild-n57.jpg",
+   "sha256": "6ece8aa09f80d55cea29008a5ae0dcf9711b374661074896346b2af2476fa443",
+   "by": "second",
+   "loc": "Dialogue p32"
+  },
+  {
+   "n": 66,
+   "item": "decayoflyingpenp00wild",
+   "file": "decayoflyingpenp00wild-n66.jpg",
+   "sha256": "d11c381254b76e1a502c81de22b3042296d8de159d3168215bb5f012e4c51eee",
+   "by": "second",
+   "loc": "Dialogue p41"
+  }
+ ],
+ "places": {
+  "Dialogue p22": {
+   "scan": "decayoflyingpenp00wild",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    50
+   ],
+   "printed": [
+    "22"
+   ],
+   "differences": []
+  },
+  "Dialogue p54": {
+   "scan": "decayoflyingpenp00wild",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    82
+   ],
+   "printed": [
+    "54"
+   ],
+   "differences": []
+  },
+  "Dialogue p32": {
+   "scan": "decayoflyingpenp00wild",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    60
+   ],
+   "printed": [
+    "32"
+   ],
+   "differences": []
+  },
+  "Dialogue p41": {
+   "transcription": "887-0.txt",
+   "scan": "decayoflyingpenp00wild",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    69
+   ],
+   "printed": [
+    "41"
+   ],
+   "differences": []
+  }
+ },
+ "scans": {
+  "decayoflyingpenp00wild": {
+   "item": "decayoflyingpenp00wild",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -3
+  }
+ }
+}

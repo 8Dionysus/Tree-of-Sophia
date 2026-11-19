@@ -23,10 +23,12 @@ const chapterFiles=import.meta.glob('../../../../bonsai/zarathustra/witnesses/*.
 const loadManifest=()=>import('../../../../bonsai/zarathustra/witnesses.json').then(module=>module.default);
 // Each stand brings its own places of other works and its own alignment of the corpus works it cites.
 const PLACES={
+  aesthetics:()=>import('../../../../bonsai/aesthetics/fragments.json').then(module=>module.default),
   zarathustra:()=>import('../../../../bonsai/zarathustra/fragments.json').then(module=>module.default),
   antiquity:()=>import('../../../../bonsai/antiquity/fragments.json').then(module=>module.default),
 };
 const ALIGNMENTS={
+  aesthetics:()=>import('../../../../bonsai/aesthetics/alignment.json').then(module=>module.default),
   zarathustra:()=>import('../../../../bonsai/zarathustra/alignment.json').then(module=>module.default),
   antiquity:()=>import('../../../../bonsai/antiquity/alignment.json').then(module=>module.default),
 };
@@ -41,11 +43,16 @@ export const citesOf=value=>Array.isArray(value?.cite)?value.cite.filter(cite=>c
 export const hasAuthored=(value,locale)=>citesOf(value).length>0||!!localeValue(value,locale).trim();
 
 /**
- * Which witnesses a reader sees: the translation into the interface language
- * with the original one step away; the original alone in German; the original
- * beside the English for the languages no witness translates into.
+ * Which witnesses a reader sees. Antiquity requests the interface language
+ * exactly and offers the original separately; the other stand retains its
+ * existing fallback when no witness translates into the interface language.
  */
-export function readingLanguages(locale,original='de',available=['de','en','ru']){
+export function readingLanguages(locale,original='de',available=['de','en','ru'],{exact=false}={}){
+  if(exact){
+    const language=resolveLocale(locale),hasOriginal=available.includes(original);
+    if(language===original)return {primary:hasOriginal?[original]:[],alternate:null};
+    return {primary:available.includes(language)?[language]:[],alternate:hasOriginal?original:null};
+  }
   const [,translation]=shownLanguages(locale,original,available);
   if(!translation)return {primary:[original],alternate:null};
   if(translation===resolveLocale(locale))return {primary:[translation],alternate:original};
@@ -308,13 +315,16 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     // A place may give a language from another witness of it (the translation of a book the usual one lacks).
     const witnessOf=language=>work.witnesses?.[place.witness?.[language]??language];
     const available=Object.keys(place.texts??{}).filter(language=>place.texts[language]);
-    const {primary,alternate}=readingLanguages(locale(),work.original,available);
+    const {primary,alternate}=readingLanguages(locale(),work.original,available,{exact:profile!=='zarathustra'});
     let showing=primary.filter(language=>available.includes(language));
-    if(!showing.length)showing=[work.original].filter(language=>available.includes(language));
+    if(!showing.length&&profile!=='antiquity')showing=[work.original].filter(language=>available.includes(language));
     const paint=()=>{
       figure.replaceChildren();
       // A protected work the stand may not quote is shown by its locator alone.
-      if(!showing.length){const caption=el('figcaption','ps-fragment-cite');caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label)].filter(Boolean).join(' · ')));figure.append(caption);}
+      if(!showing.length){
+        if(profile!=='zarathustra')figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
+        const caption=el('figcaption','ps-fragment-cite');caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label)].filter(Boolean).join(' · ')));figure.append(caption);
+      }
       for(const language of showing){
         const text=place.texts[language];
         const narrowed=shownIn(language,language===work.original&&Number.isInteger(cite.s)?text.slice(cite.s,Number.isInteger(cite.e)?cite.e:text.length):text);
@@ -328,7 +338,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       }
       const tools=el('div','ps-fragment-tools');
       const other=alternate&&available.includes(alternate)?(showing.includes(alternate)?primary.filter(language=>available.includes(language)):[alternate]):null;
-      if(other?.length&&other.join()!==showing.join()){
+      if(other&&(other.length||profile!=='zarathustra'&&showing.includes(alternate))&&other.join()!==showing.join()){
         const swap=button(showing.includes(alternate)?words('fragmentTranslation'):words('fragmentOriginal'),'text-button ps-fragment-swap');
         swap.setAttribute('aria-pressed',String(showing.includes(alternate)));
         swap.addEventListener('click',()=>{showing=other;paint();figure.querySelector('.ps-fragment-swap')?.focus({preventScroll:true});});
@@ -371,10 +381,10 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const meets=(unit,index,entry)=>{const [a,b]=span(unit,index);return (entry.pairs??[]).some(([source])=>source.some(([s,e])=>overlaps(s,e,a,b)));};
     const covers=item=>originals.some((unit,index)=>{const entry=data.units?.[unit.id]?.t?.[item.versionId];return !!entry&&(!(entry.pairs??[]).length||meets(unit,index,entry));});
     const available=[work.original.language,...work.translations.filter(covers).map(item=>item.language)];
-    const {primary,alternate}=readingLanguages(locale(),work.original.language,available);
+    const {primary,alternate}=readingLanguages(locale(),work.original.language,available,{exact:profile!=='zarathustra'});
     const versionFor=language=>language===work.original.language?work.original:work.translations.find(item=>item.language===language&&covers(item));
     let showing=primary.filter(language=>versionFor(language));
-    if(!showing.length)showing=[work.original.language];
+    if(!showing.length&&profile!=='antiquity')showing=[work.original.language];
     const texts=new Map();
     async function textOf(language){
       if(texts.has(language))return texts.get(language);
@@ -405,6 +415,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       const parts=await Promise.all(showing.map(async language=>[language,await textOf(language)]));
       if(!current())return;
       figure.replaceChildren();
+      if(!showing.length&&profile!=='zarathustra')figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
       for(const [language,value] of parts){
         if(!value.length)continue;
         const version=versionFor(language);
@@ -420,7 +431,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       if(alternate&&versionFor(alternate)){
         const back=primary.filter(language=>versionFor(language));
         const other=showing.includes(alternate)?back:[alternate];
-        if(other.length&&other.join()!==showing.join()){
+        if((other.length||profile!=='zarathustra'&&showing.includes(alternate))&&other.join()!==showing.join()){
           const swap=button(showing.includes(alternate)?words('fragmentTranslation'):words('fragmentOriginal'),'text-button ps-fragment-swap');
           swap.setAttribute('aria-pressed',String(showing.includes(alternate)));
           swap.addEventListener('click',()=>{showing=other;void paint().then(()=>figure.querySelector('.ps-fragment-swap')?.focus({preventScroll:true})).catch(error=>onError?.(error));});
@@ -488,7 +499,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     figure.addEventListener('click',event=>{if(!wrap.classList.contains('is-open')&&!event.target.closest?.('button,a'))toggle.click();});
     wrap.append(figure,toggle);return wrap;
   }
-  return {render,fragment,showChapter,sourceSelection,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
+  async function placeLabel(cite){const data=await externalPlaces();return localeValue(data.places?.[cite?.w]?.[cite?.loc]?.label,locale());}
+  return {render,fragment,showChapter,sourceSelection,placeLabel,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
 }
 
 export {CHAPTER_KEYS,copyLocale};

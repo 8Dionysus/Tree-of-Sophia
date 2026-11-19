@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import worker, { localizeHead } from "../src/public-research-entry.ts";
+import worker from "../src/public-research-entry.ts";
+import { localizeHead } from "../src/public-head.ts";
 
 function fixture(fetchAsset: (request: Request) => Promise<Response> | Response) {
   const paths: string[] = [];
@@ -22,6 +23,8 @@ test("public page paths map to their MPA HTML and receive security headers", asy
     ["/zarathustra/", "/zarathustra/"],
     ["/antiquity", "/antiquity/"],
     ["/antiquity/", "/antiquity/"],
+    ["/aesthetics", "/aesthetics/"],
+    ["/aesthetics/", "/aesthetics/"],
   ]) {
     const response = await app.fetch(new Request(`https://treeofsophia.com${path}`));
     assert.equal(app.paths.at(-1), expected);
@@ -48,28 +51,28 @@ test("research bundle and public corpus URLs lose only the public prefix", async
   }
 });
 
-test("unmatched paths reach the origin and www research redirects preserve path and query", async (t) => {
+test("retired routes return 404 without forwarding and www redirects preserve paths", async (t) => {
   const originRequests: Request[] = [];
   t.mock.method(globalThis, "fetch", async (request: Request) => { originRequests.push(request); return new Response("origin"); });
-  const app = fixture(request => new URL(request.url).pathname === "/missing.json"
-    ? new Response("not found", { status: 404 }) : new Response("unexpected"));
-  const response = await app.fetch(new Request("https://www.treeofsophia.com/antiquity/?lang=en"));
-  assert.equal(response.status, 308);
-  assert.equal(response.headers.get("Location"), "https://treeofsophia.com/antiquity/?lang=en");
-  const home = await app.fetch(new Request("https://www.treeofsophia.com/?lang=ru"));
-  assert.equal(home.status, 308);
-  assert.equal(home.headers.get("Location"), "https://treeofsophia.com/?lang=ru");
-  for (const path of ["/api/health", "/static/reader.js"]) {
-    const missing = await app.fetch(new Request(`https://treeofsophia.com${path}`));
-    assert.equal(await missing.text(), "origin");
+  const app = fixture(request => new URL(request.url).pathname === "/not-found/"
+    ? new Response("not found") : new Response("missing", { status: 404 }));
+  for (const path of ["/health", "/api/health", "/__edge/data.json", "/static/reader.js"]) {
+    for (const method of ["GET", "HEAD", "POST"]) {
+      for (const hostname of ["treeofsophia.com", "www.treeofsophia.com"]) {
+        const response = await app.fetch(new Request(`https://${hostname}${path}`, { method }));
+        assert.equal(response.status, 404, `${method} ${hostname}${path}`);
+        assert.match(response.headers.get("Content-Security-Policy") ?? "", /default-src 'self'/);
+        if (method === "HEAD") assert.equal(await response.text(), "");
+      }
+    }
   }
-  const post = new Request("https://treeofsophia.com/api/query?x=1", {method: "POST", body: "preserved"});
-  assert.equal(await (await app.fetch(post)).text(), "origin");
-  assert.equal(originRequests.at(-1), post);
-  assert.equal(await originRequests.at(-1)!.text(), "preserved");
-  assert.equal(app.paths.length, 0);
+  assert.equal(originRequests.length, 0);
+  for (const path of ["/antiquity/?lang=en", "/?lang=ru"]) {
+    const response = await app.fetch(new Request(`https://www.treeofsophia.com${path}`));
+    assert.equal(response.status, 308);
+    assert.equal(response.headers.get("Location"), `https://treeofsophia.com${path}`);
+  }
   assert.equal((await app.fetch(new Request("https://treeofsophia.com/__research/missing.json"))).status, 404);
-  assert.deepEqual(app.paths, ["/missing.json"]);
 });
 
 test("HEAD is preserved and writes are rejected", async () => {
@@ -126,7 +129,7 @@ test("a stand's page names itself in English unless its link asks for Russian", 
   assert.match(russian, /<html lang="ru"/);
   assert.match(russian, /<title>Заратустра · Древо Софии<\/title>/);
   assert.match(russian, /<meta property="og:title" content="Так говорил Заратустра · Древо Софии"/);
-  assert.match(russian, /<meta name="description" content="«Так говорил Заратустра» в Древе Софии: немецкий оригинал/);
+  assert.match(russian, /<meta name="description" content="«Так говорил Заратустра» Фридриха Ницше в Древе Софии\./);
   assert.match(russian, /<meta property="og:site_name" content="Древо Софии"/);
   assert.match(russian, /og\/zarathustra-ru\.jpg/);
   assert.match(russian, /content="ru_RU"/);
@@ -134,7 +137,7 @@ test("a stand's page names itself in English unless its link asks for Russian", 
   assert.equal(localizeHead(STAND, "zarathustra", "xx"), STAND);
   const english = localizeHead(STAND, "zarathustra", "en");
   assert.match(english, /<title>Zarathustra · Tree of Sophia<\/title>/);
-  assert.match(english, /<meta name="description" content="Thus Spoke Zarathustra in the Tree of Sophia: the German original/);
+  assert.match(english, /<meta name="description" content="Thus Spoke Zarathustra by Friedrich Nietzsche in the Tree of Sophia\./);
   const chinese = localizeHead(STAND, "zarathustra", "zh-Hans");
   assert.match(chinese, /<html lang="zh-Hans"/);
   assert.match(chinese, /<title>Zarathustra · Tree of Sophia<\/title>/);
@@ -149,13 +152,13 @@ test("a stand's page names itself in English unless its link asks for Russian", 
 });
 
 test("the site's own address greets in the language its link asks for", async () => {
-  const page = `<!doctype html>\n<html lang="en">\n  <head>\n    <title>Tree of Sophia</title>\n    <meta name="description" content="Thought grown from the texts themselves." />\n    <meta property="og:site_name" content="Tree of Sophia" />\n    <meta property="og:title" content="Tree of Sophia" />\n  </head>\n</html>`;
+  const page = `<!doctype html>\n<html lang="en">\n  <head>\n    <title>Tree of Sophia</title>\n    <meta name="description" content="Thought grown from the sources." />\n    <meta property="og:site_name" content="Tree of Sophia" />\n    <meta property="og:title" content="Tree of Sophia" />\n  </head>\n</html>`;
   const app = fixture(() => new Response(page, { headers: { "Content-Type": "text/html; charset=utf-8" } }));
   const russian = await (await app.fetch(new Request("https://treeofsophia.com/?lang=ru"))).text();
   assert.equal(app.paths.at(-1), "/home/");
   assert.match(russian, /<html lang="ru"/);
   assert.match(russian, /<title>Древо Софии<\/title>/);
-  assert.match(russian, /content="Мысль, выращенная из самих текстов\./);
+  assert.match(russian, /content="Мысль, выращенная из источников\./);
   const english = await (await app.fetch(new Request("https://treeofsophia.com/"))).text();
   assert.equal(english, page);
 });
@@ -177,4 +180,27 @@ test("the server reads a language tag as the page does, aliases included", async
   assert.match(await page("es-MX"), /<html lang="es"/);
   assert.match(await page("de-AT"), /<html lang="de"/);
   for (const unknown of ["fr", "zh-TW", "xx-YY"]) assert.equal(await page(unknown), STAND, unknown);
+});
+
+test("the Aesthetics stand has localized public metadata", async () => {
+  const page = `<!doctype html>
+<html lang="en">
+  <head>
+    <title>Aesthetics · Tree of Sophia</title>
+    <meta name="description" content="Aesthetics in the Tree of Sophia." />
+    <meta property="og:site_name" content="Tree of Sophia" />
+    <meta property="og:title" content="Aesthetics · Tree of Sophia" />
+    <meta property="og:description" content="Aesthetics in the Tree of Sophia." />
+    <meta property="og:locale" content="en_US" />
+  </head>
+</html>`;
+  const app = fixture(() => new Response(page, { headers: { "Content-Type": "text/html; charset=utf-8" } }));
+  const response = await app.fetch(new Request("https://treeofsophia.com/aesthetics/?lang=ru"));
+  assert.equal(app.paths.at(-1), "/aesthetics/");
+  const russian = await response.text();
+  assert.match(russian, /<html lang="ru"/);
+  assert.match(russian, /<title>Эстетика · Древо Софии<\/title>/);
+  assert.match(russian, /<meta property="og:title" content="Эстетика · Древо Софии"/);
+  assert.match(russian, /<meta name="description" content="Философия прекрасного, искусства и чувственного опыта в Древе Софии\."/);
+  assert.match(russian, /content="ru_RU"/);
 });

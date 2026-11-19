@@ -1,0 +1,240 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-die-geburt-der-tragoedie-aus-dem-geiste",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "The German text in the 1886 Leipzig printing was read against its page images beside the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-nietzsche": {
+    "tree": "tos.agent.friedrich-nietzsche"
+   }
+  },
+  "works": {
+   "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste": {
+    "title": {
+     "ru": "Рождение трагедии из духа музыки",
+     "en": "The Birth of Tragedy out of the Spirit of Music"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:paired-art-drives",
+   "of": [
+    "A:C156",
+    "A:C157",
+    "A:C005"
+   ],
+   "areas": [
+    "AE01",
+    "AE05"
+   ],
+   "work": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste",
+   "locus": "§1",
+   "formula": [
+    {
+     "place": "§1 p1"
+    }
+   ],
+   "thesis": {
+    "ru": "Аполлоническое и дионисийское художественные влечения, взаимно побуждая друг друга, в соединении порождают аттическую трагедию.",
+    "en": "The Apollonian and Dionysian artistic drives, mutually stimulating one another, produce Attic tragedy in their pairing."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E085"
+   ]
+  },
+  {
+   "id": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:chorus-and-image-world",
+   "of": [
+    "A:C159",
+    "A:C157"
+   ],
+   "areas": [
+    "AE05"
+   ],
+   "work": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste",
+   "locus": "§8",
+   "formula": [
+    {
+     "place": "§8 p41"
+    }
+   ],
+   "thesis": {
+    "ru": "Греческая трагедия есть дионисийский хор, вновь и вновь разряжающийся в аполлоническом мире образов.",
+    "en": "Greek tragedy is the Dionysian chorus discharging itself again and again in an Apollonian world of images."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E086"
+   ],
+   "note": "The passage grounds chorus and Dionysian image-making; the register concept mimesis is not asserted by this sentence."
+  },
+  {
+   "id": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:dionysian-primordial-pleasure",
+   "of": [
+    "A:C154"
+   ],
+   "areas": [
+    "AE05"
+   ],
+   "work": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste",
+   "locus": "§24",
+   "formula": [
+    {
+     "place": "§24 p140"
+    }
+   ],
+   "thesis": {
+    "ru": "Радость, порождаемая трагическим мифом, имеет общую родину с наслаждением музыкальным диссонансом.",
+    "en": "The pleasure produced by tragic myth has the same home as the pleasurable sensation of musical dissonance."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E087"
+   ],
+   "note": "The place describes the affinity of tragic pleasure and musical dissonance; the register’s affirmation of existence through represented suffering is not asserted in this sentence."
+  },
+  {
+   "id": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:existence-aesthetic-phenomenon",
+   "of": [
+    "B:C-C009"
+   ],
+   "areas": [
+    "AE17"
+   ],
+   "work": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste",
+   "locus": "§5",
+   "formula": [
+    {
+     "place": "§5 p25"
+    }
+   ],
+   "thesis": {
+    "ru": "Бытие и мир вечно оправданы лишь как эстетический феномен.",
+    "en": "Existence and the world are eternally justified only as an aesthetic phenomenon."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "B:C-I037"
+   ],
+   "note": "The place directly states aesthetic justification; its claim about our dignity is presented as an assumption and is not included in this thesis. The ideal and enduring becoming are not asserted here."
+  }
+ ],
+ "links": [
+  {
+   "id": "the-apollonian:joins-with:the-dionysian",
+   "from_concept": "A:C156",
+   "to_concept": "A:C157",
+   "verb": {
+    "ru": "соединяется с",
+    "en": "joins with"
+   },
+   "grounds": [
+    "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:paired-art-drives"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R079"
+   ]
+  },
+  {
+   "id": "the-tragic-chorus:has-the-character-of:the-dionysian",
+   "from_concept": "A:C159",
+   "to_concept": "A:C157",
+   "verb": {
+    "ru": "имеет характер",
+    "en": "has the character of"
+   },
+   "grounds": [
+    "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:chorus-and-image-world"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage calls it a Dionysian chorus; this describes its character and does not equate the chorus with the Dionysian as a whole.",
+   "from": [
+    "A:R080"
+   ]
+  }
+ ],
+ "left": [
+  {
+   "key": "A:R081",
+   "reason": "§24, p. 140 speaks of Dionysian primordial pleasure perceived even in pain, but does not identify this pleasure as tragic affirmation or state the register relation between affirmation and suffering. The reading A:E087 is retained in narrower conceptions."
+  },
+  {
+   "key": "C:B-I004",
+   "reason": "The second reader (codex-2026-11-10-nietzsche-second) does not confirm friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:lyricist-interprets-music: The passage says «unter dem Triebe, in apollinischen Gleichnissen von der Musik zu reden» and describes the lyric poet interpreting music; it does not say that this drive or interpretation is inspiration, the concept named in of (C:B-C002).",
+   "disputed": {
+    "id": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:lyricist-interprets-music",
+    "of": [
+     "C:B-C002"
+    ],
+    "areas": [
+     "AE25"
+    ],
+    "work": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste",
+    "locus": "§5",
+    "formula": [
+     {
+      "place": "§5 p29"
+     }
+    ],
+    "thesis": {
+     "ru": "Под влечением говорить о музыке в аполлонических уподоблениях лирик понимает всю природу и себя в ней как вечно волящее, желающее и стремящееся.",
+     "en": "Under the drive to speak of music in Apollonian similitudes, the lyric poet understands all nature and himself within it as eternally willing, desiring and longing."
+    },
+    "status": "text",
+    "verdict": "revise",
+    "from": [
+     "C:B-I004"
+    ],
+    "note": "The reviewer is right that the passage does not name inspiration. It does describe a drive to speak of music in Apollonian images, which bears the register’s reading of artistic image-making under its inspiration heading; that heading is a register classification, not a term attributed to Nietzsche."
+   }
+  },
+  {
+   "key": "C:B-I004",
+   "reason": "The second reader (codex-2026-11-10-nietzsche-second) does not confirm friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:lyric-poet-music-and-dream-image: The passage says the Dionysian artist «producirt das Abbild dieses Ur-Einen als Musik» and that music becomes visible under «apollinischen Traumeinwirkung». It describes the genesis of music and image but does not identify the process as inspiration, the concept named in of (C:B-C002).",
+   "disputed": {
+    "id": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste:lyric-poet-music-and-dream-image",
+    "of": [
+     "C:B-C002"
+    ],
+    "areas": [
+     "AE25"
+    ],
+    "work": "friedrich-nietzsche.die-geburt-der-tragoedie-aus-dem-geiste",
+    "locus": "§5",
+    "formula": [
+     {
+      "place": "§5 p21"
+     }
+    ],
+    "thesis": {
+     "ru": "Лирик как дионисийский художник создаёт в музыке образ первоединого; под аполлоническим воздействием сна эта музыка становится ему видимой в уподобленном сновидению образе.",
+     "en": "The lyric poet as Dionysian artist produces in music an image of the primordial unity; under the Apollonian influence of dream, the music becomes visible to him as a dreamlike image."
+    },
+    "status": "text",
+    "verdict": "revise",
+    "note": "This is Nietzsche’s account of poetic generation under the register’s inspiration heading; it does not name inspiration itself.",
+    "from": [
+     "C:B-I004"
+    ]
+   }
+  }
+ ]
+}

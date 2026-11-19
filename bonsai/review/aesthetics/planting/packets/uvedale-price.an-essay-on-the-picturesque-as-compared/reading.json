@@ -1,0 +1,235 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-an-essay-on-the-picturesque-as-compared",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read the English text in the 1810 London edition beside the register readings, comparing Lancaster’s transcription with the scan.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "uvedale-price": {
+    "tree": "tos.agent.uvedale-price"
+   }
+  },
+  "works": {
+   "uvedale-price.an-essay-on-the-picturesque-as-compared": {
+    "title": {
+     "ru": "Эссе о живописном в сравнении с возвышенным и прекрасным",
+     "en": "An Essay on the Picturesque, as Compared with the Sublime and the Beautiful"
+    },
+    "original": "en",
+    "tree": "tos.work.uvedale-price.an-essay-on-the-picturesque-as-compared",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "uvedale-price.an-essay-on-the-picturesque-as-compared:distinct-class",
+   "of": [
+    "A:C010",
+    "A:C001",
+    "A:C002"
+   ],
+   "areas": [
+    "AE01",
+    "AE02",
+    "AE10"
+   ],
+   "work": "uvedale-price.an-essay-on-the-picturesque-as-compared",
+   "locus": "Ch. III",
+   "formula": [
+    {
+     "place": "III p43"
+    }
+   ],
+   "thesis": {
+    "ru": "Предметы, доставляющие глазу большое наслаждение и столь же отличные от прекрасного, как от возвышенного, составляют отдельный класс живописного.",
+    "en": "Objects giving great delight to the eye and differing as widely from the beautiful as from the sublime form the distinct class of the picturesque."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E149"
+   ]
+  },
+  {
+   "id": "uvedale-price.an-essay-on-the-picturesque-as-compared:causes-of-the-picturesque",
+   "of": [
+    "A:C010",
+    "A:C081",
+    "A:C082",
+    "A:C194"
+   ],
+   "areas": [
+    "AE10"
+   ],
+   "work": "uvedale-price.an-essay-on-the-picturesque-as-compared",
+   "locus": "Ch. III",
+   "formula": [
+    {
+     "place": "III p49a"
+    }
+   ],
+   "thesis": {
+    "ru": "Шероховатость и внезапное изменение вместе с нерегулярностью — наиболее действенные причины живописного, возникающего из качеств, противоположных качествам красоты, к которым принадлежит гладкость.",
+    "en": "Roughness and sudden variation, joined to irregularity, are the most efficient causes of the picturesque, which arises from qualities opposite to those of beauty, among them smoothness."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E150",
+    "A:E173"
+   ],
+   "note": "Price identifies the opposed qualities of the picturesque and beauty and names smoothness, roughness and sudden variation; intricacy is addressed in a sibling conception."
+  },
+  {
+   "id": "uvedale-price.an-essay-on-the-picturesque-as-compared:causes-of-intricacy",
+   "of": [
+    "A:C121",
+    "A:C194"
+   ],
+   "areas": [
+    "AE10"
+   ],
+   "work": "uvedale-price.an-essay-on-the-picturesque-as-compared",
+   "locus": "Ch. III",
+   "formula": [
+    {
+     "place": "III p49"
+    }
+   ],
+   "thesis": {
+    "ru": "Внезапные выступы и линии, пересекающиеся внезапно и прерывисто, входят в число наиболее плодотворных причин сложности переплетения; при совершенной гладкости поверхности её мало.",
+    "en": "Sudden protuberances and lines crossing in a sudden and broken manner are among the most fruitful causes of intricacy; perfect smoothness of surface admits little intricacy."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E150",
+    "A:E173"
+   ],
+   "note": "The passage specifies causes of intricacy and the consequence of smoothness; it does not itself call intricacy a cause of the picturesque."
+  },
+  {
+   "id": "uvedale-price.an-essay-on-the-picturesque-as-compared:intricacy-of-deer-horns",
+   "of": [
+    "A:C121",
+    "A:C010"
+   ],
+   "areas": [
+    "AE10"
+   ],
+   "work": "uvedale-price.an-essay-on-the-picturesque-as-compared",
+   "locus": "Ch. III",
+   "formula": [
+    {
+     "place": "III p59"
+    }
+   ],
+   "thesis": {
+    "ru": "Сложность переплетения ветвистых оленьих рогов — одно из обстоятельств, в высшей степени живописных.",
+    "en": "The intricacy of the branching horns of deer is a circumstance in the highest degree picturesque."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E150"
+   ],
+   "note": "The example names the intricacy of deer horns as picturesque; it does not state an unrestricted general rule about intricacy."
+  }
+ ],
+ "links": [
+  {
+   "id": "the-picturesque:differs-as-widely-from:the-sublime",
+   "from_concept": "A:C010",
+   "to_concept": "A:C002",
+   "verb": {
+    "ru": "отличается от",
+    "en": "differs from"
+   },
+   "grounds": [
+    "uvedale-price.an-essay-on-the-picturesque-as-compared:distinct-class"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R140"
+   ]
+  },
+  {
+   "id": "the-picturesque:differs-as-widely-from:the-beautiful",
+   "from_concept": "A:C010",
+   "to_concept": "A:C001",
+   "verb": {
+    "ru": "отличается от",
+    "en": "differs from"
+   },
+   "grounds": [
+    "uvedale-price.an-essay-on-the-picturesque-as-compared:distinct-class"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R141"
+   ]
+  },
+  {
+   "id": "irregularity:is-joined-among-the-most-efficient-causes-of:the-picturesque",
+   "from_concept": "A:C082",
+   "to_concept": "A:C010",
+   "verb": {
+    "ru": "присоединяется к наиболее действенным причинам",
+    "en": "is joined among the most efficient causes of"
+   },
+   "grounds": [
+    "uvedale-price.an-essay-on-the-picturesque-as-compared:causes-of-the-picturesque"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:R142"
+   ],
+   "note": "Price names irregularity together with roughness and sudden variation as causes."
+  },
+  {
+   "id": "roughness:is-opposite-to:smoothness",
+   "from_concept": "A:C081",
+   "to_concept": "A:C194",
+   "verb": {
+    "ru": "противоположна",
+    "en": "is opposite to"
+   },
+   "grounds": [
+    "uvedale-price.an-essay-on-the-picturesque-as-compared:causes-of-the-picturesque"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:R144"
+   ],
+   "note": "The passage on pp. 49–51 names the qualities of the picturesque as opposite to those of beauty, then specifies smoothness and roughness."
+  },
+  {
+   "id": "intricacy:is-a-picturesque-circumstance-in:the-picturesque",
+   "from_concept": "A:C121",
+   "to_concept": "A:C010",
+   "verb": {
+    "ru": "в оленьих рогах составляет обстоятельство в высшей степени",
+    "en": "in deer horns is a circumstance in the highest degree"
+   },
+   "grounds": [
+    "uvedale-price.an-essay-on-the-picturesque-as-compared:intricacy-of-deer-horns"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Price calls the intricacy of branching deer horns a circumstance in the highest degree picturesque; the link is limited to that example.",
+   "from": [
+    "A:R143"
+   ]
+  }
+ ],
+ "left": []
+}

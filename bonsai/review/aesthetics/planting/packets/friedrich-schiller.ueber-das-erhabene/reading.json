@@ -1,0 +1,115 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-ueber-das-erhabene",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read Schiller’s German text in the 1858 Cotta edition, compared on the page with the register reading.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-schiller": {
+    "tree": "tos.agent.friedrich-schiller"
+   }
+  },
+  "works": {
+   "friedrich-schiller.ueber-das-erhabene": {
+    "title": {
+     "ru": "О возвышенном",
+     "en": "On the Sublime"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-schiller.ueber-das-erhabene",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "areas": [
+    "AE01",
+    "AE02"
+   ],
+   "work": "friedrich-schiller.ueber-das-erhabene",
+   "locus": "Über das Erhabene",
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E053"
+   ],
+   "id": "friedrich-schiller.ueber-das-erhabene:moral-self-sufficiency",
+   "of": [
+    "A:C002",
+    "A:C138"
+   ],
+   "formula": [
+    {
+     "place": "Essay p286a"
+    }
+   ],
+   "thesis": {
+    "ru": "Чувство возвышенного соединяет страдание и радость; соединение противоположных чувств доказывает нашу нравственную самостоятельность.",
+    "en": "The feeling of the sublime combines suffering and joy; the union of contrary feelings proves our moral independence."
+   }
+  },
+  {
+   "areas": [
+    "AE01",
+    "AE02"
+   ],
+   "work": "friedrich-schiller.ueber-das-erhabene",
+   "locus": "Über das Erhabene",
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E053"
+   ],
+   "id": "friedrich-schiller.ueber-das-erhabene:freedom-in-the-sublime",
+   "of": [
+    "A:C002",
+    "A:C138"
+   ],
+   "formula": [
+    {
+     "place": "Essay p286b"
+    }
+   ],
+   "thesis": {
+    "ru": "При возвышенном мы чувствуем себя свободными: чувственные влечения не влияют на законодательство разума, и дух действует словно под собственными законами.",
+    "en": "In the sublime we feel free: the sensuous drives have no influence on the legislation of reason, and the spirit acts as if under its own laws."
+   },
+   "negation": "die sinnlichen Triebe auf die Gesetzgebung der Vernunft keinen Einfluß haben"
+  },
+  {
+   "areas": [
+    "AE01",
+    "AE02"
+   ],
+   "work": "friedrich-schiller.ueber-das-erhabene",
+   "locus": "Über das Erhabene",
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E053"
+   ],
+   "id": "friedrich-schiller.ueber-das-erhabene:sublime-and-dignity",
+   "of": [
+    "A:C002",
+    "A:C118"
+   ],
+   "formula": [
+    {
+     "place": "Essay p299"
+    }
+   ],
+   "thesis": {
+    "ru": "Без возвышенного красота заставила бы нас забыть о нашем достоинстве.",
+    "en": "Without the sublime, beauty would make us forget our dignity."
+   },
+   "negation": "Ohne das Erhabene würde uns die Schönheit unsrer Würde vergessen machen."
+  }
+ ],
+ "links": [],
+ "left": []
+}

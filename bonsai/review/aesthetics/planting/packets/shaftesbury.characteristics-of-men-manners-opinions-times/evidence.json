@@ -1,0 +1,789 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/characteristicso02shaf/characteristicso02shaf_hocr_searchtext.txt.gz",
+   "file": "characteristicso02shaf.ocr.txt",
+   "sha256": "c2fb50865eec75cc83d40670995ff9fecf37abd77bf925c4f6772acffae81a76",
+   "bytes": 922475,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/characteristicso02shaf/characteristicso02shaf_hocr_pageindex.json.gz",
+   "file": "characteristicso02shaf.index.json",
+   "sha256": "ab0aeca1b7b1a31ac5fe84fef590e588c7dd3bafc039add276a4448fb3bbccdc",
+   "bytes": 14468,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/characteristicso02shaf/characteristicso02shaf_page_numbers.json",
+   "file": "characteristicso02shaf.pages.json",
+   "sha256": "36fb07a10d83623a6249162c4c0a397faa76bb1143a481db776d40f3b3fdf950",
+   "bytes": 65824,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/characteristicks02shaf/characteristicks02shaf_hocr_searchtext.txt.gz",
+   "file": "characteristicks02shaf.ocr.txt",
+   "sha256": "9070dc94484d9ce428cb785b397ba7e1069ead33df0b0df86aa80bb4286a701c",
+   "bytes": 621134,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/characteristicks02shaf/characteristicks02shaf_hocr_pageindex.json.gz",
+   "file": "characteristicks02shaf.index.json",
+   "sha256": "34b3a36987b44ca44c17b0eccb3109d217de69e354afdff13ed86e96f71025cf",
+   "bytes": 16542,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/characteristicks02shaf/characteristicks02shaf_page_numbers.json",
+   "file": "characteristicks02shaf.pages.json",
+   "sha256": "e95f70b972f27e1dac50d05926dd4b9489d7637419bb035c49855f33738a8490",
+   "bytes": 77678,
+   "fetched": "2026-11-11"
+  },
+  {
+   "role": "transcription",
+   "url": "https://en.wikisource.org/w/index.php?title=Characteristicks_of_Men,_Manners,_Opinions,_Times/Volume_2/Treatise_5/Part_3&action=render",
+   "file": "moralists.html",
+   "sha256": "b9eee06cef18912260ae1cdc4ff885623f6ef26ef084a8e7b4be94c7ffa0e380",
+   "bytes": 347313,
+   "fetched": "2026-11-11",
+   "text": "moralists.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "characteristicks02shaf",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q335112",
+   "name": {
+    "en": "Anthony Ashley-Cooper, 3rd Earl of Shaftesbury",
+    "ru": "Энтони Эшли-Купер, 3-й граф Шефтсбери"
+   },
+   "role": "author",
+   "died": 1713,
+   "source": "https://www.wikidata.org/wiki/Q335112"
+  }
+ ],
+ "published": 1773,
+ "images": [
+  {
+   "n": 397,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n397.jpg",
+   "sha256": "589d619b34f602b3b2e5cc68cf4c13ee1abda698b448e6f6761fee6a518838fc",
+   "by": "maker"
+  },
+  {
+   "n": 397,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n397-z65-72.jpg",
+   "sha256": "436433f871092027944644486303609911225d9b75754cfd4e7df12ceb501f7d",
+   "by": "maker",
+   "loc": "III.II p396",
+   "zoom": [
+    65,
+    72
+   ]
+  },
+  {
+   "n": 399,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n399-z50-58.jpg",
+   "sha256": "d704351c76f8c6804017b076f572dc8eed5fdce1e83b3b5eaced14d9f6c45cef",
+   "by": "second",
+   "loc": "III.II p398",
+   "zoom": [
+    50,
+    58
+   ]
+  },
+  {
+   "n": 399,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n399-z49-64.jpg",
+   "sha256": "6c7b187d46f75ac20366a1281679286565ebec122e213f576bb3394b384413cf",
+   "by": "second",
+   "loc": "III.II p398",
+   "zoom": [
+    49,
+    64
+   ]
+  },
+  {
+   "n": 398,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n398.jpg",
+   "sha256": "5652d6a27dc4a729d84d051d2c1a4a0cfa73c1316236d599f64b99c16eaa73d4",
+   "by": "maker"
+  },
+  {
+   "n": 399,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n399.jpg",
+   "sha256": "c9321ce62819792138ee2746f9944e4d78cb07016b844b66e80610a469d88ca2",
+   "by": "maker"
+  },
+  {
+   "n": 398,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n398-z47-53.jpg",
+   "sha256": "c0b3b4dd93259397d4b4954703d3bf3333a5cc9fb031de39e897f51818754aac",
+   "by": "maker",
+   "loc": "III.II p397",
+   "zoom": [
+    47,
+    53
+   ]
+  },
+  {
+   "n": 397,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n397.jpg",
+   "sha256": "589d619b34f602b3b2e5cc68cf4c13ee1abda698b448e6f6761fee6a518838fc",
+   "by": "second",
+   "loc": "III.II p396"
+  },
+  {
+   "n": 398,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n398.jpg",
+   "sha256": "5652d6a27dc4a729d84d051d2c1a4a0cfa73c1316236d599f64b99c16eaa73d4",
+   "by": "second",
+   "loc": "III.II p397"
+  },
+  {
+   "n": 399,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n399.jpg",
+   "sha256": "c9321ce62819792138ee2746f9944e4d78cb07016b844b66e80610a469d88ca2",
+   "by": "second",
+   "loc": "III.II p397"
+  },
+  {
+   "n": 398,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n398-z47-53.jpg",
+   "sha256": "c0b3b4dd93259397d4b4954703d3bf3333a5cc9fb031de39e897f51818754aac",
+   "by": "second",
+   "loc": "III.II p397",
+   "zoom": [
+    47,
+    53
+   ]
+  },
+  {
+   "n": 397,
+   "item": "characteristicks02shaf",
+   "file": "characteristicks02shaf-n397-z65-72.jpg",
+   "sha256": "436433f871092027944644486303609911225d9b75754cfd4e7df12ceb501f7d",
+   "by": "second",
+   "loc": "III.II p396",
+   "zoom": [
+    65,
+    72
+   ]
+  }
+ ],
+ "places": {
+  "III.II p396": {
+   "transcription": "moralists.html",
+   "scan": "characteristicks02shaf",
+   "method": "ocr",
+   "share": 0.886,
+   "leaves": [
+    398,
+    399
+   ],
+   "printed": [
+    "396",
+    "397"
+   ],
+   "differences": [
+    {
+     "transcription": "see",
+     "ocr": "fee",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "distance",
+     "ocr": "diflance",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "shou'd",
+     "ocr": "fhou'd",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "seek",
+     "ocr": "feek",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "some",
+     "ocr": "fome",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Master",
+     "ocr": "Mailer",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "absurd",
+     "ocr": "abfurd",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Absurd",
+     "ocr": "Abfurd",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "shou'd",
+     "ocr": "fhou'd",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "some",
+     "ocr": "fome",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Venetian",
+     "ocr": "Veneti - AN",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "reply'd Theocles",
+     "ocr": "reply ' d Theo cles",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "will",
+     "ocr": "wdll",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "should",
+     "ocr": "fhould",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Doge",
+     "ocr": "Dog ^",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "stately",
+     "ocr": "ftately",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Bosom",
+     "ocr": "Bofom",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "less Possession",
+     "ocr": "lefs PoJJejfwn",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "some",
+     "ocr": "fome",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "stretch'd",
+     "ocr": "ftretch'd",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "ease",
+     "ocr": "eafe",
+     "leaf": 398,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "A RHAPSODY . 397 admires",
+     "leaf": 399,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "III.II p398": {
+   "transcription": "moralists.html",
+   "scan": "characteristicks02shaf",
+   "method": "ocr",
+   "share": 0.863,
+   "leaves": [
+    400
+   ],
+   "printed": [
+    "398"
+   ],
+   "differences": [
+    {
+     "transcription": "occasion",
+     "ocr": "occafion",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "said",
+     "ocr": "faid",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "some",
+     "ocr": "fome",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Consequence",
+     "ocr": "Confequence",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "said",
+     "ocr": "faid",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "apprehensive",
+     "ocr": "apprehenfive",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "last",
+     "ocr": "laft",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Desires",
+     "ocr": "Deftres",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Wishes",
+     "ocr": "Wijlus",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "sutable",
+     "ocr": "futable",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "must confess",
+     "ocr": "mud confefs",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "inspire",
+     "ocr": "infpire",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "studious",
+     "ocr": "Jludious",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "satisfying",
+     "ocr": "fatisfying",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": ";",
+     "ocr": ".",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "satisfies",
+     "ocr": "fatisfies",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "so disproportionable",
+     "ocr": "fo difproportionable",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "so",
+     "ocr": "fo",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Cause",
+     "ocr": "Caufe",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "censure",
+     "ocr": "cenfure",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "please",
+     "ocr": "pleafe",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "must",
+     "ocr": "mud",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "So that you , Theocles , for ought I fee , are become the accufer of Nature , by condemning a natural Enjoyment",
+     "leaf": 400,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "III.II p397": {
+   "transcription": "moralists.html",
+   "scan": "characteristicks02shaf",
+   "method": "ocr",
+   "share": 0.847,
+   "leaves": [
+    399,
+    400
+   ],
+   "printed": [
+    "397",
+    "398"
+   ],
+   "differences": [
+    {
+     "transcription": "Suppose",
+     "ocr": "this yet a little nearer ? And will you follow me once more ? Suppofe",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "seem",
+     "ocr": "feem",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "these",
+     "ocr": "thefe",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "whose shade",
+     "ocr": "whofe fhade",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "rest",
+     "ocr": "reft",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "should",
+     "ocr": "( liould",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "so",
+     "ocr": "fo",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "taste some",
+     "ocr": "tafte fome",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "some",
+     "ocr": "fome",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Relish",
+     "ocr": "ReUJJi",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "these",
+     "ocr": "thefe",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "shou'd",
+     "ocr": "fhou'd",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "revisited these",
+     "ocr": "revifited thefe",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "seek",
+     "ocr": "feek",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "satiating",
+     "ocr": "fatiating",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "self",
+     "ocr": "felf",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "these",
+     "ocr": "thefe",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "sordidly",
+     "ocr": "fordidly",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "absurd",
+     "ocr": "abfurd",
+     "leaf": 399,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "398 The MORALISTS , Can",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "occasion",
+     "ocr": "occafion",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "said",
+     "ocr": "faid",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "some",
+     "ocr": "fome",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Consequence",
+     "ocr": "Confequence",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "said",
+     "ocr": "faid",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "apprehensive",
+     "ocr": "apprehenfive",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "last",
+     "ocr": "laft",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Desires",
+     "ocr": "Deftres",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Wishes",
+     "ocr": "Wijlus",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "sutable",
+     "ocr": "futable",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "must confess",
+     "ocr": "mud confefs",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "inspire",
+     "ocr": "infpire",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "studious",
+     "ocr": "Jludious",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "satisfying",
+     "ocr": "fatisfying",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": ";",
+     "ocr": ".",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "satisfies",
+     "ocr": "fatisfies",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "so disproportionable",
+     "ocr": "fo difproportionable",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "so",
+     "ocr": "fo",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "Cause",
+     "ocr": "Caufe",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "censure",
+     "ocr": "cenfure",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "please",
+     "ocr": "pleafe",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "must",
+     "ocr": "mud",
+     "leaf": 400,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "So that you , Theocles , for ought I fee , are become the accufer of Nature , by condemning a natural Enjoyment",
+     "leaf": 400,
+     "stands": "transcription"
+    }
+   ]
+  }
+ },
+ "scans": {
+  "characteristicso02shaf": {
+   "item": "characteristicso02shaf",
+   "ocr": true,
+   "long_s": true,
+   "image_offset": null
+  },
+  "characteristicks02shaf": {
+   "item": "characteristicks02shaf",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": -1
+  }
+ }
+}

@@ -1,0 +1,208 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/biographialitera00cole_1/biographialitera00cole_1_hocr_searchtext.txt.gz",
+   "file": "biographialitera00cole_1.ocr.txt",
+   "sha256": "1be2cdb39bab7bbf5a5a6413a1d52fa785f0ddd09261f7116ed3b0a434e96877",
+   "bytes": 976077,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/biographialitera00cole_1/biographialitera00cole_1_hocr_pageindex.json.gz",
+   "file": "biographialitera00cole_1.index.json",
+   "sha256": "88018262091be0d791b35925f590cbc1970463537ecb59a8e30a72ec713fa024",
+   "bytes": 13218,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/biographialitera00cole_1/biographialitera00cole_1_page_numbers.json",
+   "file": "biographialitera00cole_1.pages.json",
+   "sha256": "446aa4aca029b518eef4534708b830c161b79dcb54c3324b28b22f849c610631",
+   "bytes": 60737,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://www.gutenberg.org/cache/epub/6081/pg6081-images.html",
+   "file": "pg6081-images.html",
+   "sha256": "41248b0f9a0f6d859cc1297170a1413bdfb7e47dc4e9f6d071dd1ff1e0697f53",
+   "bytes": 981633,
+   "fetched": "2026-11-10",
+   "text": "pg6081-images.html.txt"
+  }
+ ],
+ "scan": {
+  "item": "biographialitera00cole_1",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q82409",
+   "name": {
+    "en": "Samuel Taylor Coleridge",
+    "ru": "Сэмюэл Тейлор Кольридж"
+   },
+   "role": "author",
+   "died": 1834,
+   "source": "https://www.wikidata.org/wiki/Q82409"
+  }
+ ],
+ "published": 1834,
+ "images": [
+  {
+   "n": 176,
+   "file": "biographialitera00cole_1-n176.jpg",
+   "sha256": "65be2f882a0b78a7f70c3fe604766f35e3ca0703065e25efd11b5c960173e302",
+   "by": "maker"
+  },
+  {
+   "n": 177,
+   "file": "biographialitera00cole_1-n177.jpg",
+   "sha256": "5fb0523cd8bbbd7c6086d345577863ae16d490352dd057f4414e02a5bd9f5fed",
+   "by": "maker"
+  },
+  {
+   "n": 175,
+   "file": "biographialitera00cole_1-n175.jpg",
+   "sha256": "2b831a023c8bacb17f6b811e014e76ad43fa1a1d4b9bc509e717ae3485d09ad8",
+   "by": "maker"
+  },
+  {
+   "n": 173,
+   "file": "biographialitera00cole_1-n173.jpg",
+   "sha256": "d2e23f8990c9110873884f45b0eeca9740f2908f5725ac022fecd8dc67545cb2",
+   "by": "maker"
+  },
+  {
+   "n": 174,
+   "file": "biographialitera00cole_1-n174.jpg",
+   "sha256": "cf427c3bccb460afbb56b978c5930f948f9aa62f0d5aa9012d7c54f2ff561440",
+   "by": "maker"
+  },
+  {
+   "n": 173,
+   "file": "biographialitera00cole_1-n173.jpg",
+   "sha256": "d2e23f8990c9110873884f45b0eeca9740f2908f5725ac022fecd8dc67545cb2",
+   "by": "second",
+   "loc": "XIII p172a"
+  },
+  {
+   "n": 174,
+   "file": "biographialitera00cole_1-n174.jpg",
+   "sha256": "cf427c3bccb460afbb56b978c5930f948f9aa62f0d5aa9012d7c54f2ff561440",
+   "by": "second",
+   "loc": "XIII p172b"
+  },
+  {
+   "n": 175,
+   "file": "biographialitera00cole_1-n175.jpg",
+   "sha256": "2b831a023c8bacb17f6b811e014e76ad43fa1a1d4b9bc509e717ae3485d09ad8",
+   "by": "second",
+   "loc": "XIV p174a"
+  },
+  {
+   "n": 176,
+   "file": "biographialitera00cole_1-n176.jpg",
+   "sha256": "65be2f882a0b78a7f70c3fe604766f35e3ca0703065e25efd11b5c960173e302",
+   "by": "second",
+   "loc": "XIV p174b"
+  }
+ ],
+ "places": {
+  "XIII p172a": {
+   "transcription": "pg6081-images.html",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    174
+   ],
+   "printed": [
+    "172"
+   ],
+   "differences": []
+  },
+  "XIV p174a": {
+   "transcription": "pg6081-images.html",
+   "method": "ocr",
+   "share": 0.988,
+   "leaves": [
+    176
+   ],
+   "printed": [
+    "174"
+   ],
+   "differences": [
+    {
+     "transcription": ";",
+     "ocr": ":",
+     "leaf": 176,
+     "stands": "transcription",
+     "note": "Page 174, image n175: the printed punctuation after ordinary life is a semicolon."
+    },
+    {
+     "transcription": "",
+     "ocr": "7 s",
+     "leaf": 176,
+     "stands": "transcription",
+     "note": "Page 174 has the semicolon and closing quotation mark; OCR omits them and inserts a stray signature."
+    },
+    {
+     "transcription": "; \"",
+     "ocr": "",
+     "leaf": 176,
+     "stands": "transcription",
+     "note": "Page 174 has the semicolon and closing quotation mark; OCR omits them and inserts a stray signature."
+    }
+   ]
+  },
+  "XIV p174b": {
+   "transcription": "pg6081-images.html",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    176,
+    177
+   ],
+   "printed": [
+    "174",
+    "175"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "BIOGRAPHIA LITERARIA . 175",
+     "leaf": 177,
+     "stands": "transcription",
+     "note": "Page 175 has a running head and page number, absent from the sentence."
+    }
+   ]
+  },
+  "XIII p172b": {
+   "transcription": "pg6081-images.html",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    174,
+    175
+   ],
+   "printed": [
+    "172",
+    "173"
+   ],
+   "differences": [
+    {
+     "transcription": "",
+     "ocr": "BIOGRAPHIA LITERARIA . 173",
+     "leaf": 175,
+     "stands": "transcription",
+     "note": "Page 173 has a running head and page number, absent from the sentence."
+    }
+   ]
+  }
+ }
+}

@@ -1,0 +1,103 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-through-the-looking-glass-and-what-alice",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "Read the English text of the 1872 Macmillan edition beside the register readings, using Project Gutenberg and the Gettysburg College scan.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "lewis-carroll": {
+    "tree": "tos.agent.lewis-carroll"
+   }
+  },
+  "works": {
+   "lewis-carroll.through-the-looking-glass-and-what-alice-found": {
+    "title": {
+     "ru": "Алиса в Зазеркалье",
+     "en": "Through the Looking-Glass, and What Alice Found There"
+    },
+    "original": "en",
+    "tree": "tos.work.lewis-carroll.through-the-looking-glass-and-what-alice-found",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "lewis-carroll.through-the-looking-glass-and-what-alice-found:two-meanings-in-one-word",
+   "of": [
+    "A:C191",
+    "A:C166"
+   ],
+   "areas": [
+    "AE06",
+    "AE09"
+   ],
+   "work": "lewis-carroll.through-the-looking-glass-and-what-alice-found",
+   "locus": "VI",
+   "formula": [
+    {
+     "place": "VI p126"
+    }
+   ],
+   "thesis": {
+    "ru": "Шалтай-Болтай объясняет, что slithy означает lithe и slimy: как в чемодан, в одно слово уложены два значения.",
+    "en": "Humpty Dumpty explains that slithy means lithe and slimy: two meanings are packed into one word like a portmanteau."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage gives a character’s explanation of a word; it does not itself state grammatical coherence or a general theory of nonsense.",
+   "from": [
+    "A:E143"
+   ]
+  }
+ ],
+ "links": [],
+ "left": [
+  {
+   "key": "A:R132",
+   "reason": "The passage explains two meanings packed in slithy; it does not say that portmanteau words organize nonsense."
+  },
+  {
+   "key": "A:R133",
+   "reason": "The passage compares slithy to a portmanteau; it does not state a relation in which wordplay is built through the portmanteau-word."
+  },
+  {
+   "key": "A:R177",
+   "reason": "This is a research comparison with another work; the cited chapter does not compare the absurd with nonsense."
+  },
+  {
+   "key": "A:E144",
+   "reason": "The second reader (codex-2026-11-12-looking-glass-second) does not confirm lewis-carroll.through-the-looking-glass-and-what-alice-found:glory-and-knock-down-argument: The exchange says what the thesis reports, but the cut begins with ‘That seems to be done right’ without the preceding calculation to which ‘That’ refers. The opening book and upside-down calculation dialogue also contains sentences beyond those needed for the glory exchange.",
+   "disputed": {
+    "id": "lewis-carroll.through-the-looking-glass-and-what-alice-found:glory-and-knock-down-argument",
+    "of": [
+     "A:C166"
+    ],
+    "areas": [
+     "AE09"
+    ],
+    "work": "lewis-carroll.through-the-looking-glass-and-what-alice-found",
+    "locus": "VI",
+    "formula": [
+     {
+      "place": "VI p123"
+     }
+    ],
+    "thesis": {
+     "ru": "Шалтай-Болтай объясняет, что под «glory» он имел в виду хороший неопровержимый довод; Алиса возражает, что это слово такого не означает.",
+     "en": "Humpty Dumpty explains that by “glory” he meant a nice knock-down argument; Alice objects that the word does not mean that."
+    },
+    "status": "text",
+    "verdict": "revise",
+    "note": "The exchange turns on Humpty Dumpty’s use of glory for a knock-down argument and Alice’s objection. The register’s concepts of paradox, nonsense and breakdown of dialogue are not asserted by these sentences; wordplay identifies the use of the word illustrated here.",
+    "from": [
+     "A:E144"
+    ]
+   }
+  }
+ ]
+}

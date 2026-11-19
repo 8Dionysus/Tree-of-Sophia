@@ -512,8 +512,8 @@ pub struct ScanPage {
 #[cfg(feature = "source-tools")]
 struct OwnedInputPage<'a> {
     page: ScanPage,
-    row_holds: Vec<crate::d1_public_capture::CreationStateHold<'a, 'a>>,
-    container_hold: crate::d1_public_capture::CreationStateHold<'a, 'a>,
+    row_holds: Vec<crate::public_capture::CreationStateHold<'a, 'a>>,
+    container_hold: crate::public_capture::CreationStateHold<'a, 'a>,
 }
 
 /// Input bytes remain admitted until the entire borrowed page is consumed.
@@ -523,7 +523,7 @@ struct OwnedInputPage<'a> {
 pub(crate) struct ScopedInputPage<'a> {
     owned: Option<OwnedInputPage<'a>>,
     legacy: Option<ScanPage>,
-    state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+    state: Option<&'a crate::public_capture::CreationState<'a>>,
 }
 #[cfg(feature = "source-tools")]
 impl std::ops::Deref for ScopedInputPage<'_> {
@@ -560,7 +560,7 @@ impl<'a> ScopedInputPage<'a> {
 #[cfg(feature = "source-tools")]
 pub(crate) struct ScopedInputCursor<'a> {
     id: String,
-    _hold: Option<crate::d1_public_capture::CreationStateHold<'a, 'a>>,
+    _hold: Option<crate::public_capture::CreationStateHold<'a, 'a>>,
 }
 #[cfg(feature = "source-tools")]
 impl std::ops::Deref for ScopedInputCursor<'_> {
@@ -607,7 +607,7 @@ enum PublicWorkLedger {
 pub(crate) struct NativeStageOwnedBudget<'a> {
     pub remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
     pub heap: &'a Arc<sqlite_budget::DedicatedSessionSqliteHeap>,
-    pub creation_state: &'a crate::d1_public_capture::CreationState<'a>,
+    pub creation_state: &'a crate::public_capture::CreationState<'a>,
     pub cancelled: Arc<AtomicBool>,
     pub original_sql_limit: u64,
     retained_rust_bytes: usize,
@@ -727,7 +727,7 @@ impl KnowledgePayloadLayout {
     pub(crate) fn read_dictionary<'s, 'b>(
         self,
         db: &Connection,
-        state: &'s crate::d1_public_capture::CreationState<'b>,
+        state: &'s crate::public_capture::CreationState<'b>,
         stored: &[u8],
         max_bytes: usize,
     ) -> Result<Option<crate::knowledge_byte_dictionary::OwnedDictionary<'s, 'b>>> {
@@ -740,7 +740,7 @@ impl KnowledgePayloadLayout {
     pub(crate) fn with_sql_decoded<T>(
         self,
         db: &Connection,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
         stored: &[u8],
         expected: Option<usize>,
         max_bytes: usize,
@@ -758,7 +758,7 @@ impl KnowledgePayloadLayout {
     }
     pub(crate) fn with_decoded_dictionary<T>(
         self,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
         stored: &[u8],
         dictionary: Option<crate::knowledge_byte_dictionary::VerifiedDictionary<'_>>,
         expected: Option<usize>,
@@ -783,7 +783,7 @@ impl KnowledgePayloadLayout {
     }
     pub(crate) fn with_encoded_dictionary<T>(
         self,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
         dictionary: Option<crate::knowledge_byte_dictionary::VerifiedDictionary<'_>>,
         raw: &[u8],
         max_bytes: usize,
@@ -803,7 +803,7 @@ impl KnowledgePayloadLayout {
     }
     pub(crate) fn with_decoded<T>(
         self,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
         stored: &[u8],
         expected_bytes: Option<usize>,
         max_bytes: usize,
@@ -829,7 +829,7 @@ impl KnowledgePayloadLayout {
     }
     pub(crate) fn with_encoded<T>(
         self,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
         raw: &[u8],
         max_bytes: usize,
         consume: impl FnOnce(&[u8]) -> Result<T>,
@@ -888,7 +888,7 @@ struct NormalizedPayloadRead<'s, 'budget> {
     raw: Vec<u8>,
     source: Vec<u8>,
     source_len: usize,
-    _hold: crate::d1_public_capture::CreationStateHold<'s, 'budget>,
+    _hold: crate::public_capture::CreationStateHold<'s, 'budget>,
 }
 
 /// A successful codec1 read inside this Stage's BEGIN IMMEDIATE page, usable
@@ -943,17 +943,17 @@ struct NormalizedCursorRow<'s, 'budget> {
     semantic_key: String,
     source_order: i64,
     logical_digest: Digest256,
-    _hold: crate::d1_public_capture::CreationStateHold<'s, 'budget>,
+    _hold: crate::public_capture::CreationStateHold<'s, 'budget>,
 }
 
 #[cfg(feature = "source-tools")]
 fn read_normalized_cursor_row<'s, 'budget>(
-    state: &'s crate::d1_public_capture::CreationState<'budget>,
+    state: &'s crate::public_capture::CreationState<'budget>,
     row: &rusqlite::Row<'_>,
     after_order: Option<i64>,
 ) -> Result<NormalizedCursorRow<'s, 'budget>> {
     fn charged_text<'row>(
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
         row: &'row rusqlite::Row<'_>,
         index: usize,
     ) -> Result<&'row str> {
@@ -1118,7 +1118,7 @@ struct WritePageCharge {
 impl<'a> KnowledgeStage<'a> {
     pub(crate) fn owned_creation_state(
         &self,
-    ) -> Option<&'a crate::d1_public_capture::CreationState<'a>> {
+    ) -> Option<&'a crate::public_capture::CreationState<'a>> {
         self.controlled.as_ref().map(|budget| budget.creation_state)
     }
 
@@ -1130,7 +1130,7 @@ impl<'a> KnowledgeStage<'a> {
         rows: usize,
         row_bytes: usize,
         extra_output_bytes_per_row: usize,
-    ) -> Result<Option<crate::d1_public_capture::CreationStateHold<'a, 'a>>> {
+    ) -> Result<Option<crate::public_capture::CreationStateHold<'a, 'a>>> {
         let Some(state) = self.owned_creation_state() else {
             return Ok(None);
         };
@@ -1384,7 +1384,7 @@ impl<'a> KnowledgeStage<'a> {
         &self,
         source_graph: &str,
         collection: &str,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<bool> {
         let equal = |left: &str, right: &str| -> Result<bool> {
             state.active()?;
@@ -1748,7 +1748,7 @@ impl<'a> KnowledgeStage<'a> {
         remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
         heap: &'a Arc<sqlite_budget::DedicatedSessionSqliteHeap>,
         original_sql_limit: u64,
-        creation_state: &'a crate::d1_public_capture::CreationState<'a>,
+        creation_state: &'a crate::public_capture::CreationState<'a>,
     ) -> Result<Self> {
         if receipt.binding.owner_profile != "tos-native-projection-snapshot-v1"
             || original_sql_limit == 0
@@ -1787,7 +1787,6 @@ impl<'a> KnowledgeStage<'a> {
 
     /// Disposable public-output staging. Its local inode/lease and SQLite
     /// limits are not a kernel aggregate-spill quota or selected admission.
-    /// Only the compiler's full public D1 builder may invoke this entry.
     /// Existing prepare-only companion under its local byte/page profile;
     /// explicitly distinct from the dedicated owned full-public producer.
     pub(crate) fn create_prepared_public_build(
@@ -1817,49 +1816,6 @@ impl<'a> KnowledgeStage<'a> {
                 max_work_bytes,
             )),
             Some(deadline),
-        )
-    }
-
-    pub(crate) fn create_public_build_owned(
-        candidate: &Path,
-        limits: StageLimits,
-        receipt: ExactInputReceipt,
-        owner: &'a dyn StageOwner,
-        vm_used: Arc<AtomicU64>,
-        work_used: Arc<AtomicU64>,
-        cancelled: Arc<AtomicBool>,
-        max_work_bytes: u64,
-        deadline: Instant,
-        remaining_after_retained: &'a dyn Fn(usize) -> Result<usize>,
-        creation_state: &'a crate::d1_public_capture::CreationState<'a>,
-    ) -> Result<Self> {
-        let budget = NativeStageOwnedBudget {
-            remaining_after_retained,
-            heap: creation_state.heap(),
-            creation_state,
-            cancelled: Arc::clone(&cancelled),
-            original_sql_limit: creation_state
-                .sql_vm_limit()
-                .min(limits.sqlite.max_sql_vm_steps),
-            retained_rust_bytes: 0,
-        };
-        Self::create_inner_owned(
-            candidate,
-            limits,
-            StageStorageProfile::Persistent,
-            StageInputReceipt::Projection(receipt),
-            StageInputOwner::Projection(owner),
-            None,
-            Some(vm_used),
-            Some((
-                PublicWorkLedger::Shared {
-                    used: work_used,
-                    cancelled,
-                },
-                max_work_bytes,
-            )),
-            Some(deadline),
-            Some(budget),
         )
     }
 
@@ -2231,7 +2187,7 @@ impl<'a> KnowledgeStage<'a> {
         )
     }
     fn check_isolation_with_owned_state(
-        state: Option<&crate::d1_public_capture::CreationState<'_>>,
+        state: Option<&crate::public_capture::CreationState<'_>>,
         isolation: Option<&dyn StageIsolation>,
         candidate: &Path,
         inode: (u64, u64),
@@ -2741,34 +2697,6 @@ impl<'a> KnowledgeStage<'a> {
         })
     }
 
-    /// Disposable-public completion checks the same private transaction and
-    /// custody state without returning a StageReceipt or permitting selection.
-    pub(crate) fn complete_public_build(&mut self, nodes: u64, relations: u64) -> Result<()> {
-        let result = (|| {
-            if !self.public_build
-                || self.poisoned
-                || self.write_page.is_some()
-                || self.selected_full
-                || self.closed_input_rows.is_none()
-                || !self.db().is_autocommit()
-            {
-                return Err(Error::Invalid("public D1 stage completion state"));
-            }
-            self.owner.recheck_sealed_cut(&self.receipt)?;
-            self.with_connection(WritePhase::Finalize, |db| {
-                let actual_nodes: u64 = db.query_row("SELECT count(*) FROM knowledge_nodes",[],|row|row.get(0))?;
-                let actual_relations: u64 = db.query_row("SELECT count(*) FROM knowledge_relations",[],|row|row.get(0))?;
-                if actual_nodes!=nodes || actual_relations!=relations {
-                    return Err(Error::Invalid("public D1 completed row counts"));
-                }
-                let dangling:Option<i64>=db.query_row("SELECT 1 FROM knowledge_relations r WHERE NOT EXISTS (SELECT 1 FROM knowledge_nodes n WHERE n.id=r.from_id) OR NOT EXISTS (SELECT 1 FROM knowledge_nodes n WHERE n.id=r.to_id) LIMIT 1",[],|row|row.get(0)).optional()?;
-                if dangling.is_some(){return Err(Error::Invalid("public D1 relation endpoint absent"));}
-                Ok(())
-            })
-        })();
-        self.poisoned |= result.is_err();
-        result
-    }
     pub(crate) fn charge(&mut self, payload: &[u8]) -> Result<()> {
         self.charge_with_row_cap(payload, self.limits.sqlite.max_row_bytes)
     }
@@ -3278,7 +3206,7 @@ impl<'a> KnowledgeStage<'a> {
                     .ok_or(Error::Budget("normalized payload held transfer state"))?;
                 let hold = state.hold(owned_bytes)?;
                 fn copy(
-                    state: &crate::d1_public_capture::CreationState<'_>,
+                    state: &crate::public_capture::CreationState<'_>,
                     raw: &[u8],
                 ) -> Result<Vec<u8>> {
                     state.active()?;
@@ -4385,7 +4313,7 @@ impl<'a> KnowledgeStage<'a> {
         collection: &str,
         after_id: Option<&str>,
         max_rows: usize,
-        state: &'a crate::d1_public_capture::CreationState<'a>,
+        state: &'a crate::public_capture::CreationState<'a>,
     ) -> Result<OwnedInputPage<'a>> {
         self.scoped_input_page_selected(source_graph, collection, after_id, max_rows, None, state)
     }
@@ -4397,7 +4325,7 @@ impl<'a> KnowledgeStage<'a> {
         after_id: Option<&str>,
         max_rows: usize,
         exact_id: Option<&str>,
-        state: &'a crate::d1_public_capture::CreationState<'a>,
+        state: &'a crate::public_capture::CreationState<'a>,
     ) -> Result<OwnedInputPage<'a>> {
         self.require_open_inputs()?;
         if !self.registered_with_owned_state(source_graph, collection, state)? {
@@ -4453,7 +4381,7 @@ impl<'a> KnowledgeStage<'a> {
         let containers = max_rows
             .checked_mul(
                 std::mem::size_of::<SeekRow>()
-                    + std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'a, 'a>>(),
+                    + std::mem::size_of::<crate::public_capture::CreationStateHold<'a, 'a>>(),
             )
             .and_then(|n| n.checked_add(MAX_NAME_BYTES))
             .and_then(|n| {
@@ -5169,7 +5097,7 @@ fn preflight_selected_vacuum_with_state(
     candidate: &Path,
     inode: (u64, u64),
     limits: StageLimits,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<()> {
     let Some(state) = state else {
         return preflight_selected_vacuum(db, candidate, inode, limits);
@@ -5261,7 +5189,7 @@ fn carrier_schema_sql_error(error: tos_source_store::StoreError) -> Error {
 pub(crate) fn verify_selected_payload_ddl(
     db: &Connection,
     layout: KnowledgePayloadLayout,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<()> {
     if layout == KnowledgePayloadLayout::InlineV1 {
         return Ok(());
@@ -5286,7 +5214,7 @@ pub(crate) fn verify_selected_payload_ddl(
     type CallerFrame<'s, 'b> = (
         &'s Connection,
         KnowledgePayloadLayout,
-        Option<&'s crate::d1_public_capture::CreationState<'b>>,
+        Option<&'s crate::public_capture::CreationState<'b>>,
         std::array::IntoIter<(&'static str, &'static str), 3>,
         (&'static str, &'static str),
         Digest256,
@@ -5463,7 +5391,7 @@ pub(crate) fn selected_table_closure(db: &Connection) -> Result<()> {
 
 fn selected_table_closure_with_owned_state(
     db: &Connection,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<()> {
     selected_table_closure_with_layout_and_state(db, KnowledgePayloadLayout::InlineV1, state)
 }
@@ -5471,7 +5399,7 @@ fn selected_table_closure_with_owned_state(
 fn selected_table_closure_with_layout_and_state(
     db: &Connection,
     layout: KnowledgePayloadLayout,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<()> {
     const TABLES: &[&str] = &[
         "metadata",
@@ -6064,7 +5992,7 @@ fn owned_stage_connection_sql_error(db: &Connection, error: tos_source_store::St
 fn configure_stage_temp_cap_owned(
     db: &Connection,
     max_temp_bytes: u64,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     struct Sql {
         bytes: [u8; 96],
@@ -6114,7 +6042,7 @@ fn configure_stage_temp_cap_owned(
 #[cfg(feature = "source-tools")]
 fn verify_fresh_sidecars_owned(
     path: &Path,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     let base = path.as_os_str();
     let cap = base
@@ -6160,7 +6088,7 @@ fn verify_fresh_sidecars_owned(
 fn configure_fresh_readonly_owned(
     db: &Connection,
     cache_kib: u64,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     struct Sql {
         bytes: [u8; 96],
@@ -6218,7 +6146,7 @@ fn configure_fresh_readonly_owned(
 #[cfg(feature = "source-tools")]
 fn verify_fresh_integrity_owned(
     db: &Connection,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     state.charge_work(c"PRAGMA integrity_check".to_bytes().len())?;
     let _hold = state.hold(
@@ -6270,7 +6198,7 @@ fn verify_fresh_integrity_owned(
 fn stage_stream_digest_owned(
     file: &mut fs::File,
     max_bytes: u64,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<(String, u64)> {
     // The receipt forecast already retains the one resulting 64-byte hex
     // string. The actual kernel buffer and callback controller live only here.
@@ -6311,7 +6239,7 @@ fn stage_stream_digest_owned(
 #[cfg(feature = "source-tools")]
 fn stage_integrity_first_row_owned(
     db: &Connection,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<bool> {
     state.charge_work(c"PRAGMA integrity_check".to_bytes().len())?;
     let _hold = state.hold(
@@ -6352,7 +6280,7 @@ fn stage_integrity_first_row_owned(
 fn stage_integer_owned(
     db: &Connection,
     sql: &std::ffi::CStr,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<i64> {
     state.active()?;
     state.charge_work(sql.to_bytes().len())?;
@@ -6387,7 +6315,7 @@ fn stage_integer_owned(
 fn stage_batch_owned(
     db: &Connection,
     sql: &'static std::ffi::CStr,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     state.charge_work(sql.to_bytes().len())?;
     let _hold = state.hold(
@@ -6422,7 +6350,7 @@ fn stage_insert_owned(
     db: &Connection,
     sql: &std::ffi::CStr,
     values: &[StageSqlBinding<'_>],
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     state.charge_work(sql.to_bytes().len())?;
     let _statement_hold = state.hold(
@@ -6506,7 +6434,7 @@ fn stage_root_owned(
     sql: &std::ffi::CStr,
     entry: Option<&InputCollectionReceipt>,
     output: bool,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<(u64, String)> {
     state.charge_work(sql.to_bytes().len())?;
     let _statement_hold = state.hold(
@@ -6582,7 +6510,7 @@ fn stage_root_owned(
 fn input_root_with_state(
     db: &Connection,
     entry: &InputCollectionReceipt,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<(u64, String)> {
     if let Some(state) = state {
         return stage_root_owned(db,c"SELECT id,payload_sha256 FROM raw_records WHERE source_graph=?1 AND collection=?2 ORDER BY id",Some(entry),false,state);
@@ -6637,7 +6565,7 @@ fn input_root_with_state(
 fn output_root_with_state(
     db: &Connection,
     table: &str,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<(u64, String)> {
     if let Some(state) = state {
         let sql=match table {
@@ -6704,7 +6632,7 @@ fn output_root_with_state(
 #[cfg(feature = "source-tools")]
 fn read_seek_row_bounded(
     statement: &tos_source_store::PinnedBoundedStatement<'_>,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     cap: usize,
 ) -> Result<SeekRow> {
     use rusqlite::types::ValueRef;
@@ -6788,7 +6716,7 @@ fn read_seek_row_bounded(
 #[cfg(feature = "source-tools")]
 fn read_seek_row_with_state(
     row: &rusqlite::Row<'_>,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
     cap: usize,
 ) -> Result<SeekRow> {
     let Some(state) = state else {
@@ -7098,7 +7026,7 @@ mod tests {
             cancelled: &cancelled,
         };
         let state =
-            crate::d1_public_capture::CreationState::from_runtime_owned_budget(&budget).unwrap();
+            crate::public_capture::CreationState::from_runtime_owned_budget(&budget).unwrap();
         let owner = Owner {
             checks: AtomicUsize::new(0),
         };

@@ -7,8 +7,8 @@ use tos_foundation::{
     emit_value_preserved_json, parse_json,
 };
 use tos_query::{
+    search::{SearchError, SearchRank},
     search_index::{INDEXED_SEARCH_GRAM_CODEPOINTS_V1, unique_search_grams},
-    search_v2::{SearchRank, SearchV2Error},
     worker_search_controls::{
         NormalizedWorkerSearch, WORKER_SEARCH_CURSOR_SCHEMA_V3,
         WORKER_SEARCH_CURSOR_TOKEN_MAX_CHARS, WORKER_SEARCH_ID_MAX_BYTES,
@@ -151,10 +151,10 @@ fn emit(value: &JsonValue) -> Vec<u8> {
     emit_value_preserved_json(value, JsonLimits::default())
         .unwrap_or_else(|_| b"{\"schema_version\":1,\"ok\":false,\"error\":{\"code\":\"invalid_request\",\"message\":\"Worker search control output is invalid\"}}".to_vec())
 }
-fn search_error(error: SearchV2Error) -> WorkerSearchControlError {
+fn search_error(error: SearchError) -> WorkerSearchControlError {
     WorkerSearchControlError {
         code: match error.code {
-            tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded => "budget_exceeded",
+            tos_query::search::SearchErrorCode::BudgetExceeded => "budget_exceeded",
             _ => "invalid_request",
         },
         message: error.message.to_owned(),

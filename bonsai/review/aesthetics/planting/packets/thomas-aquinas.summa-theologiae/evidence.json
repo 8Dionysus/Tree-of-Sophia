@@ -1,0 +1,133 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/summatheologicae01thom/summatheologicae01thom_hocr_searchtext.txt.gz",
+   "file": "summatheologicae01thom.ocr.txt",
+   "sha256": "e8b6edefed2510a8738615fa64db17caa5a665217c5f4d81e3f93fb51f7ca7b1",
+   "bytes": 3177308,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/summatheologicae01thom/summatheologicae01thom_hocr_pageindex.json.gz",
+   "file": "summatheologicae01thom.index.json",
+   "sha256": "b3fda5bbb86275d042a74c8d53c3793a29fd73d1d1d6910edc3b403cd4524855",
+   "bytes": 35289,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/summatheologicae01thom/summatheologicae01thom_page_numbers.json",
+   "file": "summatheologicae01thom.pages.json",
+   "sha256": "bd9b23f364daf6ea24a31cb17adab59f6c7712324e5457cca1189a1787b74f53",
+   "bytes": 154922,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://la.wikisource.org/w/index.php?title=Summa_Theologiae/Prima_pars/Quaestio_XXXIX&action=raw",
+   "file": "summa-wikisource.txt",
+   "sha256": "e4827381bc24ab90006b7af67c2735beada5b6731c102e1d37b61eed0e5a451d",
+   "bytes": 48298,
+   "fetched": "2026-11-10",
+   "text": "summa-wikisource.txt.txt"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/summatheologicae0001thom/summatheologicae0001thom_hocr_searchtext.txt.gz",
+   "file": "summatheologicae0001thom.ocr.txt",
+   "sha256": "43624e987c4edf94f56bbf63e8dcf865eb094e60c3ff17229fe08cbd970c023a",
+   "bytes": 3160534,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/summatheologicae0001thom/summatheologicae0001thom_hocr_pageindex.json.gz",
+   "file": "summatheologicae0001thom.index.json",
+   "sha256": "90d37518e139684ab9c01a5495f5379cc56ff70a37a0bf251968b0b94560ec48",
+   "bytes": 35175,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/summatheologicae0001thom/summatheologicae0001thom_page_numbers.json",
+   "file": "summatheologicae0001thom.pages.json",
+   "sha256": "5f771bc476517f105b5d097db888ab93c4d1cbbd14a828c26b853f18ea3d4544",
+   "bytes": 154575,
+   "fetched": "2026-11-10"
+  }
+ ],
+ "scan": {
+  "item": "summatheologicae0001thom",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": -1
+ },
+ "persons": [
+  {
+   "qid": "Q9438",
+   "name": {
+    "en": "Thomas Aquinas",
+    "ru": "Фома Аквинский"
+   },
+   "role": "author",
+   "died": 1274,
+   "source": "https://www.wikidata.org/wiki/Q9438"
+  }
+ ],
+ "published": 1894,
+ "images": [
+  {
+   "n": 350,
+   "file": "summatheologicae01thom-n350.jpg",
+   "sha256": "573ea4a441f006328ae5804792805b494ffb128083695929313fc8ffc10b133d",
+   "by": "maker"
+  },
+  {
+   "n": 332,
+   "file": "summatheologicae0001thom-n332.jpg",
+   "sha256": "b4705025144ac2e6a4da42afd9aa8f1af2faa4f1d954416c846b9f7e8f21e0b7",
+   "by": "maker"
+  },
+  {
+   "n": 331,
+   "file": "summatheologicae0001thom-n331.jpg",
+   "sha256": "94b01b2ffd0a50755ff0d45f165d9edbb9582ac9b36373305c3bb0398b643de3",
+   "by": "maker"
+  },
+  {
+   "n": 331,
+   "file": "summatheologicae0001thom-n331.jpg",
+   "sha256": "94b01b2ffd0a50755ff0d45f165d9edbb9582ac9b36373305c3bb0398b643de3",
+   "by": "second",
+   "loc": "I q39 a8 p318b"
+  }
+ ],
+ "places": {
+  "I q39 a8 p318a": {
+   "transcription": "summa-wikisource.txt",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    332
+   ],
+   "printed": [
+    "318"
+   ],
+   "differences": []
+  },
+  "I q39 a8 p318b": {
+   "transcription": "summa-wikisource.txt",
+   "method": "ocr",
+   "share": 1.0,
+   "leaves": [
+    332
+   ],
+   "printed": [
+    "318"
+   ],
+   "differences": []
+  }
+ }
+}

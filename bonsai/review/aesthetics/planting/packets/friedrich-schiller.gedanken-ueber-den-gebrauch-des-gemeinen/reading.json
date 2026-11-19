@@ -1,0 +1,173 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-gedanken-ueber-den-gebrauch-des-gemeinen",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read the German text in Cotta’s 1877 fourth volume against the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-schiller": {
+    "tree": "tos.agent.friedrich-schiller"
+   }
+  },
+  "works": {
+   "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen": {
+    "title": {
+     "ru": "Мысли об использовании обыденного и низменного в искусстве",
+     "en": "Thoughts on the Use of the Common and the Low in Art"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "work": "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen",
+   "status": "text",
+   "verdict": "confirmed",
+   "id": "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen:the-low-and-the-common",
+   "of": [
+    "A:C004",
+    "A:C035",
+    "A:C039"
+   ],
+   "areas": [
+    "AE04"
+   ],
+   "locus": "Essay",
+   "formula": [
+    {
+     "place": "Essay p739"
+    }
+   ],
+   "thesis": {
+    "ru": "Низменное стоит ступенью ниже обыденного и обозначает грубость чувства, дурные нравы и презренный образ мыслей.",
+    "en": "The low stands a degree below the common and indicates coarseness of feeling, bad manners and contemptible dispositions."
+   },
+   "from": [
+    "A:E065"
+   ]
+  },
+  {
+   "work": "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen",
+   "status": "text",
+   "verdict": "revise",
+   "id": "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen:low-subject-and-treatment",
+   "of": [
+    "A:C004",
+    "A:C039"
+   ],
+   "areas": [
+    "AE03",
+    "AE04"
+   ],
+   "locus": "Essay",
+   "formula": [
+    {
+     "place": "Essay p740a"
+    }
+   ],
+   "thesis": {
+    "ru": "В искусстве низменного достигают выбором низких предметов или низким обращением с ними; низкое обращение обнаруживает скрываемую приличием сторону либо вызывает низкие побочные представления.",
+    "en": "In art one falls into the low by choosing low subjects or treating them in a low manner; low treatment exposes the side that propriety conceals or leads to low subsidiary ideas."
+   },
+   "from": [
+    "A:E066"
+   ],
+   "note": "The passage distinguishes low subjects from low treatment; it does not identify the subjects as ugly, so A:C034 is dropped."
+  },
+  {
+   "work": "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen",
+   "status": "text",
+   "verdict": "revise",
+   "id": "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen:low-in-comedy",
+   "of": [
+    "A:C004",
+    "A:C006"
+   ],
+   "areas": [
+    "AE04",
+    "AE05",
+    "AE06"
+   ],
+   "locus": "Essay",
+   "formula": [
+    {
+     "place": "Essay p740b"
+    }
+   ],
+   "thesis": {
+    "ru": "Низменное бывает допустимо в искусстве, когда оно должно вызвать смех.",
+    "en": "The low can be permitted in art where it is meant to arouse laughter."
+   },
+   "from": [
+    "A:E067"
+   ],
+   "note": "The passage specifies laughter, not cruelty; the concept aestheticization of cruelty is not asserted here."
+  },
+  {
+   "work": "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen",
+   "status": "text",
+   "verdict": "revise",
+   "id": "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen:low-in-tragedy",
+   "of": [
+    "A:C004",
+    "A:C005"
+   ],
+   "areas": [
+    "AE04",
+    "AE05",
+    "AE06"
+   ],
+   "locus": "Essay",
+   "formula": [
+    {
+     "place": "Essay p741"
+    }
+   ],
+   "thesis": {
+    "ru": "В редких случаях низменное допустимо в серьёзном и трагическом, когда оно переходит в ужасное: сильное занятие аффекта изглаживает мгновенное оскорбление вкуса, и высшее трагическое воздействие как бы поглощает его.",
+    "en": "In rare cases the low can be used in the serious and tragic when it passes into the terrible: a strong occupation of the affect erases the momentary offence to taste, which a higher tragic effect, as it were, swallows up."
+   },
+   "from": [
+    "A:E067"
+   ],
+   "note": "The passage specifies tragic effect and the terrible, not cruelty as such."
+  }
+ ],
+ "links": [
+  {
+   "id": "the-vulgar:differs-from:lowness",
+   "from_concept": "A:C035",
+   "to_concept": "A:C039",
+   "verb": {
+    "ru": "отличается от",
+    "en": "differs from"
+   },
+   "grounds": [
+    "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen:the-low-and-the-common"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The work contrasts the common and the low through the latter’s positive indications.",
+   "from": [
+    "A:R061"
+   ]
+  }
+ ],
+ "left": [
+  {
+   "key": "A:R166",
+   "reason": "Исследовательское сопоставление с материально-телесным низом не следует из прочитанного различения gemein и niedrig."
+  },
+  {
+   "key": "A:R178",
+   "reason": "Исследовательское сопоставление с деформацией не следует из прочитанного различения gemein и niedrig."
+  }
+ ]
+}

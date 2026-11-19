@@ -1,0 +1,230 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-of-the-standard-of-taste",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read Hume in English, Four Dissertations (London, 1757), against the register readings and the printed pages.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "david-hume": {
+    "tree": "tos.agent.david-hume"
+   }
+  },
+  "works": {
+   "david-hume.of-the-standard-of-taste": {
+    "title": {
+     "ru": "О стандарте вкуса",
+     "en": "Of the Standard of Taste"
+    },
+    "original": "en",
+    "tree": "tos.work.david-hume.of-the-standard-of-taste",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "david-hume.of-the-standard-of-taste:delicacy-of-perception",
+   "of": [
+    "A:C115",
+    "D:A-035-C04",
+    "B:C-C001"
+   ],
+   "areas": [
+    "AE01",
+    "AE35",
+    "AE16"
+   ],
+   "work": "david-hume.of-the-standard-of-taste",
+   "locus": "Dissertation IV",
+   "formula": [
+    {
+     "place": "IV p218"
+    }
+   ],
+   "thesis": {
+    "ru": "Тонкость вкуса состоит в такой тонкости органов, что от них ничто не ускользает, и такой их точности, что они воспринимают каждый компонент композиции.",
+    "en": "Delicacy of taste consists in organs so fine that nothing escapes them and so exact that they perceive every ingredient in the composition."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "D:A-035-I09",
+    "B:C-I002"
+   ],
+   "note": "The sentence defines delicate perception; attention and comparison belong to the wider discussion. The principles and qualification of judges are stated separately in the sibling conception grown from B:C-I002."
+  },
+  {
+   "id": "david-hume.of-the-standard-of-taste:true-judge",
+   "of": [
+    "A:C116",
+    "A:C115",
+    "A:C001",
+    "B:C-C005",
+    "B:C-C006",
+    "B:C-C007",
+    "D:A-035-C02"
+   ],
+   "areas": [
+    "AE01",
+    "AE16",
+    "AE35"
+   ],
+   "work": "david-hume.of-the-standard-of-taste",
+   "locus": "Dissertation IV",
+   "formula": [
+    {
+     "place": "IV p229"
+    }
+   ],
+   "thesis": {
+    "ru": "Здравый смысл и тонкое чувство, развитое упражнением и сравнением и свободное от предубеждения, дают критику право быть истинным судьёй; совместное суждение таких критиков составляет подлинную норму вкуса и красоты.",
+    "en": "Strong sense and delicate sentiment, improved by practice and comparison and cleared of prejudice, entitle critics to be true judges; their joint verdict is the true standard of taste and beauty."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E016",
+    "B:C-I021",
+    "B:C-I028",
+    "D:A-035-I04"
+   ],
+   "note": "B:C-I028 includes aesthetic disagreement; this sentence states the joint verdict as the standard but does not itself describe disagreement, so that concept is omitted."
+  },
+  {
+   "id": "david-hume.of-the-standard-of-taste:critic-and-audience",
+   "of": [
+    "B:C-C005",
+    "B:C-C006"
+   ],
+   "areas": [
+    "AE16"
+   ],
+   "work": "david-hume.of-the-standard-of-taste",
+   "locus": "Dissertation IV",
+   "formula": [
+    {
+     "place": "IV p224"
+    }
+   ],
+   "thesis": {
+    "ru": "Критик другого века или народа учитывает обстоятельства речи и ставит себя на место её слушателей, чтобы верно судить о ней.",
+    "en": "A critic of another age or nation considers the circumstances of an oration and places himself in the audience’s situation to judge it truly."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:C-I017"
+   ]
+  },
+  {
+   "id": "david-hume.of-the-standard-of-taste:parts-and-end",
+   "of": [
+    "B:C-C003",
+    "A:C107"
+   ],
+   "areas": [
+    "AE16"
+   ],
+   "work": "david-hume.of-the-standard-of-taste",
+   "locus": "Dissertation IV",
+   "formula": [
+    {
+     "place": "IV p226"
+    }
+   ],
+   "thesis": {
+    "ru": "В благородных созданиях гения части взаимно соотносятся; произведение искусства тем совершеннее, чем лучше приспособлено к своей цели.",
+    "en": "In the nobler productions of genius the parts correspond to one another; a work of art is more perfect as it is better fitted to its end."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:C-I009"
+   ]
+  },
+  {
+   "id": "david-hume.of-the-standard-of-taste:principles-and-judges",
+   "of": [
+    "B:C-C001",
+    "B:C-C007"
+   ],
+   "areas": [
+    "AE16"
+   ],
+   "work": "david-hume.of-the-standard-of-taste",
+   "locus": "Dissertation IV",
+   "formula": [
+    {
+     "place": "IV p228"
+    }
+   ],
+   "thesis": {
+    "ru": "Принципы вкуса всеобщи и почти, если не вполне, одинаковы у всех людей, но немногие способны судить о произведении искусства или устанавливать собственное чувство как норму красоты.",
+    "en": "The principles of taste are universal and nearly, if not entirely, the same in all men, yet few are qualified to judge a work of art or establish their own sentiment as the standard of beauty."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "B:C-I002"
+   ],
+   "note": "B:C-I002 also reads delicacy; the sibling conception states that separately from the principles and qualification of judges."
+  },
+  {
+   "id": "david-hume.of-the-standard-of-taste:variation-of-approbation",
+   "of": [
+    "A:C116",
+    "A:C112"
+   ],
+   "areas": [
+    "AE01"
+   ],
+   "work": "david-hume.of-the-standard-of-taste",
+   "locus": "Dissertation IV",
+   "formula": [
+    {
+     "place": "IV p232"
+    }
+   ],
+   "thesis": {
+    "ru": "Различия личных характеров, а также нравов и мнений века и страны часто меняют степень одобрения или осуждения.",
+    "en": "Different individual humours, and the manners and opinions of an age and country, often vary the degrees of approbation or blame."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E017"
+   ],
+   "note": "The cited sentences name temperament and manners of age and country; age of the individual appears in the following example."
+  }
+ ],
+ "links": [
+  {
+   "id": "delicacy-of-taste:is-among-the-qualities-of-true-judges-whose-joint-verdict-is:the-standard-of-taste",
+   "from_concept": "A:C115",
+   "to_concept": "A:C116",
+   "verb": {
+    "ru": "входит в качества истинных судей, чьё совместное суждение составляет",
+    "en": "is among the qualities of true judges whose joint verdict is"
+   },
+   "grounds": [
+    "david-hume.of-the-standard-of-taste:true-judge"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The place joins delicate sentiment to strong sense, practice, comparison and freedom from prejudice; their joint verdict is the standard, so delicacy alone does not qualify a critic.",
+   "from": [
+    "A:R016"
+   ]
+  }
+ ],
+ "left": [
+  {
+   "key": "B:C-I005",
+   "reason": "The cited passage distinguishes blameless differences of humour and circumstance; it does not say that qualified critics are prevented from judging certain forms."
+  }
+ ]
+}

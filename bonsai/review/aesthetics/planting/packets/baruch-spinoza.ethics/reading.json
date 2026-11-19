@@ -1,0 +1,109 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-ethics",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "The Latin text of part III in the Paulus edition, compared with the register readings and the scanned pages.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "baruch-spinoza": {
+    "tree": "tos.agent.baruch-spinoza"
+   }
+  },
+  "works": {
+   "baruch-spinoza.ethics": {
+    "title": {
+     "ru": "Этика",
+     "en": "Ethics"
+    },
+    "original": "la",
+    "tree": "tos.work.baruch-spinoza.ethics",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "baruch-spinoza.ethics:affect-and-action",
+   "of": [
+    "B:B-C003"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "baruch-spinoza.ethics",
+   "locus": "III, definition 3",
+   "formula": [
+    {
+     "place": "III def3 p132"
+    }
+   ],
+   "thesis": {
+    "ru": "Аффект — это состояния тела, которыми его способность действовать увеличивается или уменьшается, поддерживается или сдерживается, и вместе с тем идеи этих состояний. Когда мы способны быть адекватной причиной состояния, аффект есть действие, в противном случае — страдание.",
+    "en": "An affect consists of affections of the body by which its power of acting is increased or diminished, aided or restrained, together with the ideas of those affections. When we can be the adequate cause of an affection, the affect is an action; otherwise it is a passion."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:B-I004",
+    "B:B-I002"
+   ]
+  },
+  {
+   "id": "baruch-spinoza.ethics:joy-transition",
+   "of": [
+    "B:B-C001"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "baruch-spinoza.ethics",
+   "locus": "III, definitions of the affects, 2",
+   "formula": [
+    {
+     "place": "III affects2 p184"
+    }
+   ],
+   "thesis": {
+    "ru": "Радость — переход человека от меньшего совершенства к большему.",
+    "en": "Joy is the transition of a human being from a lesser to a greater perfection."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "B:B-I002"
+   ],
+   "note": "Register B:B-I002 names B:B-C001 «удовольствие / pleasure» from Bennett’s translation, which renders laetitia as pleasure in definition II (https://www.earlymoderntexts.com/assets/pdfs/spinoza1665part3.pdf, p. 76). The Latin place says Laetitia; the thesis retains its broader sense as радость / joy. In III proposition 11 scholium and the explanation after the definitions, Spinoza distinguishes titillatio as a species of laetitia, so the register label must not be read as equating laetitia with that bodily species."
+  },
+  {
+   "id": "baruch-spinoza.ethics:sadness-transition",
+   "of": [
+    "B:B-C003"
+   ],
+   "areas": [
+    "AE14"
+   ],
+   "work": "baruch-spinoza.ethics",
+   "locus": "III, definitions of the affects, 3",
+   "formula": [
+    {
+     "place": "III affects3 p184"
+    }
+   ],
+   "thesis": {
+    "ru": "Печаль — переход человека от большего совершенства к меньшему.",
+    "en": "Sadness is the transition of a human being from a greater to a lesser perfection."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "B:B-I002"
+   ]
+  }
+ ],
+ "links": [],
+ "left": []
+}

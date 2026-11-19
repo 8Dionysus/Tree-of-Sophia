@@ -422,6 +422,52 @@ def source_text(source):
     return ' '.join(str(value) for key, value in source.items() if key not in ('id', 'kind', 'url', 'periods'))
 
 
+# A story in a language stands on the original and that language alone: the Russian on German and Russian
+# pieces, the English on German and English ones. The other translation, its words and the tellings in the
+# other language belong to the other story.
+OTHER = {'ru': 'en', 'en': 'ru'}
+
+
+def allowed_for(source, language):
+    """Whether a story in `language` may cite `source`."""
+    if source.get('kind') == 'wiktionary':
+        # V.* tell of the Russian translation's word: the Russian story's own.
+        if source['id'].startswith('V.'):
+            return language == 'ru' and source.get('edition') in ('ru', 'de')
+        return source.get('edition') in (language, 'de')
+    return True
+
+
+def translations_part(text, language):
+    """From the translations piece, the translator and the Tree's word of `language`."""
+    own = re.search(r'Antonovsky.*?(?=\s+Common \d{4}|\s+The Tree|$)' if language == 'ru' else r'Common \d{4}.*?(?=\s+The Tree|$)', text or '', re.S)
+    tree = re.search(r'([^\s,:;]+(?:\s[^\s,:;()]+)*) \(' + language + r'\)', text or '')
+    return ' '.join(part for part in (own.group(0) if own else '', tree.group(1) if tree else '') if part)
+
+
+def language_text(source, language):
+    """What a story in `language` may draw on from a piece it is allowed to cite."""
+    other = OTHER[language]
+    if source.get('kind') == 'translations':
+        return ' '.join(part for part in (translations_part(source.get('text'), language),
+                                          *(str(value) for key, value in source.items() if key.endswith(f'_{language}'))) if part)
+    return ' '.join(str(value) for key, value in source.items()
+                    if key not in ('id', 'kind', 'url', 'periods') and not key.endswith(f'_{other}'))
+
+
+def original_or_own(source, language):
+    """The words in Latin letters a Russian story may write: those of the German pieces and of its own Russian ones."""
+    if source.get('kind') in ('book-count', 'archive-frequency', 'translations'):
+        return ''
+    if source.get('kind') in ('book-place', 'key-place'):
+        return ' '.join(str(source.get(key) or '') for key in ('text', 'title_de', f'text_{language}', f'title_{language}', f'why_{language}'))
+    if source.get('kind') == 'descent':
+        return str(source.get(f'text_{language}') or '')
+    if source.get('kind') == 'nietzsche-works':
+        return str(source.get('text') or '')
+    return ' '.join(str(source.get(key) or '') for key in ('text', 'author', 'title', 'entry', 'word'))
+
+
 def words_of(sentence):
     return re.findall(r"[\w’'-]+", sentence)
 
@@ -460,15 +506,15 @@ def check_story(packet_body, story, names, ordinary=frozenset()):
     for code in names.values():
         for name in code.values():
             allowed.update(name.split())
-    for value in packet_body.get('words', {}).values():
-        if value:
-            allowed.update(value.split())
+    words = packet_body.get('words', {})
+    own_words = {'ru': ('tree_ru', 'antonovsky'), 'en': ('tree_en', 'common')}
     declared = {}
     for item in story.get('names') or []:
         declared.setdefault(item.get('text'), []).append(item.get('source'))
     if story.get('packet') != packet_body['digest']:
         problems.append('the story names another packet')
     for language in ('ru', 'en'):
+        own = allowed | {part for key in own_words[language] for part in str(words.get(key) or '').split()}
         sentences = story.get(language) or []
         if not sentences:
             problems.append(f'{language}: no story')
@@ -483,7 +529,19 @@ def check_story(packet_body, story, names, ordinary=frozenset()):
             if not cited or unknown:
                 problems.append(f'{where}: cites {unknown or "nothing"}')
                 continue
-            ground = fold(' '.join(source_text(by_id[source]) for source in cited))
+            foreign = [source for source in cited if not allowed_for(by_id[source], language)]
+            if foreign:
+                problems.append(f'{where}: cites {foreign}, pieces of another language than the original and {language}')
+            ground = fold(' '.join(language_text(by_id[source], language) for source in cited if source not in foreign))
+            if language == 'en' and re.search(r'[\u0400-\u04ff]', text):
+                problems.append(f'{where}: Cyrillic letters in the English story')
+            if language == 'ru':
+                # The term's own German word is the story's subject wherever a sentence names it.
+                latin = fold(' '.join([str(packet_body.get('lemma') or ''), ' '.join(packet_body.get('forms') or []),
+                                       *(original_or_own(by_id[source], language) for source in cited if source not in foreign)]))
+                for word in re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿĀ-žƀ-ɏ’'-]{2,}", text):
+                    if fold(word.strip("’'-")) not in latin:
+                        problems.append(f'{where}: the word {word} stands in no German or Russian piece of {cited}')
             numbers = ground_numbers(ground)
             for found in re.findall(r'\d+(?:[.,]\d+)?', text):
                 if not {found, found.replace(',', '.'), re.sub(r'[.,]', '', found)} & numbers:
@@ -504,7 +562,7 @@ def check_story(packet_body, story, names, ordinary=frozenset()):
                 word = token.group(0).strip("’'-")
                 if not word or not word[0].isupper():
                     continue
-                if word in allowed or word in ground or any(source and fold(source) in ground for source in declared.get(word, [])):
+                if word in own or word in ground or any(source and fold(source) in ground for source in declared.get(word, [])):
                     continue
                 # A sentence opens with a capital: its first word stands as an ordinary word when the witnesses write it in lowercase.
                 if index == 0 and word.lower() in ordinary:

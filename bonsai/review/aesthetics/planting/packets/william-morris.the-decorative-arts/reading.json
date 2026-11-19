@@ -1,0 +1,146 @@
+{
+ "reader": {
+  "id": "terra-2026-11-11-the-decorative-arts",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-11",
+  "reads": "The English text of the 1919 pocket edition of Hopes & Fears for Art, beside the register readings.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "william-morris": {
+    "tree": "tos.agent.william-morris"
+   }
+  },
+  "works": {
+   "william-morris.the-decorative-arts": {
+    "title": {
+     "ru": "Декоративные искусства / Малые искусства",
+     "en": "The Decorative Arts: Their Relation to Modern Life and Progress"
+    },
+    "original": "en",
+    "tree": "tos.work.william-morris.the-decorative-arts",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "william-morris.the-decorative-arts:houses-and-practice-of-art",
+   "of": [
+    "D:B-C3205"
+   ],
+   "areas": [
+    "AE32"
+   ],
+   "work": "william-morris.the-decorative-arts",
+   "locus": "The Lesser Arts",
+   "formula": [
+    {
+     "place": "Lesser Arts p34"
+    }
+   ],
+   "thesis": {
+    "ru": "Моррис полагает, что, пока всем людям не дадут удовольствия для глаз и отдыха для ума при виде своих и соседских домов и пока не уменьшится позорный контраст между полями, где живут животные, и улицами, где живут люди, практика искусств останется преимущественно в руках немногих образованных людей.",
+    "en": "Morris supposes that, until all people are given pleasure for the eyes and rest for the mind in the aspect of their own and their neighbours’ houses, and until the contrast between the fields where beasts live and the streets where people live is less disgraceful, the practice of the arts must remain mainly in the hands of a few highly cultivated people."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage makes a conditional judgment about houses and concentrated practice; it does not state a general programme of education or labour.",
+   "from": [
+    "D:B-I108"
+   ],
+   "negation": "Unless something or other is done"
+  },
+  {
+   "id": "william-morris.the-decorative-arts:artist-and-exclusive-art",
+   "of": [
+    "D:B-C3205"
+   ],
+   "areas": [
+    "AE32"
+   ],
+   "work": "william-morris.the-decorative-arts",
+   "locus": "The Lesser Arts",
+   "formula": [
+    {
+     "place": "Lesser Arts p34b"
+    }
+   ],
+   "thesis": {
+    "ru": "Честному художнику было бы стыдно наслаждаться скопленным для себя таким обособленным и исключительным искусством, как богатому человеку было бы стыдно есть лакомства среди голодающих солдат в осаждённой крепости.",
+    "en": "It would be a shame for an honest artist to enjoy such isolated and exclusive art that he had hoarded for himself, as for a rich man to eat dainty food among starving soldiers in a besieged fort."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The artist’s responsibility is expressed as the shame of private enjoyment amid deprivation; the register’s claim about labour conditions is broader than this passage.",
+   "from": [
+    "D:B-I108"
+   ]
+  }
+ ],
+ "links": [],
+ "left": [
+  {
+   "key": "D:B-I107",
+   "reason": "The second reader (codex-2026-11-11-decorative-arts-second) does not confirm william-morris.the-decorative-arts:art-of-everyday-life: The place says men have 'more or less striven' at all times; both theses omit 'more or less' and state the striving without that qualification.",
+   "disputed": {
+    "id": "william-morris.the-decorative-arts:art-of-everyday-life",
+    "of": [
+     "D:B-C3408"
+    ],
+    "areas": [
+     "AE34"
+    ],
+    "work": "william-morris.the-decorative-arts",
+    "locus": "The Lesser Arts",
+    "formula": [
+     {
+      "place": "Lesser Arts p3"
+     }
+    ],
+    "thesis": {
+     "ru": "Люди во все времена стремились средствами искусства украшать привычные вещи повседневной жизни.",
+     "en": "At all times people have striven through art to beautify the familiar matters of everyday life."
+    },
+    "status": "text",
+    "verdict": "revise",
+    "note": "The register combines the scope of the arts with their two uses; this sentence states the scope.",
+    "from": [
+     "D:B-I107"
+    ]
+   }
+  },
+  {
+   "key": "D:B-I107",
+   "reason": "The second reader (codex-2026-11-11-decorative-arts-second) does not confirm william-morris.the-decorative-arts:pleasure-in-use-and-making: The place calls 'to give people pleasure' the two offices or uses of decoration; both theses assert that decoration gives this pleasure, rather than stating the offices as the place does.",
+   "disputed": {
+    "id": "william-morris.the-decorative-arts:pleasure-in-use-and-making",
+    "of": [
+     "D:B-C3408"
+    ],
+    "areas": [
+     "AE34"
+    ],
+    "work": "william-morris.the-decorative-arts",
+    "locus": "The Lesser Arts",
+    "formula": [
+     {
+      "place": "Lesser Arts p4"
+     }
+    ],
+    "thesis": {
+     "ru": "Украшение доставляет людям удовольствие от вещей, которыми они вынуждены пользоваться, и от вещей, которые они вынуждены делать.",
+     "en": "Decoration gives people pleasure in the things they must use and in the things they must make."
+    },
+    "status": "text",
+    "verdict": "revise",
+    "note": "The register’s pleasure of use and making follows this sentence; market popularity is not discussed here.",
+    "from": [
+     "D:B-I107"
+    ]
+   }
+  }
+ ]
+}

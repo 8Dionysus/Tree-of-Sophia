@@ -1,0 +1,208 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/goethessamtliche33goet/goethessamtliche33goet_hocr_searchtext.txt.gz",
+   "file": "goethessamtliche33goet.ocr.txt",
+   "sha256": "ca2d8e6344027431b0ab6554127de0959103e9a46dc94732e23c29c3e9c33cee",
+   "bytes": 707852,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/goethessamtliche33goet/goethessamtliche33goet_hocr_pageindex.json.gz",
+   "file": "goethessamtliche33goet.index.json",
+   "sha256": "39e14aa8134f8b412c2d961895f732e9fb53c4ac0d0d8bfd8238413b4b4319f0",
+   "bytes": 12952,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/goethessamtliche33goet/goethessamtliche33goet_page_numbers.json",
+   "file": "goethessamtliche33goet.pages.json",
+   "sha256": "609e96bb5be424c73a33975076815958171fed0bd322dd1d2596f173b554a4cb",
+   "bytes": 60179,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/10108992bsb/10108992bsb_hocr_searchtext.txt.gz",
+   "file": "10108992bsb.ocr.txt",
+   "sha256": "0335effa1b6c57ac31ba8b2dbc6559538f6ed5d2470ae1b8aca6e68aa25afb30",
+   "bytes": 462817,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/10108992bsb/10108992bsb_hocr_pageindex.json.gz",
+   "file": "10108992bsb.index.json",
+   "sha256": "9be36a86f71683efce0380d2a65bcfc7f92b4d41c9655d29a49f60ee71a4d203",
+   "bytes": 12604,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/10108992bsb/10108992bsb_page_numbers.json",
+   "file": "10108992bsb.pages.json",
+   "sha256": "0699ce259d93ad9ae731b1cc729270877065f2830f6a89a4c90400ca29fc22ae",
+   "bytes": 61240,
+   "fetched": "2026-11-10"
+  },
+  {
+   "role": "transcription",
+   "url": "https://textgridlab.org/1.0/aggregator/html/textgrid:11f8r.0",
+   "file": "textgrid.html",
+   "sha256": "f9f0fca33c22a3c7142755383d96de44333a901b52e3a5f3ad02c9b4116d23c2",
+   "bytes": 13055,
+   "fetched": "2026-11-10",
+   "text": "textgrid.html.txt",
+   "why": "TextGrid Repository aggregator serves the TextGrid Digitale Bibliothek item linked at https://textgridrep.org/browse/11f8s.0, the named German transcription project; this edition is corrected against the 1808 scan."
+  }
+ ],
+ "scan": {
+  "item": "10108992bsb",
+  "ocr": true,
+  "long_s": true,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q5879",
+   "name": {
+    "en": "Johann Wolfgang von Goethe",
+    "ru": "Иоганн Вольфганг фон Гёте"
+   },
+   "role": "author",
+   "died": 1832,
+   "source": "https://www.wikidata.org/wiki/Q5879"
+  }
+ ],
+ "published": 1808,
+ "images": [
+  {
+   "n": 79,
+   "file": "goethessamtliche33goet-n79.jpg",
+   "sha256": "710fcdc5c45b59f35d045d49d5354ef50977e57bc7364a5dc678047dcaa20101",
+   "by": "maker"
+  },
+  {
+   "n": 105,
+   "file": "10108992bsb-n105.jpg",
+   "sha256": "ada8f809ba0e960877b3ee13201b5763f2fd52281eba4ea9a535c4705f6f3072",
+   "by": "maker"
+  },
+  {
+   "n": 103,
+   "file": "10108992bsb-n103.jpg",
+   "sha256": "de7e41c20f93bd96acb440d7577dd40f1e0fe0c5b7214e5865c767a772e52166",
+   "by": "second",
+   "loc": "Manier p96"
+  },
+  {
+   "n": 104,
+   "file": "10108992bsb-n104.jpg",
+   "sha256": "9fad10ffc3ac57d77b53501091eca78b235ba512ab999338c9c450b683eb82c4",
+   "by": "second",
+   "loc": "Manier p97"
+  },
+  {
+   "n": 102,
+   "file": "10108992bsb-n102.jpg",
+   "sha256": "067739455f20cca81ed1e74d0d6395375fcc472ae7014e48da52172fd345d89f",
+   "by": "maker"
+  },
+  {
+   "n": 103,
+   "file": "10108992bsb-n103.jpg",
+   "sha256": "de7e41c20f93bd96acb440d7577dd40f1e0fe0c5b7214e5865c767a772e52166",
+   "by": "maker"
+  },
+  {
+   "n": 104,
+   "file": "10108992bsb-n104.jpg",
+   "sha256": "9fad10ffc3ac57d77b53501091eca78b235ba512ab999338c9c450b683eb82c4",
+   "by": "maker"
+  },
+  {
+   "n": 102,
+   "file": "10108992bsb-n102.jpg",
+   "sha256": "067739455f20cca81ed1e74d0d6395375fcc472ae7014e48da52172fd345d89f",
+   "by": "second",
+   "loc": "Manier p96"
+  },
+  {
+   "n": 105,
+   "file": "10108992bsb-n105.jpg",
+   "sha256": "ada8f809ba0e960877b3ee13201b5763f2fd52281eba4ea9a535c4705f6f3072",
+   "by": "second",
+   "loc": "Styl p98"
+  }
+ ],
+ "places": {
+  "Styl p98": {
+   "transcription": "textgrid.html",
+   "dropped": [
+    "\\[79\\]"
+   ],
+   "method": "ocr",
+   "share": 0.926,
+   "leaves": [
+    105
+   ],
+   "printed": [
+    "98"
+   ],
+   "differences": [
+    {
+     "transcription": "Bemühung",
+     "ocr": "Bemu ͤ hung",
+     "leaf": 105,
+     "stands": "transcription",
+     "note": "Page 98, n105: checked every discrepancy; OCR line break and decomposed umlauts."
+    },
+    {
+     "transcription": "Gegenstände",
+     "ocr": "Gegenſta ͤ nde",
+     "leaf": 105,
+     "stands": "transcription",
+     "note": "Page 98, n105: checked every discrepancy; OCR line break and decomposed umlauts."
+    },
+    {
+     "transcription": "genau",
+     "ocr": "ges nau",
+     "leaf": 105,
+     "stands": "transcription",
+     "note": "Page 98, n105: checked every discrepancy; OCR line break and decomposed umlauts."
+    },
+    {
+     "transcription": "übersieht",
+     "ocr": "u ͤ berſieht",
+     "leaf": 105,
+     "stands": "transcription",
+     "note": "Page 98, n105: checked every discrepancy; OCR line break and decomposed umlauts."
+    },
+    {
+     "transcription": "höchste",
+     "ocr": "ho ͤ chſte",
+     "leaf": 105,
+     "stands": "transcription",
+     "note": "Page 98, n105: checked every discrepancy; OCR line break and decomposed umlauts."
+    },
+    {
+     "transcription": "höchsten",
+     "ocr": "ho ͤ chſten",
+     "leaf": 105,
+     "stands": "transcription",
+     "note": "Page 98, n105: checked every discrepancy; OCR line break and decomposed umlauts."
+    },
+    {
+     "transcription": "Bemühungen",
+     "ocr": "Bemu ͤ hungen",
+     "leaf": 105,
+     "stands": "transcription",
+     "note": "Page 98, n105: checked every discrepancy; OCR line break and decomposed umlauts."
+    }
+   ]
+  }
+ }
+}

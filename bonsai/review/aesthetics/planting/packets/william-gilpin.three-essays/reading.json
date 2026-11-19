@@ -1,0 +1,238 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-three-essays",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "Read the English extracts from Essay I in Lancaster University’s transcription alongside the register, checking the selected passages against the 1792 London printing. Also read Essay III, pp. 62–63, against the 1792 scan and the register.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "william-gilpin": {
+    "tree": "tos.agent.william-gilpin"
+   }
+  },
+  "works": {
+   "william-gilpin.three-essays": {
+    "title": {
+     "ru": "Три эссе: о живописной красоте, живописных путешествиях и рисовании пейзажа",
+     "en": "Three Essays: On Picturesque Beauty; On Picturesque Travel; and On Sketching Landscape"
+    },
+    "original": "en",
+    "tree": "tos.work.william-gilpin.three-essays",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "william-gilpin.three-essays:roughness-and-picturesque",
+   "of": [
+    "A:C081",
+    "A:C010",
+    "A:C001"
+   ],
+   "areas": [
+    "AE01",
+    "AE10"
+   ],
+   "work": "william-gilpin.three-essays",
+   "locus": "Essay I",
+   "formula": [
+    {
+     "place": "I p6"
+    }
+   ],
+   "thesis": {
+    "ru": "Шероховатость составляет существеннейшее различие между прекрасным и живописным, поскольку она, по-видимому, является качеством, которое делает предметы особенно приятными в живописи.",
+    "en": "Roughness forms the most essential point of difference between the beautiful and the picturesque, as it seems to be the quality that makes objects chiefly pleasing in painting."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E146"
+   ]
+  },
+  {
+   "id": "william-gilpin.three-essays:palladian-building-rough-ruin",
+   "of": [
+    "A:C083",
+    "A:C010"
+   ],
+   "areas": [
+    "AE10"
+   ],
+   "work": "william-gilpin.three-essays",
+   "locus": "Essay I",
+   "formula": [
+    {
+     "place": "I p7"
+    }
+   ],
+   "thesis": {
+    "ru": "Чтобы придать палладианскому зданию живописную красоту, его превращают из гладкого здания в шероховатую руину.",
+    "en": "To give a Palladian building picturesque beauty, one turns it from a smooth building into a rough ruin."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage gives a broken, defaced building and rough ruin; the register concept irregularity is not explicitly named in this passage.",
+   "from": [
+    "A:E147"
+   ]
+  },
+  {
+   "areas": [
+    "AE10"
+   ],
+   "work": "william-gilpin.three-essays",
+   "locus": "Essay III",
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E148"
+   ],
+   "id": "william-gilpin.three-essays:best-point-of-view",
+   "of": [
+    "A:C085",
+    "A:C080"
+   ],
+   "formula": [
+    {
+     "place": "III p62"
+    }
+   ],
+   "thesis": {
+    "ru": "Встретив сцену, которую хочется зарисовать, прежде всего следует найти для неё лучшую точку зрения: несколько шагов меняют вид земли и замка.",
+    "en": "When you meet a scene you wish to sketch, the first consideration is to get it in the best point of view: a few paces change the appearance of the ground and castle."
+   }
+  },
+  {
+   "areas": [
+    "AE10"
+   ],
+   "work": "william-gilpin.three-essays",
+   "locus": "Essay III",
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E148"
+   ],
+   "id": "william-gilpin.three-essays:portion-and-principal-points",
+   "of": [
+    "A:C084",
+    "A:C080"
+   ],
+   "formula": [
+    {
+     "place": "III p63"
+    }
+   ],
+   "thesis": {
+    "ru": "Выбрав часть пейзажа для зарисовки, следует выбрать две или три главные точки, которые можно отметить на бумаге: это поможет установить взаимное положение предметов.",
+    "en": "Having fixed the portion of the landscape to sketch, fix on two or three principal points, which you may mark on the paper: this will help ascertain the relative situation of the objects."
+   },
+   "distinction": {
+    "ru": "«Кадрирование» — современная навигационная метка, а не буквальный термин автора.",
+    "en": "“Framing” is a modern navigational label, not the author’s literal term."
+   }
+  }
+ ],
+ "links": [
+  {
+   "id": "roughness:forms-the-most-essential-point-of-difference-from:the-beautiful",
+   "from_concept": "A:C081",
+   "to_concept": "A:C001",
+   "verb": {
+    "ru": "составляет существеннейшее отличие живописного от",
+    "en": "forms the most essential point of difference between the picturesque and"
+   },
+   "grounds": [
+    "william-gilpin.three-essays:roughness-and-picturesque"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R135"
+   ]
+  },
+  {
+   "id": "roughness:seems-to-make-objects-pleasing-in-painting-and-distinguishes:the-picturesque",
+   "from_concept": "A:C081",
+   "to_concept": "A:C010",
+   "verb": {
+    "ru": "по-видимому, делает предметы особенно приятными в живописи и отличает от прекрасного",
+    "en": "seems to make objects chiefly pleasing in painting and distinguishes from the beautiful"
+   },
+   "grounds": [
+    "william-gilpin.three-essays:roughness-and-picturesque"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R136"
+   ],
+   "note": "Gilpin qualifies the explanation of roughness as the quality pleasing in painting with “seems to be”."
+  },
+  {
+   "id": "the-ruin:is-the-form-into-which-a-building-is-turned-to-give-it:the-picturesque",
+   "from_concept": "A:C083",
+   "to_concept": "A:C010",
+   "verb": {
+    "ru": "есть форма, в которую следует превратить палладианское здание, чтобы придать ему",
+    "en": "is the form into which a Palladian building must be turned to give it"
+   },
+   "grounds": [
+    "william-gilpin.three-essays:palladian-building-rough-ruin"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Gilpin says that, to give the Palladian building picturesque beauty, we must turn it from a smooth building into a rough ruin; the ruin is the result of that action.",
+   "from": [
+    "A:R137"
+   ]
+  },
+  {
+   "id": "framing:involves-fixing-a-portion-of:the-landscape-scene",
+   "from_concept": "A:C084",
+   "to_concept": "A:C080",
+   "verb": {
+    "ru": "предполагает выбор части",
+    "en": "involves fixing a portion of"
+   },
+   "grounds": [
+    "william-gilpin.three-essays:portion-and-principal-points"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Framing is the register’s modern label; Gilpin speaks of fixing the portion of the landscape to take, then selecting principal points which may be marked on paper.",
+   "from": [
+    "A:R138"
+   ]
+  },
+  {
+   "id": "the-viewing-station:is-chosen-to-give-the-best-view-of:the-landscape-scene",
+   "from_concept": "A:C085",
+   "to_concept": "A:C080",
+   "verb": {
+    "ru": "выбирается так, чтобы получить лучший вид на",
+    "en": "is chosen to give the best view of"
+   },
+   "grounds": [
+    "william-gilpin.three-essays:best-point-of-view"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "Gilpin tells the sketcher to get the scene in the best point of view; a few paces change its appearance.",
+   "from": [
+    "A:R139"
+   ]
+  }
+ ],
+ "left": [
+  {
+   "key": "A:R179",
+   "reason": "The selected architectural passage does not establish a relationship between the picturesque and the sublime; the comparative register also cites a different work."
+  }
+ ]
+}

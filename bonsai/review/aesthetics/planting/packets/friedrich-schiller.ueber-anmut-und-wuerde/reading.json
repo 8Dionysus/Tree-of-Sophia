@@ -1,0 +1,150 @@
+{
+ "reader": {
+  "id": "terra-2026-11-10-ueber-anmut-und-wuerde",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-10",
+  "reads": "German text of the 1793 Göschen printing beside the Aesthetics register readings and links.",
+  "effort": "high"
+ },
+ "note": "",
+ "library": {
+  "agents": {
+   "friedrich-schiller": {
+    "tree": "tos.agent.friedrich-schiller"
+   }
+  },
+  "works": {
+   "friedrich-schiller.ueber-anmut-und-wuerde": {
+    "title": {
+     "ru": "О грации и достоинстве",
+     "en": "On Grace and Dignity"
+    },
+    "original": "de",
+    "tree": "tos.work.friedrich-schiller.ueber-anmut-und-wuerde",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "friedrich-schiller.ueber-anmut-und-wuerde:grace-expresses-the-beautiful-soul",
+   "of": [
+    "A:C017",
+    "A:C117",
+    "A:C019"
+   ],
+   "areas": [
+    "AE01"
+   ],
+   "work": "friedrich-schiller.ueber-anmut-und-wuerde",
+   "locus": "II p187",
+   "formula": [
+    {
+     "place": "II p187"
+    }
+   ],
+   "thesis": {
+    "ru": "В прекрасной душе чувственность и разум, долг и склонность гармонируют; грация есть её выражение в явлении.",
+    "en": "In a beautiful soul sensibility and reason, duty and inclination harmonize; grace is its expression in appearance."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E025"
+   ],
+   "note": "The sentence identifies harmony and its expression; it does not itself state that expression is involuntary."
+  },
+  {
+   "id": "friedrich-schiller.ueber-anmut-und-wuerde:dignity-expresses-freedom-of-spirit",
+   "of": [
+    "A:C118"
+   ],
+   "areas": [
+    "AE01",
+    "AE05"
+   ],
+   "work": "friedrich-schiller.ueber-anmut-und-wuerde",
+   "locus": "II p201",
+   "formula": [
+    {
+     "place": "II p201"
+    }
+   ],
+   "thesis": {
+    "ru": "Власть нравственной силы над влечениями есть свобода духа, а достоинство — её выражение в явлении.",
+    "en": "Mastery of the impulses by moral power is freedom of spirit, and dignity is its expression in appearance."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E026"
+   ]
+  },
+  {
+   "id": "friedrich-schiller.ueber-anmut-und-wuerde:dignity-in-suffering-grace-in-conduct",
+   "of": [
+    "A:C118",
+    "A:C017",
+    "A:C046"
+   ],
+   "areas": [
+    "AE01",
+    "AE05"
+   ],
+   "work": "friedrich-schiller.ueber-anmut-und-wuerde",
+   "locus": "II p206",
+   "formula": [
+    {
+     "place": "II p206"
+    }
+   ],
+   "thesis": {
+    "ru": "Достоинство более требуется и проявляется в страдании, грация — в поведении: только в страдании может обнаружиться свобода духа, и только в действии — свобода тела.",
+    "en": "Dignity is demanded and shown more in suffering, grace more in conduct: only in suffering can freedom of spirit reveal itself, and only in action can freedom of the body reveal itself."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E026"
+   ]
+  }
+ ],
+ "links": [
+  {
+   "id": "grace:expresses:the-beautiful-soul",
+   "from_concept": "A:C017",
+   "to_concept": "A:C117",
+   "verb": {
+    "ru": "выражает в явлении",
+    "en": "expresses in appearance"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-anmut-und-wuerde:grace-expresses-the-beautiful-soul"
+   ],
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:R024"
+   ]
+  },
+  {
+   "id": "dignity:differs-in-its-sphere-of-manifestation-from:grace",
+   "from_concept": "A:C118",
+   "to_concept": "A:C017",
+   "verb": {
+    "ru": "отличается областью своего проявления от",
+    "en": "differs in its sphere of manifestation from"
+   },
+   "grounds": [
+    "friedrich-schiller.ueber-anmut-und-wuerde:dignity-in-suffering-grace-in-conduct"
+   ],
+   "status": "text",
+   "verdict": "revise",
+   "note": "The passage says dignity is shown more in suffering and grace more in conduct; it does not compare their manifestation within suffering.",
+   "from": [
+    "A:R025"
+   ]
+  }
+ ],
+ "left": []
+}
