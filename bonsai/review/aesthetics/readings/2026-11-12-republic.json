@@ -1,0 +1,66 @@
+{
+  "reader": {
+    "id": "codex-2026-11-12-republic",
+    "model": "gpt-6",
+    "date": "2026-11-12",
+    "reads": "Plato, Republic X 598a–c, in the Greek text of the public corpus, beside the registers' readings."
+  },
+  "library": {
+    "agents": {
+      "plato": {
+        "tree": "tos.agent.plato"
+      }
+    },
+    "works": {
+      "plato.republic": {
+        "title": {
+          "ru": "Государство",
+          "en": "Republic"
+        },
+        "original": "grc",
+        "tree": "tos.work.retained-antiquity.republic"
+      }
+    }
+  },
+  "conceptions": [
+    {
+      "id": "plato.republic:painting-and-appearance",
+      "of": [
+        "C:A-C011",
+        "A:C152",
+        "B:D-C003",
+        "B:D-C005"
+      ],
+      "areas": [
+        "AE18",
+        "AE22"
+      ],
+      "work": "plato.republic",
+      "locus": "X 598a–c",
+      "voice": {
+        "ru": "Сократ и Главкон",
+        "en": "Socrates and Glaucon"
+      },
+      "formula": [
+        {
+          "unit": "Книга 10 · 598",
+          "from": "πότερα πρὸς τὸ ὄν",
+          "to": "φαντάσματος, ἔφη."
+        }
+      ],
+      "thesis": {
+        "ru": "Сократ спрашивает, подражает ли живопись сущему или являющемуся; Главкон отвечает, что она подражает представлению.",
+        "en": "Socrates asks whether painting imitates reality or appearance; Glaucon answers that it imitates appearance."
+      },
+      "status": "text",
+      "verdict": "revise",
+      "from": [
+        "C:A-I008",
+        "C:A-I009",
+        "B:D-I033"
+      ],
+      "note": "The register readings also discuss the painter’s knowledge and the distance of imitation from truth; this quotation establishes the question of appearance and the answer, while those further claims require the following passage."
+    }
+  ],
+  "links": []
+}
