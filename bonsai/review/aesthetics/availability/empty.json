@@ -5218,7 +5218,14 @@
       "queue_wave": "later",
       "register_year": 1981,
       "research_status": "in_progress",
-      "participants": [],
+      "participants": [
+        {
+          "role": "translator",
+          "name": "Sheila Faria Glaser",
+          "dates": "unverified",
+          "source": "https://press.umich.edu/Books/S/Simulacra-and-Simulation"
+        }
+      ],
       "jurisdiction_basis": {
         "us": "unverified",
         "eu": "unverified",
@@ -5233,7 +5240,16 @@
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": [],
+      "candidates": [
+        {
+          "url": "https://press.umich.edu/Books/S/Simulacra-and-Simulation",
+          "observation": "University of Michigan Press identifies Jean Baudrillard, Simulacra and Simulation, translated by Sheila Faria Glaser, paperback ISBN 9780472065219, December 1994, DOI 10.3998/mpub.9904, and links its Google Books preview. The publisher lists 320 pages; Google Books lists 164, so pagination metadata conflict must be resolved against the actual copy. The translator’s dates and rights remain to be checked."
+        },
+        {
+          "url": "https://books.google.com.mx/books/umichpress?id=9Z9biHaoLZIC&pg=PA1",
+          "observation": "The Michigan Press-linked Google Books preview explicitly states that pages are shown with publisher permission. On 19 November 2026 the printed page 1 image was visually inspected in the in-app browser: it contains the opening of The Precession of Simulacra and complete sentences on simulation and models, relevant to C:B-I076 and C:B-I078. The source is the English translation, not the French original; exact sentence boundaries, rights basis, original witness and independent second reading remain to be verified."
+        }
+      ],
       "searches": [
         {
           "service": "OpenAlex title search",
