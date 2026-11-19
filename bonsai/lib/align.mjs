@@ -293,6 +293,43 @@ export function sentencesOf(units,language){
   return items;
 }
 
+// The lexical comparison normalizes words, while sentence IDs retain the
+// offsets of the exact source characters.
+const anchorWords=text=>text.normalize('NFKC').toLowerCase().replace(/ς/gu,'σ').normalize('NFC').match(/\p{L}[\p{L}\p{M}]*/gu)??[];
+
+function anchorRange(sentences,keywords){
+  const words=keywords.flatMap(anchorWords);
+  const tokens=sentences.map(sentence=>anchorWords(sentence.text));
+  // A translation can render one sentence in several. Prefer the shortest
+  // complete match and require it to be unique within the selected reference.
+  for(let size=1;size<=3;size++){
+    const matches=[];
+    for(let start=0;start+size<=tokens.length;start++){
+      const window=new Set(tokens.slice(start,start+size).flat());
+      if(words.every(word=>window.has(word)))matches.push([start,start+size]);
+    }
+    if(matches.length===1)return matches[0];
+    if(matches.length>1)break;
+  }
+  throw new Error('Sentence keywords are missing or ambiguous in the selected reference');
+}
+
+/** Align between unique, ordered keyword matches. Sentence IDs remain those of the inputs. */
+export function alignAnchoredSentences(source,target,ratio,variance,options,anchors){
+  const matches=anchors.map(anchor=>[anchorRange(source,anchor.source),anchorRange(target,anchor.target)])
+    .sort((a,b)=>a[0][0]-b[0][0]);
+  const result=[];
+  let sourceEnd=0,targetEnd=0;
+  for(const [[a,b],[c,d]] of matches){
+    if(a<sourceEnd||c<targetEnd)throw new Error('Sentence keyword matches overlap or cross');
+    result.push(...alignRun(source.slice(sourceEnd,a),target.slice(targetEnd,c),ratio,variance,options));
+    result.push({s:source.slice(a,b).map(item=>item.id),t:target.slice(c,d).map(item=>item.id),shape:`${b-a}:${d-c}`,cost:0});
+    sourceEnd=b;
+    targetEnd=d;
+  }
+  return result.concat(alignRun(source.slice(sourceEnd),target.slice(targetEnd),ratio,variance,options));
+}
+
 /** Sentence pairs inside one group of paragraphs: [[source spans], [target spans]] for each sentence group that has both sides. */
 export function alignSentences(sourceUnits,targetUnits,sourceLanguage,targetLanguage,ratio,variance,model){
   const S=sentencesOf(sourceUnits,sourceLanguage),T=sentencesOf(targetUnits,targetLanguage);
