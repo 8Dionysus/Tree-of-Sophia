@@ -4,7 +4,7 @@ use tos_compiler::knowledge_full_fixture::build_fixture;
 use tos_foundation::{
     CanonicalProfile, JsonLimits, JsonMode, JsonValue, canonical_bytes_v1, parse_json,
 };
-use tos_query::search_v2::{CurrentPolicyBinding, SearchKind, SearchV2Error, SearchV2ErrorCode};
+use tos_query::search::{CurrentPolicyBinding, SearchError, SearchErrorCode, SearchKind};
 use tos_query::{
     BoundCmpKnowledge, INSPECT_INTENDED_USE, IndexedDisclosureScope, InspectBudget,
     InspectCurrentAuthority, InspectDisclosureLease, InspectedCarrier, NODE_INSPECT_OPERATION,
@@ -13,7 +13,7 @@ use tos_query::{
 };
 struct Lease;
 impl InspectDisclosureLease for Lease {
-    fn recheck(&mut self) -> Result<(), SearchV2Error> {
+    fn recheck(&mut self) -> Result<(), SearchError> {
         Ok(())
     }
 }
@@ -67,10 +67,10 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
     fn disclosure_scope(&self) -> IndexedDisclosureScope {
         self.scope.clone()
     }
-    fn check_selected(&mut self) -> Result<(), SearchV2Error> {
+    fn check_selected(&mut self) -> Result<(), SearchError> {
         Ok(())
     }
-    fn authorize_current(&mut self, carrier: &InspectedCarrier) -> Result<(), SearchV2Error> {
+    fn authorize_current(&mut self, carrier: &InspectedCarrier) -> Result<(), SearchError> {
         self.consulted.push(carrier.id.clone());
         Ok(())
     }
@@ -78,10 +78,10 @@ impl<'hold> InspectCurrentAuthority<'hold> for Authority {
         &mut self,
         _: &IndexedDisclosureScope,
         consulted: &[ObservedInspectCarrier],
-    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchV2Error> {
+    ) -> Result<Box<dyn InspectDisclosureLease + 'hold>, SearchError> {
         if self.withdrawn {
-            return Err(SearchV2Error {
-                code: SearchV2ErrorCode::StalePolicy,
+            return Err(SearchError {
+                code: SearchErrorCode::StalePolicy,
                 message: "synthetic withdrawal",
             });
         }
@@ -191,8 +191,8 @@ fn producer_selected_inspect_matches_frozen_packets_and_refuses_budget_or_withdr
             );
             assert!(matches!(
                 result,
-                Err(SearchV2Error {
-                    code: SearchV2ErrorCode::BudgetExceeded,
+                Err(SearchError {
+                    code: SearchErrorCode::BudgetExceeded,
                     ..
                 })
             ));
@@ -209,8 +209,8 @@ fn producer_selected_inspect_matches_frozen_packets_and_refuses_budget_or_withdr
                 limit,
                 budget()
             ),
-            Err(SearchV2Error {
-                code: SearchV2ErrorCode::StalePolicy,
+            Err(SearchError {
+                code: SearchErrorCode::StalePolicy,
                 ..
             })
         ));

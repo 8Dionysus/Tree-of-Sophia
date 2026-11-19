@@ -8,7 +8,7 @@
 //!
 //! Losslessness here means JsonValue equality, including retained numeric
 //! lexemes, not original JSON byte/escape spelling. The existing writer's
-//! SourceCommandInputV1/PythonCompact may normalize Float via f64 and -0 to 0.
+//! SourceCommandInputV1/SortedCompactV1 may normalize Float via f64 and -0 to 0.
 //! Carry exact raw decimal/lexical evidence as strings or an explicit opaque
 //! bytes carrier. This codec cannot promise spelling after a later Claim write.
 use super::*;

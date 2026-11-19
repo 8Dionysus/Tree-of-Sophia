@@ -4,7 +4,6 @@
 use crate::PhilosophyPrepareReceipt;
 #[cfg(feature = "source-tools")]
 use crate::QueryVocabulary;
-use crate::d1_public_capture::CreationState;
 use crate::knowledge_selected::{ColdOpenLimits, KnowledgeSelectedExpectation};
 use crate::knowledge_selected::{
     owned_schema_equal, owned_schema_sql_error, owned_schema_step, with_owned_schema_statement,
@@ -14,6 +13,7 @@ use crate::knowledge_stage::{
 };
 #[cfg(feature = "source-tools")]
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
+use crate::public_capture::CreationState;
 use crate::{Error, NavigationOriginalLimits, Result};
 use rusqlite::{Connection, OptionalExtension, params};
 use tos_foundation::{Digest256, Digest256Hasher, JsonLimits, JsonMode, parse_json};

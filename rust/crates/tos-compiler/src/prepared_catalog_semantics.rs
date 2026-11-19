@@ -60,7 +60,7 @@ impl CatalogInputs {
     }
     pub(crate) fn binding_with_owned_state(
         &self,
-        state: Option<&crate::d1_public_capture::CreationState<'_>>,
+        state: Option<&crate::public_capture::CreationState<'_>>,
     ) -> Result<String> {
         self.validate()?;
         if let Some(state) = state {
@@ -124,7 +124,7 @@ pub fn encoded_owner(value: &JsonValue, cap: usize) -> Result<String> {
     let limits = JsonLimits::new(cap, 96, 1_000_000, 4096)
         .map_err(|_| Error::Budget("catalog owner JSON limits"))?;
     String::from_utf8(
-        tos_foundation::emit_python_compact_json(value, limits)
+        tos_foundation::emit_ordered_compact_json_v1(value, limits)
             .map_err(|_| Error::Budget("catalog owner JSON bytes"))?,
     )
     .map_err(|_| Error::Invalid("catalog owner UTF-8"))

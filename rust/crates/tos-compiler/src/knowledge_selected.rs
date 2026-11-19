@@ -734,7 +734,7 @@ pub(crate) fn digest_selected_file_with_owned_context(
     limits: ColdOpenLimits,
     context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
 ) -> Result<u64> {
-    use crate::d1_public_capture::{CreationState, CreationStateHold};
+    use crate::public_capture::{CreationState, CreationStateHold};
     use std::io::SeekFrom;
 
     let state = context.owned_state();
@@ -814,7 +814,7 @@ pub(crate) fn configure_selected_sql_with_owned_context(
     limits: ColdOpenLimits,
     context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
 ) -> Result<()> {
-    use crate::d1_public_capture::CreationStateHold;
+    use crate::public_capture::CreationStateHold;
 
     let state = context.owned_state();
     let statement_state =
@@ -1024,18 +1024,18 @@ fn owned_metadata_matches(
     key: &str,
     cap: usize,
     expected: &str,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<bool> {
     let _frame = state.hold(std::mem::size_of::<(
         &Connection,
         &str,
         usize,
         &str,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &[u8],
         &str,
         Result<bool>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     if cap > i64::MAX as usize {
         return Err(Error::Budget("metadata addressable cap"));
@@ -1064,7 +1064,7 @@ pub(crate) fn check_native_metadata_with_owned_context(
         &KnowledgeSelectedExpectation,
         usize,
         &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         std::array::IntoIter<(&str, &str), 21>,
         std::array::IntoIter<(&str, u64), 4>,
         [(&str, &str); 21],
@@ -1074,7 +1074,7 @@ pub(crate) fn check_native_metadata_with_owned_context(
         u64,
         [u8; 20],
         Result<()>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     if expected.managed_source_root_sha256.is_some() {
         return Err(Error::Invalid("native metadata profile required"));
@@ -1165,10 +1165,10 @@ pub(crate) fn verify_integrity_with_owned_context(
     let _frame = state.hold(std::mem::size_of::<(
         &Connection,
         &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &[u8],
         Result<()>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     with_owned_schema_statement(db, c"PRAGMA integrity_check", state, |statement| {
         if !owned_schema_step(statement, state)? {
@@ -1714,12 +1714,12 @@ fn verify_integrity(db: &Connection) -> Result<()> {
 fn owned_header_field<'a>(
     value: &'a JsonValue,
     name: &str,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<&'a JsonValue> {
     let _frame = state.hold(std::mem::size_of::<(
         &JsonValue,
         &str,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         std::slice::Iter<'_, (tos_foundation::JsonString, JsonValue)>,
         &(tos_foundation::JsonString, JsonValue),
         &str,
@@ -1748,12 +1748,12 @@ fn owned_header_field<'a>(
 fn owned_header_keys(
     value: &JsonValue,
     expected: &[&str],
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     let _frame = state.hold(std::mem::size_of::<(
         &JsonValue,
         &[&str],
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         std::iter::Zip<
             std::slice::Iter<'_, (tos_foundation::JsonString, JsonValue)>,
             std::slice::Iter<'_, &str>,
@@ -1781,11 +1781,11 @@ fn owned_header_keys(
 }
 fn owned_header_u64(
     value: &JsonValue,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<Option<u64>> {
     let _frame = state.hold(std::mem::size_of::<(
         &JsonValue,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         Option<u64>,
         Result<Option<u64>>,
     )>())?;
@@ -1817,7 +1817,7 @@ pub(crate) fn verify_native_graph_root_with_owned_context<T>(
         Digest256,
         Digest256,
         &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         JsonLimits,
         JsonLimits,
         JsonLimits,
@@ -2551,7 +2551,7 @@ pub(crate) fn verify_schema(db: &Connection) -> Result<()> {
 pub(crate) fn with_owned_schema_statement<T>(
     db: &Connection,
     sql: &std::ffi::CStr,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     consume: impl FnOnce(&mut tos_source_store::PinnedBoundedStatement<'_>) -> Result<T>,
 ) -> Result<T> {
     let fixed =
@@ -2559,7 +2559,7 @@ pub(crate) fn with_owned_schema_statement<T>(
             .checked_add(std::mem::size_of::<(
                 &Connection,
                 &std::ffi::CStr,
-                &crate::d1_public_capture::CreationState<'_>,
+                &crate::public_capture::CreationState<'_>,
                 Result<T>,
                 Result<T>,
             )>())
@@ -2584,14 +2584,14 @@ pub(crate) fn owned_schema_sql_error(error: tos_source_store::StoreError) -> Err
 }
 pub(crate) fn owned_schema_step(
     statement: &mut tos_source_store::PinnedBoundedStatement<'_>,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<bool> {
     let _frame = state.hold(std::mem::size_of::<(
         &mut tos_source_store::PinnedBoundedStatement<'_>,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         bool,
         Result<bool>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     state.active()?;
     let row = statement.step().map_err(owned_schema_sql_error)?;
@@ -2599,19 +2599,19 @@ pub(crate) fn owned_schema_step(
     Ok(row)
 }
 pub(crate) fn owned_schema_equal(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     a: &[u8],
     b: &[u8],
 ) -> Result<bool> {
     let _frame = state.hold(std::mem::size_of::<(
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &[u8],
         &[u8],
         std::iter::Zip<std::slice::Chunks<'_, u8>, std::slice::Chunks<'_, u8>>,
         (&[u8], &[u8]),
         bool,
         Result<bool>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     state.charge_work(
         a.len()
@@ -2634,7 +2634,7 @@ pub(crate) fn owned_schema_equal(
 fn owned_schema_present(
     db: &Connection,
     table: &str,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<bool> {
     with_owned_schema_statement(
         db,
@@ -2658,14 +2658,14 @@ fn owned_schema_ddl(
     table: &str,
     expected_hash: Option<&str>,
     expected_sql: Option<&str>,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     let _hold = state.hold(std::mem::size_of::<(
         &Connection,
         &str,
         Option<&str>,
         Option<&str>,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         Digest256Hasher,
         Digest256,
         &[u8],
@@ -2717,7 +2717,7 @@ fn owned_schema_columns(
     columns: &[&str],
     extra: &[&str],
     layout: knowledge_stage::KnowledgePayloadLayout,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     let _hold = state.hold(std::mem::size_of::<(
         &Connection,
@@ -2725,7 +2725,7 @@ fn owned_schema_columns(
         &[&str],
         &[&str],
         knowledge_stage::KnowledgePayloadLayout,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         std::iter::Chain<std::slice::Iter<'_, &str>, std::slice::Iter<'_, &str>>,
         std::str::Split<'_, char>,
         Option<&str>,
@@ -2809,7 +2809,7 @@ fn owned_schema_columns(
 pub(crate) fn verify_schema_with_layout(
     db: &Connection,
     layout: knowledge_stage::KnowledgePayloadLayout,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<()> {
     let Some(state) = state else {
         return if layout == knowledge_stage::KnowledgePayloadLayout::InlineV1 {
@@ -2821,7 +2821,7 @@ pub(crate) fn verify_schema_with_layout(
     type Frame<'a> = (
         &'a Connection,
         knowledge_stage::KnowledgePayloadLayout,
-        &'a crate::d1_public_capture::CreationState<'a>,
+        &'a crate::public_capture::CreationState<'a>,
         [Option<&'static str>; 32],
         [bool; 32],
         usize,
@@ -3065,19 +3065,19 @@ pub(crate) fn verify_schema_with_layout(
 }
 
 fn owned_core_compare(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     left: &[u8],
     right: &[u8],
 ) -> Result<std::cmp::Ordering> {
     let _frame = state.hold(std::mem::size_of::<(
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &[u8],
         &[u8],
         std::iter::Zip<std::slice::Chunks<'_, u8>, std::slice::Chunks<'_, u8>>,
         (&[u8], &[u8]),
         std::cmp::Ordering,
         Result<std::cmp::Ordering>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     state.charge_work(left.len().min(right.len()))?;
     for (a, b) in left.chunks(4096).zip(right.chunks(4096)) {
@@ -3091,20 +3091,20 @@ fn owned_core_compare(
     Ok(left.len().cmp(&right.len()))
 }
 fn owned_core_hash_item(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     hash: &mut Digest256Hasher,
     id: &str,
     digest: &[u8],
 ) -> Result<()> {
     let _frame = state.hold(std::mem::size_of::<(
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &mut Digest256Hasher,
         &str,
         &[u8],
         std::slice::Chunks<'_, u8>,
         &[u8],
         Result<()>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     state.charge_work(
         id.len()
@@ -3123,17 +3123,17 @@ fn owned_core_hash_item(
 /// Destination bytes and its persistent String controller are already held
 /// by the caller; this helper holds only its own activation through transfer.
 fn owned_core_key_copy(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     input: &str,
 ) -> Result<String> {
     let _frame = state.hold(std::mem::size_of::<(
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &str,
         String,
         std::str::Chars<'_>,
         char,
         Result<String>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     state.charge_work(input.len())?;
     state.active()?;
@@ -3172,13 +3172,13 @@ fn scan_core_with_owned_context(
         &mut Digest256Hasher,
         ColdOpenLimits,
         &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         u64,
         usize,
         Option<(
             String,
             String,
-            crate::d1_public_capture::CreationStateHold<'_, '_>,
+            crate::public_capture::CreationStateHold<'_, '_>,
         )>,
         &str,
         &str,
@@ -3198,7 +3198,7 @@ fn scan_core_with_owned_context(
         usize,
         String,
         String,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
         Result<u64>,
         Result<()>,
         std::cmp::Ordering,
@@ -3215,7 +3215,7 @@ fn scan_core_with_owned_context(
     let mut previous: Option<(
         String,
         String,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )> = None;
     with_owned_schema_statement(db, sql, state, |statement| {
         while owned_schema_step(statement, state)? {
@@ -3391,18 +3391,18 @@ fn scan_core_with_owned_context(
 }
 
 fn owned_scope_hash_text(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     hash: &mut Digest256Hasher,
     text: &str,
 ) -> Result<()> {
     let _frame = state.hold(std::mem::size_of::<(
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &mut Digest256Hasher,
         &str,
         std::slice::Chunks<'_, u8>,
         &[u8],
         Result<()>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     state.charge_work(
         text.len()
@@ -3420,17 +3420,17 @@ fn owned_scope_sql_text<'a>(
     statement: &'a tos_source_store::PinnedBoundedStatement<'_>,
     column: usize,
     cap: usize,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<&'a str> {
     let _frame = state.hold(std::mem::size_of::<(
         &tos_source_store::PinnedBoundedStatement<'_>,
         usize,
         usize,
         i32,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &[u8],
         Result<&str>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     let column = i32::try_from(column).map_err(|_| Error::Budget("scope SQL column index"))?;
     let rusqlite::types::ValueRef::Text(bytes) = statement
@@ -3464,7 +3464,7 @@ pub(crate) fn verify_core_and_scope_with_owned_context(
         ColdOpenLimits,
         knowledge_stage::KnowledgePayloadLayout,
         &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         Vec<ScopeAcc>,
         Digest256Hasher,
         Digest256Hasher,
@@ -3486,8 +3486,8 @@ pub(crate) fn verify_core_and_scope_with_owned_context(
         &[u8],
         &[u8],
         Result<(Digest256, Digest256)>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>();
     let capacity = expected
         .source_scopes
@@ -3855,14 +3855,14 @@ pub(crate) fn verify_search_with_owned_context(
         &KnowledgeSelectedExpectation,
         ColdOpenLimits,
         &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         Digest256Hasher,
         [u64; 2],
         Option<(String, Vec<u8>, u64, u16)>,
         Option<rusqlite::Statement<'_>>,
         Option<rusqlite::Rows<'_>>,
         Result<()>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>()
     .checked_add(std::mem::size_of::<Result<()>>())
     .and_then(|n| n.checked_add(retained_rows))
@@ -4544,7 +4544,7 @@ pub(crate) fn verify_catalog_with_owned_context(
         &KnowledgeSelectedExpectation,
         ColdOpenLimits,
         &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &str,
         Digest256Hasher,
         [u64; 4],
@@ -4552,12 +4552,12 @@ pub(crate) fn verify_catalog_with_owned_context(
         Option<(
             String,
             String,
-            crate::d1_public_capture::CreationStateHold<'_, '_>,
-            crate::d1_public_capture::CreationStateHold<'_, '_>,
-            crate::d1_public_capture::CreationStateHold<'_, '_>,
-            crate::d1_public_capture::CreationStateHold<'_, '_>,
+            crate::public_capture::CreationStateHold<'_, '_>,
+            crate::public_capture::CreationStateHold<'_, '_>,
+            crate::public_capture::CreationStateHold<'_, '_>,
+            crate::public_capture::CreationStateHold<'_, '_>,
         )>,
-        Option<(String, crate::d1_public_capture::CreationStateHold<'_, '_>)>,
+        Option<(String, crate::public_capture::CreationStateHold<'_, '_>)>,
         std::slice::Iter<'_, ExpectedSourceScope>,
         [i64; 2],
         u64,
@@ -4570,7 +4570,7 @@ pub(crate) fn verify_catalog_with_owned_context(
         (&'static std::ffi::CStr, u64),
         std::cmp::Ordering,
         JsonLimits,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>();
     let _frame = state.hold(frame)?;
     state.active()?;
@@ -4612,7 +4612,7 @@ pub(crate) fn verify_catalog_with_owned_context(
             |statement| {
                 let _callback_frame = state.hold(std::mem::size_of::<(
                     &mut tos_source_store::PinnedBoundedStatement<'_>,
-                    &crate::d1_public_capture::CreationState<'_>,
+                    &crate::public_capture::CreationState<'_>,
                     &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
                     &KnowledgeSelectedExpectation,
                     ColdOpenLimits,
@@ -4632,7 +4632,7 @@ pub(crate) fn verify_catalog_with_owned_context(
                     [u8; 8],
                     Result<(Digest256Hasher, u64, u64, u64, u64, bool)>,
                     Result<()>,
-                    crate::d1_public_capture::CreationStateHold<'_, '_>,
+                    crate::public_capture::CreationStateHold<'_, '_>,
                 )>())?;
                 state.charge_work(descriptor.len().checked_add(16).ok_or(
                     Error::Budget("knowledge catalog metadata bind work"),
@@ -4738,9 +4738,9 @@ pub(crate) fn verify_catalog_with_owned_context(
                 let validate_packet_json = |_document: &JsonValue| {
                     let _json_callback_frame = state.hold(std::mem::size_of::<(
                         &JsonValue,
-                        &crate::d1_public_capture::CreationState<'_>,
+                        &crate::public_capture::CreationState<'_>,
                         Result<()>,
-                        crate::d1_public_capture::CreationStateHold<'_, '_>,
+                        crate::public_capture::CreationStateHold<'_, '_>,
                     )>())?;
                     Ok(())
                 };
@@ -4791,7 +4791,7 @@ pub(crate) fn verify_catalog_with_owned_context(
         |statement| {
             let _callback_frame = state.hold(std::mem::size_of::<(
                 &mut tos_source_store::PinnedBoundedStatement<'_>,
-                &crate::d1_public_capture::CreationState<'_>,
+                &crate::public_capture::CreationState<'_>,
                 &mut Digest256Hasher,
                 &mut [u64; 4],
                 &str,
@@ -4802,7 +4802,7 @@ pub(crate) fn verify_catalog_with_owned_context(
                 &[&str; 2],
                 Result<bool>,
                 [u8; 8],
-                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                crate::public_capture::CreationStateHold<'_, '_>,
             )>())?;
             state.charge_work(
                 descriptor
@@ -4850,12 +4850,12 @@ pub(crate) fn verify_catalog_with_owned_context(
     let mut previous_field: Option<(
         String,
         String,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )> = None;
-    let mut previous_fold: Option<(String, crate::d1_public_capture::CreationStateHold<'_, '_>)> =
+    let mut previous_fold: Option<(String, crate::public_capture::CreationStateHold<'_, '_>)> =
         None;
     let mut ordinal_for_field = 0u64;
     with_owned_schema_statement(
@@ -4871,40 +4871,40 @@ pub(crate) fn verify_catalog_with_owned_context(
         |statement| {
             let _callback_frame = state.hold(std::mem::size_of::<(
                 &mut tos_source_store::PinnedBoundedStatement<'_>,
-                &crate::d1_public_capture::CreationState<'_>,
+                &crate::public_capture::CreationState<'_>,
                 &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
                 &mut Digest256Hasher,
                 &mut [u64; 4],
                 &mut Option<(
                     String,
                     String,
-                    crate::d1_public_capture::CreationStateHold<'_, '_>,
-                    crate::d1_public_capture::CreationStateHold<'_, '_>,
+                    crate::public_capture::CreationStateHold<'_, '_>,
+                    crate::public_capture::CreationStateHold<'_, '_>,
                 )>,
-                &mut Option<(String, crate::d1_public_capture::CreationStateHold<'_, '_>)>,
+                &mut Option<(String, crate::public_capture::CreationStateHold<'_, '_>)>,
                 &mut u64,
                 (&str, &str, &str),
                 (u64, u64),
                 (bool, usize, usize, JsonLimits),
                 (String, String, String),
-                crate::d1_public_capture::CreationStateHold<'_, '_>,
-                crate::d1_public_capture::CreationStateHold<'_, '_>,
-                crate::d1_public_capture::CreationStateHold<'_, '_>,
-                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                crate::public_capture::CreationStateHold<'_, '_>,
+                crate::public_capture::CreationStateHold<'_, '_>,
+                crate::public_capture::CreationStateHold<'_, '_>,
+                crate::public_capture::CreationStateHold<'_, '_>,
                 Result<(
                     String,
-                    crate::d1_public_capture::CreationStateHold<'_, '_>,
-                    crate::d1_public_capture::CreationStateHold<'_, '_>,
+                    crate::public_capture::CreationStateHold<'_, '_>,
+                    crate::public_capture::CreationStateHold<'_, '_>,
                 )>,
                 Result<(
                     String,
-                    crate::d1_public_capture::CreationStateHold<'_, '_>,
-                    crate::d1_public_capture::CreationStateHold<'_, '_>,
+                    crate::public_capture::CreationStateHold<'_, '_>,
+                    crate::public_capture::CreationStateHold<'_, '_>,
                 )>,
                 Result<String>,
                 std::cmp::Ordering,
                 Result<()>,
-                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                crate::public_capture::CreationStateHold<'_, '_>,
             )>())?;
             state.charge_work(
                 descriptor
@@ -4973,12 +4973,12 @@ pub(crate) fn verify_catalog_with_owned_context(
                 let fold_operation = |document: &JsonValue| {
                     let _json_callback_frame = state.hold(std::mem::size_of::<(
                         &JsonValue,
-                        &crate::d1_public_capture::CreationState<'_>,
+                        &crate::public_capture::CreationState<'_>,
                         &str,
                         bool,
                         usize,
                         Result<String>,
-                        crate::d1_public_capture::CreationStateHold<'_, '_>,
+                        crate::public_capture::CreationStateHold<'_, '_>,
                     )>())?;
                     let value = document
                         .as_str()
@@ -5047,7 +5047,7 @@ pub(crate) fn verify_catalog_with_owned_context(
         |statement| {
             let _callback_frame = state.hold(std::mem::size_of::<(
                 &mut tos_source_store::PinnedBoundedStatement<'_>,
-                &crate::d1_public_capture::CreationState<'_>,
+                &crate::public_capture::CreationState<'_>,
                 &mut Digest256Hasher,
                 &mut [u64; 4],
                 &str,
@@ -5059,7 +5059,7 @@ pub(crate) fn verify_catalog_with_owned_context(
                 std::array::IntoIter<u64, 4>,
                 u64,
                 Result<()>,
-                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                crate::public_capture::CreationStateHold<'_, '_>,
             )>())?;
             state.charge_work(descriptor.len().checked_add(16).ok_or(
                 Error::Budget("knowledge catalog route bind work"),
@@ -5158,7 +5158,7 @@ pub(crate) fn verify_catalog_with_owned_context(
         |statement| {
             let _callback_frame = state.hold(std::mem::size_of::<(
                 &mut tos_source_store::PinnedBoundedStatement<'_>,
-                &crate::d1_public_capture::CreationState<'_>,
+                &crate::public_capture::CreationState<'_>,
                 &Connection,
                 &KnowledgeSelectedExpectation,
                 &str,
@@ -5173,7 +5173,7 @@ pub(crate) fn verify_catalog_with_owned_context(
                 usize,
                 Result<()>,
                 Result<&str>,
-                crate::d1_public_capture::CreationStateHold<'_, '_>,
+                crate::public_capture::CreationStateHold<'_, '_>,
             )>())?;
             state.charge_work(descriptor.len().checked_add(8).ok_or(
                 Error::Budget("knowledge catalog source bind work"),
@@ -5217,7 +5217,7 @@ pub(crate) fn verify_catalog_with_owned_context(
                 let callback = |wire: &[u8]| -> Result<()> {
                     let _json_callback_frame = state.hold(std::mem::size_of::<(
                         &[u8],
-                        &crate::d1_public_capture::CreationState<'_>,
+                        &crate::public_capture::CreationState<'_>,
                         &str,
                         [(&str, u64); 2],
                         std::array::IntoIter<(&str, u64), 2>,
@@ -5227,7 +5227,7 @@ pub(crate) fn verify_catalog_with_owned_context(
                         usize,
                         u64,
                         Result<()>,
-                        crate::d1_public_capture::CreationStateHold<'_, '_>,
+                        crate::public_capture::CreationStateHold<'_, '_>,
                     )>())?;
                     let json = owned_catalog_utf8(wire, state)?;
                     for (domain, count) in [("node", nodes), ("relation", relations)] {
@@ -5238,7 +5238,7 @@ pub(crate) fn verify_catalog_with_owned_context(
                             |facet| {
                                 let _facet_callback_frame = state.hold(std::mem::size_of::<(
                                     &mut tos_source_store::PinnedBoundedStatement<'_>,
-                                    &crate::d1_public_capture::CreationState<'_>,
+                                    &crate::public_capture::CreationState<'_>,
                                     &str,
                                     &str,
                                     &str,
@@ -5247,7 +5247,7 @@ pub(crate) fn verify_catalog_with_owned_context(
                                     u64,
                                     bool,
                                     Result<()>,
-                                    crate::d1_public_capture::CreationStateHold<'_, '_>,
+                                    crate::public_capture::CreationStateHold<'_, '_>,
                                 )>())?;
                                 let bind_work = descriptor
                                     .len()
@@ -5358,16 +5358,16 @@ pub(crate) fn verify_catalog_with_owned_context(
 fn owned_catalog_count(
     db: &Connection,
     sql: &'static std::ffi::CStr,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<u64> {
     with_owned_schema_statement(db, sql, state, |statement| {
         let _callback_frame = state.hold(std::mem::size_of::<(
             &mut tos_source_store::PinnedBoundedStatement<'_>,
-            &crate::d1_public_capture::CreationState<'_>,
+            &crate::public_capture::CreationState<'_>,
             u64,
             bool,
             Result<u64>,
-            crate::d1_public_capture::CreationStateHold<'_, '_>,
+            crate::public_capture::CreationStateHold<'_, '_>,
         )>())?;
         if !owned_schema_step(statement, state)? {
             return Err(Error::Invalid("knowledge catalog count missing"));
@@ -5383,15 +5383,15 @@ fn owned_catalog_count(
 fn owned_catalog_has_row(
     db: &Connection,
     sql: &'static std::ffi::CStr,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<bool> {
     with_owned_schema_statement(db, sql, state, |statement| {
         let _callback_frame = state.hold(std::mem::size_of::<(
             &mut tos_source_store::PinnedBoundedStatement<'_>,
-            &crate::d1_public_capture::CreationState<'_>,
+            &crate::public_capture::CreationState<'_>,
             bool,
             Result<bool>,
-            crate::d1_public_capture::CreationStateHold<'_, '_>,
+            crate::public_capture::CreationStateHold<'_, '_>,
         )>())?;
         let found = owned_schema_step(statement, state)?;
         if found && owned_schema_step(statement, state)? {
@@ -5405,13 +5405,13 @@ fn owned_catalog_sql_text<'a>(
     statement: &'a tos_source_store::PinnedBoundedStatement<'_>,
     column: i32,
     cap: usize,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<&'a str> {
     let frame = std::mem::size_of::<(
         &'a tos_source_store::PinnedBoundedStatement<'_>,
         i32,
         usize,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &str,
         Result<&str>,
         Result<&[u8]>,
@@ -5421,7 +5421,7 @@ fn owned_catalog_sql_text<'a>(
         tos_source_store::StoreError,
         Result<()>,
         &mut dyn FnMut(usize) -> tos_source_store::Result<()>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>();
     let _frame = state.hold(
         frame
@@ -5459,17 +5459,17 @@ fn owned_catalog_sql_text<'a>(
 }
 
 fn owned_catalog_text_equals_any(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     text: &str,
     choices: &[&str],
 ) -> Result<bool> {
     let _frame = state.hold(std::mem::size_of::<(
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &str,
         &[&str],
         std::slice::Iter<'_, &str>,
         Result<bool>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     for choice in choices {
         if owned_schema_equal(state, text.as_bytes(), choice.as_bytes())? {
@@ -5481,15 +5481,15 @@ fn owned_catalog_text_equals_any(
 
 fn owned_catalog_key_copy<'state, 'budget>(
     value: &str,
-    state: &'state crate::d1_public_capture::CreationState<'budget>,
+    state: &'state crate::public_capture::CreationState<'budget>,
 ) -> Result<(
     String,
-    crate::d1_public_capture::CreationStateHold<'state, 'budget>,
-    crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+    crate::public_capture::CreationStateHold<'state, 'budget>,
+    crate::public_capture::CreationStateHold<'state, 'budget>,
 )> {
     let frame = std::mem::size_of::<(
         &str,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         String,
         std::str::Chars<'_>,
         usize,
@@ -5498,17 +5498,17 @@ fn owned_catalog_key_copy<'state, 'budget>(
         char,
         Result<(
             String,
-            crate::d1_public_capture::CreationStateHold<'state, 'budget>,
-            crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+            crate::public_capture::CreationStateHold<'state, 'budget>,
+            crate::public_capture::CreationStateHold<'state, 'budget>,
         )>,
         std::result::Result<(), std::collections::TryReserveError>,
         Option<usize>,
         crate::Result<usize>,
         crate::Result<()>,
-        Result<crate::d1_public_capture::CreationStateHold<'state, 'budget>>,
-        Result<crate::d1_public_capture::CreationStateHold<'state, 'budget>>,
-        crate::d1_public_capture::CreationStateHold<'state, 'budget>,
-        crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+        Result<crate::public_capture::CreationStateHold<'state, 'budget>>,
+        Result<crate::public_capture::CreationStateHold<'state, 'budget>>,
+        crate::public_capture::CreationStateHold<'state, 'budget>,
+        crate::public_capture::CreationStateHold<'state, 'budget>,
     )>();
     let _frame = state.hold(frame)?;
     let requested = value.len();
@@ -5533,17 +5533,17 @@ fn owned_catalog_key_copy<'state, 'budget>(
 
 fn owned_catalog_digest(
     raw: &[u8],
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<Digest256> {
     let _frame = state.hold(std::mem::size_of::<(
         &[u8],
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         Digest256Hasher,
         std::slice::Chunks<'_, u8>,
         &[u8],
         &[u8],
         Result<Digest256>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     state.charge_work(raw.len())?;
     let mut digest = Digest256Hasher::new();
@@ -5556,12 +5556,12 @@ fn owned_catalog_digest(
 }
 
 fn owned_catalog_compare(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     left: &str,
     right: &str,
 ) -> Result<std::cmp::Ordering> {
     let _frame = state.hold(std::mem::size_of::<(
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &str,
         &str,
         std::slice::Chunks<'_, u8>,
@@ -5571,7 +5571,7 @@ fn owned_catalog_compare(
         usize,
         std::cmp::Ordering,
         Result<std::cmp::Ordering>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     let left_bytes = left.as_bytes();
     let right_bytes = right.as_bytes();
@@ -5592,12 +5592,12 @@ fn owned_catalog_compare(
 }
 
 fn owned_catalog_lower_hex_matches(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     digest: &Digest256,
     text: &str,
 ) -> Result<bool> {
     let _frame = state.hold(std::mem::size_of::<(
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         &Digest256,
         &str,
         std::iter::Enumerate<std::slice::Iter<'_, u8>>,
@@ -5609,7 +5609,7 @@ fn owned_catalog_lower_hex_matches(
         u8,
         u8,
         Result<bool>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     if text.len() != 64 {
         return Ok(false);
@@ -5641,15 +5641,15 @@ fn owned_catalog_lower_hex_matches(
 
 fn owned_catalog_is_ascii(
     raw: &[u8],
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<bool> {
     let _frame = state.hold(std::mem::size_of::<(
         &[u8],
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         std::slice::Chunks<'_, u8>,
         &[u8],
         Result<bool>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     state.charge_work(raw.len())?;
     for chunk in raw.chunks(4096) {
@@ -5664,17 +5664,17 @@ fn owned_catalog_is_ascii(
 
 fn owned_catalog_utf8<'a>(
     raw: &'a [u8],
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<&'a str> {
     let _frame = state.hold(std::mem::size_of::<(
         &'a [u8],
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         usize,
         usize,
         &[u8],
         std::str::Utf8Error,
         Result<&'a str>,
-        crate::d1_public_capture::CreationStateHold<'_, '_>,
+        crate::public_capture::CreationStateHold<'_, '_>,
     )>())?;
     let mut at = 0usize;
     while at < raw.len() {

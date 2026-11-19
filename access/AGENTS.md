@@ -9,7 +9,8 @@ the native Rust query core, installed CLI, local
 HTTP/MCP service, web application, WebMCP action contract, standalone
 profiles, and native software/data builders.
 
-`ToS/` owns source meaning, review, canon and derived exports.
+`ToS/` owns source meaning, review, canon and derived exports. The public research Worker
+serves the stand pages and assets; the retired atlas API is not its origin.
 
 ## Boundary
 
@@ -28,7 +29,7 @@ profiles, and native software/data builders.
 - Software build/test/package uses versioned contracts and representative
   fixtures without production corpus, payload custody or sibling repositories.
 - Explicit data selection (`--root` or `TOS_DATA_ROOT`) chooses data, never
-  installed code, browser assets or API schemas. Missing data does not discover
+  installed code or API schemas. The public site is built and published separately. Missing data does not discover
   another checkout through the current directory.
 - Data release owns full snapshot validation and compilation. API-schema
   checking uses schemas without traversing production graph rows.

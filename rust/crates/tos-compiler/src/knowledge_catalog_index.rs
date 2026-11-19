@@ -6,7 +6,7 @@ use crate::knowledge_stage::{KnowledgeStage, WritePhase};
 use crate::{
     Error, QueryVocabulary, Result,
     catalog::{CatalogPacketRef, CatalogReceipt},
-    d1_public_capture::{CreationState, CreationStateHold},
+    public_capture::{CreationState, CreationStateHold},
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use serde_json::Value;
