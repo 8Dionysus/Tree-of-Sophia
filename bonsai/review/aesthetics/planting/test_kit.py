@@ -720,6 +720,9 @@ class AcceptedPageNumberTest(unittest.TestCase):
                 found={'share':1,'leaves':[218],'printed':['183'],'differences':[]}
                 with patch.object(kit,'ocr',return_value={'available':True}),patch.object(kit,'against_ocr',return_value=found):
                     fresh=kit.compare(str(path),ev,places,'en');self.assertEqual(fresh['loc']['printed'],['184'])
+                    ev['places']['loc']['from_scan']=True
+                    fresh=kit.compare(str(path),ev,places,'en');self.assertEqual(fresh['loc']['method'],'image');self.assertEqual(fresh['loc']['printed'],['184'])
+                    self.assertEqual(kit.page_number_problems(str(path),ev,'loc',fresh['loc']),[])
                 accepted['page_number_reviews']=[];(path/'accepted.json').write_text(json.dumps(accepted))
                 self.assertTrue(any('accepted packet review' in p for p in kit.page_number_problems(str(path),ev,'loc',entry)))
 

@@ -717,19 +717,19 @@ def compare(path,ev,places,original):
             o=reading(item) if item in every else None;found=against_ocr(text,o,modern_ru=original=='ru') if o else None
             if found and (got is None or 'leaves' in found or (found.get('share') or 0)>(got.get('share') or 0)):got=found;entry['scan']=item
             if found and 'leaves' in found:break
-        if entry.get('from_scan') and got and 'leaves' in got:               # the OCR beside itself proves nothing: the page is read instead
-            entry.update({'method':'image','leaves':got['leaves'],'printed':got['printed']});out[loc]=entry;continue
         if not got or 'leaves' not in got:
             entry.update({'method':'image','share':(got or {}).get('share')});out[loc]=entry;continue
-        judged={(d['transcription'],d['ocr'],d['leaf']):d for d in old.get('differences',[])}
-        for d in got['differences']:
-            was=judged.get((d['transcription'],d['ocr'],d['leaf']))
-            if was:d.update({key_:was[key_] for key_ in('stands','note') if key_ in was})
         printed=list(got['printed'])
         for correction in entry.get('page_number_corrections',[]):
             if correction.get('leaf') in got['leaves']:
                 index=got['leaves'].index(correction['leaf'])
                 if str(printed[index]) in (correction.get('from'),correction.get('to')):printed[index]=correction['to']
+        if entry.get('from_scan'):               # the OCR beside itself proves nothing: the page is read instead
+            entry.update({'method':'image','leaves':got['leaves'],'printed':printed});out[loc]=entry;continue
+        judged={(d['transcription'],d['ocr'],d['leaf']):d for d in old.get('differences',[])}
+        for d in got['differences']:
+            was=judged.get((d['transcription'],d['ocr'],d['leaf']))
+            if was:d.update({key_:was[key_] for key_ in('stands','note') if key_ in was})
         entry.update({'method':'ocr','share':got['share'],'leaves':got['leaves'],'printed':printed,'differences':got['differences']});out[loc]=entry
     return out
 
