@@ -27,3 +27,18 @@ The line needs an explicit, independently reviewed representation of an
 unidentified translation hand for a short quotation from a lawful, attributed
 source. It must not infer public domain, identify the hand from silence, or
 weaken the citation and jurisdiction-specific review requirements.
+
+## Transcription derived from a source PDF
+
+The Kenko packet has an exact Spanish quotation in the publisher Siruela's
+PDF preview and a Russian translation in the Institute of Oriental Manuscripts'
+PDF. `witness-fetch` records the original PDF bytes, but `witness-cut` reads
+those bytes as text and cannot extract the passage. Substituting extracted text
+under the PDF URL would misrepresent the fetched bytes. The packet's
+`blocked.json` records the publications and locations; searches for other
+languages remain incomplete.
+
+The line needs a provenance-preserving way to bind extracted text and the
+independently inspected page to the original PDF bytes, or an exact-edition
+machine-readable transcription with its own truthful source. Such extraction
+must not itself establish fidelity, translation alignment or quotation rights.
