@@ -84,3 +84,12 @@ complete search evidence for the other languages and independent review.
 Please support reopening a technically accepted but not yet planted packet
 for a material witness discovered after review, without silently accepting
 the older missing-language claim.
+
+The current witness workflow cuts an independently published translation
+from a lawful source and requires page evidence. For a source under an open
+licence or in the public domain where no suitable existing translation is
+found, the direction also needs a route for a new translation with explicit
+author, licence, source sentence, source image and independent linguistic
+review. Such a translation must not be represented as a historical edition;
+its use does not turn an incomplete search for existing editions into an
+absence finding.
