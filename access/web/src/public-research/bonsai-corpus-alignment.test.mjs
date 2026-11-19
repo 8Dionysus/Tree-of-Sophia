@@ -126,6 +126,25 @@ describe('the corpus alignment of the stands',()=>{
     translation.units[1].text+=' Гнев и речь. Гнев и речь.';
     expect(()=>align([pair])).toThrow(/missing or ambiguous/);
   });
+  it('keeps clause offsets when a translation joins two passages in one sentence',()=>{
+    const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s',reference:'2',text:'τρία εἴδη.'}]};
+    const translation={id:'r',language:'ru',revision:'r-rev',units:[{id:'t',reference:'2',text:'📖 Сначала идут другие слова; затем названы три вида.'}]};
+    const read=()=>({id:'work',versions:[original,translation]});
+    const cited=new Map([['a',{original:'g',units:new Set(['s'])}]]);
+    const pair={originalUnitId:'s',translationUnitId:'t',
+      targetClauseStarts:[['ЗАТЕМ','названы']],sentenceAnchors:[{source:['τρία','εἴδη'],target:['три','вида']}]};
+    const scope={work:'a',translationVersionId:'r',translationRevision:'r-rev',originalVersionId:'g',originalRevision:'g-rev',
+      firstUnitId:'s',lastUnitId:'s',source:'https://example.test/book',localReferencePairs:[pair]};
+    const align=()=>alignCorpus(cited,{a:'work'},read,[scope]);
+    const result=align(),entry=result.units.s.t.r;
+    expect(entry.u).toEqual(['t']);
+    const [source,[[,start,end]]]=entry.pairs[0];
+    expect(source).toEqual([[0,10]]);
+    expect(Array.from(translation.units[0].text).slice(start,end).join('')).toBe('затем названы три вида.');
+    expect(result.receipt['a:r'].sourceScope.localReferenceAlignments[0].targetClauseStarts).toEqual(pair.targetClauseStarts);
+    translation.units[0].text+=' Ещё предложение; затем названы два вида.';
+    expect(align).toThrow(/Clause opening keywords are missing or ambiguous/);
+  });
   it('aligns explicitly matched whole reference units without changing the original or other units',()=>{
     const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s1',reference:'Book 7 · 515',text:'λόγος.'},{id:'s2',reference:'Book 7 · 516',text:'ἄνω.'}]};
     const translation={id:'r',language:'ru',revision:'r-rev',units:[{id:'t1',reference:'515',text:'Слово.'},{id:'t2',reference:'516',text:'Выше.'}]};
