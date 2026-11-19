@@ -66,3 +66,16 @@ and labels also say 184. A separate research reader and the langs maker both
 visually checked that leaf on 19 November. Please correct the accepted
 packet's page evidence through the owner route and preserve/review the
 acceptance; langs has not changed the packet or its acceptance.
+
+## Translation place across two printed pages
+
+At PR #432 `c15d0eec96`, `witness-cut` accepts one `--image`, a place stores
+one `image_sha256`, and the second-reader gate binds that one image. Whole
+translated sentences can cross printed pages: Bergson's `I p39a` crosses
+English pp. 37–38 (IA n48–49), and `II p89a` crosses pp. 87–88 (IA n98–99).
+Both pages are needed to inspect the complete sentence. Please provide an
+owner-reviewed way to bind every page image and each independent second-reader
+check to a place, while retaining exact page addresses and digests. A single
+image must not imply that the unseen portion was checked. Until supported,
+these places remain research candidates; no stitched substitute or silent
+truncation is proposed.
