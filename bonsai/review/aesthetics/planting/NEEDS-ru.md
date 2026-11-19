@@ -26,3 +26,5 @@ The maker for `vladimir-solovyov.obshchiy-smysl-iskusstva` reports that `missing
 ## Mexico rights for translated witnesses
 
 The owner's common brief requires assessment for Mexico (LFDA art. 148 I) as well as Russia, the EU and the USA. In the merged kit `witness-rights --help` accepts only `russia`, `usa`, `eu`; the Dürkheim Russian short-quotation witness currently has no Mexico assessment even though its offline gate opens. Please provide a supported source-bound Mexico assessment and check appropriate to the quotation; an open gate alone is not proof of territorial rights. The witness remains unaccepted pending that assessment and lawful-copy evidence.
+
+Clarification: `witness-open` accepts an initial metadata object containing `rights.mexico` (the new Buffon witness records it). The specific missing route is adding or correcting Mexico on an already opened witness such as Dürkheim: `witness-rights` rejects the jurisdiction and `witness-info` protects `rights`. Please preserve truthful initial evidence and invalidate reviews on any later rights change.
