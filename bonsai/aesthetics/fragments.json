@@ -2032,7 +2032,31 @@
    "william-gilpin.three-essays",
    "william-james.the-principles-of-psychology",
    "william-morris.the-decorative-arts"
-  ]
+  ],
+  "translation_packets": {
+   "gotthold-ephraim-lessing.laokoon": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/gotthold-ephraim-lessing.laokoon/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "XVI p153b",
+       "from": "Conse- quently",
+       "to": "Consequently",
+       "offset": 258,
+       "reason": "The 1890 scan p. 91 (n108) prints Conse- at the end of one line and quently at the beginning of the next; join the line-divided word.",
+       "url": "https://archive.org/download/laocoon01less/page/n108.jpg",
+       "page": "p. 91",
+       "image_sha256": "74291587a38deb541c9420f5350ec8344fc2eb21ab5e17658f5a965005cfdb3c"
+      }
+     ]
+    }
+   }
+  }
  },
  "works": {
   "immanuel-kant.kritik-der-urteilskraft": {
@@ -4640,6 +4664,106 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Gotthold Ephraim Lessing, Laocoon, translated by Ellen Frothingham (Boston: Roberts Brothers, 1890), Duke University Libraries copy",
+     "year": 1890,
+     "url": "https://archive.org/details/laocoon01less",
+     "licence": "Public-domain historical text and translation; Internet Archive machine OCR from the same Duke University Libraries scan was checked against its page image. No separate rights in the automated OCR are asserted.",
+     "attribution": "Gotthold Ephraim Lessing, Laocoon, translated by Ellen Frothingham (Boston: Roberts Brothers, 1890), p. 91. Internet Archive OCR of this scan, whitespace normalized and explicitly corrected against the page. Preface credits W. T. Brigham for help with classical quotations; these passages contain no such quotation and his participation in them is not established.",
+     "maker": "codex-2026-11-19-lessing-frothingham-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q34628",
+       "name": {
+        "en": "Gotthold Ephraim Lessing",
+        "ru": "Готхольд Эфраим Лессинг"
+       },
+       "born": 1729,
+       "died": 1781,
+       "source": "https://www.wikidata.org/wiki/Q34628",
+       "evidence": {
+        "file": "wikidata-Q34628.json",
+        "sha256": "5036574f104f0a331c6f312ff68b32f6c75d0b12c283849757293aaa237bae1d",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q34628.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q5364841",
+       "name": {
+        "en": "Ellen Frothingham",
+        "ru": "Ellen Frothingham"
+       },
+       "born": 1835,
+       "died": 1902,
+       "source": "https://www.wikidata.org/wiki/Q5364841",
+       "evidence": {
+        "file": "wikidata-Q5364841.json",
+        "sha256": "8d919a7112aedd9ba5aaffc351ebdd6eabb9d7adf790f07779b47b604da5338f",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q5364841.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: автор умер в 1781, переводчица в 1902; сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "The translation was published in the United States by 1890, before 1931."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC Article 1: author died 1781 and translator died 1902; ordinary 70-year terms expired."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Gotthold Ephraim Lessing",
+        "ru": "Готхольд Эфраим Лессинг"
+       },
+       "qid": "Q34628",
+       "source": "https://www.wikidata.org/wiki/Q34628",
+       "born": [
+        {
+         "time": "+1729-01-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1781-02-15T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Ellen Frothingham",
+        "ru": "Ellen Frothingham"
+       },
+       "qid": "Q5364841",
+       "source": "https://www.wikidata.org/wiki/Q5364841",
+       "born": [
+        {
+         "time": "+1835-03-25T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1902-01-01T00:00:00Z",
+         "precision": 9
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -4647,10 +4771,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -10877,15 +10997,21 @@
      "en": "Ch. XVI, p. 153"
     },
     "texts": {
-     "de": "Wenn es wahr ist, daß die Mahlerey zu ihren Nachahmungen ganz andere Mittel, oder Zeichen gebrauchet, als die Poesie; jene nehmlich Figuren und Farben in dem Raume, diese aber artikulirte Töne in der Zeit; wenn unstreitig die Zeichen ein bequemes Verhältniß zu dem Bezeichneten haben müssen: So können neben einander geordnete Zeichen, auch nur Gegenstände, die neben einander, oder deren Theile neben einander existiren, auf einander folgende Zeichen aber, auch nur Gegenstände ausdrücken, die auf einander, oder deren Theile auf einander folgen."
+     "de": "Wenn es wahr ist, daß die Mahlerey zu ihren Nachahmungen ganz andere Mittel, oder Zeichen gebrauchet, als die Poesie; jene nehmlich Figuren und Farben in dem Raume, diese aber artikulirte Töne in der Zeit; wenn unstreitig die Zeichen ein bequemes Verhältniß zu dem Bezeichneten haben müssen: So können neben einander geordnete Zeichen, auch nur Gegenstände, die neben einander, oder deren Theile neben einander existiren, auf einander folgende Zeichen aber, auch nur Gegenstände ausdrücken, die auf einander, oder deren Theile auf einander folgen.",
+     "en": "If it be true that painting employs wholly different signs or means of imitation from poetry, — the one using forms and colors in space, the other articulate sounds in time, — and if signs must unquestionably stand in convenient relation with the thing signified, then signs arranged side by side can represent only objects existing side by side, or whose parts so exist, while consecutive signs can express only objects which succeed each other, or whose parts succeed each other, in time."
     },
     "links": {
-     "de": "https://archive.org/details/laokoonoderueber00less/page/n164/mode/1up"
+     "de": "https://archive.org/details/laokoonoderueber00less/page/n164/mode/1up",
+     "en": "https://archive.org/download/laocoon01less/page/n108.jpg"
     },
     "refs": [
      [
       "de",
       "First edition (Berlin 1766), p. 153"
+     ],
+     [
+      "en",
+      "Gotthold Ephraim Lessing, Laocoon, translated by Ellen Frothingham (Boston: Roberts Brothers, 1890), Duke University Libraries copy, p. 91"
      ]
     ]
    },
@@ -10895,15 +11021,21 @@
      "en": "Ch. XVI, pp. 153–154"
     },
     "texts": {
-     "de": "Gegenstände, die neben einander oder deren Theile neben einander existiren, heissen Körper. Folglich sind Körper mit ihren sichtbaren Eigenschaften, die eigentlichen Gegenstände der Mahlerey. Gegenstände, die auf einander, oder deren Theile auf einander folgen, heissen überhaupt Handlungen. Folglich sind Handlungen der eigentliche Gegenstand der Poesie."
+     "de": "Gegenstände, die neben einander oder deren Theile neben einander existiren, heissen Körper. Folglich sind Körper mit ihren sichtbaren Eigenschaften, die eigentlichen Gegenstände der Mahlerey. Gegenstände, die auf einander, oder deren Theile auf einander folgen, heissen überhaupt Handlungen. Folglich sind Handlungen der eigentliche Gegenstand der Poesie.",
+     "en": "Objects which exist side by side, or whose parts so exist, are called bodies. Consequently bodies with their visible properties are the peculiar subjects of painting.\n\nObjects which succeed each other, or whose parts succeed each other in time, are actions. Consequently actions are the peculiar subjects of poetry."
     },
     "links": {
-     "de": "https://archive.org/details/laokoonoderueber00less/page/n164/mode/1up"
+     "de": "https://archive.org/details/laokoonoderueber00less/page/n164/mode/1up",
+     "en": "https://archive.org/download/laocoon01less/page/n108.jpg"
     },
     "refs": [
      [
       "de",
       "First edition (Berlin 1766), pp. 153–154"
+     ],
+     [
+      "en",
+      "Gotthold Ephraim Lessing, Laocoon, translated by Ellen Frothingham (Boston: Roberts Brothers, 1890), Duke University Libraries copy, p. 91"
      ]
     ]
    }
