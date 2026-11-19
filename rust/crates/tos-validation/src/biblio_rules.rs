@@ -1576,6 +1576,7 @@ fn inspect_bibliography_on_cut(
             && !s(&claim.value, "claim_id").is_some_and(|id| verified_native.contains(id))
     });
     let mut topology_limits = rules.limits;
+    topology_limits.max_issues -= rules.shadow.issues.len();
     topology_limits.max_state_bytes = rules
         .limits
         .max_state_bytes
@@ -2321,6 +2322,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
     )?;
     let generation = scanned.membership().digest.to_prefixed();
     let mut topology_limits = limits;
+    topology_limits.max_issues -= rules.shadow.issues.len();
     topology_limits.max_state_bytes = limits
         .max_state_bytes
         .checked_sub(rules.state)
