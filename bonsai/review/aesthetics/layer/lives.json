@@ -1064,16 +1064,14 @@
   }
  },
  "andrew-aberdein": {
-  "item": null,
+  "item": "Q92982900",
   "label": {
-   "ru": "Эндрю Абердин",
-   "en": "Andrew Aberdein"
+   "en": "Andrew Aberdein",
+   "ru": "Эндрю Абердин"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1099,6 +1097,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0003-2450-541X",
+   "doi": "10.1093/philmat/nku014",
+   "title": "Beauty Is Not Simplicity: An Analysis of Mathematicians' Proof Appraisals",
+   "source": "https://doi.org/10.1093/philmat/nku014",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0003-2450-541X/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q92982900#P496"
   }
  },
  "andries-oeberst": {
@@ -1753,34 +1760,19 @@
   }
  },
  "berys-gaut": {
-  "item": null,
+  "item": "Q55104651",
   "label": {
-   "ru": "Берис Гот",
-   "en": "Berys Gaut"
+   "en": "Berys Nigel Gaut",
+   "ru": "Берис Гот"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Berys Gaut"
-   },
-   {
-    "kind": "work",
-    "query": "Just Joking: The Ethics and Aesthetics of Humor"
-   },
-   {
-    "kind": "work",
-    "query": "The Ethical Criticism of Art"
-   },
-   {
-    "kind": "work",
-    "query": "The Cluster Account of Art Defended"
+    "time": "+1958-02-17T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1814,6 +1806,33 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Berys Gaut"
+   },
+   {
+    "kind": "work",
+    "query": "Just Joking: The Ethics and Aesthetics of Humor"
+   },
+   {
+    "kind": "work",
+    "query": "The Ethical Criticism of Art"
+   },
+   {
+    "kind": "work",
+    "query": "The Cluster Account of Art Defended"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0003-4966-5874",
+   "doi": "10.1093/aesthj/ayi032",
+   "title": "The Cluster Account of Art Defended",
+   "source": "https://doi.org/10.1093/aesthj/ayi032",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0003-4966-5874/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q55104651#P496"
   }
  },
  "bharata": {
@@ -3740,16 +3759,19 @@
   }
  },
  "diane-negra": {
-  "item": null,
+  "item": "Q112492817",
   "label": {
-   "ru": "Диана Негра",
-   "en": "Diane Negra"
+   "en": "Diane Negra",
+   "ru": "Диана Негра"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1966-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3775,6 +3797,16 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0001-8400-6239",
+   "doi": "10.4324/9781315658520",
+   "title": "THE AESTHETICS AND AFFECTS OF CUTENESS",
+   "source": "https://doi.org/10.4324/9781315658520",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0001-8400-6239/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q112492817#P496",
+   "contribution_role": "co-editor, not author of every contribution"
   }
  },
  "dick-higgins": {
@@ -6224,16 +6256,19 @@
   }
  },
  "hadrien-ceyte": {
-  "item": null,
+  "item": "Q58322318",
   "label": {
-   "ru": "Адриен Сейт",
-   "en": "Hadrien Ceyte"
+   "en": "Hadrien Ceyte",
+   "ru": "Адриен Сейт"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1979-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -6259,6 +6294,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0003-1746-5026",
+   "doi": "10.1371/journal.pone.0193174",
+   "title": "Perception of body movement when real and simulated displacements are combined",
+   "source": "https://doi.org/10.1371/journal.pone.0193174",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0003-1746-5026/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q58322318#P496"
   }
  },
  "hal-foster": {
