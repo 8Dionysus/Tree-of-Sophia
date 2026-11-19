@@ -95,3 +95,13 @@ Please advise the owner-approved representation or witness choice when printed
 emphasis is semantically necessary; a plain-text duplicate must not be silently
 presented as preserving the contrast. The translation identity and full
 alignment also remain under research, so this is not an admission request.
+
+## Alberti accepted Latin spelling to verify
+
+A langs research reader inspected 1541 fol. 136v, n289 of
+`leon-battista-alberti.de-re-aedificatoria`, and reports that the print reads
+`autoritatem` where the accepted `places.json` has `auctoritatem`. Please
+check the [page](https://archive.org/download/dereaedificatori00albe/page/n289.jpg)
+and determine through the owner route whether this is an intended documented
+normalization or a correction required in the accepted packet. Langs has not
+altered that packet or its acceptance.
