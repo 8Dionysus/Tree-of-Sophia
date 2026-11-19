@@ -26,11 +26,18 @@
   "method": "Whole-sentence candidates cut from Gutenberg, whitespace normalized. Maker compared listed pages of Dole edition; corrections are recorded per place. Anonymous translator identity, rights and independent review remain unresolved.",
   "places": {
     "Satyrische Dichtung p11": {
-      "text": "The poet is a satirist when he takes as subject the distance at which things are from nature, and the contrast between reality and the ideal: as regards the impression received by the soul, these two subjects blend into the same. In the execution, he may place earnestness and passion, or jests and levity, according as he takes pleasure in the domain of the will or in that of the understanding. In the former case it is avenging and pathetic satire; in the second case it is sportive, humorous, and mirthful satire.",
+      "text": "The poet is a satirist when he takes as subject the distance at which things are from nature, and the contrast between reality and the ideal: as regards the impression received by the soul, these two subjects blend into the same. In the execution, he may place earnestness and passion, or jests and levity, according as he takes pleasure in the domain of the will or in that of the understanding. In the former case it is avenging and pathetic satire; in the second case it is sportive, humourous, and mirthful satire.",
       "verification": "maker compared scan image; contributor, rights, alignment and independent review pending",
       "printed_pages": "3",
       "scan_images": [
         "https://archive.org/download/aestheticalphilo05schiuoft/page/n358/mode/1up"
+      ],
+      "corrections": [
+        {
+          "from": "humorous",
+          "to": "humourous",
+          "reason": "1902 Dole scan p. 3; the 1875 Bell scan p. 290 instead reads humorous"
+        }
       ]
     },
     "Satyrische Dichtung p12": {
@@ -47,5 +54,6 @@
   "anonymous_translation_evidence": {
     "source": "https://books.google.com/books?id=nOwBEsoNiUMC&pg=PA748",
     "description": "Google Books search snippet for Encyclopedia of the Essay, edited Tracy Chevalier, p. 748, describes the 1902 Dole Aesthetical and Philosophical Essays translation as anonymous; the cited entry itself was below the visible preview area and still needs direct verification. This does not establish every earlier edition or final territorial rights admission."
-  }
+  },
+  "research_update": "A separate research reader examined both German 1795 places and English 1902 pp. 3–4 and Bell 1875 p. 290. Dole p. 3 prints humourous, corrected here; Bell 1875 prints humorous. The translator is not established. For p11 German verweilt is rendered takes pleasure in, adding pleasure, and strafende becomes avenging: assess the alignment. Do not infer a globally applicable anonymous-work term merely from the name missing on a title. No formal kit review."
 }
