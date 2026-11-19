@@ -9520,15 +9520,18 @@
   }
  },
  "laura-mulvey": {
-  "item": null,
+  "item": "Q440887",
   "label": {
    "ru": "Лора Малви",
    "en": "Laura Mulvey"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1941-08-15T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -9546,6 +9549,14 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "work": "Q55878954",
+   "work_url": "https://www.wikidata.org/wiki/Q55878954",
+   "source": "https://www.wikidata.org/wiki/Q55878954#P50",
+   "person_url": "https://www.wikidata.org/wiki/Q440887",
+   "basis": "The exact queued article names Q440887 as its author in Wikidata P50."
   }
  },
  "leemamol-mathew": {
@@ -9701,15 +9712,18 @@
   }
  },
  "lev-manovich": {
-  "item": null,
+  "item": "Q716367",
   "label": {
    "ru": "Лев Манович",
    "en": "Lev Manovich"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1960-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "relation_search": {
    "complete": true,
@@ -9740,6 +9754,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://manovich.net/index.php/projects/new-media-a-user-s-guide",
+   "person_url": "https://www.wikidata.org/wiki/Q716367",
+   "basis": "Author site names Lev Manovich and the exact queued work; Wikidata Q716367 links this same author site as P856."
   }
  },
  "lewis-carroll": {
@@ -9925,15 +9945,23 @@
   }
  },
  "louis-althusser": {
-  "item": null,
+  "item": "Q184169",
   "label": {
    "ru": "Луи Альтюссер",
    "en": "Louis Althusser"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
+  "born": [
+   {
+    "time": "+1918-10-16T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1990-10-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -9951,6 +9979,14 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://www.marxists.org/reference/archive/althusser/1970/ideology.htm",
+   "person_url": "https://www.wikidata.org/wiki/Q184169",
+   "basis": "The 1970 La Pensée essay identifies Louis Althusser; Wikidata records Q184169 as author of a later French edition of that essay.",
+   "work": "Q95995806",
+   "work_url": "https://www.wikidata.org/wiki/Q95995806"
   }
  },
  "louise-hanson": {
@@ -11466,15 +11502,24 @@
   }
  },
  "mircea-eliade": {
-  "item": null,
+  "item": "Q41590",
   "label": {
    "ru": "Мирча Элиаде",
    "en": "Mircea Eliade"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
+  "born": [
+   {
+    "time": "+1907-03-09T00:00:00Z",
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
+   }
+  ],
+  "died": [
+   {
+    "time": "+1986-04-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -11492,6 +11537,14 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "work": "Q66738102",
+   "work_url": "https://www.wikidata.org/wiki/Q66738102",
+   "source": "https://www.wikidata.org/wiki/Q66738102#P50",
+   "person_url": "https://www.wikidata.org/wiki/Q41590",
+   "basis": "The exact queued book identifies Q41590 as author in Wikidata P50; its English edition is distinct from the original."
   }
  },
  "monroe-c-beardsley": {
