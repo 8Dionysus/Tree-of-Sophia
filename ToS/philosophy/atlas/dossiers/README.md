@@ -22,3 +22,9 @@ The complete Table I, Table II, and Table III plantings record dossier identity,
 Text-bearing language packets for graph review live in `ToS/philosophy/graph-workbench/language-packets/` and follow `ToS/philosophy/atlas/multilingual/text-bearing-nodes.contract.json`.
 
 Branch bodies live under `ToS/philosophy/eras/...` or an explicit `ToS/philosophy/frontiers/...` route, and pre-canon graph rows live under `ToS/philosophy/graph-workbench/`.
+
+Branch source-anchor rows are selected from `source-anchor-backlog.jsonl` by
+`branch_path`, preserving their source order. Existing planting addresses of the
+form `<branch>/sources/source-anchor-backlog.jsonl` and their line numbers are
+logical addresses in that selection, not physical files. The philosophy topology
+route resolves them against this source and verifies the selected row.

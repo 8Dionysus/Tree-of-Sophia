@@ -1030,25 +1030,25 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
     impl<'hold> tos_query::InspectCurrentAuthority<'hold> for ListCandidateObserver<'_> {
         fn disclosure_metadata_state_upper_bound(
             &self,
-        ) -> Result<usize, tos_query::search_v2::SearchV2Error> {
+        ) -> Result<usize, tos_query::search::SearchError> {
             tos_query::InspectCurrentAuthority::disclosure_metadata_state_upper_bound(&self.inner)
         }
         fn abort_probe(&self) -> Option<std::sync::Arc<dyn tos_query::AbortProbe>> {
             tos_query::InspectCurrentAuthority::abort_probe(&self.inner)
         }
-        fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {
+        fn policy_binding(&self) -> tos_query::search::CurrentPolicyBinding {
             tos_query::InspectCurrentAuthority::policy_binding(&self.inner)
         }
         fn disclosure_scope(&self) -> tos_query::IndexedDisclosureScope {
             tos_query::InspectCurrentAuthority::disclosure_scope(&self.inner)
         }
-        fn check_selected(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        fn check_selected(&mut self) -> Result<(), tos_query::search::SearchError> {
             tos_query::InspectCurrentAuthority::check_selected(&mut self.inner)
         }
         fn authorize_current(
             &mut self,
             carrier: &tos_query::InspectedCarrier,
-        ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+        ) -> Result<(), tos_query::search::SearchError> {
             tos_query::InspectCurrentAuthority::authorize_current(&mut self.inner, carrier)?;
             fn field<'a>(value: &'a JsonValue, name: &str) -> Option<&'a JsonValue> {
                 value
@@ -1090,7 +1090,7 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
             observed: &[tos_query::ObservedInspectCarrier],
         ) -> Result<
             Box<dyn tos_query::InspectDisclosureLease + 'hold>,
-            tos_query::search_v2::SearchV2Error,
+            tos_query::search::SearchError,
         > {
             tos_query::InspectCurrentAuthority::acquire_disclosure(&mut self.inner, scope, observed)
         }
@@ -2934,17 +2934,15 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
                 // EXPLICITLY synthetic fixture policy, not an installed owner
                 // project_claims capability or production authorization.
                 use std::sync::{Arc, atomic::Ordering};
-                use tos_query::search_v2::{
-                    CurrentPolicyBinding, SearchV2Error, SearchV2ErrorCode,
-                };
+                use tos_query::search::{CurrentPolicyBinding, SearchError, SearchErrorCode};
                 use tos_query::{
                     IndexedDisclosureScope, InspectCurrentAuthority, InspectDisclosureLease,
                     InspectedCarrier, ObservedInspectCarrier, bind_verified_knowledge,
                 };
-                type QueryResult<T> = std::result::Result<T, SearchV2Error>;
-                fn withdrawn() -> SearchV2Error {
-                    SearchV2Error {
-                        code: SearchV2ErrorCode::StalePolicy,
+                type QueryResult<T> = std::result::Result<T, SearchError>;
+                fn withdrawn() -> SearchError {
+                    SearchError {
+                        code: SearchErrorCode::StalePolicy,
                         message: "synthetic exact S fixture read scope withdrawn",
                     }
                 }
@@ -3580,14 +3578,14 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
                         temporal_controls.revoked.store(true, Ordering::SeqCst);
                         assert!(
                             matches!(view.recheck(), Err(HeldClaimComparisonError::Query(error))
-                            if error.code == tos_query::search_v2::SearchV2ErrorCode::StalePolicy)
+                            if error.code == tos_query::search::SearchErrorCode::StalePolicy)
                         );
                         temporal_controls.revoked.store(false, Ordering::SeqCst);
                         view.recheck()?;
                         temporal_controls.cancelled.store(true, Ordering::SeqCst);
                         assert!(
                             matches!(view.recheck(), Err(HeldClaimComparisonError::Query(error))
-                            if error.code == tos_query::search_v2::SearchV2ErrorCode::Cancelled)
+                            if error.code == tos_query::search::SearchErrorCode::Cancelled)
                         );
                         temporal_controls.cancelled.store(false, Ordering::SeqCst);
                         view.recheck()?;
@@ -4062,13 +4060,13 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
                                 for controls in [&inspect_controls, &list_controls] {
                                     controls.revoked.store(true, Ordering::SeqCst);
                                     assert!(
-                                        matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search_v2::SearchV2ErrorCode::StalePolicy)
+                                        matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search::SearchErrorCode::StalePolicy)
                                     );
                                     controls.revoked.store(false, Ordering::SeqCst);
                                     view.recheck()?;
                                     controls.cancelled.store(true, Ordering::SeqCst);
                                     assert!(
-                                        matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search_v2::SearchV2ErrorCode::Cancelled)
+                                        matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search::SearchErrorCode::Cancelled)
                                     );
                                     controls.cancelled.store(false, Ordering::SeqCst);
                                     view.recheck()?;
@@ -4550,13 +4548,13 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
                                 for controls in [&inspect_controls, &list_controls] {
                                     controls.revoked.store(true, Ordering::SeqCst);
                                     assert!(
-                                        matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search_v2::SearchV2ErrorCode::StalePolicy)
+                                        matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search::SearchErrorCode::StalePolicy)
                                     );
                                     controls.revoked.store(false, Ordering::SeqCst);
                                     view.recheck()?;
                                     controls.cancelled.store(true, Ordering::SeqCst);
                                     assert!(
-                                        matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search_v2::SearchV2ErrorCode::Cancelled)
+                                        matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search::SearchErrorCode::Cancelled)
                                     );
                                     controls.cancelled.store(false, Ordering::SeqCst);
                                     view.recheck()?;
@@ -7498,14 +7496,14 @@ process.stdout.write(output);"#;
                 temporal_controls.revoked.store(true, Ordering::SeqCst);
                 assert!(
                     matches!(view.recheck(), Err(HeldClaimComparisonError::Query(error))
-                            if error.code == tos_query::search_v2::SearchV2ErrorCode::StalePolicy)
+                            if error.code == tos_query::search::SearchErrorCode::StalePolicy)
                 );
                 temporal_controls.revoked.store(false, Ordering::SeqCst);
                 view.recheck()?;
                 temporal_controls.cancelled.store(true, Ordering::SeqCst);
                 assert!(
                     matches!(view.recheck(), Err(HeldClaimComparisonError::Query(error))
-                            if error.code == tos_query::search_v2::SearchV2ErrorCode::Cancelled)
+                            if error.code == tos_query::search::SearchErrorCode::Cancelled)
                 );
                 temporal_controls.cancelled.store(false, Ordering::SeqCst);
                 view.recheck()?;
@@ -8419,13 +8417,13 @@ process.stdout.write(output);"#;
                         for controls in [&inspect_controls, &list_controls] {
                             controls.revoked.store(true, Ordering::SeqCst);
                             assert!(
-                                matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search_v2::SearchV2ErrorCode::StalePolicy)
+                                matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search::SearchErrorCode::StalePolicy)
                             );
                             controls.revoked.store(false, Ordering::SeqCst);
                             view.recheck()?;
                             controls.cancelled.store(true, Ordering::SeqCst);
                             assert!(
-                                matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search_v2::SearchV2ErrorCode::Cancelled)
+                                matches!(view.recheck(),Err(StoredChronologyListError::Query(error)) if error.code==tos_query::search::SearchErrorCode::Cancelled)
                             );
                             controls.cancelled.store(false, Ordering::SeqCst);
                             view.recheck()?;
@@ -9058,25 +9056,25 @@ process.stdout.write(output);"#;
                 }
                 fn disclosure_metadata_state_upper_bound(
                     &self,
-                ) -> Result<usize, tos_query::search_v2::SearchV2Error> {
+                ) -> Result<usize, tos_query::search::SearchError> {
                     self.inner.disclosure_metadata_state_upper_bound()
                 }
                 fn abort_probe(&self) -> Option<std::sync::Arc<dyn tos_query::AbortProbe>> {
                     self.inner.abort_probe()
                 }
-                fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {
+                fn policy_binding(&self) -> tos_query::search::CurrentPolicyBinding {
                     self.inner.policy_binding()
                 }
                 fn disclosure_scope(&self) -> tos_query::IndexedDisclosureScope {
                     self.inner.disclosure_scope()
                 }
-                fn check_selected(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
+                fn check_selected(&mut self) -> Result<(), tos_query::search::SearchError> {
                     self.inner.check_selected()
                 }
                 fn authorize_current(
                     &mut self,
                     carrier: &tos_query::InspectedCarrier,
-                ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+                ) -> Result<(), tos_query::search::SearchError> {
                     self.inner.authorize_current(carrier)
                 }
                 fn acquire_disclosure(
@@ -9085,7 +9083,7 @@ process.stdout.write(output);"#;
                     observed: &[tos_query::ObservedInspectCarrier],
                 ) -> Result<
                     Box<dyn tos_query::InspectDisclosureLease + 'hold>,
-                    tos_query::search_v2::SearchV2Error,
+                    tos_query::search::SearchError,
                 > {
                     self.inner.acquire_disclosure(scope, observed)
                 }
@@ -9115,7 +9113,7 @@ process.stdout.write(output);"#;
                 }
                 fn disclosure_metadata_state_upper_bound(
                     &self,
-                ) -> Result<usize, tos_query::search_v2::SearchV2Error> {
+                ) -> Result<usize, tos_query::search::SearchError> {
                     tos_query::InspectCurrentAuthority::disclosure_metadata_state_upper_bound(
                         &self.inner,
                     )
@@ -9123,19 +9121,19 @@ process.stdout.write(output);"#;
                 fn abort_probe(&self) -> Option<std::sync::Arc<dyn tos_query::AbortProbe>> {
                     tos_query::InspectCurrentAuthority::abort_probe(&self.inner)
                 }
-                fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {
+                fn policy_binding(&self) -> tos_query::search::CurrentPolicyBinding {
                     tos_query::InspectCurrentAuthority::policy_binding(&self.inner)
                 }
                 fn disclosure_scope(&self) -> tos_query::IndexedDisclosureScope {
                     tos_query::InspectCurrentAuthority::disclosure_scope(&self.inner)
                 }
-                fn check_selected(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
+                fn check_selected(&mut self) -> Result<(), tos_query::search::SearchError> {
                     tos_query::InspectCurrentAuthority::check_selected(&mut self.inner)
                 }
                 fn authorize_current(
                     &mut self,
                     carrier: &tos_query::InspectedCarrier,
-                ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+                ) -> Result<(), tos_query::search::SearchError> {
                     tos_query::InspectCurrentAuthority::authorize_current(
                         &mut self.inner,
                         carrier,
@@ -9183,7 +9181,7 @@ process.stdout.write(output);"#;
                     observed: &[tos_query::ObservedInspectCarrier],
                 ) -> Result<
                     Box<dyn tos_query::InspectDisclosureLease + 'hold>,
-                    tos_query::search_v2::SearchV2Error,
+                    tos_query::search::SearchError,
                 > {
                     tos_query::InspectCurrentAuthority::acquire_disclosure(
                         &mut self.inner,
@@ -9801,13 +9799,13 @@ process.stdout.write(output);"#;
                     for controls in [&inspect_controls, &list_controls] {
                         controls.revoked.store(true, Ordering::SeqCst);
                         assert!(
-                            matches!(view.recheck(),Err(StoredChronologyListError::Query(error))if error.code==tos_query::search_v2::SearchV2ErrorCode::StalePolicy)
+                            matches!(view.recheck(),Err(StoredChronologyListError::Query(error))if error.code==tos_query::search::SearchErrorCode::StalePolicy)
                         );
                         controls.revoked.store(false, Ordering::SeqCst);
                         view.recheck()?;
                         controls.cancelled.store(true, Ordering::SeqCst);
                         assert!(
-                            matches!(view.recheck(),Err(StoredChronologyListError::Query(error))if error.code==tos_query::search_v2::SearchV2ErrorCode::Cancelled)
+                            matches!(view.recheck(),Err(StoredChronologyListError::Query(error))if error.code==tos_query::search::SearchErrorCode::Cancelled)
                         );
                         controls.cancelled.store(false, Ordering::SeqCst);
                         view.recheck()?;
@@ -9822,7 +9820,7 @@ process.stdout.write(output);"#;
                 },
             );
             if matches!(&g10_result, Err(StoredChronologyListError::Query(reason))
-                if reason.code == tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded)
+                if reason.code == tos_query::search::SearchErrorCode::BudgetExceeded)
             {
                 budget_recorder.write_best_effort();
             }

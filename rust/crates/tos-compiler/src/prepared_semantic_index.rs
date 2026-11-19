@@ -92,7 +92,7 @@ pub fn semantic_projector_sha256() -> String {
     h.update(include_bytes!("prepared_semantic_index.rs"));
     h.update(include_bytes!("prepared_semantic_kernel.rs"));
     h.update(include_bytes!("local_prepared.rs"));
-    h.update(include_bytes!("d1_public_capture.rs"));
+    h.update(include_bytes!("public_capture.rs"));
     h.update(include_bytes!("knowledge_normalization.rs"));
     h.update(include_bytes!("../../tos-foundation/src/json.rs"));
     h.update(include_bytes!("../../tos-foundation/src/unicode.rs"));

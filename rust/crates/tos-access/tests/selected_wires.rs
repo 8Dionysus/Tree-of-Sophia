@@ -2,7 +2,7 @@
 
 use std::{
     fs,
-    io::{BufRead, BufReader, Cursor, Read, Write},
+    io::{Cursor, Read, Write},
     net::{TcpListener, TcpStream},
     path::PathBuf,
     sync::{Arc, Mutex},
@@ -52,7 +52,7 @@ mod selected_knowledge {
     use tos_query::knowledge_exploration::{
         ExplorationBudget, ExplorationCheckpoint, ExplorationCheckpoints,
     };
-    use tos_query::search_v2::SearchV2Error;
+    use tos_query::search::SearchError;
     use tos_query::{BoundCmpKnowledge, CatalogBudget, InspectBudget, bind_verified_knowledge};
     struct Executor {
         fixture: FullKnowledgeFixture,
@@ -71,47 +71,6 @@ mod selected_knowledge {
             _: Arc<dyn AbortProbe>,
         ) -> Result<PreparedPacket<'static>, AccessError> {
             unreachable!()
-        }
-        fn knowledge_search_legacy_available(&self) -> bool {
-            true
-        }
-        fn knowledge_search_legacy(
-            &self,
-            request: tos_query::knowledge_legacy_search::LegacySearchRequest,
-            probe: Arc<dyn AbortProbe>,
-        ) -> Result<PreparedPacket<'static>, AccessError> {
-            use tos_query::knowledge_legacy_search::{
-                LEGACY_SEARCH_INTENDED_USE, LEGACY_SEARCH_OPERATION,
-            };
-            let cold = self.fixture.open().unwrap();
-            let bound = bind_verified_knowledge(
-                &cold,
-                &self.fixture.vocabulary,
-                &self.fixture.descriptor_bytes,
-            )
-            .unwrap();
-            let mut model = cold.fork_reader_with_vm_budget(20_000_000).unwrap();
-            let mut authority = Authority::for_scope(
-                &bound,
-                LEGACY_SEARCH_OPERATION,
-                LEGACY_SEARCH_INTENDED_USE,
-                Arc::clone(&self.held),
-                Arc::clone(&self.controls),
-            );
-            let packet = tos_access::knowledge::execute_selected_legacy_search(
-                &mut model,
-                &bound,
-                &mut authority,
-                &request,
-                legacy_budget(),
-                probe,
-            )?;
-            match self.controls.after_prepare.load(Ordering::SeqCst) {
-                1 => self.controls.revoked.store(true, Ordering::SeqCst),
-                2 => self.controls.cancelled.store(true, Ordering::SeqCst),
-                _ => {}
-            }
-            Ok(packet)
         }
         fn knowledge_available(&self, operation: O) -> bool {
             (operation.is_corpus()
@@ -258,30 +217,6 @@ mod selected_knowledge {
             max_registry_bytes: 1_000_000,
             max_response_bytes: 1_000_000,
             json: JsonLimits::default(),
-        }
-    }
-    fn legacy_budget() -> tos_query::knowledge_legacy_search::LegacySearchBudget {
-        // Same full-scan work allowances as the QRY actual legacy differential
-        // fixture; the native packet cap remains independently one megabyte.
-        let mut inspect = budgets().inspect;
-        inspect.max_read_vm_steps = 20_000_000;
-        inspect.max_matches = 1000;
-        inspect.max_rows = 100_000;
-        inspect.max_decoded_bytes = 128_000_000;
-        tos_query::knowledge_legacy_search::LegacySearchBudget {
-            inspect,
-            document: tos_query::SearchDocumentBudget {
-                max_carrier_bytes: 1_000_000,
-                max_document_bytes: 4_000_000,
-                max_document_code_points: 4_000_000,
-                json: JsonLimits::default(),
-            },
-            max_candidates: 100_000,
-            max_document_bytes: 128_000_000,
-            max_document_code_points: 128_000_000,
-            max_retained_per_kind: 100_100,
-            max_retained_bytes: 8_000_000,
-            block_size: 64,
         }
     }
     struct HeldWriter {
@@ -586,8 +521,8 @@ mod selected_knowledge {
             .unwrap();
         assert!(matches!(
             store.load(cursor, revision),
-            Err(SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+            Err(SearchError {
+                code: tos_query::search::SearchErrorCode::Unavailable,
                 ..
             })
         ));
@@ -607,8 +542,8 @@ mod selected_knowledge {
                     &packet,
                     budgets().exploration
                 ),
-                Err(SearchV2Error {
-                    code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+                Err(SearchError {
+                    code: tos_query::search::SearchErrorCode::Unavailable,
                     ..
                 })
             ));
@@ -624,8 +559,8 @@ mod selected_knowledge {
             .unwrap();
         assert!(matches!(
             oversized.stage_response(b"{}"),
-            Err(SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded,
+            Err(SearchError {
+                code: tos_query::search::SearchErrorCode::BudgetExceeded,
                 ..
             })
         ));
@@ -639,8 +574,8 @@ mod selected_knowledge {
         small.max_checkpoint_bytes = 1;
         assert!(matches!(
             store.prepare(Some(cursor), revision, Some(&state), &first, small),
-            Err(SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::BudgetExceeded,
+            Err(SearchError {
+                code: tos_query::search::SearchErrorCode::BudgetExceeded,
                 ..
             })
         ));
@@ -650,15 +585,15 @@ mod selected_knowledge {
         ));
         assert!(matches!(
             store.load(cursor, "changed-selection"),
-            Err(SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::StaleContinuation,
+            Err(SearchError {
+                code: tos_query::search::SearchErrorCode::StaleContinuation,
                 ..
             })
         ));
         assert!(matches!(
             store.load("unknown-cursor", revision),
-            Err(SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::CursorExpired,
+            Err(SearchError {
+                code: tos_query::search::SearchErrorCode::CursorExpired,
                 ..
             })
         ));
@@ -700,60 +635,6 @@ mod selected_knowledge {
         // isolated case. The enclosing admitted runner remains the hard wall.
         let producer_deadline = std::time::Instant::now() + Duration::from_secs(240);
         use crate::native_child::{OwnedChild, bounded_child_output, bounded_output, bounded_sha};
-        fn bounded_wait(child: &mut OwnedChild) -> std::process::ExitStatus {
-            let deadline = std::time::Instant::now() + Duration::from_secs(60);
-            loop {
-                if let Some(status) = child.try_wait().unwrap() {
-                    return status;
-                }
-                if std::time::Instant::now() >= deadline {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    panic!("native interactive child exceeded 60-second deadline");
-                }
-                std::thread::sleep(Duration::from_millis(10));
-            }
-        }
-        fn bounded_line<R: BufRead>(reader: &mut R, max: usize) -> Result<Option<String>, String> {
-            let mut bytes = Vec::new();
-            loop {
-                let available = reader.fill_buf().map_err(|error| error.to_string())?;
-                if available.is_empty() {
-                    return if bytes.is_empty() {
-                        Ok(None)
-                    } else {
-                        Err("native MCP frame ended before newline".into())
-                    };
-                }
-                let take = available
-                    .iter()
-                    .position(|byte| *byte == b'\n')
-                    .map_or(available.len(), |index| index + 1);
-                if bytes.len().saturating_add(take) > max {
-                    return Err("native MCP frame exceeded byte cap".into());
-                }
-                bytes.extend_from_slice(&available[..take]);
-                reader.consume(take);
-                if bytes.last() == Some(&b'\n') {
-                    return String::from_utf8(bytes)
-                        .map(Some)
-                        .map_err(|_| "native MCP frame is not UTF-8".into());
-                }
-            }
-        }
-        fn next_mcp_frame(
-            frames: &std::sync::mpsc::Receiver<Result<Option<String>, String>>,
-            child: &mut OwnedChild,
-        ) -> String {
-            match frames.recv_timeout(Duration::from_secs(60)) {
-                Ok(Ok(Some(frame))) => frame,
-                other => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    panic!("native MCP frame unavailable within 60 seconds: {other:?}");
-                }
-            }
-        }
         fn bounded_http(socket: &mut TcpStream) -> Vec<u8> {
             const HTTP_MAX: usize = 1_048_576 + 8192;
             let deadline = std::time::Instant::now() + Duration::from_secs(30);
@@ -804,34 +685,6 @@ mod selected_knowledge {
             assert!(
                 clean.status.success() && clean.stdout.is_empty(),
                 "retained selected source closure is dirty"
-            );
-        }
-        fn same_search_rows(left: &JsonValue, right: &JsonValue) {
-            for key in ["source_revision", "query", "filters", "nodes", "relations"] {
-                assert_eq!(
-                    left.object_get(key),
-                    right.object_get(key),
-                    "indexed page differs across wire/process for {key}"
-                );
-            }
-        }
-        fn advanced_search_rows(first: &JsonValue, second: &JsonValue) {
-            let mut advanced = false;
-            for key in ["nodes", "relations"] {
-                let first = first.object_get(key).unwrap().as_array().unwrap();
-                let second = second.object_get(key).unwrap().as_array().unwrap();
-                assert!(first.len() <= 1 && second.len() <= 1);
-                for row in second {
-                    assert!(
-                        !first.contains(row),
-                        "resumed indexed page repeated the first {key} carrier"
-                    );
-                }
-                advanced |= !second.is_empty();
-            }
-            assert!(
-                advanced,
-                "fixture must exercise real nonempty resumed search results"
             );
         }
         fn bounded_source(path: &std::path::Path) -> Vec<u8> {
@@ -1304,79 +1157,6 @@ mod selected_knowledge {
             String::from_utf8_lossy(&result.stderr)
         );
         assert_eq!(result.stdout, [catalog.as_slice(), b"\n"].concat());
-        let indexed_cli = bounded_output(
-            child().args([
-                "knowledge",
-                "search",
-                "source",
-                "--mode",
-                "indexed",
-                "--limit",
-                "1",
-            ]),
-            1_048_576,
-        );
-        assert!(
-            indexed_cli.status.success(),
-            "{}",
-            String::from_utf8_lossy(&indexed_cli.stderr)
-        );
-        let cli_packet = parse_json(
-            &indexed_cli.stdout,
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
-        assert_eq!(
-            cli_packet.object_get("schema").unwrap().as_str(),
-            Some("tos_knowledge_search_indexed_v2")
-        );
-        let cli_cursor = cli_packet
-            .object_get("page")
-            .unwrap()
-            .object_get("next_cursor")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .to_owned();
-        assert!(cli_cursor.len() <= 16 * 1024);
-        let cli_resume = bounded_output(
-            child().args([
-                "knowledge",
-                "search",
-                "source",
-                "--mode",
-                "indexed",
-                "--limit",
-                "1",
-                "--cursor",
-                &cli_cursor,
-            ]),
-            1_048_576,
-        );
-        assert!(
-            cli_resume.status.success(),
-            "{}",
-            String::from_utf8_lossy(&cli_resume.stderr)
-        );
-        let cli_resume = parse_json(
-            &cli_resume.stdout,
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
-        assert_eq!(
-            cli_resume
-                .object_get("page")
-                .unwrap()
-                .object_get("cursor")
-                .unwrap()
-                .as_str(),
-            Some(cli_cursor.as_str())
-        );
-        advanced_search_rows(&cli_packet, &cli_resume);
         let descriptor = tos_access::registered_operations()
             .unwrap()
             .iter()
@@ -1404,99 +1184,6 @@ mod selected_knowledge {
         );
         let frame_cap = tos_access::mcp::tool_result_frame_byte_bound(1_048_576, 65_536).unwrap();
         check_mcp_packet(last_frame(&result.stdout), &dossier, frame_cap);
-        // Actual MCP pages use the same unsigned paging request and reacquire
-        // the selected release holder for every page.
-        let mut search_rpc = OwnedChild(
-            child()
-                .arg("mcp")
-                .stdin(std::process::Stdio::piped())
-                .stdout(std::process::Stdio::piped())
-                .stderr(std::process::Stdio::null())
-                .spawn()
-                .unwrap(),
-        );
-        let mut search_input = search_rpc.stdin.take().unwrap();
-        let mut search_output = BufReader::new(search_rpc.stdout.take().unwrap());
-        let (frames_tx, frames_rx) = std::sync::mpsc::sync_channel(1);
-        std::thread::spawn(move || {
-            loop {
-                let result = bounded_line(&mut search_output, frame_cap);
-                let done = !matches!(result, Ok(Some(_)));
-                if frames_tx.send(result).is_err() || done {
-                    break;
-                }
-            }
-        });
-        writeln!(search_input, "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}")
-            .unwrap();
-        let mut frame = next_mcp_frame(&frames_rx, &mut search_rpc);
-        assert!(frame.contains("\"protocolVersion\":\"2025-11-25\""));
-        writeln!(
-            search_input,
-            "{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}"
-        )
-        .unwrap();
-        writeln!(search_input, "{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_search\",\"arguments\":{{\"mode\":\"indexed\",\"query\":\"source\",\"limit\":1}}}}}}")
-            .unwrap();
-        frame = next_mcp_frame(&frames_rx, &mut search_rpc);
-        let first = parse_json(
-            frame.as_bytes(),
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
-        let first = first
-            .object_get("result")
-            .unwrap()
-            .object_get("structuredContent")
-            .unwrap();
-        assert_eq!(
-            first.object_get("schema").unwrap().as_str(),
-            Some("tos_knowledge_search_indexed_v2")
-        );
-        same_search_rows(&cli_packet, first);
-        let search_cursor = first
-            .object_get("page")
-            .unwrap()
-            .object_get("next_cursor")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .to_owned();
-        assert!(search_cursor.len() <= 16 * 1024);
-        writeln!(search_input, "{{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_search\",\"arguments\":{{\"mode\":\"indexed\",\"query\":\"source\",\"limit\":1,\"cursor\":\"{search_cursor}\"}}}}}}")
-            .unwrap();
-        frame = next_mcp_frame(&frames_rx, &mut search_rpc);
-        let second = parse_json(
-            frame.as_bytes(),
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
-        let second = second
-            .object_get("result")
-            .unwrap()
-            .object_get("structuredContent")
-            .unwrap();
-        assert_eq!(
-            second
-                .object_get("page")
-                .unwrap()
-                .object_get("cursor")
-                .unwrap()
-                .as_str(),
-            Some(search_cursor.as_str())
-        );
-        same_search_rows(&cli_resume, second);
-        drop(search_input);
-        drop(frames_rx);
-        let search_result = bounded_wait(&mut search_rpc);
-        assert!(
-            search_result.success(),
-            "native MCP child refused completion: {search_result}"
-        );
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         drop(listener);
@@ -1563,101 +1250,12 @@ mod selected_knowledge {
                 );
             }
         }
-        let search_http = |target: &str| {
-            let mut socket = TcpStream::connect(address).unwrap();
-            socket
-                .set_write_timeout(Some(Duration::from_secs(30)))
-                .unwrap();
-            socket
-                .set_read_timeout(Some(Duration::from_secs(30)))
-                .unwrap();
-            write!(socket, "GET {target} HTTP/1.1\r\nHost: localhost\r\n\r\n").unwrap();
-            bounded_http(&mut socket)
-        };
-        let first_http = search_http("/api/knowledge/search?mode=indexed&query=source&limit=1");
-        let first_http_len = http_packet(&first_http).len();
-        let first_http = parse_json(
-            http_packet(&first_http),
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
-        same_search_rows(&cli_packet, &first_http);
-        let mut head_socket = TcpStream::connect(address).unwrap();
-        head_socket
-            .set_write_timeout(Some(Duration::from_secs(30)))
-            .unwrap();
-        head_socket
-            .set_read_timeout(Some(Duration::from_secs(30)))
-            .unwrap();
-        write!(head_socket, "HEAD /api/knowledge/search?mode=indexed&query=source&limit=1 HTTP/1.1\r\nHost: localhost\r\n\r\n").unwrap();
-        let head_bytes = bounded_http(&mut head_socket);
-        assert!(head_bytes.starts_with(b"HTTP/1.1 200 "));
-        assert!(head_bytes.ends_with(b"\r\n\r\n"));
-        assert!(
-            String::from_utf8_lossy(&head_bytes)
-                .contains(&format!("Content-Length: {first_http_len}"))
-        );
-        let cursor = first_http
-            .object_get("page")
-            .unwrap()
-            .object_get("next_cursor")
-            .unwrap()
-            .as_str()
-            .unwrap()
-            .to_owned();
-        assert!(cursor.len() <= 16 * 1024);
-        let resumed = search_http(&format!(
-            "/api/knowledge/search?mode=indexed&query=source&limit=1&cursor={cursor}"
-        ));
-        let resumed = parse_json(
-            http_packet(&resumed),
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
-        assert_eq!(
-            resumed
-                .object_get("page")
-                .unwrap()
-                .object_get("cursor")
-                .unwrap()
-                .as_str(),
-            Some(cursor.as_str())
-        );
-        same_search_rows(&cli_resume, &resumed);
-        let stale = search_http(&format!(
-            "/api/knowledge/search?mode=indexed&query=node&limit=1&cursor={cursor}"
-        ));
-        assert!(stale.starts_with(b"HTTP/1.1 409 "));
-        let cross_process = search_http(&format!(
-            "/api/knowledge/search?mode=indexed&query=source&limit=1&cursor={search_cursor}"
-        ));
-        let cross_process = parse_json(
-            http_packet(&cross_process),
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
-        assert_eq!(
-            cross_process
-                .object_get("page")
-                .unwrap()
-                .object_get("cursor")
-                .unwrap()
-                .as_str(),
-            Some(search_cursor.as_str())
-        );
-        same_search_rows(&cli_resume, &cross_process);
         let withdrawn_path = root.join(format!("revocations/data/{revision}.json"));
         let withdrawn_record = object(vec![
             ("schema_version", text("tos_access_release_revocation_v1")),
             ("kind", text("data")),
             ("digest", text(&revision)),
-            ("reason", text("indexed fixture withdrawal")),
+            ("reason", text("selected data fixture withdrawal")),
             ("owner_ref", text("maintained native release case")),
         ]);
         let withdrawal_lock = fs::OpenOptions::new()
@@ -1668,10 +1266,9 @@ mod selected_knowledge {
         withdrawal_lock.try_lock().unwrap();
         fs::write(&withdrawn_path, canonical(&withdrawn_record)).unwrap();
         withdrawal_lock.unlock().unwrap();
-        let refused = search_http(&format!(
-            "/api/knowledge/search?mode=indexed&query=source&limit=1&cursor={cursor}"
-        ));
-        assert!(refused.starts_with(b"HTTP/1.1 503 "));
+        let refused = bounded_output(child().args(["knowledge", "catalog"]), 1_048_576);
+        assert_eq!(refused.status.code(), Some(3));
+        assert!(refused.stdout.is_empty());
         withdrawal_lock.try_lock().unwrap();
         fs::remove_file(withdrawn_path).unwrap();
         withdrawal_lock.unlock().unwrap();
@@ -2860,290 +2457,6 @@ mod selected_knowledge {
     }
 
     #[test]
-    fn maintained_selected_legacy_search_and_capabilities_all_native_wires() {
-        use tos_query::knowledge_legacy_search::LegacySearchRequest;
-        let executor = Arc::new(Executor {
-            fixture: build_native_fixture(),
-            corpus_context: None,
-            held: Arc::new(AtomicUsize::new(0)),
-            controls: Arc::new(Controls::default()),
-            checkpoints: Mutex::new(
-                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
-                    tos_access::exploration_checkpoints::CheckpointLimits {
-                        ttl: Duration::from_secs(60),
-                        max_entries: 16,
-                        max_encoded_bytes: 2_000_000,
-                    },
-                )
-                .unwrap(),
-            ),
-        });
-        let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
-        let mcp_profile = profile.with_mcp_frame_budget(
-            tos_access::mcp::tool_result_frame_byte_bound(
-                profile.max_response_bytes,
-                profile.max_request_bytes.min(profile.max_line_bytes),
-            )
-            .unwrap(),
-        );
-        let search = tos_access::registered_operations()
-            .unwrap()
-            .iter()
-            .find(|op| op.operation_id == tos_access::SEARCH_OPERATION_ID)
-            .unwrap();
-        let graph = parse_json(
-            &executor.fixture.graph_input_bytes,
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap();
-        let claim = graph
-            .root()
-            .object_get("nodes")
-            .unwrap()
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|n| n.object_get("kind_id").and_then(JsonValue::as_str) == Some("claim"))
-            .unwrap();
-        let source = claim.object_get("source_graph").unwrap().as_str().unwrap();
-        let kind = claim.object_get("kind_id").unwrap().as_str().unwrap();
-        let filtered = LegacySearchRequest {
-            sources: Some(vec![source.into()]),
-            kind_ids: vec![kind.into()],
-            offset: 1,
-            limit: 2,
-            ..Default::default()
-        };
-        let cases = [
-            (
-                LegacySearchRequest::default(),
-                vec![],
-                String::new(),
-                object(vec![
-                    ("sources", JsonValue::Null),
-                    ("kind_ids", JsonValue::Null),
-                    ("predicate_ids", JsonValue::Null),
-                    ("cursor", JsonValue::Null),
-                ]),
-            ),
-            (
-                filtered,
-                vec![
-                    "--sources".into(),
-                    source.into(),
-                    "--kind".into(),
-                    kind.into(),
-                    "--offset=1".into(),
-                    "--limit=2".into(),
-                    "--mode=legacy".into(),
-                ],
-                format!(
-                    "?sources={}&kind_ids={}&offset=1&limit=2&mode=legacy",
-                    path_id(source),
-                    path_id(kind)
-                ),
-                object(vec![
-                    ("sources", JsonValue::Array(vec![text(source)])),
-                    ("kind_ids", JsonValue::Array(vec![text(kind)])),
-                    (
-                        "offset",
-                        parse_json(b"1", JsonMode::PublishedStrict, JsonLimits::default())
-                            .unwrap()
-                            .into_root(),
-                    ),
-                    (
-                        "limit",
-                        parse_json(b"2", JsonMode::PublishedStrict, JsonLimits::default())
-                            .unwrap()
-                            .into_root(),
-                    ),
-                    ("mode", text("legacy")),
-                ]),
-            ),
-        ];
-        for (request, suffix, query, arguments) in cases {
-            let packet = executor
-                .knowledge_search_legacy(request, Arc::new(NeverAbort))
-                .unwrap();
-            let expected = packet.body.clone();
-            drop(packet);
-            let mut args: Vec<String> = search
-                .cli_command
-                .as_ref()
-                .unwrap()
-                .split_whitespace()
-                .map(str::to_owned)
-                .collect();
-            args.extend(suffix);
-            let mut writer = HeldWriter {
-                bytes: vec![],
-                held: executor.held.clone(),
-            };
-            let mut errors = vec![];
-            let code = cli::run_cli(&args, executor.as_ref(), profile, &mut writer, &mut errors);
-            assert_eq!(code, 0, "legacy CLI: {}", String::from_utf8_lossy(&errors));
-            assert_eq!(&writer.bytes[..writer.bytes.len() - 1], expected);
-            let response = handle_get(
-                executor.as_ref(),
-                "GET",
-                &format!("{}{query}", search.http_path),
-                profile,
-            );
-            assert_eq!(
-                response.status,
-                200,
-                "legacy HTTP: {}",
-                String::from_utf8_lossy(&response.body)
-            );
-            let mut writer = HeldWriter {
-                bytes: vec![],
-                held: executor.held.clone(),
-            };
-            tos_access::http::write_response(&mut writer, response).unwrap();
-            assert_eq!(http_packet(&writer.bytes), expected);
-            let input = mcp_input(&search.mcp_tool, &arguments);
-            let mut writer = McpHeldWriter {
-                bytes: vec![],
-                held: executor.held.clone(),
-                source_frame: false,
-            };
-            run_io(
-                Cursor::new(input),
-                &mut writer,
-                executor.as_ref(),
-                mcp_profile,
-            )
-            .unwrap();
-            check_mcp_packet(
-                last_frame(&writer.bytes),
-                &expected,
-                mcp_profile.max_mcp_frame_bytes,
-            );
-            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
-        }
-        let caps = tos_access::registered_operations()
-            .unwrap()
-            .iter()
-            .find(|op| op.operation_id == O::SearchCapabilities.id())
-            .unwrap();
-        let packet = executor
-            .knowledge(R::SearchCapabilities, Arc::new(NeverAbort))
-            .unwrap();
-        let expected = packet.body.clone();
-        drop(packet);
-        let value =
-            parse_json(&expected, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
-        assert_eq!(
-            value
-                .root()
-                .object_get("default_mode")
-                .and_then(JsonValue::as_str),
-            Some("legacy")
-        );
-        let modes = value.root().object_get("modes").unwrap();
-        assert_eq!(
-            modes
-                .object_get("compressed")
-                .unwrap()
-                .object_get("available"),
-            Some(&JsonValue::Bool(false))
-        );
-        let args: Vec<String> = caps
-            .cli_command
-            .as_ref()
-            .unwrap()
-            .split_whitespace()
-            .map(str::to_owned)
-            .collect();
-        let mut writer = HeldWriter {
-            bytes: vec![],
-            held: executor.held.clone(),
-        };
-        let mut errors = vec![];
-        assert_eq!(
-            cli::run_cli(&args, executor.as_ref(), profile, &mut writer, &mut errors),
-            0,
-            "{}",
-            String::from_utf8_lossy(&errors)
-        );
-        assert_eq!(&writer.bytes[..writer.bytes.len() - 1], expected);
-        let response = handle_get(executor.as_ref(), "GET", &caps.http_path, profile);
-        assert_eq!(response.status, 200);
-        let mut writer = HeldWriter {
-            bytes: vec![],
-            held: executor.held.clone(),
-        };
-        tos_access::http::write_response(&mut writer, response).unwrap();
-        assert_eq!(http_packet(&writer.bytes), expected);
-        let input = mcp_input(&caps.mcp_tool, &object(vec![]));
-        let mut writer = McpHeldWriter {
-            bytes: vec![],
-            held: executor.held.clone(),
-            source_frame: false,
-        };
-        run_io(
-            Cursor::new(input),
-            &mut writer,
-            executor.as_ref(),
-            mcp_profile,
-        )
-        .unwrap();
-        check_mcp_packet(
-            last_frame(&writer.bytes),
-            &expected,
-            mcp_profile.max_mcp_frame_bytes,
-        );
-        // Engine selection never supplies a prepared publication or a current public issuer.
-        let mut output = vec![];
-        let mut errors = vec![];
-        let mut args: Vec<String> = search
-            .cli_command
-            .as_ref()
-            .unwrap()
-            .split_whitespace()
-            .map(str::to_owned)
-            .collect();
-        args.push("--mode=compressed".into());
-        assert_eq!(
-            cli::run_cli(&args, executor.as_ref(), profile, &mut output, &mut errors),
-            3
-        );
-        assert!(output.is_empty());
-        let response = handle_get(
-            executor.as_ref(),
-            "GET",
-            &format!("{}?mode=compressed", search.http_path),
-            profile,
-        );
-        assert_eq!(response.status, 503);
-        // Current withdrawal and caller cancellation share the established final disclosure fence.
-        for action in [1, 2] {
-            executor
-                .controls
-                .after_prepare
-                .store(action, Ordering::SeqCst);
-            let mut output = vec![];
-            let mut errors = vec![];
-            let args: Vec<String> = search
-                .cli_command
-                .as_ref()
-                .unwrap()
-                .split_whitespace()
-                .map(str::to_owned)
-                .collect();
-            assert_eq!(
-                cli::run_cli(&args, executor.as_ref(), profile, &mut output, &mut errors),
-                1
-            );
-            assert!(output.is_empty());
-            assert_eq!(executor.held.load(Ordering::SeqCst), 0);
-            executor.controls.revoked.store(false, Ordering::SeqCst);
-            executor.controls.cancelled.store(false, Ordering::SeqCst);
-        }
-    }
-
-    #[test]
     fn maintained_native_options_files_head_and_mcp_advertisement() {
         assert_eq!(cli::parse_serve_address(&[]).unwrap(), "127.0.0.1:8080");
         assert_eq!(
@@ -3529,9 +2842,7 @@ mod selected_knowledge {
                 .unwrap();
             assert!(
                 if descriptor.operation_id == tos_access::SEARCH_OPERATION_ID {
-                    executor.knowledge_search_legacy_available()
-                        || executor.knowledge_search_indexed_available()
-                        || executor.knowledge_search_compressed_available()
+                    executor.knowledge_search_compressed_available()
                 } else if matches!(
                     descriptor.operation_id.as_str(),
                     "tos.zarathustra.word_analysis.public-capability"
@@ -3563,9 +2874,7 @@ mod selected_knowledge {
             .iter()
             .filter(|op| {
                 if op.operation_id == tos_access::SEARCH_OPERATION_ID {
-                    executor.knowledge_search_legacy_available()
-                        || executor.knowledge_search_indexed_available()
-                        || executor.knowledge_search_compressed_available()
+                    executor.knowledge_search_compressed_available()
                 } else if matches!(
                     op.operation_id.as_str(),
                     "tos.zarathustra.word_analysis.public-capability"
@@ -3950,409 +3259,14 @@ mod selected_knowledge {
         assert_eq!(executor.held.load(Ordering::SeqCst), 0);
     }
     #[test]
-    fn installed_software_site_static_and_selected_boot_preserve_delivery_boundaries() {
-        use tos_access::{
-            http::{handle_get_with_software, write_response},
-            site::SoftwareSite,
-        };
-        use tos_compiler::knowledge_full_fixture::build_native_fixture_with_philosophy_original;
-        // Reuse both real selected producer fixtures; the companion ELF below
-        // is only an integrity fixture and is never executed as a product.
-        let (corpus, _) = captured_corpus_executor_fixture();
-        let held = Arc::clone(&corpus.held);
-        let controls = Arc::clone(&corpus.controls);
-        let philosophy = Executor {
-            fixture: build_native_fixture_with_philosophy_original(),
-            corpus_context: None,
-            held: Arc::clone(&held),
-            controls: Arc::clone(&controls),
-            checkpoints: Mutex::new(
-                tos_access::exploration_checkpoints::ProcessExplorationCheckpoints::new(
-                    tos_access::exploration_checkpoints::CheckpointLimits {
-                        ttl: Duration::from_secs(60),
-                        max_entries: 16,
-                        max_encoded_bytes: 2_000_000,
-                    },
-                )
-                .unwrap(),
-            ),
-        };
-        struct Boot {
-            corpus: Executor,
-            philosophy: Executor,
-        }
-        impl AccessExecutor for Boot {
-            fn source_descend_available(&self) -> bool {
-                false
-            }
-            fn source_descend(
-                &self,
-                _: Params,
-                _: Arc<dyn AbortProbe>,
-            ) -> Result<PreparedPacket<'static>, AccessError> {
-                unreachable!()
-            }
-            fn knowledge(
-                &self,
-                request: R,
-                probe: Arc<dyn AbortProbe>,
-            ) -> Result<PreparedPacket<'static>, AccessError> {
-                match request {
-                    R::CorpusViewIds => self.corpus.knowledge(request, probe),
-                    R::PhilosophyViewIds => self.philosophy.knowledge(request, probe),
-                    _ => unreachable!("boot does not prefetch maintained graph packets"),
-                }
-            }
-        }
-        let boot = Boot { corpus, philosophy };
+    fn retired_browser_routes_are_not_served() {
         let profile = AccessProfile::new(65_536, 1_048_576, 65_536);
-        let expected_corpus = boot
-            .knowledge(R::CorpusViewIds, Arc::new(Controls::default()))
-            .unwrap();
-        let expected_phi = boot
-            .knowledge(R::PhilosophyViewIds, Arc::new(Controls::default()))
-            .unwrap();
-        let first = |raw: &[u8], field: &str| {
-            let doc = parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
-            doc.root().object_get(field).unwrap().as_array().unwrap()[0]
-                .object_get("view_id")
-                .unwrap()
-                .as_str()
-                .unwrap()
-                .to_owned()
-        };
-        let corpus_id = first(&expected_corpus.body, "graph_views");
-        let phi_id = first(&expected_phi.body, "views");
-        drop((expected_corpus, expected_phi));
-        assert_eq!(held.load(Ordering::SeqCst), 0);
-        let base = boot
-            .philosophy
-            .fixture
-            .path
-            .parent()
-            .unwrap()
-            .join("installed-site");
-        fs::create_dir_all(base.join("access/src/tos_access/web_dist/assets")).unwrap();
-        let executable = base.join("access/src/tos_access/tos-access");
-        let mut header = vec![0u8; 64];
-        header[..7].copy_from_slice(b"\x7fELF\x02\x01\x01");
-        header[18..20].copy_from_slice(b"\x3e\x00");
-        fs::write(&executable, &header).unwrap();
-        let js = b"export const softwareOwned=true;\n";
-        let css = b"body{margin:0}\n";
-        std::os::unix::fs::symlink(
-            "tos-graph.js",
-            base.join("access/src/tos_access/web_dist/assets/link.js"),
-        )
-        .unwrap();
-        let js_path = base.join("access/src/tos_access/web_dist/assets/tos-graph.js");
-        fs::write(&js_path, js).unwrap();
-        fs::write(
-            base.join("access/src/tos_access/web_dist/assets/tos-graph.css"),
-            css,
-        )
-        .unwrap();
-        let number = |n: usize| {
-            JsonValue::Number(tos_foundation::JsonNumber {
-                kind: tos_foundation::JsonNumberKind::Int,
-                lexeme: n.to_string(),
-            })
-        };
-        let member = |path: &str, raw: &[u8]| {
-            object(vec![
-                ("path", text(path)),
-                ("size_bytes", number(raw.len())),
-                ("sha256", text(&Digest256::of_bytes(raw).to_hex())),
-            ])
-        };
-        let lock = b"version = 4\n";
-        let pin = include_bytes!("../../../../rust-toolchain.toml");
-        fs::write(base.join("Cargo.lock"), lock).unwrap();
-        fs::write(base.join("rust-toolchain.toml"), pin).unwrap();
-        let source_ref = Digest256::of_bytes(&boot.philosophy.fixture.descriptor_bytes).to_hex();
-        let manifest = object(vec![
-            ("schema_version", text("tos_software_bundle_manifest_v1")),
-            ("software_ref", text(&source_ref)),
-            ("data_included", JsonValue::Bool(false)),
-            ("source_dirty", JsonValue::Bool(false)),
-            (
-                "native_access",
-                object(vec![
-                    ("schema_version", text("tos_native_access_build_v2")),
-                    ("target", text("x86_64-unknown-linux-gnu")),
-                    ("source_commit", text(&source_ref)),
-                    ("source_tree", text(&source_ref)),
-                    ("profile", text("debug")),
-                    ("opt_level", text("1")),
-                    ("lock_sha256", text(&Digest256::of_bytes(lock).to_hex())),
-                    (
-                        "toolchain",
-                        text(
-                            include_str!("../../../../rust-toolchain.toml")
-                                .lines()
-                                .find_map(|line| {
-                                    line.trim()
-                                        .strip_prefix("channel = ")
-                                        .and_then(|value| value.strip_prefix('"'))
-                                        .and_then(|value| value.strip_suffix('"'))
-                                })
-                                .unwrap(),
-                        ),
-                    ),
-                    ("sha256", text(&Digest256::of_bytes(&header).to_hex())),
-                    ("size_bytes", number(header.len())),
-                ]),
-            ),
-            (
-                "members",
-                JsonValue::Array(vec![
-                    member("access/src/tos_access/tos-access", &header),
-                    member("Cargo.lock", lock),
-                    member("rust-toolchain.toml", pin),
-                    member("access/src/tos_access/web_dist/assets/tos-graph.js", js),
-                    member("access/src/tos_access/web_dist/assets/link.js", js),
-                    member("access/src/tos_access/web_dist/assets/tos-graph.css", css),
-                ]),
-            ),
-        ]);
-        fs::write(
-            base.join("software.manifest.json"),
-            tos_foundation::emit_value_preserved_json(&manifest, JsonLimits::default()).unwrap(),
-        )
-        .unwrap();
-        let site = SoftwareSite::open(&executable, Arc::new(Controls::default())).unwrap();
-        // Actual kernel image A cannot be rebound to fixture path/proof B.
-        // No executable copy or additional program is needed.
-        let wrong_running = SoftwareSite::open_running(&executable, Arc::new(Controls::default()))
-            .err()
-            .unwrap();
-        assert_eq!(wrong_running.code, tos_access::AccessErrorCode::Unavailable);
-        assert_eq!(
-            wrong_running.message,
-            "installed path differs from running image"
-        );
-
-        struct TwoHolds {
-            bytes: Vec<u8>,
-            held: Arc<AtomicUsize>,
-        }
-        impl Write for TwoHolds {
-            fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
-                assert_eq!(self.held.load(Ordering::SeqCst), 2);
-                self.bytes.extend_from_slice(bytes);
-                Ok(bytes.len())
-            }
-            fn flush(&mut self) -> std::io::Result<()> {
-                assert_eq!(self.held.load(Ordering::SeqCst), 2);
-                Ok(())
-            }
-        }
-        let response = handle_get_with_software(&boot, "GET", "/", profile, &site);
-        assert_eq!(response.status, 200);
-        let html = String::from_utf8(response.body.clone()).unwrap();
-        assert!(html.contains(&format!("\"default_view\":\"{corpus_id}\"")));
-        assert!(html.contains(&format!("\"default_philosophy_view\":\"{phi_id}\"")));
-        assert!(html.contains("/static/assets/tos-graph.js"));
-        let mut writer = TwoHolds {
-            bytes: vec![],
-            held: Arc::clone(&held),
-        };
-        write_response(&mut writer, response).unwrap();
-        assert_eq!(held.load(Ordering::SeqCst), 0);
-        let wire = String::from_utf8(writer.bytes).unwrap();
-        for header in [
-            "Content-Type: text/html; charset=utf-8",
-            "Cache-Control: no-cache",
-            "Permissions-Policy: tools=(self)",
-            "Cross-Origin-Opener-Policy: same-origin",
-            "Cross-Origin-Embedder-Policy: require-corp",
-            "Cross-Origin-Resource-Policy: same-origin",
-            "Origin-Agent-Cluster: ?1",
-            "Referrer-Policy: no-referrer",
-            "X-Frame-Options: DENY",
-            "X-Content-Type-Options: nosniff",
-            "script-src 'self' 'nonce-",
-        ] {
-            assert!(wire.contains(header), "{header}");
-        }
-        let headers = wire.split("\r\n\r\n").next().unwrap();
-        assert!(headers.contains("'wasm-unsafe-eval'"));
-        assert!(!headers.contains("'unsafe-eval'"));
-        assert!(!headers.contains("'unsafe-inline'"));
-        assert!(headers.contains("object-src 'none'"));
-        assert!(headers.contains("frame-ancestors 'none'"));
-        let nonce_marker = "<script nonce=\"";
-        let nonce_start = html.find(nonce_marker).unwrap() + nonce_marker.len();
-        let nonce_end = html[nonce_start..].find('\"').unwrap() + nonce_start;
-        let nonce = &html[nonce_start..nonce_end];
-        assert!(!nonce.is_empty());
-        assert!(headers.contains(&format!("'nonce-{nonce}'")));
-        let permissions = headers
-            .lines()
-            .find_map(|line| line.strip_prefix("Permissions-Policy: "))
-            .unwrap();
-        assert!(permissions.contains("camera=()"));
-        assert!(permissions.contains("geolocation=()"));
-        let health = handle_get_with_software(&boot, "GET", "/health", profile, &site);
-        // This deliberately minimal boot executor has no selected health owner.
-        // Serving static assets must not manufacture a healthy data receipt.
-        assert_eq!(health.status, 503);
-        assert!(
-            String::from_utf8_lossy(&health.body).contains("selected access health unavailable")
-        );
-        let mut health_wire = vec![];
-        write_response(&mut health_wire, health).unwrap();
-        let health_headers = String::from_utf8(health_wire).unwrap();
-        for header in [
-            "Content-Security-Policy: default-src 'self'",
-            "Permissions-Policy: tools=(self)",
-            "Cross-Origin-Opener-Policy: same-origin",
-            "Cross-Origin-Embedder-Policy: require-corp",
-            "Cross-Origin-Resource-Policy: same-origin",
-            "Origin-Agent-Cluster: ?1",
-            "Referrer-Policy: no-referrer",
-            "X-Frame-Options: DENY",
-            "X-Content-Type-Options: nosniff",
-        ] {
-            assert!(health_headers.contains(header), "{header}");
-        }
-        let head = handle_get_with_software(&boot, "HEAD", "/", profile, &site);
-        let mut writer = TwoHolds {
-            bytes: vec![],
-            held: Arc::clone(&held),
-        };
-        write_response(&mut writer, head).unwrap();
-        assert!(writer.bytes.ends_with(b"\r\n\r\n"));
-        assert_eq!(held.load(Ordering::SeqCst), 0);
-        for (path, mime, raw) in [
-            (
-                "/static/assets/tos-graph.js",
-                "text/javascript",
-                js.as_slice(),
-            ),
-            ("/static/assets/tos-graph.css", "text/css", css.as_slice()),
-        ] {
-            for method in ["GET", "HEAD"] {
-                let response = handle_get_with_software(&boot, method, path, profile, &site);
-                assert_eq!(response.status, 200);
-                assert_eq!(response.body, raw);
-                let mut wire = vec![];
-                write_response(&mut wire, response).unwrap();
-                let split = wire.windows(4).position(|x| x == b"\r\n\r\n").unwrap() + 4;
-                let headers = String::from_utf8_lossy(&wire[..split]);
-                assert!(headers.contains(mime));
-                assert!(headers.contains(&format!("Content-Length: {}", raw.len())));
-                for header in [
-                    "Content-Security-Policy: default-src 'self'",
-                    "Permissions-Policy: tools=(self)",
-                    "Cross-Origin-Opener-Policy: same-origin",
-                    "Cross-Origin-Embedder-Policy: require-corp",
-                    "Cross-Origin-Resource-Policy: same-origin",
-                    "Origin-Agent-Cluster: ?1",
-                    "Referrer-Policy: no-referrer",
-                    "X-Frame-Options: DENY",
-                    "X-Content-Type-Options: nosniff",
-                ] {
-                    assert!(headers.contains(header), "{header} on {method} {path}");
-                }
-                assert_eq!(
-                    &wire[split..],
-                    if method == "HEAD" {
-                        b"".as_slice()
-                    } else {
-                        raw
-                    }
-                );
-            }
-        }
-        for path in [
-            "/static/../software.manifest.json",
-            "/static/%2e%2e/software.manifest.json",
-            "/static/%2Fetc/passwd",
-            "/static/assets%5Coutside.js",
-            "/static/%00",
-        ] {
+        for path in ["/", "/static/assets/tos-graph.js", "/static/research.html"] {
             assert_eq!(
-                handle_get_with_software(&boot, "GET", path, profile, &site).status,
-                400
+                handle_get(&tos_access::NoOwner, "GET", path, profile).status,
+                404
             );
         }
-        assert_eq!(
-            handle_get_with_software(&boot, "GET", "/static/assets/undeclared.js", profile, &site)
-                .status,
-            404
-        );
-        assert_eq!(
-            handle_get_with_software(&boot, "GET", "/static/assets/link.js", profile, &site).status,
-            404
-        );
-        let no_owner = tos_access::NoOwner;
-        let unavailable = handle_get_with_software(&no_owner, "GET", "/", profile, &site);
-        assert_eq!(unavailable.status, 200);
-        let html = String::from_utf8(unavailable.body).unwrap();
-        assert!(html.contains("\"default_view\":\"\""));
-        assert!(html.contains("\"philosophy\":false"));
-        let response = handle_get_with_software(&boot, "GET", "/", profile, &site);
-        controls.revoked.store(true, Ordering::SeqCst);
-        let mut wire = vec![];
-        write_response(&mut wire, response).unwrap();
-        assert_eq!(held.load(Ordering::SeqCst), 0);
-        assert!(wire.starts_with(b"HTTP/1.1 409 Conflict"));
-        assert!(!String::from_utf8_lossy(&wire).contains("window.__TOS_GRAPH_BOOT__"));
-        controls.revoked.store(false, Ordering::SeqCst);
-        // Replacement/deletion refuses without serving a different program.
-        let staged = handle_get_with_software(&no_owner, "GET", "/", profile, &site);
-        fs::rename(&executable, executable.with_extension("old")).unwrap();
-        fs::write(&executable, &header).unwrap();
-        let mut replaced = vec![];
-        write_response(&mut replaced, staged).unwrap();
-        assert!(replaced.starts_with(b"HTTP/1.1 503 Service Unavailable"));
-        fs::remove_file(&executable).unwrap();
-        assert_eq!(
-            handle_get_with_software(&no_owner, "GET", "/", profile, &site).status,
-            503
-        );
-        fs::rename(executable.with_extension("old"), &executable).unwrap();
-        let site = SoftwareSite::open(&executable, Arc::new(Controls::default())).unwrap();
-        let deleted = handle_get_with_software(&no_owner, "GET", "/", profile, &site);
-        assert_eq!(deleted.status, 200);
-        fs::remove_file(&executable).unwrap();
-        let mut wire = vec![];
-        write_response(&mut wire, deleted).unwrap();
-        assert!(wire.starts_with(b"HTTP/1.1 503 Service Unavailable"));
-        assert!(!String::from_utf8_lossy(&wire).contains("window.__TOS_GRAPH_BOOT__"));
-        // Restore only the tiny integrity fixture for the independent asset
-        // lifetime assertion; no real executable is copied or run.
-        fs::write(&executable, &header).unwrap();
-        let site = SoftwareSite::open(&executable, Arc::new(Controls::default())).unwrap();
-
-        let response =
-            handle_get_with_software(&boot, "GET", "/static/assets/tos-graph.js", profile, &site);
-        fs::write(&js_path, b"changed").unwrap();
-        let mut wire = vec![];
-        write_response(&mut wire, response).unwrap();
-        assert!(wire.starts_with(b"HTTP/1.1 503 Service Unavailable"));
-        assert!(String::from_utf8_lossy(&wire).contains("Content-Type: application/json"));
-        assert!(!wire.ends_with(js));
-        let timed = handle_get_with_software(
-            &boot,
-            "GET",
-            "/",
-            profile.with_query_timeout(Duration::ZERO),
-            &site,
-        );
-        assert_eq!(timed.status, 408);
-        let cancelled = Arc::new(Controls::default());
-        cancelled.cancelled.store(true, Ordering::SeqCst);
-        assert_eq!(
-            SoftwareSite::open(&executable, cancelled)
-                .err()
-                .unwrap()
-                .code,
-            tos_access::AccessErrorCode::Cancelled
-        );
-        // The real installed binary/layout acceptance is a separate admitted
-        // assembly stage. This test never executes the integrity fixture ELF.
     }
     #[test]
     #[cfg(feature = "source-tools")]
@@ -4380,14 +3294,6 @@ mod selected_knowledge {
             ("Cargo.lock", lock.clone()),
             ("rust-toolchain.toml", pin.clone()),
             ("access/src/tos_access/tos-access", elf.clone()),
-            (
-                "access/src/tos_access/web_dist/assets/tos-graph.css",
-                b"body{}".to_vec(),
-            ),
-            (
-                "access/src/tos_access/web_dist/assets/tos-graph.js",
-                b"fixture-static-js".to_vec(),
-            ),
         ]);
         let number = |n: usize| {
             JsonValue::Number(tos_foundation::JsonNumber {
@@ -4535,8 +3441,8 @@ mod selected_knowledge {
         // Whole archive SHA is updated, but the member CRC/SHA must still fail.
         let mut changed = original.clone();
         let offset = changed
-            .windows(b"fixture-static-js".len())
-            .position(|p| p == b"fixture-static-js")
+            .windows(b"version = 4\n".len())
+            .position(|p| p == b"version = 4\n")
             .unwrap();
         changed[offset] ^= 1;
         let JsonValue::Object(fields) = &mut external else {
@@ -4601,8 +3507,6 @@ mod selected_knowledge {
         fs::create_dir(&root).unwrap();
         let package = root.join("software.zip");
         let installed = root.join("installed");
-        let web_dist = std::env::var_os("TOS_NATIVE_SOFTWARE_WEB_DIST")
-            .expect("OPS must provide the genuine admitted current frontend handoff");
         let total = std::env::var("TOS_NATIVE_SOFTWARE_MAX_TOTAL_BYTES")
             .expect("OPS must provide the admitted uncompressed closure budget");
         let compressed = std::env::var("TOS_NATIVE_SOFTWARE_MAX_ARCHIVE_BYTES")
@@ -4661,8 +3565,6 @@ mod selected_knowledge {
         let assembly = assembly_command
             .arg("--root")
             .arg(&repository)
-            .arg("--web-dist")
-            .arg(web_dist)
             .arg("--output")
             .arg(&package)
             .arg("--source-ref")
@@ -5067,89 +3969,12 @@ mod selected_knowledge {
             );
             wire
         };
-        let split = |wire: &[u8]| {
-            wire.windows(4)
-                .position(|part| part == b"\r\n\r\n")
-                .unwrap()
-                + 4
-        };
-        let shell = request("GET", "/");
-        let head_end = split(&shell);
-        let headers = String::from_utf8_lossy(&shell[..head_end]);
-        assert!(headers.starts_with("HTTP/1.1 200 "));
-        assert!(headers.contains("Content-Type: text/html; charset=utf-8\r\n"));
-        assert!(headers.contains("Cache-Control: no-cache\r\n"));
-        assert!(headers.contains("Content-Security-Policy:") && headers.contains("'nonce-"));
-        assert!(headers.contains("X-Content-Type-Options: nosniff\r\n"));
-        assert!(headers.contains(&format!("Content-Length: {}\r\n", shell.len() - head_end)));
-        let html = std::str::from_utf8(&shell[head_end..]).unwrap();
-        let boot = html
-            .split("window.__TOS_GRAPH_BOOT__=")
-            .nth(1)
-            .unwrap()
-            .split(";</script>")
-            .next()
-            .unwrap();
-        let boot = parse_json(
-            boot.as_bytes(),
-            JsonMode::PublishedStrict,
-            JsonLimits::default(),
-        )
-        .unwrap()
-        .into_root();
-        for field in ["default_view", "default_philosophy_view"] {
-            assert_eq!(boot.object_get(field).unwrap().as_str(), Some(""));
+        for path in ["/", "/static/assets/tos-graph.js", "/static/research.html"] {
+            assert!(request("GET", path).starts_with(b"HTTP/1.1 404 "));
         }
-        assert_eq!(
-            boot.object_get("write_enabled"),
-            Some(&JsonValue::Bool(false))
-        );
-        for capability in ["corpus", "philosophy"] {
-            assert_eq!(
-                boot.object_get("capabilities")
-                    .unwrap()
-                    .object_get(capability),
-                Some(&JsonValue::Bool(false))
-            );
-        }
-        let head = request("HEAD", "/");
-        assert_eq!(split(&head), head.len());
-        assert!(
-            String::from_utf8_lossy(&head)
-                .contains(&format!("Content-Length: {}\r\n", shell.len() - head_end))
-        );
-        for (asset, mime) in [
-            ("tos-graph.js", "text/javascript"),
-            ("tos-graph.css", "text/css"),
-        ] {
-            let path = format!("/static/assets/{asset}");
-            let member = installed
-                .join("software/access/src/tos_access/web_dist/assets")
-                .join(asset);
-            assert!(fs::metadata(&member).unwrap().len() <= 16 * 1024 * 1024);
-            let expected = fs::read(&member).unwrap();
-            let wire = request("GET", &path);
-            assert_eq!(http_packet(&wire), expected);
-            let headers = String::from_utf8_lossy(&wire[..split(&wire)]);
-            assert!(headers.contains(&format!("Content-Type: {mime}\r\n")));
-            assert!(headers.contains("Cache-Control: no-cache\r\n"));
-            let head = request("HEAD", &path);
-            assert_eq!(split(&head), head.len());
-            assert!(
-                String::from_utf8_lossy(&head)
-                    .contains(&format!("Content-Length: {}\r\n", expected.len()))
-            );
-        }
-        let unavailable = request("GET", "/api/knowledge/catalog");
-        assert!(unavailable.starts_with(b"HTTP/1.1 503 "));
-        let traversal = request("GET", "/static/%2e%2e/Cargo.lock");
-        assert!(!traversal.starts_with(b"HTTP/1.1 200 "));
-        // A live process must refuse disappearance of its exact software image.
+        assert!(request("GET", "/api/knowledge/catalog").starts_with(b"HTTP/1.1 503 "));
         let moved = image.with_extension("held");
         fs::rename(&image, &moved).unwrap();
-        let refused = request("GET", "/");
-        assert!(refused.starts_with(b"HTTP/1.1 503 "));
-        assert!(!String::from_utf8_lossy(&refused).contains("window.__TOS_GRAPH_BOOT__"));
         drop(server);
         // Restore from the retained verified package into another fresh prefix.
         // The unavailable first prefix remains untouched and inspectable.
@@ -5212,6 +4037,50 @@ mod prepared_compressed {
         parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default())
             .unwrap()
             .into_root()
+    }
+    fn object(fields: Vec<(&str, JsonValue)>) -> JsonValue {
+        JsonValue::Object(
+            fields
+                .into_iter()
+                .map(|(key, value)| (tos_foundation::JsonString::from_utf8(key), value))
+                .collect(),
+        )
+    }
+    fn text(value: &str) -> JsonValue {
+        JsonValue::String(tos_foundation::JsonString::from_utf8(value))
+    }
+    fn mcp_input(tool: &str, arguments: &JsonValue) -> Vec<u8> {
+        let mut input = b"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\"}}\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\n".to_vec();
+        input.extend(
+            tos_foundation::emit_value_preserved_json(
+                &object(vec![
+                    ("jsonrpc", text("2.0")),
+                    (
+                        "id",
+                        JsonValue::Number(tos_foundation::JsonNumber {
+                            kind: tos_foundation::JsonNumberKind::Int,
+                            lexeme: "2".into(),
+                        }),
+                    ),
+                    ("method", text("tools/call")),
+                    (
+                        "params",
+                        object(vec![("name", text(tool)), ("arguments", arguments.clone())]),
+                    ),
+                ]),
+                JsonLimits::default(),
+            )
+            .unwrap(),
+        );
+        input.push(b'\n');
+        input
+    }
+    fn last_frame(output: &[u8]) -> &[u8] {
+        output
+            .split(|byte| *byte == b'\n')
+            .filter(|frame| !frame.is_empty())
+            .last()
+            .unwrap()
     }
     struct Rows(Vec<JsonValue>);
     impl PreparedRows for Rows {
@@ -5280,6 +4149,78 @@ mod prepared_compressed {
         )
         .unwrap();
         let profile = tos_access::prepared_local::profile();
+        let capabilities = tos_access::registered_operations()
+            .unwrap()
+            .into_iter()
+            .find(|operation| {
+                operation.operation_id == tos_access::KnowledgeOperation::SearchCapabilities.id()
+            })
+            .unwrap();
+        let capability_args: Vec<String> = capabilities
+            .cli_command
+            .as_ref()
+            .unwrap()
+            .split_whitespace()
+            .map(str::to_owned)
+            .collect();
+        let (mut capability_output, mut capability_errors) = (Vec::new(), Vec::new());
+        assert_eq!(
+            cli::run_cli(
+                &capability_args,
+                &executor,
+                profile,
+                &mut capability_output,
+                &mut capability_errors,
+            ),
+            0,
+            "{}",
+            String::from_utf8_lossy(&capability_errors)
+        );
+        let capability = json(&capability_output);
+        assert_eq!(
+            capability
+                .object_get("default_mode")
+                .and_then(JsonValue::as_str),
+            Some("compressed")
+        );
+        assert_eq!(
+            capability
+                .object_get("explicit_mode_required")
+                .and_then(JsonValue::as_bool),
+            Some(false)
+        );
+        let modes = capability.object_get("modes").unwrap();
+        assert_eq!(modes.as_object().unwrap().len(), 1);
+        assert_eq!(
+            modes
+                .object_get("compressed")
+                .unwrap()
+                .object_get("available")
+                .and_then(JsonValue::as_bool),
+            Some(true)
+        );
+        assert!(modes.object_get("legacy").is_none());
+        assert!(modes.object_get("indexed").is_none());
+        assert_eq!(
+            json(&handle_get(&executor, "GET", &capabilities.http_path, profile).body),
+            capability
+        );
+        let mut capability_output = Vec::new();
+        run_io(
+            Cursor::new(mcp_input(&capabilities.mcp_tool, &object(vec![]))),
+            &mut capability_output,
+            &executor,
+            profile,
+        )
+        .unwrap();
+        let rpc = json(last_frame(&capability_output));
+        assert_eq!(
+            rpc.object_get("result")
+                .unwrap()
+                .object_get("structuredContent")
+                .unwrap(),
+            &capability
+        );
         let expected = emit_python_compact_json(&catalog, JsonLimits::default()).unwrap();
         let (mut out, mut err) = (Vec::new(), Vec::new());
         assert_eq!(
@@ -5453,8 +4394,6 @@ mod prepared_compressed {
                 "knowledge".into(),
                 "search".into(),
                 "".into(),
-                "--mode".into(),
-                "compressed".into(),
                 "--limit".into(),
                 "1".into(),
                 "--sources".into(),
@@ -5497,6 +4436,15 @@ mod prepared_compressed {
                 .as_str(),
             Some("b")
         );
+        let default_http = handle_get(
+            &executor,
+            "GET",
+            "/api/knowledge/search?query=&sources=philosophy&kind_ids=concept&limit=1",
+            profile,
+        );
+        assert_eq!(default_http.status, 200);
+        let default_http = json(&default_http.body);
+        same_rows(&first, &default_http);
         let response = handle_get(
             &executor,
             "GET",
@@ -5514,7 +4462,7 @@ mod prepared_compressed {
         same_rows(&second, &json(&response.body));
         drop(response);
         let input = format!(
-            "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_search\",\"arguments\":{{\"mode\":\"compressed\",\"query\":\"\",\"sources\":[\"philosophy\"],\"kind_ids\":[\"concept\"],\"limit\":1,\"cursor\":\"{cursor}\"}}}}}}\n"
+            "{{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{{\"protocolVersion\":\"2025-11-25\"}}}}\n{{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}}\n{{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{{\"name\":\"tos_knowledge_search\",\"arguments\":{{\"query\":\"\",\"sources\":[\"philosophy\"],\"kind_ids\":[\"concept\"],\"limit\":1,\"cursor\":\"{cursor}\"}}}}}}\n"
         );
         let mut output = Vec::new();
         run_io(
@@ -5537,6 +4485,70 @@ mod prepared_compressed {
                 .object_get("structuredContent")
                 .unwrap(),
         );
+        for mode in ["legacy", "indexed"] {
+            let args = [
+                "knowledge".into(),
+                "search".into(),
+                "source".into(),
+                "--mode".into(),
+                mode.into(),
+                "--limit".into(),
+                "1".into(),
+            ];
+            let (mut out, mut err) = (Vec::new(), Vec::new());
+            assert_ne!(
+                cli::run_cli(&args, &executor, profile, &mut out, &mut err),
+                0
+            );
+            assert!(out.is_empty());
+            assert!(!err.is_empty());
+            assert_eq!(
+                handle_get(
+                    &executor,
+                    "GET",
+                    &format!("/api/knowledge/search?mode={mode}&query=source&limit=1"),
+                    profile,
+                )
+                .status,
+                400
+            );
+            let mut output = Vec::new();
+            run_io(
+                Cursor::new(mcp_input(
+                    "tos_knowledge_search",
+                    &object(vec![
+                        ("mode", text(mode)),
+                        ("query", text("source")),
+                        (
+                            "limit",
+                            parse_json(b"1", JsonMode::PublishedStrict, JsonLimits::default())
+                                .unwrap()
+                                .into_root(),
+                        ),
+                    ]),
+                )),
+                &mut output,
+                &executor,
+                profile,
+            )
+            .unwrap();
+            let refused = json(last_frame(&output));
+            assert_eq!(
+                refused
+                    .object_get("result")
+                    .unwrap()
+                    .object_get("isError")
+                    .and_then(JsonValue::as_bool),
+                Some(true)
+            );
+            assert!(
+                refused
+                    .object_get("result")
+                    .unwrap()
+                    .object_get("structuredContent")
+                    .is_none()
+            );
+        }
         assert_eq!(
             handle_get(
                 &executor,

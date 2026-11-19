@@ -32,8 +32,7 @@ tos --root /absolute/selected-data mcp
 
 HTTP binds to loopback by default. MCP uses stdio unless a loopback-only
 Streamable HTTP transport is selected explicitly. `--root` or `TOS_DATA_ROOT`
-selects data; neither changes the installed software, browser assets, or API
-schemas. No command searches a parent directory or neighboring checkout for
+selects data; neither changes the installed software or API schemas. No command searches a parent directory or neighboring checkout for
 another dataset. `--release-root` selects an already admitted managed release;
 it does not install software or build data.
 
@@ -75,7 +74,7 @@ Managed data is selected separately with `--release-root`.
 
 Use `tos-access software build`, `software verify`, `software extract`, and
 `software install` for the code-only archive. The archive contains the native
-entrypoint and its software-owned browser assets, not corpus data. Build inputs,
+entrypoint and runtime contracts, not browser assets or corpus data. Build inputs,
 budgets, archive verification and official release steps are in
 [`docs/RELEASING.md`](../docs/RELEASING.md).
 
@@ -102,17 +101,12 @@ SQLite path and an owner-selected binding. A reader never creates a missing
 product, infers a binding from database contents, or falls back to a different
 dataset after a selected product fails.
 
-Projection search retains its declared engine-specific behavior: legacy and
-indexed modes keep their own pagination and filters, while compressed search is
-available only for an explicitly selected prepared profile. The native
-consumer does not translate offsets into cursors or silently select another
-engine. See the [compressed-search contract](COMPRESSED_SEARCH_V3.md) and
-[native semantics](shared/NATIVE_SEMANTICS.md) for engine compatibility and
-work limits.
+Knowledge search uses the compressed profile of an explicitly selected prepared
+publication. The native consumer does not translate offsets into cursors or
+silently select another dataset. See the [compressed-search contract](COMPRESSED_SEARCH_V3.md) for the cursor and work limits.
 
 Source navigation provides `tos.source.descend` and `tos.dossier.inspect` on
-the native source-navigation product (or the explicitly supported legacy
-carrier). A dossier can include the connected bibliographic chain, observed
+the native source-navigation product. A dossier can include the connected bibliographic chain, observed
 links, scoped rights records, gaps and source references. Check the rights record
 before using a downloadable URL. A prepared
 reader without its declared navigation and rights companions is unavailable
@@ -145,10 +139,7 @@ the selected local data, not source admission or publication.
 The [Rust access guide](../rust/crates/tos-access/README.md) owns the installed runtime and validation route.
 
 `tos.source-text.search` requires an explicitly selected durable PostgreSQL
-consumer. The optional Worker gateway forwards it only when its native HTTPS
-origin and both outbound/inbound Cloudflare Access credentials are configured.
-D1 is not a source-text reader. See the
-[source-text gateway contract](contracts/source-text-gateway.v1.md).
+consumer. It is served by the native API with the selected private source policy.
 
 ### Backend-defined knowledge construction
 
@@ -285,8 +276,7 @@ dependencies or a publication that is behind the requested sequence produce
 `publication_pending`; the client may retry after source processing advances.
 Use `source descend NODE_ID --at-least-commit-seq SEQUENCE` (HTTP query field
 `at_least_commit_seq`, or the matching MCP argument) with the receipt's
-canonical unsigned 64-bit decimal string. The D1 export has no CMD sequence
-and refuses this parameter. Neither the check nor retry forces processing or
+canonical unsigned 64-bit decimal string. Neither the check nor retry forces processing or
 grants rights. Complete model preparation, source review, rights and reader
 selection remain separate owner routes.
 
@@ -313,57 +303,10 @@ output directory; failure may leave partial output for caller-owned cleanup.
 Production, verification and corpus import follow the
 [source-witness owner route](../ToS/source-witnesses/README.md).
 
-Offline edge capture is also explicit and emits unapplied local artifacts:
-`tos edge-offline-capture --request /absolute/request.json`. The Worker guide
-owns its operation-specific request schema, finite limits, custody requirements
-and outputs; capture does not import to D1, switch consumers, or publish
-remotely. See [native offline prepared-pair capture](deploy/cloudflare-worker/README.md#native-offline-prepared-pair-capture).
-
-#### Supervised Linux capture
-
-The outer envelope uses `schema: "tos_edge_selected_capture_request_v1"`
-and embeds the original ordered `tos_edge_offline_capture_request_v1` request
-under `capture`; use the [Worker capture example](deploy/cloudflare-worker/README.md#native-offline-prepared-pair-capture)
-for that inner object. Its other required fields are `selected_prefix`,
-`scratch`, `transport_limits`, `installed_limits`, `work_timeout_ms`,
-`cleanup_timeout_ms`, `supervisor_unit` and `supervisor_total_ms`.
-`transport_limits` contains `frame_bytes`, `schema_bytes`, `request_state_bytes`,
-`result_state_bytes`, `stream_bytes`, `metadata_bytes`, `state_bytes`, `io_bytes`,
-`held_fds` and `census_entries`; `installed_limits` contains `max_image_bytes`,
-`max_metadata_bytes`, `max_state_bytes`, `max_io_bytes` and `max_held_fds`.
-The [selected-entry owner](../rust/crates/tos-access/src/edge_offline_capture/selected_entry.rs)
-defines exact parsing, custody and accounting.
-
-The `--selected-request` entry is only for a supervised Linux host. Its
-request explicitly binds a selected prefix, scratch path, positive
-`transport_limits` and `installed_limits`, work/cleanup clocks, and one finite
-user service. The command verifies that service's actual invocation and
-process/cgroup custody. Prefix and scratch are existing absolute paths; limits
-have no defaults. Work is at most 1,200,000 ms, cleanup at most 10,000 ms, and
-the outer service at most 1,210,000 ms from the original entry clock; neither
-deadline is renewed. Run it under the selected
-outer service, with `RuntimeMaxSec` no greater than the request's supervisor
-total and `TimeoutStopSec` no greater than its cleanup interval:
-
-```sh
-systemd-run --user --wait --collect --pipe --unit UNIT.service \
-  -p MemoryMax=MEMORY_BYTES -p MemorySwapMax=0 \
-  -p RuntimeMaxSec=ORIGINAL_TOTAL_SECONDS -p TimeoutStopSec=ORIGINAL_CLEANUP_SECONDS \
-  -p KillMode=control-group -- \
-  /absolute/prefix/bin/tos edge-offline-capture --selected-request /absolute/request.json
-```
-
-If native child release is not proved within the original cleanup clock, the
-CLI exits 125 without success or adoption and retains frames and failure
-evidence for owner-directed cleanup. The selected outer service owns residual
-cleanup; process death closes this CLI's owned read transactions. A library
-caller retains its separate borrowed-custody contract.
-
 ## Browser application and WebMCP
 
-The web client is the human presentation of the same selected, bounded read
-products. It supports source-linked search, evidence and route inspection,
-bounded lens construction, and a browser-local research workspace. Workspace
+The public research site presents the Zarathustra and Antiquity stands and a
+browser-local research workspace. Workspace
 hypotheses and proposals remain local, visibly unreviewed, and outside ToS
 source, review ledger, candidate intake and canon. Export is the handoff.
 Feature-specific behavior and development commands are in the

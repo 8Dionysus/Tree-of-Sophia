@@ -51,7 +51,11 @@
       "source": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B5%D1%8D%D1%82%D0%B5%D1%82_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750940",
       "basis": "At the selected original reference, Karpov’s Russian edition assigns one or more preceding sentences to the prior numbered unit. Offer those sentences to the aligner without changing the source text.",
       "handoverUnitIds": [
-        "tos.text-unit.sid-c59e1c0e6c664c07a57375e0b80e661e"
+        "tos.text-unit.sid-c59e1c0e6c664c07a57375e0b80e661e",
+        "tos.text-unit.sid-e58e0cf5eda44f2b95ba3dfd9b58f887"
+      ],
+      "completePreviousUnitIds": [
+        "tos.text-unit.sid-e58e0cf5eda44f2b95ba3dfd9b58f887"
       ]
     },
     {
@@ -65,7 +69,8 @@
       "source": "https://ru.wikisource.org/w/index.php?title=%D0%A1%D0%BE%D1%84%D0%B8%D1%81%D1%82_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3749414",
       "basis": "At the selected original reference, Karpov’s Russian edition assigns one or more preceding sentences to the prior numbered unit. Offer those sentences to the aligner without changing the source text.",
       "handoverUnitIds": [
-        "tos.text-unit.sid-ae6b9e92c7e5461eaac1d043657e491a"
+        "tos.text-unit.sid-ae6b9e92c7e5461eaac1d043657e491a",
+        "tos.text-unit.sid-3d1cd051b68545198e4437eb1f813d17"
       ]
     },
     {
@@ -79,7 +84,8 @@
       "source": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959",
       "basis": "At the selected original reference, Karpov’s Russian edition assigns one or more preceding sentences to the prior numbered unit. Offer those sentences to the aligner without changing the source text.",
       "handoverUnitIds": [
-        "tos.text-unit.sid-de6d24a40cc94eaea05e72f156f8f84d"
+        "tos.text-unit.sid-de6d24a40cc94eaea05e72f156f8f84d",
+        "tos.text-unit.sid-e407e13336954d43a4453e47ca1d40b8"
       ]
     },
     {
@@ -97,6 +103,28 @@
       ]
     },
     {
+      "work": "republic",
+      "translationVersionId": "retained-republic-ru-karpov1863-wikisource",
+      "translationRevision": "ff832e136e90132c6496203d54325ccf72bfe743b35d3f9c3c6e7bde58c02025",
+      "originalVersionId": "retained-republic-grc2-5f9f8ad62cdb",
+      "originalRevision": "5046b810cb3fa6ab9163967602811611ce1436031551d8a8bac06b0b1ee772e4",
+      "firstUnitId": "tos.text-unit.sid-f924458864214124955e62b617f3d769",
+      "lastUnitId": "tos.text-unit.sid-b13d46e4c03d45a0ba0df96e686a9f0d",
+      "source": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0_%D0%B8%D0%BB%D0%B8_%D0%B3%D0%BE%D1%81%D1%83%D0%B4%D0%B0%D1%80%D1%81%D1%82%D0%B2%D0%BE_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=5642624",
+      "basis": "At Stephanus 434 and 516 the original labels the page with its book and the translation labels it by page alone. The whole-work alignment gives preceding sentences for the cited places. Align the corresponding complete page units independently; at 434 the Russian sentence continues into the next page. Preserve both texts and offsets.",
+      "localReferencePairs": [
+        {
+          "originalUnitId": "tos.text-unit.sid-30964fd34db4458c914156b4c619690a",
+          "translationUnitId": "tos.text-unit.sid-31624193ec5943b8a69574d6d396d8d5",
+          "includeFollowingContinuation": true
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-3dfba184a7244e53b1e30e372445e2f3",
+          "translationUnitId": "tos.text-unit.sid-70e20d8a91e7470ca98ed5ff4948a0f7"
+        }
+      ]
+    },
+    {
       "work": "enchiridion",
       "translationVersionId": "retained-enchiridion-es-brum1888",
       "translationRevision": "14e6c9afd9025e8f00e72b8e13f946474fad1e62fffc5def89bb58bdcbf97ead",
@@ -106,6 +134,30 @@
       "lastUnitId": "tos.text-unit.sid-569b347a1bc1430da27726facf1dda46",
       "source": "https://es.wikisource.org/wiki/Enquiridi%C3%B3n/M%C3%A1ximas",
       "basis": "The automatic whole-work alignment gives unrelated Spanish passages for multiple cited Greek sections, including 30, 33, 46 and 52. Withhold this witness's card alignment until its differently numbered maxims and source text are aligned and reviewed; the public corpus witness remains available for reading.",
+      "withheld": true
+    },
+    {
+      "work": "apology",
+      "translationVersionId": "retained-apology-es-azcarate1871",
+      "translationRevision": "b91d88e28dc6383145bbab4d33f3670b7ab9991af9ceaf0a287887f24c163685",
+      "originalVersionId": "retained-apology-grc2-6077e9014cf8",
+      "originalRevision": "aa3268383fa165879f098f106c92b87c5bae3bb8eb9c88be55f8d5cfa591191e",
+      "firstUnitId": "tos.text-unit.sid-6f7c37b83ac44085983a8fc8e42f52fc",
+      "lastUnitId": "tos.text-unit.sid-aa77da9055bc437fbe4a0cea6d85bbbc",
+      "source": "https://es.wikisource.org/wiki/Apolog%C3%ADa_de_S%C3%B3crates_(de_Azc%C3%A1rate_tr.)",
+      "basis": "The retained source omits lines and dialogue, and automatic alignment returns unrelated Spanish passages for multiple cited Greek ranges. Withhold card alignment until a source-bound correction and alignment have been reviewed; the retained witness remains available for reading.",
+      "withheld": true
+    },
+    {
+      "work": "apology",
+      "translationVersionId": "perseus-fowler-1914-en",
+      "translationRevision": "e9aad012204bd47d908d9fc119e0d81ad924388d362554835d18076b85f15c24",
+      "originalVersionId": "retained-apology-grc2-6077e9014cf8",
+      "originalRevision": "aa3268383fa165879f098f106c92b87c5bae3bb8eb9c88be55f8d5cfa591191e",
+      "firstUnitId": "tos.text-unit.sid-6f7c37b83ac44085983a8fc8e42f52fc",
+      "lastUnitId": "tos.text-unit.sid-aa77da9055bc437fbe4a0cea6d85bbbc",
+      "source": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-eng2.xml",
+      "basis": "The automatic alignment returns thirty minas for a Greek citation about one mina. Withhold this reading layer's card alignment; the other retained Fowler layer remains available and gives the corresponding passage.",
       "withheld": true
     }
   ]
