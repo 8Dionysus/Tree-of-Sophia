@@ -48,3 +48,15 @@ unsearched state, never an assertion that a text does not exist.
   Heidelberg's 1915 edition and p. 57 are available at
   https://doi.org/10.11588/diglit.27250#0075; the translation search remains
   incomplete. Its blocked packet is a work-in-progress, not an absence record.
+
+## Legacy packets after #432
+
+On 19 November the new offline gate reports `gate: open, owes 7` for the
+unaccepted Pope and Knight packets: older single-basis rights, undocumented
+Russian absence/searches and missing edition locator, plus no es/de/zh-Hans
+search record. The owner's direction requires real investigation and original
+plus each reader language, so these `owes` are not evidence of readiness.
+Please provide a maker route to complete legacy-packet rights and witnesses
+before second-reader acceptance; `drive.py line --retake` otherwise advances
+an already open gate directly to the second reader. Full search evidence is
+in the later availability reports; no absence should be inferred.
