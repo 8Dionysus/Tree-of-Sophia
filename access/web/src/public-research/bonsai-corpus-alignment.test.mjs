@@ -66,7 +66,7 @@ describe('the corpus alignment of the stands',()=>{
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],handoverUnitIds:['u','u']}]})).toContain('handoverUnitIds');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],handoverUnitIds:['u'],completePreviousUnitIds:['other']}]})).toContain('completePreviousUnitIds');
     const complete=module.scopes.find(scope=>scope.work==='theaetetus');
-    expect(translationScopesIssues({...module,scopes:[{...complete,localReferencePairs:[{originalUnitId:'u',translationUnitId:'t'}]}]})).toContain('completePreviousUnitIds');
+    expect(translationScopesIssues({...module,scopes:[{...complete,localReferencePairs:[{originalUnitId:complete.completePreviousUnitIds[0],translationUnitId:'t'}]}]})).toContain('completePreviousUnitIds');
     expect(translationScopesIssues({...module,scopes:[{...module.scopes[0],withheld:'yes'}]})).toContain('withheld');
   });
   it('withholds only an explicitly bound unreliable translation from cards',()=>{
@@ -96,6 +96,35 @@ describe('the corpus alignment of the stands',()=>{
     expect(Array.from(translation.units[0].text).slice(start,end).join('')).toBe('Word.');
     expect(result.receipt['a:e'].sourceScope.translationStart).toEqual(scope.translationStart);
     for(const translationStart of [{unitId:'other',offset:10},{unitId:'t',offset:100},{unitId:'t',offset:0}])expect(()=>alignCorpus(cited,works,read,[{...scope,translationStart}])).toThrow(/invalid or stale translation scope/);
+  });
+  it('uses unique normalized keywords to match a sentence across two printed references',()=>{
+    const original={id:'g',language:'grc',revision:'g',units:[
+      {id:'s0',reference:'27',text:'Δῆλον.'},
+      {id:'s1',reference:'28',text:'Ἄλλο. Μῆνις καὶ λόγος. Τέλος.'},
+    ]};
+    const translation={id:'r',language:'ru',revision:'r',units:[
+      {id:'t0',reference:'27',text:'📖 Ясно. Другое. Гнев и'},
+      {id:'t1',reference:'28',text:'речь. Конец.'},
+    ]};
+    const read=()=>({id:'work',versions:[original,translation]});
+    const cited=new Map([['a',{original:'g',units:new Set(['s1'])}]]);
+    const scope={work:'a',translationVersionId:'r',translationRevision:'r',originalVersionId:'g',originalRevision:'g',
+      firstUnitId:'s0',lastUnitId:'s1',source:'https://example.test/book'};
+    const anchor={source:['ΛΌΓΟΣ','ΜΗ͂ΝΙΣ'],target:['гнев','речь']};
+    const pair={originalUnitId:'s1',translationUnitId:'t1',precedingTranslationSentences:2,sentenceAnchors:[anchor]};
+    const align=pairs=>alignCorpus(cited,{a:'work'},read,[{...scope,localReferencePairs:pairs}]);
+    const result=align([pair]),entry=result.units.s1.t.r;
+    const [source,target]=entry.pairs.find(([ranges])=>ranges.some(([start])=>start===6));
+    expect(source).toEqual([[6,22]]);
+    expect(target.map(([index,start,end])=>{
+      const unit=translation.units.find(item=>item.id===entry.u[index]);
+      return Array.from(unit.text).slice(start,end).join('');
+    })).toEqual(['Гнев и','речь.']);
+    expect(result.works.a.original).toMatchObject({versionId:'g',revision:'g'});
+    expect(()=>align([{...pair,sentenceAnchors:[{...anchor,target:['отсутствует']}]}])).toThrow(/missing or ambiguous/);
+    expect(()=>align([{...pair,sentenceAnchors:[anchor,{source:['τέλος'],target:['другое']}]}])).toThrow(/overlap or cross/);
+    translation.units[1].text+=' Гнев и речь. Гнев и речь.';
+    expect(()=>align([pair])).toThrow(/missing or ambiguous/);
   });
   it('aligns explicitly matched whole reference units without changing the original or other units',()=>{
     const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s1',reference:'Book 7 · 515',text:'λόγος.'},{id:'s2',reference:'Book 7 · 516',text:'ἄνω.'}]};
@@ -175,6 +204,28 @@ describe('the corpus alignment of the stands',()=>{
     expect(result.units.s.t.english.pairs[0][0]).toHaveLength(6);
     expect(alignVersion(original,translation,new Set(['s'])).entries.s.pairs[0][0]).toHaveLength(3);
     expect(()=>alignCorpus(cited,works,read,[{...scope,maxSourceSentences:7}])).toThrow(/invalid or stale translation scope/);
+  });
+  it.skipIf(!corpusFetched)('keeps the reviewed Russian Timaeus sentences with their Greek references',()=>{
+    const alignment=json('bonsai/antiquity/alignment.json'),metadata=alignment.works.timaeus;
+    const work=read(metadata.documentId);
+    const original=work.versions.find(version=>version.id===metadata.original.versionId);
+    const russian=work.versions.find(version=>version.language==='ru');
+    const expected=[
+      ['28',140,294,/^Первое постигается.*погибающее/su],
+      ['29',1827,1967,/^Он был добр.*зависти.*подобно ему/su],
+      ['47',651,781,/^Так это я называю величайшим благодеянием очей.*слепец/su],
+      ['47',1843,1990,/^Всё до сих пор сказанное.*необходимости\.$/su],
+      ['48',6,286,/^Ведь этот космос получил смешанную природу/su],
+      ['90',1926,2050,/^Итак, задача, поставленная нам вначале.*рождения человека/su],
+    ];
+    for(const [ref,start,end,phrase] of expected){
+      const unit=original.units.find(item=>item.reference===ref),entry=alignment.units[unit.id].t[russian.id];
+      const text=entry.pairs.filter(([spans])=>spans.some(([a,b])=>a<end&&start<b)).flatMap(([,spans])=>spans.map(([i,a,b])=>{
+        const translated=russian.units.find(item=>item.id===entry.u[i]);
+        return Array.from(translated.text).slice(a,b).join('');
+      })).join(' ');
+      expect(text,`Timaeus ${ref} ${start}–${end}`).toMatch(phrase);
+    }
   });
   it.skipIf(!corpusFetched)('keeps the English passage about measurement and cheese with its Greek citation',()=>{
     const module=json('bonsai/antiquity/alignment.json'),work=read(module.works['ancient-medicine'].documentId);
