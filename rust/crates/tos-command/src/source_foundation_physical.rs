@@ -21,7 +21,7 @@ use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, RelativePath};
 use tos_ops_mechanics_plan::source_reading::{
-    RouteResolvedTarget, RouteSourceReadHooks, RouteSources,
+    MAX_SELECTED_PATH_DISCOVERY_ENTRIES, RouteResolvedTarget, RouteSourceReadHooks, RouteSources,
 };
 use tos_source_store::PinnedSqliteIoBudget;
 use tos_validation::item_rules::ItemRefusal;
@@ -1711,39 +1711,45 @@ fn recheck_private_prefix(
     let over_state = Cell::new(false);
     let stopped = Cell::new(false);
     let paths = sources
-        .selected_physical_paths(prefix, &|path, _directory| {
-            if snapshot.cancelled.load(Ordering::Relaxed)
-                || snapshot.git_signal.load(Ordering::Relaxed) != 0
-                || Instant::now() >= snapshot.deadline
-            {
-                stopped.set(true);
-                return false;
-            }
-            // The callback checks the selected root too, but the returned
-            // inventory contains only descendants. The prefix has already
-            // been observed and priced separately above.
-            if path == prefix {
-                return true;
-            }
-            let next = local_count.get().saturating_add(1);
-            if next > remaining {
-                over_paths.set(true);
-                return false;
-            }
-            let cost = transient_walk_cost(path);
-            let state = local_state.get().saturating_add(cost);
-            if snapshot
-                .state_bytes
-                .checked_add(state)
-                .is_none_or(|peak| peak > snapshot.limits.max_state_bytes)
-            {
-                over_state.set(true);
-                return false;
-            }
-            local_count.set(next);
-            local_state.set(state);
-            true
-        })
+        .selected_physical_paths_with_limit(
+            prefix,
+            &|path, _directory| {
+                if snapshot.cancelled.load(Ordering::Relaxed)
+                    || snapshot.git_signal.load(Ordering::Relaxed) != 0
+                    || Instant::now() >= snapshot.deadline
+                {
+                    stopped.set(true);
+                    return false;
+                }
+                // The callback checks the selected root too, but the returned
+                // inventory contains only descendants. The prefix has already
+                // been observed and priced separately above.
+                if path == prefix {
+                    return true;
+                }
+                let next = local_count.get().saturating_add(1);
+                if next > remaining {
+                    over_paths.set(true);
+                    return false;
+                }
+                let cost = transient_walk_cost(path);
+                let state = local_state.get().saturating_add(cost);
+                if snapshot
+                    .state_bytes
+                    .checked_add(state)
+                    .is_none_or(|peak| peak > snapshot.limits.max_state_bytes)
+                {
+                    over_state.set(true);
+                    return false;
+                }
+                local_count.set(next);
+                local_state.set(state);
+                true
+            },
+            remaining
+                .saturating_add(1)
+                .min(MAX_SELECTED_PATH_DISCOVERY_ENTRIES),
+        )
         .map_err(|error| {
             route_error(
                 error,
@@ -1879,36 +1885,42 @@ fn enumerate_private_prefix(
     let over_state = Cell::new(false);
     let stopped = Cell::new(false);
     let baseline_state = *state_bytes;
-    let paths_result = sources.selected_physical_paths(prefix, &|path, _directory| {
-        if cancelled.load(Ordering::Relaxed)
-            || git_signal.load(Ordering::Relaxed) != 0
-            || Instant::now() >= deadline
-        {
-            stopped.set(true);
-            return false;
-        }
-        // Root admission is not a returned descendant. Its existing physical
-        // observation owns that cost; count only this inventory's entries.
-        if path == prefix {
-            return true;
-        }
-        let next = local_count.get().saturating_add(1);
-        if next > remaining {
-            over_paths.set(true);
-            return false;
-        }
-        let state = local_state.get().saturating_add(transient_walk_cost(path));
-        if baseline_state
-            .checked_add(state)
-            .is_none_or(|peak| peak > limits.max_state_bytes)
-        {
-            over_state.set(true);
-            return false;
-        }
-        local_count.set(next);
-        local_state.set(state);
-        true
-    });
+    let paths_result = sources.selected_physical_paths_with_limit(
+        prefix,
+        &|path, _directory| {
+            if cancelled.load(Ordering::Relaxed)
+                || git_signal.load(Ordering::Relaxed) != 0
+                || Instant::now() >= deadline
+            {
+                stopped.set(true);
+                return false;
+            }
+            // Root admission is not a returned descendant. Its existing physical
+            // observation owns that cost; count only this inventory's entries.
+            if path == prefix {
+                return true;
+            }
+            let next = local_count.get().saturating_add(1);
+            if next > remaining {
+                over_paths.set(true);
+                return false;
+            }
+            let state = local_state.get().saturating_add(transient_walk_cost(path));
+            if baseline_state
+                .checked_add(state)
+                .is_none_or(|peak| peak > limits.max_state_bytes)
+            {
+                over_state.set(true);
+                return false;
+            }
+            local_count.set(next);
+            local_state.set(state);
+            true
+        },
+        remaining
+            .saturating_add(1)
+            .min(MAX_SELECTED_PATH_DISCOVERY_ENTRIES),
+    );
     if stopped.get() {
         return Err(check_context(deadline, cancelled, git_signal));
     }
