@@ -39,3 +39,12 @@ subset; it cannot establish the requested language or rights completion.
 The detailed candidates and remaining searches are in
 `bonsai/review/aesthetics/availability/later.json`; `research-pending` is an
 unsearched state, never an assertion that a text does not exist.
+
+- `heinrich-woelfflin.kunstgeschichtliche-grundbegriffe`: on 19 November the
+  existing maker actually stopped at the 1942 death cutoff (Wölfflin died in
+  1945), without preparing places. The owner assigns this work as available;
+  assess the actual Russian, EU, US and Mexican rules and participants instead
+  of treating the earlier first-wave cutoff as an exhaustive rights judgment.
+  Heidelberg's 1915 edition and p. 57 are available at
+  https://doi.org/10.11588/diglit.27250#0075; the translation search remains
+  incomplete. Its blocked packet is a work-in-progress, not an absence record.
