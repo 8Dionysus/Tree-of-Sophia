@@ -176,24 +176,29 @@ export function alignRun(source,target,ratio,variance,{model=null,beta=ALIGNMENT
   // A group's words and what they account for are worked out once per group, not once per candidate.
   const groupsOf=(units,size)=>{const cache=new Map();return (from,to,cover)=>{const k=from*(size+1)+to;let value=cache.get(k);if(!value){const tokens=units.slice(from,to).flatMap(unit=>unit.tok);value={tokens,cover:model?cover(tokens):null};cache.set(k,value);}return value;};};
   const sourceGroup=groupsOf(source,n),targetGroup=groupsOf(target,m);
+  const baseMoves=ALIGNMENT.beads.concat(beads),targetVerse=ALIGNMENT.verse.map(([a,b])=>[b,a]);
   for(let i=0;i<=n;i++){
     const centre=Math.trunc(i*m/Math.max(1,n)),lo=Math.max(0,centre-band),hi=Math.min(m,centre+band);
     for(let j=lo;j<=hi;j++){
-      for(let state=0;state<3;state++){
-        const base=cost.get(key(i,j,state));
-        if(base===undefined)continue;
-        const moves=ALIGNMENT.beads.map(([a,b])=>[a,b]).concat(beads);
-        if(i<n&&source[i].cue[4])moves.push(...ALIGNMENT.verse);
-        if(j<m&&target[j].cue[4])moves.push(...ALIGNMENT.verse.map(([a,b])=>[b,a]));
-        for(const [di,dj] of moves){
-          const ni=i+di,nj=j+dj;
-          if(ni>n||nj>m)continue;
-          const s=source.slice(i,ni),t=target.slice(j,nj);
-          const next=dj===0?1:di===0?2:0;
-          let k=lengthCost(s,t,ratio,variance);
+      const bases=[cost.get(key(i,j,0)),cost.get(key(i,j,1)),cost.get(key(i,j,2))];
+      if(bases.every(base=>base===undefined))continue;
+      let moves=baseMoves;
+      if(i<n&&source[i].cue[4])moves=moves.concat(ALIGNMENT.verse);
+      if(j<m&&target[j].cue[4])moves=moves.concat(targetVerse);
+      // Length and lexical costs depend on the group. Only continuing a source omission depends on its predecessor.
+      for(const [di,dj] of moves){
+        const ni=i+di,nj=j+dj;
+        if(ni>n||nj>m)continue;
+        const s=source.slice(i,ni),t=target.slice(j,nj);
+        const next=dj===0?1:di===0?2:0;
+        const groupCost=lengthCost(s,t,ratio,variance);
+        let lex=0;
+        if(model){const a=sourceGroup(i,ni,tokens=>model.sourceCover(tokens)),b=targetGroup(j,nj,tokens=>model.targetCover(tokens));lex=beta*model.uncovered(a.tokens,b.tokens,a.cover,b.cover);}
+        for(let state=0;state<3;state++){
+          const base=bases[state];
+          if(base===undefined)continue;
+          let k=groupCost;
           if(next===1&&state===1)k+=ALIGNMENT.gapExtend-prior(di,dj);
-          let lex=0;
-          if(model){const a=sourceGroup(i,ni,tokens=>model.sourceCover(tokens)),b=targetGroup(j,nj,tokens=>model.targetCover(tokens));lex=beta*model.uncovered(a.tokens,b.tokens,a.cover,b.cover);}
           const value=base+k+lex,at=key(ni,nj,next);
           if(value<(cost.get(at)??Infinity)){cost.set(at,value);back.set(at,[i,j,state,Math.round(k*1000)/1000]);}
         }
