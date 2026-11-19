@@ -1094,6 +1094,9 @@ def gate(path,second=False,offline=False):
                 item=rights.get(country) or {}
                 if not isinstance(item,dict) or item.get('basis') not in BASES or len(str(item.get('law',''))) < 20:add(f'witness.rights.{country} wants a basis and a law statement')
         if len(str(rights.get('reasoning','')))<60:add('witness.rights.reasoning wants its sentences: whose text, which transcription (and which edition it follows), which scan, what was normalised')
+        if any(isinstance(rights.get(country),dict) and rights[country].get('basis')=='short-quotation' for country in JURISDICTIONS):
+            issues=mexico_problems(witness,places.get('places') or {},part(path,'review.json') or {},(reading.get('reader') or {}).get('id'),second,path=path,offline=offline)
+            for issue in issues:(owe if not witness.get('mexico_quotation') else add)(issue)
         problems.extend(license_problems(witness,ev.get('sources') or [],lambda name:cache(path,name),part(path,'review.json') or {},(reading.get('reader') or {}).get('id'),second,offline))
         for item in entry.get('absent') or []:
             if not item.get('tried'):
@@ -1547,6 +1550,63 @@ def cmd_language_search_withdraw(args):
     if not os.path.isfile(file):die('there is no accepted language search')
     os.unlink(file);print('language search withdrawn; the evidence file remains')
 
+MEXICO_LFDA='https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf'
+def mexico_scope(witness,places):
+    return page_number_digest({'witness':{k:v for k,v in witness.items() if k!='mexico_quotation'},'places':places})
+
+def mexico_problems(witness,places,review,maker,second=False,path=None,lang=None,offline=False):
+    proof=witness.get('mexico_quotation') or {};problems=[]
+    if not isinstance(proof,dict):return ['Mexico quotation assessment must be an object']
+    if proof.get('law_url')!=MEXICO_LFDA or proof.get('scope_sha256')!=mexico_scope(witness,places):problems.append('Mexico quotation assessment needs the official LFDA and the current exact witness and places')
+    digest=proof.get('law_sha256');filename=proof.get('law_file')
+    if not re.fullmatch(r'[a-f0-9]{64}',str(digest or '')) or filename!=f'mexico-law-{digest}.pdf':problems.append('Mexico quotation assessment needs the digest of the fetched law')
+    elif path and not offline:
+        try:
+            raw=Path(witness_cache(path,lang,filename) if lang else cache(path,filename)).read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=digest or not raw.startswith(b'%PDF-'):problems.append('Mexico law source changed or is invalid')
+        except OSError:problems.append('Mexico law source is unavailable')
+    for field in ('non_substantial','normal_exploitation','source_integrity'):
+        if len(str(proof.get(field,'')).strip())<40:problems.append(f'Mexico quotation assessment needs a detailed {field} account')
+    if second:
+        check=(review or {}).get('mexico_quotation') or {};reader=(review or {}).get('reader');reader=reader.get('id') if isinstance(reader,dict) else reader
+        if not reader or reader==maker or check.get('reader')!=reader or check.get('sha256')!=page_number_digest(proof) or len(str(check.get('assessment','')).strip())<60:problems.append('Mexico quotation assessment needs a distinct second reader and review of the same evidence')
+    return problems
+
+def mexico_context(path,lang):
+    if lang:
+        data=witness_data(path,lang);return data,data.get('witness') or {},data.get('places') or {},data.get('review') or {},(data.get('witness') or {}).get('maker')
+    data=part(path,'places.json') or {};entry=data.get('entry') or {};original=entry.get('original');witness=(entry.get('witnesses') or {}).get(original) or die('no original witness')
+    review=part(path,'review.json') or {};maker=((part(path,'reading.json') or {}).get('reader') or {}).get('id')
+    return data,witness,data.get('places') or {},review,maker
+
+def cmd_mexico_quotation(args):
+    path=packet(args.packet);data,witness,places,review,maker=mexico_context(path,args.language)
+    if not maker or not places:die('record the maker and exact places first')
+    if not any((witness.get('rights') or {}).get(country,{}).get('basis')=='short-quotation' for country in JURISDICTIONS):die('record a short-quotation basis before the Mexican quotation assessment')
+    raw=Path(args.law_file).read_bytes() if getattr(args,'law_file',None) else get(MEXICO_LFDA)
+    if not raw.startswith(b'%PDF-'):die('the official law source did not yield a PDF')
+    digest=hashlib.sha256(raw).hexdigest();filename=f'mexico-law-{digest}.pdf'
+    Path(witness_cache(path,args.language,filename) if args.language else cache(path,filename)).write_bytes(raw)
+    proof={'law_url':MEXICO_LFDA,'law_file':filename,'law_sha256':digest,'scope_sha256':mexico_scope(witness,places),'non_substantial':args.non_substantial,'normal_exploitation':args.normal_exploitation,'source_integrity':args.source_integrity}
+    witness['mexico_quotation']=proof;review.pop('mexico_quotation',None)
+    issues=mexico_problems(witness,places,review,maker,path=path,lang=args.language)
+    if issues:die('Mexico quotation assessment is incomplete: '+'; '.join(issues))
+    if args.language:data['review']=review;save(witness_file(path,args.language),data)
+    else:
+        save(os.path.join(path,'places.json'),data)
+        if review:save(os.path.join(path,'review.json'),review)
+    print('Mexico quotation assessment recorded; independent review required')
+
+def cmd_mexico_quotation_review(args):
+    path=packet(args.packet);data,witness,places,review,maker=mexico_context(path,args.language);reader=review.get('reader');reader=reader.get('id') if isinstance(reader,dict) else reader
+    if not reader or reader==maker:die('record a different second reader first')
+    proof=witness.get('mexico_quotation') or {};review['mexico_quotation']={'reader':reader,'sha256':page_number_digest(proof),'assessment':args.assessment}
+    issues=mexico_problems(witness,places,review,maker,second=True,path=path,lang=args.language)
+    if issues:die('Mexico quotation review is incomplete: '+'; '.join(issues))
+    if args.language:data['review']=review;save(witness_file(path,args.language),data)
+    else:save(os.path.join(path,'review.json'),review)
+    print('independent Mexico quotation review recorded')
+
 def cmd_extension_open(args):
     parent=packet(args.packet);work=work_of(parent)
     if not part(parent,'accepted.json'):die('an extension requires an accepted parent packet')
@@ -1944,6 +2004,13 @@ def cmd_witness_anonymous_clear(args):
 def witness_problems(path,lang,data,second=False,offline=False):
     problems=[];add=problems.append;witness=data.get('witness') or {};places=data.get('places') or {}
     if data.get('language')!=lang:add('language differs from filename')
+    quoted=any(((witness.get('rights') or {}).get(country) or {}).get('basis')=='short-quotation' for country in JURISDICTIONS)
+    if quoted:
+        issues=mexico_problems(witness,places,data.get('review') or {},witness.get('maker'),second,path=path,lang=lang,offline=offline)
+        file=witness_file(path,lang);marker=file+'.accepted'
+        legacy=os.path.isfile(file) and os.path.isfile(marker) and load(marker).get('sha256')==hashlib.sha256(Path(file).read_bytes()).hexdigest()
+        if legacy and not witness.get('mexico_quotation'):OWES.extend(f'{lang}: {issue}' for issue in issues)
+        else:problems.extend(issues)
     for field in ('edition','attribution','licence','url'):
         if not isinstance(witness.get(field),str) or not witness[field].strip():add(f'witness.{field} is missing')
     if not lawful_url(witness.get('url','')):add('witness.url must be a lawful https URL')
@@ -2071,11 +2138,13 @@ def witness_problems(path,lang,data,second=False,offline=False):
 
 def cmd_witness_gate(args):
     path=packet(args.packet);data=witness_data(path,args.language)
+    OWES.clear()
     problems=witness_problems(path,args.language,data,second=args.second,offline=args.offline)
     if args.accept and args.second and not args.offline:
         conflict=witness_conflict(path,args.language,data)
         if conflict:problems.append(conflict)
     for problem in problems:print(problem)
+    for debt in OWES:print('owes: '+debt)
     print('gate: '+('shut' if problems else 'open'))
     if problems:sys.exit(1)
     if args.accept:
@@ -2098,6 +2167,8 @@ def main():
     sub('language-search-review',cmd_language_search_review,P,(('language',),{}),(('--reader',),{'required':True}),(('--model',),{'required':True}),(('--assessment',),{'required':True}))
     sub('language-search-accept',cmd_language_search_accept,P,(('language',),{}))
     sub('language-search-withdraw',cmd_language_search_withdraw,P,(('language',),{}))
+    sub('mexico-quotation',cmd_mexico_quotation,P,(('--language',),{}),(('--non-substantial',),{'required':True}),(('--normal-exploitation',),{'required':True}),(('--source-integrity',),{'required':True}),(('--law-file',),{}))
+    sub('mexico-quotation-review',cmd_mexico_quotation_review,P,(('--language',),{}),(('--assessment',),{'required':True}))
     sub('witness-open',cmd_witness_open,P,(('language',),{}),(('metadata',),{}))
     sub('witness-info',cmd_witness_info,P,(('language',),{}),(('file',),{}));
     sub('witness-rights',cmd_witness_rights,P,(('language',),{}),(('jurisdiction',),{'choices':JURISDICTIONS}),(('basis',),{'choices':sorted(BASES)}),(('law',),{}));

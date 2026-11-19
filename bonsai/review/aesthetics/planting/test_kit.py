@@ -339,6 +339,29 @@ class DuplicateWitnessAcceptanceTest(unittest.TestCase):
                 with self.assertRaises(SystemExit):kit.cmd_accept(args)
             self.assertEqual(list((path/'witnesses').glob('*.accepted')),[])
 
+class MexicoQuotationTest(unittest.TestCase):
+    def test_quotation_review_is_scoped_to_the_exact_witness_and_text(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True);file=path/'witnesses/en.json'
+            data={'language':'en','witness':{'edition':'A named edition','maker':'maker','rights':{'usa':{'basis':'short-quotation'}}},'places':{'p':{'text':'A complete sentence.','url':'https://example.org/page','page':'7'}},'review':{'reader':'reader'}}
+            file.write_text(json.dumps(data))
+            law=Path(tmp)/'law.pdf';law.write_bytes(b'%PDF-1.4\nTest law source\n%%EOF')
+            args=argparse.Namespace(packet=str(path),language='en',law_file=str(law),non_substantial='This short passage is proportionate to the scholarly purpose of the comparison.',normal_exploitation='The selected sentences do not replace the book or affect normal exploitation.',source_integrity='The cited source and author are identified and the page text is unchanged.')
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                kit.cmd_mexico_quotation(args);data=json.loads(file.read_text())
+                self.assertTrue(kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True))
+                kit.cmd_mexico_quotation_review(argparse.Namespace(packet=str(path),language='en',assessment='I independently checked the source, integrity, proportion and normal exploitation for this exact quotation.'))
+                data=json.loads(file.read_text());self.assertEqual(kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True,path=str(path),lang='en'),[])
+                Path(kit.witness_cache(str(path),'en',data['witness']['mexico_quotation']['law_file'])).write_bytes(b'changed')
+                self.assertTrue(any('law source changed' in p for p in kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True,path=str(path),lang='en')))
+            data=json.loads(file.read_text());self.assertEqual(kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True),[])
+            data['places']['p']['text']='A different sentence.'
+            self.assertTrue(any('current exact witness and places' in p for p in kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True)))
+            data['review']['reader']='maker'
+            self.assertTrue(any('distinct second reader' in p for p in kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True)))
+
 class AnonymousTranslationTest(unittest.TestCase):
     def test_commands_bind_sources_review_and_allow_clearing(self):
         import argparse, hashlib, json, tempfile
@@ -389,8 +412,17 @@ class AnonymousTranslationTest(unittest.TestCase):
             # Use a sufficiently old edition while retaining an exact dynamic threshold.
             data['witness']['year']=datetime.date.today().year-71
             data['review']['anonymous']={'reader':'second','sha256':kit.anonymous_digest(proof),'assessment':'I checked the same edition, lawful publication and the identity searches independently.'}
+            mexico={'law_url':kit.MEXICO_LFDA,'law_file':'mexico-law-'+('a'*64)+'.pdf','law_sha256':'a'*64,'scope_sha256':kit.mexico_scope(data['witness'],data['places']),
+                    'non_substantial':'The selected passage is proportionate to this particular scholarly purpose.',
+                    'normal_exploitation':'The quotation does not replace the edition or affect its normal exploitation.',
+                    'source_integrity':'The source, attribution and exact page are given and the text is unchanged.'}
+            data['witness']['mexico_quotation']=mexico
+            data['review']['mexico_quotation']={'reader':'second','sha256':kit.page_number_digest(mexico),'assessment':'I independently checked the quotation, source, text integrity and normal exploitation.'}
             with patch.object(kit,'CACHE',str(cache)),patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True,offline=True),[])
+                del data['witness']['mexico_quotation']
+                self.assertTrue(any('Mexico quotation assessment' in p for p in kit.witness_problems(str(path),'en',data,second=True,offline=True)))
+                data['witness']['mexico_quotation']=mexico
                 self.assertEqual(kit.anonymous_problems(str(path),'en',data,second=True),[])
                 proof['identity_research']+=' Changed.'
                 self.assertTrue(any('independent assessment' in x for x in kit.witness_problems(str(path),'en',data,second=True,offline=True)))

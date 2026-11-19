@@ -259,6 +259,25 @@ K witness-review . ru "§1 p1" --reader another-reader --alignment "How the seco
 K witness-gate . ru --second --accept
 ```
 
+When any jurisdiction uses `short-quotation`, separately assess Mexico's
+LFDA article 148(I) for this exact witness and its selected places. Record
+why the quotation is not a substantial substitute, how normal exploitation
+is affected, and how attribution, source and unchanged wording are preserved:
+
+```sh
+K mexico-quotation . --language ru --non-substantial '…' --normal-exploitation '…' --source-integrity '…'
+K mexico-quotation-review . --language ru --assessment 'Independent assessment of these exact places and the law.'
+K witness-gate . ru --second --accept
+```
+
+The first command fetches the official Cámara de Diputados law PDF, retains
+its digest and binds the assessment to the exact witness and places. The second
+reader must already be recorded through `witness-review`. For an original
+witness omit `--language`; its existing packet second reader reviews the
+assessment. A later change to the witness or its places requires a new
+assessment and independent review. Missing assessments on older accepted
+packets remain explicit `owes`, while new quotations require this assessment.
+
 The reader opens each fetched image and checks the whole translated sentences
 against it and against the original; recording a review is not itself a page
 reading. A quotation also records `--lines`, and an exceptional longer place
