@@ -74,7 +74,7 @@ for(const [name,languages] of Object.entries(fragments.provenance.translation_pa
   }
 }
 const translationPackets={};
-const sameWitness=(a,b)=>{const strip=value=>Object.fromEntries(Object.entries(value??{}).filter(([key])=>!['maker','participants'].includes(key)));return isDeepStrictEqual(strip(a),strip(b));};
+const sameWitness=(a,b)=>{const strip=value=>Object.fromEntries(Object.entries(value??{}).filter(([key])=>!['maker','participants','mexico_quotation'].includes(key)));return isDeepStrictEqual(strip(a),strip(b));};
 // Extension-only places are rebuilt from the accepted extension packets.
 for(const [name,places] of Object.entries(fragments.provenance.extension_places??{})){
   for(const [loc,previous] of Object.entries(places)){
@@ -82,7 +82,7 @@ for(const [name,places] of Object.entries(fragments.provenance.extension_places?
     else if(fragments.places?.[name])fragments.places[name][loc]=previous;
   }
 }
-const extensionPlaces={};
+const extensionPlaces={},extensionMexico={};
 for(const correction of fragments.provenance.extension_corrections??[]){
   const at=fragments.provenance.corrections.findIndex(item=>JSON.stringify(item)===JSON.stringify(correction));
   if(at>=0)fragments.provenance.corrections.splice(at,1);
@@ -137,6 +137,11 @@ for(const name of packets){
       if(!existing){(extensionPlaces[name]??={})[loc]=null;fragments.places[name][loc]=value;newPlaces[loc]=value;}
     }
     projectJustifications(ext,newPlaces);
+    const evidenceFile=join(ext,'evidence.json'),reviewFile=join(ext,'review.json');
+    if(existsSync(evidenceFile)){
+      const proof=json(evidenceFile).mexico_quotation;
+      if(proof){(extensionMexico[name]??={})[extension]={record:`${path}/extensions/${extension}/evidence.json`,assessment:proof,review:existsSync(reviewFile)?json(reviewFile).mexico_quotation??null:null};}
+    }
     fragments.provenance.corrections.push(...(extensionPlacesFile.corrections??[]));
     extensionCorrections.push(...(extensionPlacesFile.corrections??[]));
     if(extensionPlacesFile.checked_on_the_page_image?.length){
@@ -160,6 +165,7 @@ for(const name of packets){
     const sourceRecord=`${witnessPath}/witnesses/${file}`;
     if(previous){previous.records??=[previous.record];previous.records.push(sourceRecord);previous.corrections.push(...corrections);}
     else (translationPackets[name]??={})[lang]={absent,unsearched,record:sourceRecord,corrections};
+    if(record.witness?.mexico_quotation){const provenance=translationPackets[name][lang];provenance.mexico_quotations??=[];provenance.mexico_quotations.push({record:sourceRecord,assessment:record.witness.mexico_quotation,review:record.review?.mexico_quotation??null});}
     fragments.works[name].absent=(fragments.works[name].absent??[]).filter(item=>item.language!==lang);
     if(fragments.works[name].unsearched)fragments.works[name].unsearched=fragments.works[name].unsearched.filter(item=>item.language!==lang);
     for(const [loc,translated] of Object.entries(record.places??{})){
@@ -194,6 +200,7 @@ for(const name of packets){
 if(whole.length||fragments.provenance.packets)fragments.provenance.packets=whole;
 if(Object.keys(translationPackets).length)fragments.provenance.translation_packets=translationPackets;else delete fragments.provenance.translation_packets;
 if(Object.keys(searchPackets).length)fragments.provenance.language_search_packets=searchPackets;else delete fragments.provenance.language_search_packets;
+if(Object.keys(extensionMexico).length)fragments.provenance.extension_mexico_quotations=extensionMexico;else delete fragments.provenance.extension_mexico_quotations;
 if(Object.keys(extensionPlaces).length)fragments.provenance.extension_places=extensionPlaces;else delete fragments.provenance.extension_places;
 if(extensionCorrections.length)fragments.provenance.extension_corrections=extensionCorrections;else delete fragments.provenance.extension_corrections;
 if(Object.keys(extensionChecked).length)fragments.provenance.extension_checked=extensionChecked;else delete fragments.provenance.extension_checked;

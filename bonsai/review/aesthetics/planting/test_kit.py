@@ -340,6 +340,27 @@ class DuplicateWitnessAcceptanceTest(unittest.TestCase):
             self.assertEqual(list((path/'witnesses').glob('*.accepted')),[])
 
 class MexicoQuotationTest(unittest.TestCase):
+    def test_original_extension_keeps_its_own_reviewed_assessment(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work'/'extensions'/'extra';path.mkdir(parents=True)
+            (path/'places.json').write_text(json.dumps({'work':'work','places':{'p':{'texts':{'en':'A sentence.'}}}}))
+            (path/'evidence.json').write_text('{}');(path/'reading.json').write_text(json.dumps({'reader':{'id':'maker'}}))
+            (path/'review.json').write_text(json.dumps({'reader':{'id':'second','model':'model','date':'2026-11-19'}}))
+            original={'edition':'Same edition','rights':{'usa':{'basis':'short-quotation'}}}
+            world={'fragments':{'works':{'work':{'original':'en','witnesses':{'en':original}}}}}
+            law=Path(tmp)/'law.pdf';law.write_bytes(b'%PDF-1.4\nTest law source\n%%EOF')
+            args=argparse.Namespace(packet=str(path),language=None,law_file=str(law),non_substantial='This passage is proportionate to the scholarly purpose of the comparison.',normal_exploitation='The selected sentences do not replace the book or affect normal exploitation.',source_integrity='The cited source and author are identified and the page text is unchanged.')
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')),patch.object(kit,'world',return_value=world):
+                kit.cmd_mexico_quotation(args)
+                self.assertIn('mexico_quotation',json.loads((path/'evidence.json').read_text()))
+                self.assertNotIn('mexico_quotation',original)
+                kit.cmd_mexico_quotation_review(argparse.Namespace(packet=str(path),language=None,assessment='I independently checked the source, integrity, proportion and normal exploitation for these exact places.'))
+                _,witness,places,review,maker=kit.mexico_context(str(path),None)
+                self.assertEqual(kit.mexico_problems(witness,places,review,maker,second=True,path=str(path)),[])
+                self.assertTrue(kit.same_witness({**original,'mexico_quotation':{'scope_sha256':'one'}},{**original,'mexico_quotation':{'scope_sha256':'two'}}))
+
     def test_quotation_review_is_scoped_to_the_exact_witness_and_text(self):
         import argparse, json, tempfile
         from pathlib import Path
@@ -546,6 +567,13 @@ class ExtensionPlantingTest(unittest.TestCase):
             with patch.object(kit,'world',return_value=world):
                 problems,_=kit.gate(str(parent),second=True,offline=True)
                 self.assertEqual(problems,[])
+                (ext/'evidence.json').write_text('{}')
+                original=projected['works'][work]['original'];rights=projected['works'][work]['witnesses'][original]['rights'];previous=rights['usa']
+                rights['usa']={'basis':'short-quotation','law':'Quotation for a documented scholarly purpose.'}
+                (ext/'accepted.json').unlink()
+                problems,_=kit.gate(str(ext),second=True,offline=True)
+                self.assertTrue(any('Mexico quotation assessment' in problem for problem in problems))
+                rights['usa']=previous;(ext/'accepted.json').write_text('{}')
                 projected['places'][work]['Unowned p998']=copy.deepcopy(place)
                 problems,_=kit.gate(str(parent),second=True,offline=True)
                 self.assertTrue(any('drop entry from places.json' in problem for problem in problems))
@@ -577,6 +605,7 @@ class ExtensionPlantingTest(unittest.TestCase):
             rights={country:{'basis':'public-domain','law':'Public domain according to the applicable law.'} for country in kit.JURISDICTIONS}
             translated={'language':'ru','witness':{'edition':'Test edition','attribution':'Test author','url':'https://example.org','rights':rights},
                         'places':{loc:{'text':'Русское предложение.','url':'https://example.org/page','page':'1','image_sha256':'a'*64,'extra_pages':[{'page':'2','url':'https://example.org/page2','image_sha256':'b'*64,'span':'предложение.'}],'corrections':[{'from':'Прежнее','to':'Русское','reason':'The source page reads the corrected form.'}]}}}
+            translated['witness']['mexico_quotation']={'scope_sha256':'parent'}
             raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'ru.json').write_bytes(raw)
             (witness_dir/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
             (witness_dir/'ru.json').write_bytes(raw+b' ')
@@ -614,6 +643,7 @@ class ExtensionPlantingTest(unittest.TestCase):
             extension_places['places']['Test p1000']=copy.deepcopy(place)
             (ext/'places.json').write_text(json.dumps(extension_places,ensure_ascii=False))
             russian_extra=copy.deepcopy(translated);russian_extra['witness']['maker']='another maker'
+            russian_extra['witness']['mexico_quotation']={'scope_sha256':'extension'}
             russian_extra['places']={'Test p1000':{'text':'Третье предложение.','url':'https://example.org/page3','page':'3'}}
             raw_extra=json.dumps(russian_extra,ensure_ascii=False).encode();(ext_witness/'ru.json').write_bytes(raw_extra)
             (ext_witness/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw_extra).hexdigest()}))
@@ -625,6 +655,7 @@ class ExtensionPlantingTest(unittest.TestCase):
             projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
             self.assertEqual(projected['places'][work]['Test p999']['texts']['ru'],'Второе предложение.')
             self.assertEqual(projected['places'][work]['Test p1000']['texts']['ru'],'Третье предложение.')
+            self.assertEqual(len(projected['provenance']['translation_packets'][work]['ru']['mexico_quotations']),2)
             self.assertEqual(len(projected['provenance']['translation_packets'][work]['ru']['records']),2)
             self.assertEqual(projected['places'][work]['Test p999']['texts']['es'],'Una frase completa.')
             self.assertIn('/extensions/test/witnesses/es.json',projected['provenance']['translation_packets'][work]['es']['record'])

@@ -1072,6 +1072,11 @@ def gate(path,second=False,offline=False):
     entry=entry or held or {};original=entry.get('original') or ''
     original_rights=((entry.get('witnesses') or {}).get(original) or {}).get('rights') or {}
     locator_only=all(isinstance(original_rights.get(country),dict) and original_rights[country].get('basis')=='locator-only' for country in JURISDICTIONS)
+    if held and any(isinstance(original_rights.get(country),dict) and original_rights[country].get('basis')=='short-quotation' for country in JURISDICTIONS):
+        witness={**((entry.get('witnesses') or {}).get(original) or {})};witness.pop('mexico_quotation',None)
+        if ev.get('mexico_quotation'):witness['mexico_quotation']=ev['mexico_quotation']
+        issues=mexico_problems(witness,places.get('places') or {},part(path,'review.json') or {},(reading.get('reader') or {}).get('id'),second,path=path,offline=offline)
+        for issue in issues:(owe if not ev.get('mexico_quotation') else add)(issue)
     # the witness and the rights
     if not held:
         for name in('author','title'):
@@ -1403,7 +1408,7 @@ def cmd_settle(args):
 
 def same_witness(a,b):
     """Same edition, participants and rights; each part may have a different maker."""
-    return {k:v for k,v in a.items() if k not in ('maker','participants')}=={k:v for k,v in b.items() if k not in ('maker','participants')}
+    return {k:v for k,v in a.items() if k not in ('maker','participants','mexico_quotation')}=={k:v for k,v in b.items() if k not in ('maker','participants','mexico_quotation')}
 
 def witness_conflict(path,language,data):
     """Only disjoint reviewed places of the same accepted edition may be combined."""
@@ -1575,9 +1580,16 @@ def mexico_problems(witness,places,review,maker,second=False,path=None,lang=None
 def mexico_context(path,lang):
     if lang:
         data=witness_data(path,lang);return data,data.get('witness') or {},data.get('places') or {},data.get('review') or {},(data.get('witness') or {}).get('maker')
-    data=part(path,'places.json') or {};entry=data.get('entry') or {};original=entry.get('original');witness=(entry.get('witnesses') or {}).get(original) or die('no original witness')
+    places=part(path,'places.json') or {};entry=places.get('entry') or {}
+    if entry:
+        data=places;original=entry.get('original');witness=(entry.get('witnesses') or {}).get(original) or die('no original witness')
+    else:
+        data=evidence(path);entry=((world()['fragments'].get('works') or {}).get(work_of(path)) or {});original=entry.get('original')
+        witness=dict((entry.get('witnesses') or {}).get(original) or die('no existing original witness'))
+        witness.pop('mexico_quotation',None)
+        if data.get('mexico_quotation'):witness['mexico_quotation']=data['mexico_quotation']
     review=part(path,'review.json') or {};maker=((part(path,'reading.json') or {}).get('reader') or {}).get('id')
-    return data,witness,data.get('places') or {},review,maker
+    return data,witness,places.get('places') or {},review,maker
 
 def cmd_mexico_quotation(args):
     path=packet(args.packet);data,witness,places,review,maker=mexico_context(path,args.language)
@@ -1593,7 +1605,8 @@ def cmd_mexico_quotation(args):
     if issues:die('Mexico quotation assessment is incomplete: '+'; '.join(issues))
     if args.language:data['review']=review;save(witness_file(path,args.language),data)
     else:
-        save(os.path.join(path,'places.json'),data)
+        if (part(path,'places.json') or {}).get('entry'):save(os.path.join(path,'places.json'),data)
+        else:data['mexico_quotation']=proof;save(os.path.join(path,'evidence.json'),data)
         if review:save(os.path.join(path,'review.json'),review)
     print('Mexico quotation assessment recorded; independent review required')
 

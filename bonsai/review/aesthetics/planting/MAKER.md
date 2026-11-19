@@ -274,7 +274,8 @@ The first command fetches the official Cámara de Diputados law PDF, retains
 its digest and binds the assessment to the exact witness and places. The second
 reader must already be recorded through `witness-review`. For an original
 witness omit `--language`; its existing packet second reader reviews the
-assessment. A later change to the witness or its places requires a new
+assessment. An extension records its own assessment on its evidence and review,
+scoped to that extension's places. A later change to the witness or its places requires a new
 assessment and independent review. Missing assessments on older accepted
 packets remain explicit `owes`, while new quotations require this assessment.
 
