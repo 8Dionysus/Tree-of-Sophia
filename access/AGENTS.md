@@ -5,21 +5,20 @@ This card applies to the installable access product under `access/`.
 ## Role
 
 `access/` owns portable, read-only delivery of Tree of Sophia projections:
-the native Rust query core, its thin imported SDK bridge, installed CLI, local
+the native Rust query core, installed CLI, local
 HTTP/MCP service, web application, WebMCP action contract, standalone
 profiles, and native software/data builders.
 
-`ToS/` owns source meaning, review, canon and derived exports.
+`ToS/` owns source meaning, review, canon and derived exports. The public research Worker
+serves the stand pages and assets; the retired atlas API is not its origin.
 
 ## Boundary
 
 - `rust/crates/tos-query/` owns query planning, normalization, presentation,
   search and exploration semantics. `rust/crates/tos-access/` owns source-read,
-  managed-release, transport and installed-product integration. The Python
-  `src/tos_access/core.py` surface is a thin imported SDK bridge to the
-  installed native product; query, HTTP and source-reading engines reside in
-  native crates. Installed CLI, HTTP, MCP and browser actions route to the
-  native owner.
+  managed-release, transport and installed-product integration. Query, HTTP
+  and source-reading engines reside in native crates. Installed CLI, HTTP, MCP
+  and browser actions route to the native owner.
 - `contracts/` and `profiles/` own the portable consumer-facing ABI.
 - `packaging/` contains explicit data-generation/validation tools only; the
   native software archive owner assembles software subjects.
@@ -30,7 +29,7 @@ profiles, and native software/data builders.
 - Software build/test/package uses versioned contracts and representative
   fixtures without production corpus, payload custody or sibling repositories.
 - Explicit data selection (`--root` or `TOS_DATA_ROOT`) chooses data, never
-  installed code, browser assets or API schemas. Missing data does not discover
+  installed code or API schemas. The public site is built and published separately. Missing data does not discover
   another checkout through the current directory.
 - Data release owns full snapshot validation and compilation. API-schema
   checking uses schemas without traversing production graph rows.

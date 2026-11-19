@@ -7,7 +7,7 @@ use tos_foundation::{
     canonical_bytes_v1, emit_value_preserved_json, parse_json,
 };
 use tos_query::{
-    search_v2::{SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode},
     source_value_search,
 };
 use wasm_bindgen::{JsValue, prelude::wasm_bindgen};
@@ -29,13 +29,13 @@ fn error(message: &str) -> JsValue {
     JsValue::from_str(message)
 }
 
-fn search_error(error: SearchV2Error) -> JsValue {
+fn search_error(error: SearchError) -> JsValue {
     JsValue::from_str(&format!("{:?}: {}", error.code, error.message))
 }
 
-fn query_budget_error() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+fn query_budget_error() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "source-value search work budget exceeded",
     }
 }

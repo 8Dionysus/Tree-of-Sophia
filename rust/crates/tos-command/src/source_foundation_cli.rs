@@ -482,6 +482,7 @@ pub(crate) fn write_result(
     args: &FoundationArguments,
     lab_report: Option<&[u8]>,
     issues: &[(String, String)],
+    private_custody_summary: Option<&str>,
     max_output_bytes: usize,
     stdout: &mut impl Write,
     stderr: &mut impl Write,
@@ -521,6 +522,14 @@ pub(crate) fn write_result(
             charge("[ok] validated source-witness evidence spine ()\n".len())?;
             charge(posture.len())?;
         }
+        if let Some(summary) = private_custody_summary {
+            charge(
+                summary
+                    .len()
+                    .checked_add(1)
+                    .ok_or("foundation custody summary byte overflow")?,
+            )?;
+        }
         charge(scope.len())?;
         charge(1)?;
     } else {
@@ -551,6 +560,9 @@ pub(crate) fn write_result(
         )
         .map_err(|_| "foundation stdout failed")?;
     }
+    if let Some(summary) = private_custody_summary {
+        writeln!(stdout, "{summary}").map_err(|_| "foundation stdout failed")?;
+    }
     writeln!(stdout, "{scope}").map_err(|_| "foundation stdout failed")?;
     Ok(0)
 }
@@ -562,6 +574,7 @@ pub(crate) fn measure_result(
     args: &FoundationArguments,
     lab_report: Option<&[u8]>,
     issues: &[(String, String)],
+    private_custody_summary: Option<&str>,
     max_output_bytes: usize,
     deadline: std::time::Instant,
     cancelled: &std::sync::atomic::AtomicBool,
@@ -597,6 +610,7 @@ pub(crate) fn measure_result(
         args,
         lab_report,
         issues,
+        private_custody_summary,
         max_output_bytes,
         &mut Count {
             bytes: &bytes,

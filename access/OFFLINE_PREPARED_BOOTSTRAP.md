@@ -50,18 +50,13 @@ The caller reserves source/image/output, journals, TEMP and scratch coexistence
 and supplies a whole deadline before invoking the command. No full corpus or
 capacity result is inferred from finite fixture execution.
 
-The Python `tos_access.prepare` module and source-graph producer are retired.
 Invoke the installed `tos-access prepare` command directly. The native producer
 binds its own normalization processor and configuration; it does not claim
 identity with the retired Python implementation.
 
 ## Prepared catalog and maintenance ownership
 
-The retired Python APIs are `tos_access.catalog_index`, `catalog_semantics`,
-`prepared_semantics`, `prepared_publication`, `prepared_catalog`,
-`semantic_index`, the joined caller-transaction maintenance API, and the
-prepared search, compact-lens and membership-index writers. The Rust compiler
-owns [catalog materialization](../rust/crates/tos-compiler/src/prepared_catalog_index.rs),
+The Rust compiler owns [catalog materialization](../rust/crates/tos-compiler/src/prepared_catalog_index.rs),
 [catalog semantics](../rust/crates/tos-compiler/src/prepared_catalog_semantics.rs)
 and [maintenance](../rust/crates/tos-compiler/src/prepared_maintenance.rs);
 [`tos-query::knowledge_catalog`](../rust/crates/tos-query/src/knowledge_catalog.rs)

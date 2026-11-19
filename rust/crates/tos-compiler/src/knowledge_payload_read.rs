@@ -3,7 +3,7 @@
 //! bytes admitted until this synchronous delivery and final selection fences end.
 #[cfg(test)]
 use crate::DedicatedSessionSqliteHeap;
-use crate::d1_public_capture::{CreationState, CreationStateHold};
+use crate::public_capture::{CreationState, CreationStateHold};
 use crate::sqlite_budget::SharedVmWindow;
 use crate::{Error, Result};
 use rusqlite::Connection;

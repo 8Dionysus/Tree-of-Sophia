@@ -13,8 +13,8 @@ required. Group execution and stage prerequisites follow the
 
 For a changed source builder or validator, run the affected native owner test
 module or command. Ordinary ToS source and command behavior is covered by Rust
-owner tests and the `rust_workspace` route. Python's default test discovery is
-limited to the standalone SDK tests under `access/tests`. Native tests marked `#[ignore = "data_release: ..."]` require an explicitly
+owner tests and the `rust_workspace` route. Native tests marked
+`#[ignore = "data_release: ..."]` require an explicitly
 selected `TOS_DATA_ROOT` and belong to that data release.
 
 With that complete source snapshot explicitly selected, run the native data

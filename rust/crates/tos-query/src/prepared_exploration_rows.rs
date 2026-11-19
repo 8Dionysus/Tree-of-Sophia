@@ -3,10 +3,10 @@
 use crate::compressed_search_sqlite::Read;
 use crate::exploration_plan::{ExplorationNeed, ExplorationReply};
 use crate::prepared_inspect::{budget, codec, corrupt, full_row_with_size, storage_error, table};
-use crate::search_v2::{SearchKind, SearchV2Error};
+use crate::search::{SearchError, SearchKind};
 use rusqlite::{ToSql, types::Value};
-use tos_foundation::{JsonValue, emit_python_compact_json};
-type Result<T> = std::result::Result<T, SearchV2Error>;
+use tos_foundation::{JsonValue, emit_ordered_compact_json_v1};
+type Result<T> = std::result::Result<T, SearchError>;
 
 fn strings(values: &[String], cap: usize) -> Result<String> {
     let value = JsonValue::Array(
@@ -15,7 +15,7 @@ fn strings(values: &[String], cap: usize) -> Result<String> {
             .map(|s| crate::compressed_search_state::string(s))
             .collect(),
     );
-    String::from_utf8(emit_python_compact_json(&value, codec(cap)).map_err(|_| budget())?)
+    String::from_utf8(emit_ordered_compact_json_v1(&value, codec(cap)).map_err(|_| budget())?)
         .map_err(|_| corrupt())
 }
 fn bound(limit: usize, read: &Read<'_>) -> Result<i64> {

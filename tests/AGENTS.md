@@ -13,7 +13,7 @@ Use the owning test and selected software checks for admission under TOS-D-0062.
 ## Validation
 
 Follow a failure to the owning source, builder or validator, then run the
-affected native owner or standalone SDK unittest tests on local fixtures.
+affected native owner tests on local fixtures.
 Use schema validators and temporary repositories where the contract needs them.
 Generated drift returns to its builder before broader tests; mechanics-local
 schemas stay in their mechanics lane.

@@ -22,6 +22,7 @@ const JSON_VALUE_BYTES_PER_SOURCE_BYTE: usize = 65;
 const JSON_PARSE_FIXED_OVERHEAD: usize = 8192;
 const SOURCE_HOME: &str = "ToS/source-witnesses/";
 const ARTIFACTS: &str = "ToS/source-witnesses/artifacts/";
+const ARTIFACT_PRIVATE_CUSTODY: &str = "ToS/source-witnesses/artifacts/private-custody.v1.json";
 const COMPOSITES: &str = "ToS/source-witnesses/scholarly-composites/";
 const PRIVATE_ROUTE: &str = "ToS/source-witnesses/access-requests/private";
 const PRIVATE_ROUTE_CARD: &str = "ToS/source-witnesses/access-requests/private/README.md";
@@ -661,6 +662,13 @@ fn select_input(
         if input.present(path, limits, cancelled)? {
             builder.add_repo_path(RepoPathBucket::Authored, path, true)?;
         }
+    }
+    // This exact authored inventory is consumed by Discovery when an artifact
+    // photograph is absent from the selected physical payload root. Include it
+    // in the held cut and physical snapshot even though it is not a selector
+    // for any other source document.
+    if input.present(ARTIFACT_PRIVATE_CUSTODY, limits, cancelled)? {
+        builder.add_repo_path(RepoPathBucket::Authored, ARTIFACT_PRIVATE_CUSTODY, true)?;
     }
     for root in HIERARCHICAL_TARGET_ROOTS {
         for name in [
@@ -1440,6 +1448,7 @@ fn is_selector_document(
     if path.starts_with(ARTIFACTS)
         && (path.ends_with("/artifact-witness.json")
             || path.ends_with("/representation.json")
+            || path == ARTIFACT_PRIVATE_CUSTODY
             || is_artifact_request(path, input, limits, cancelled)?)
     {
         return Ok(true);

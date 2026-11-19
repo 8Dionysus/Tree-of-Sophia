@@ -1148,7 +1148,7 @@ impl<'a> ClaimNormalizer<'a> {
 
 struct ClaimNode<'a> {
     value: Value,
-    _hold: Option<crate::d1_public_capture::CreationStateHold<'a, 'a>>,
+    _hold: Option<crate::public_capture::CreationStateHold<'a, 'a>>,
 }
 impl std::ops::Deref for ClaimNode<'_> {
     type Target = Value;
