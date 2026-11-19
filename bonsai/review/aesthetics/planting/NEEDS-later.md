@@ -72,3 +72,15 @@ source-backed named participant with an explicitly unknown death date for a
 licensed or short-quotation witness. Do not infer death or reuse a wrong QID.
 The maker's `blocked.json` preserves the exact attempted sources; other
 language searches and independent review remain outstanding.
+
+`heinrich-woelfflin.kunstgeschichtliche-grundbegriffe` was technically
+accepted with Russian marked as lacking source text and image. A publisher
+preview https://books.yandex.ru/books/zlx1UDWc/read-online actually contains
+the exact corresponding complete sentence in the 2023 revised edition of
+Adrian Frankovsky's translation. Its page image, editor and territorial
+rights still need checking; it is not proof of the 1930 edition's wording.
+The locally accepted packet is withheld from planting pending correction,
+complete search evidence for the other languages and independent review.
+Please support reopening a technically accepted but not yet planted packet
+for a material witness discovered after review, without silently accepting
+the older missing-language claim.
