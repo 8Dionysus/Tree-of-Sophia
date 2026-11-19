@@ -16,6 +16,10 @@ while the route lands; genuinely browser-only lookups are queued for Claude.
 
 ## Scan corrections in translation witnesses
 
+Update 19 November: PR #432 at `ec411dc549` adds `witness-correct`,
+which records before/after, reason and page digest and clears old review.
+Thank you; verify the complete route when the PR lands.
+
 PR #432 at `4a045a07` requires `witness-cut` and `witness-cut-candidate`
 to find the final translated text verbatim in the fetched transcription. Some
 legal transcriptions differ from the printed page we have checked. For example,
