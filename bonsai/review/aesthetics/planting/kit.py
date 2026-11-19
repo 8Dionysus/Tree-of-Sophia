@@ -294,8 +294,9 @@ def by_eye(places,ev):
         loc=str(correction.get('place','')).removeprefix(work+' ');entry=(ev.get('places') or {}).get(loc)
         if not pairs or entry is None:continue
         read={letters(word) for difference in entry.get('differences',[]) for word in PART.findall(difference.get('transcription',''))}
+        deleted={letters(word) for difference in entry.get('differences',[]) for word in PART.findall(difference.get('ocr','')) if letters(word) not in {letters(w) for w in PART.findall(difference.get('transcription',''))}}
         long_s=scan_of(ev,entry).get('long_s')
-        if entry.get('method')!='ocr' or any(letters(word) in read for _,after in pairs for word in PART.findall(after)) or (long_s and any(letters(a).replace('f','s')==letters(b).replace('f','s') for a,b in pairs)):
+        if entry.get('method')!='ocr' or any(letters(word) in read for _,after in pairs for word in PART.findall(after)) or any(not PART.findall(after) and any(letters(word) in deleted for word in PART.findall(before)) for before,after in pairs) or (long_s and any(letters(a).replace('f','s')==letters(b).replace('f','s') for a,b in pairs)):
             found.append((loc,'; '.join(f'«{a}» → «{b}»' for a,b in pairs)))
     return found
 

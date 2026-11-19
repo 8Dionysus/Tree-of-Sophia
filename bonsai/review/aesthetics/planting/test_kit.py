@@ -157,6 +157,16 @@ class SentenceBoundaryTest(unittest.TestCase):
         ev={'scan':{'item':'s'},'places':{'p1':{'method':'ocr','differences':[{'transcription':'玄','ocr':'天'}]}}}
         self.assertEqual([loc for loc,_ in kit.by_eye(places,ev)], ['p1'])
 
+    def test_cjk_deletion_contradicted_by_ocr_requires_enlarged_review(self):
+        places={'work':'w','corrections':[{'place':'w p1','from':'天地玄黄宇宙洪荒','to':'天地黄宇宙洪荒'}]}
+        words=list('天地玄黄宇宙洪荒')
+        o={'words':words,'at':list(range(len(words))),'starts':[0],'printed':{},'long_s':False}
+        comparison=kit.against_ocr('天地黄宇宙洪荒。',o,script='zh')
+        ev={'scan':{'item':'s'},'places':{'p1':{'method':'ocr','differences':comparison['differences']}}}
+        self.assertEqual([loc for loc,_ in kit.by_eye(places,ev)], ['p1'])
+        ev['places']['p1']['differences']=[]
+        self.assertEqual(kit.by_eye(places,ev), [])
+
     def test_quotation_counts_danda_sentences(self):
         proof={'source':'https://example.org/page','page':'1','lines':'1–4','sha256':'a'*64}
         ev={'images':[{'sha256':'a'*64,'by':'maker'}]}
