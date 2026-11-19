@@ -79,3 +79,15 @@ check to a place, while retaining exact page addresses and digests. A single
 image must not imply that the unseen portion was checked. Until supported,
 these places remain research candidates; no stitched substitute or silent
 truncation is proposed.
+
+## Semantic contrast carried by printed emphasis
+
+In the 1902 Dole English Schiller, *Aesthetical Letters*, p. 56,
+[XV p172a](https://archive.org/download/aestheticalphilo05schiuoft/page/n97.jpg)
+prints two clauses with the same words but distinguishes them by italics:
+first `play`, then `shall only play` and `beauty`. The existing normalized
+candidate drops emphasis and therefore presents the clauses as identical.
+Please advise the owner-approved representation or witness choice when printed
+emphasis is semantically necessary; a plain-text duplicate must not be silently
+presented as preserving the contrast. The translation identity and full
+alignment also remain under research, so this is not an admission request.
