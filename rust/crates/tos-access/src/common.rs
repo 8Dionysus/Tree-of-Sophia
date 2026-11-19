@@ -249,11 +249,7 @@ pub(crate) fn mcp_tool_list(
             crate::reading::PUBLIC_WORD_CAPABILITY_OPERATION
             | crate::reading::PUBLIC_READING_CAPABILITY_OPERATION => true,
             crate::reading::OPERATION_ID => executor.reading_search_available(),
-            SEARCH_OPERATION_ID => {
-                executor.knowledge_search_indexed_available()
-                    || executor.knowledge_search_legacy_available()
-                    || executor.knowledge_search_compressed_available()
-            }
+            SEARCH_OPERATION_ID => executor.knowledge_search_compressed_available(),
             SOURCE_TEXT_SEARCH_OPERATION_ID => source_text_search_selected,
             id if crate::source_read::Operation::from_id(id).is_some() => {
                 crate::source_read::Operation::from_id(id).is_some_and(|op| op.software_available())
@@ -465,150 +461,6 @@ impl Params {
             })
             .transpose()?;
         Self::new(node_id.to_owned(), depth, limit)?.with_commit_lower_bound(sequence)
-    }
-}
-
-/// The direct knowledge API retains its legacy default. This request names
-/// indexed v2 explicitly and carries vocabulary values as selected data.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IndexedSearchParams {
-    pub query: String,
-    pub sources: Vec<String>,
-    pub kind_ids: Vec<String>,
-    pub predicate_ids: Vec<String>,
-    pub cursor: Option<String>,
-    pub limit: usize,
-}
-
-impl IndexedSearchParams {
-    // Preserve room for a maximum native continuation in every maintained
-    // 64 KiB request/line wire. JSON control escaping can cost six bytes per
-    // input byte; HTTP percent encoding costs at most three.
-    const MAX_FIELDS_BYTES: usize = 6 * 1024;
-
-    pub fn new(
-        query: String,
-        sources: Vec<String>,
-        kind_ids: Vec<String>,
-        predicate_ids: Vec<String>,
-        cursor: Option<String>,
-        limit: usize,
-    ) -> Result<Self, AccessError> {
-        // Exact Unicode strip/lower and the three-code-point eligibility
-        // check belong to QRY's pinned text profile, not host Rust casing.
-        if query.chars().count() > 256
-            || !(1..=100).contains(&limit)
-            || [&sources, &kind_ids, &predicate_ids]
-                .iter()
-                .flat_map(|values| values.iter())
-                .fold(0usize, |bytes, value| bytes.saturating_add(value.len()))
-                .saturating_add(query.len())
-                > Self::MAX_FIELDS_BYTES
-            || cursor
-                .as_ref()
-                .is_some_and(|value| value.len() > crate::indexed_cursor::MAX_CURSOR_BYTES)
-            || [&sources, &kind_ids, &predicate_ids].iter().any(|values| {
-                values.len() > 256
-                    || values
-                        .iter()
-                        .any(|value| value.is_empty() || value.chars().count() > 256)
-            })
-        {
-            return Err(AccessError::new(
-                AccessErrorCode::InvalidRequest,
-                "invalid indexed knowledge search request",
-            ));
-        }
-        Ok(Self {
-            query,
-            sources,
-            kind_ids,
-            predicate_ids,
-            cursor,
-            limit,
-        })
-    }
-
-    pub fn from_json(value: &JsonValue) -> Result<Self, AccessError> {
-        if value.as_object().is_none() {
-            return Err(AccessError::new(
-                AccessErrorCode::InvalidRequest,
-                "search arguments must be an object",
-            ));
-        }
-        let mode = value.object_get("mode").and_then(JsonValue::as_str);
-        if mode != Some("indexed")
-            || value
-                .object_get("offset")
-                .is_some_and(|v| v.as_u64() != Some(0))
-        {
-            return Err(AccessError::new(
-                AccessErrorCode::InvalidRequest,
-                "indexed mode required without offset",
-            ));
-        }
-        let query = value
-            .object_get("query")
-            .map(|v| {
-                v.as_str().ok_or_else(|| {
-                    AccessError::new(AccessErrorCode::InvalidRequest, "query must be a string")
-                })
-            })
-            .transpose()?
-            .unwrap_or("")
-            .to_owned();
-        let list = |name: &str| -> Result<Vec<String>, AccessError> {
-            let Some(raw) = value.object_get(name) else {
-                return Ok(Vec::new());
-            };
-            let Some(array) = raw.as_array() else {
-                return Err(AccessError::new(
-                    AccessErrorCode::InvalidRequest,
-                    "search filter must be an array",
-                ));
-            };
-            array
-                .iter()
-                .map(|item| {
-                    item.as_str().map(str::to_owned).ok_or_else(|| {
-                        AccessError::new(
-                            AccessErrorCode::InvalidRequest,
-                            "search filter entry must be a string",
-                        )
-                    })
-                })
-                .collect()
-        };
-        let cursor = match value.object_get("cursor") {
-            None | Some(JsonValue::Null) => None,
-            Some(raw) => Some(
-                raw.as_str()
-                    .ok_or_else(|| {
-                        AccessError::new(
-                            AccessErrorCode::InvalidRequest,
-                            "cursor must be a string or null",
-                        )
-                    })?
-                    .to_owned(),
-            ),
-        };
-        let limit = match value.object_get("limit") {
-            None => 40,
-            Some(raw) => usize::try_from(raw.as_u64().ok_or_else(|| {
-                AccessError::new(AccessErrorCode::InvalidRequest, "limit must be an integer")
-            })?)
-            .map_err(|_| {
-                AccessError::new(AccessErrorCode::InvalidRequest, "limit exceeds range")
-            })?,
-        };
-        Self::new(
-            query,
-            list("sources")?,
-            list("kind_ids")?,
-            list("predicate_ids")?,
-            cursor,
-            limit,
-        )
     }
 }
 
@@ -931,35 +783,6 @@ macro_rules! access_executor_contract {
             "selected public ledger unavailable",
         ))
     }
-    /// Maintained v1 is available only with an owner-selected normalized model
-    /// and its distinct current search authority.
-    fn knowledge_search_legacy_available(&self) -> bool {
-        false
-    }
-    fn knowledge_search_legacy(
-        &self,
-        _: tos_query::knowledge_legacy_search::LegacySearchRequest,
-        _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
-        Err(AccessError::new(
-            AccessErrorCode::Unavailable,
-            "legacy knowledge search unavailable",
-        ))
-    }
-    /// Indexed v2 requires a complete selected publication and its QRY executor.
-    fn knowledge_search_indexed_available(&self) -> bool {
-        false
-    }
-    fn knowledge_search_indexed(
-        &self,
-        _: IndexedSearchParams,
-        _: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<$packet_lifetime>, AccessError> {
-        Err(AccessError::new(
-            AccessErrorCode::Unavailable,
-            "indexed knowledge search unavailable",
-        ))
-    }
     /// Explicit prepared-read-model binding; this is a local projection reader.
     fn knowledge_search_compressed_available(&self) -> bool {
         false
@@ -1114,26 +937,6 @@ impl<'hold, T: AccessExecutor + ?Sized> ScopedAccessExecutor<'hold> for T {
         arg1: Arc<dyn AbortProbe>,
     ) -> Result<PreparedPacket<'hold>, AccessError> {
         AccessExecutor::source_gap(self, arg0, arg1)
-    }
-    fn knowledge_search_legacy_available(&self) -> bool {
-        AccessExecutor::knowledge_search_legacy_available(self)
-    }
-    fn knowledge_search_legacy(
-        &self,
-        arg0: tos_query::knowledge_legacy_search::LegacySearchRequest,
-        arg1: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'hold>, AccessError> {
-        AccessExecutor::knowledge_search_legacy(self, arg0, arg1)
-    }
-    fn knowledge_search_indexed_available(&self) -> bool {
-        AccessExecutor::knowledge_search_indexed_available(self)
-    }
-    fn knowledge_search_indexed(
-        &self,
-        arg0: IndexedSearchParams,
-        arg1: Arc<dyn AbortProbe>,
-    ) -> Result<PreparedPacket<'hold>, AccessError> {
-        AccessExecutor::knowledge_search_indexed(self, arg0, arg1)
     }
     fn knowledge_search_compressed_available(&self) -> bool {
         AccessExecutor::knowledge_search_compressed_available(self)
@@ -1418,13 +1221,6 @@ pub(crate) fn error_json(error: &AccessError) -> Vec<u8> {
 pub(crate) fn validate_packet(raw: &[u8], max_bytes: usize) -> Result<(), AccessError> {
     validate_packet_in_state(raw, max_bytes, None)
 }
-pub(crate) fn validate_packet_with_state_budget(
-    raw: &[u8],
-    max_bytes: usize,
-    remaining_state: usize,
-) -> Result<(), AccessError> {
-    validate_packet_in_state(raw, max_bytes, Some(remaining_state))
-}
 /// Existing public packet grammar grant shared with Resource rendering.
 pub(crate) fn packet_json_limits(max_bytes: usize) -> JsonLimits {
     JsonLimits {
@@ -1472,13 +1268,4 @@ fn validate_packet_in_state(
         ));
     }
     Ok(())
-}
-
-/// Typed allocations added by checked_execute and the one owner lease adapter.
-/// Lease payload state remains with its selected owner; shared Arc targets are
-/// counted by their original owner rather than each pointer alias.
-pub(crate) fn scoped_packet_wrapper_state_bytes() -> usize {
-    std::mem::size_of::<PreparedPacket<'_>>()
-        + std::mem::size_of::<AbortFence<'_>>()
-        + std::mem::size_of::<Box<dyn DisclosureFence>>()
 }

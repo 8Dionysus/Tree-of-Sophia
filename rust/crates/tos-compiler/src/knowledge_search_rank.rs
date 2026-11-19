@@ -91,7 +91,7 @@ pub fn decode_search_rank_field(
 
 pub(crate) fn with_encoded_pair<T>(
     packed: bool,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
     identity: &str,
     visible: &str,
     max_bytes: usize,
@@ -117,7 +117,7 @@ pub(crate) fn decode_pair_owned(
     identity: ValueRef<'_>,
     visible: ValueRef<'_>,
     max_bytes: usize,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<(String, String)> {
     if !search_rank_fields_packed(abi) {
         search_rank_field_size(abi, identity, max_bytes)?;

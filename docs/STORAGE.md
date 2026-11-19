@@ -11,8 +11,7 @@ operator's machine keeps a separate recovery copy.
 | `tos-source-bytes` | Source bytes and witness inputs, including restricted material | WNAM, Standard |
 | `tos-public-layers` | Redistributable public-text and generated public layers | WNAM, Standard |
 
-Both are in the Cloudflare account hosting `tree-of-sophia-access`, with the
-default jurisdiction. The managed `r2.dev` endpoint is disabled for both.
+Both are in the Cloudflare account, with the default jurisdiction. The managed `r2.dev` endpoint is disabled for both.
 Keep source material private; publication depends on its separate rights and
 review decision. A public-layer designation does not grant permission to
 publish source material.
@@ -31,11 +30,8 @@ rule and is reserved for disposable tests; delete test objects after use.
 Authorized corpus operators write source bytes after the relevant rights and
 admission decisions. The future migration package owns that transfer and its
 manifest. Authorized CI and operators may write admitted public layers; CI and
-the site may read them. The access Worker configuration declares the
-`PUBLIC_LAYERS` binding to `tos-public-layers`, but the binding is not deployed
-or used by application code as part of this setup. The binding is technically
-capable of writes; application and credential policy must enforce the intended
-read-only use. Do not bind `tos-source-bytes` to the public Worker.
+the site may read them. The public research Worker has no bucket bindings.
+Do not bind `tos-source-bytes` to the public Worker.
 
 When CI needs S3-compatible access, supply GitHub Actions secrets:
 `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, and `R2_ENDPOINT`.
@@ -63,6 +59,49 @@ verify exact membership; report missing, unexpected and mismatched objects.
 Periodically repeat this verification and test restoration to a separate path.
 A key name or an ETag alone is not proof of the bytes. Keep the recovery copy
 until the owner has independently verified both the cloud copy and restore.
+
+## Private witness custody preparation
+
+The selected artifact photographs are inventoried in
+`ToS/source-witnesses/artifacts/private-custody.v1.json`. The five Zarathustra
+research families retain their own `r2-manifest.v1.json` files. Their entries
+identify the exact source revision, logical path, size, SHA-256, private access,
+`tos-source-bytes` bucket and content-addressed key. Earlier source-rights
+records and provenance remain separate from this custody designation.
+
+The paragraph alignment and the parallel lexical candidates keep three small
+files in git: `manifest.v1.json`, `coverage-receipt.v1.json` and
+`summary.v1.json`. Edition curations pin the manifest and the coverage receipt
+as frozen evidence, and the curation tests read all three. The bucket also
+holds these bytes, so each present file is checked in full against its custody
+entry.
+
+`node bonsai/lib/private-custody.mjs check` validates those manifests and hashes
+any locally present files. Missing bytes are reported as not hydrated; that
+result does not establish that the objects exist in R2. An authorized operator
+can run `node bonsai/lib/private-custody.mjs hydrate` with `R2_ENDPOINT`,
+`R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`, scoped for private bucket reads.
+For offline verification, `--objects ABSOLUTE_DIRECTORY` reads keys from a local
+object store, `--recovery ABSOLUTE_DIRECTORY` reads the logical paths from a
+recovery copy, and `--target ABSOLUTE_DIRECTORY` selects an existing restore root.
+Choose only one offline source. The selected roots and their path components
+inside each root must not be symlinks.
+The command verifies size and digest before writing, refuses differing existing
+files, and verifies the installed bytes. It does not upload, publish, or use the
+public mirror or transfer branch. Neither the inventory nor a successful local
+test establishes R2 read-back or a recovery copy.
+
+The native witness and research readers validate the relevant private inventory
+when bytes are absent and report that content verification is incomplete.
+Present bytes are checked for fixity; full cross-file content checks run when
+the required bytes are present. The inventory does not establish that an absent
+object is recoverable.
+
+The photograph representation records retain their original acquisition-time
+`tracked_public_payload` and `git_tracked` declarations as provenance. For the
+14 paths in `artifacts/private-custody.v1.json`, the custody inventory describes
+the later storage selection; the older declarations do not establish current
+Git membership or grant publication rights.
 
 ## Pricing
 

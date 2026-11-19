@@ -10,6 +10,8 @@
 - Guard families: source-first authority, contract parity, credential boundary, runtime independence
 - Posture: accepted
 
+The D1 publication implementation was retired; its last software revision is tagged [retired/d1-publication](https://github.com/8Dionysus/Tree-of-Sophia/tree/retired/d1-publication). Cloud retirement remains a separate operator action.
+
 ## Context
 
 The first public `treeofsophia.com` route used Cloudflare Tunnel to expose the

@@ -10,12 +10,12 @@
 
 use crate::{
     Error, Result,
-    d1_public_capture::{CreationState, CreationStateHold},
     knowledge_posting_codec::{
         MAX_POSTING_DELTA_BYTES, MAX_POSTINGS_PER_BLOCK, decode_posting_block,
         decode_posting_block_v2, encode_posting_block, encode_posting_block_v2,
     },
     knowledge_stage::{KnowledgeStage, WritePhase},
+    public_capture::{CreationState, CreationStateHold},
 };
 use rusqlite::{Connection, OptionalExtension, params};
 use std::{

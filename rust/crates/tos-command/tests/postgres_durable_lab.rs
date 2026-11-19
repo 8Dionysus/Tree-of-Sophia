@@ -353,13 +353,13 @@ impl tos_compiler::knowledge_stage::StageIsolation for ManagedFixtureStageIsolat
 type ManagedFixtureCarrier = tos_compiler::knowledge_full_fixture::NativeFixtureProducedCarrier;
 fn fixture_search_kind(
     kind: tos_compiler::knowledge_full_fixture::NativeFixtureCarrierKind,
-) -> tos_query::search_v2::SearchKind {
+) -> tos_query::search::SearchKind {
     match kind {
         tos_compiler::knowledge_full_fixture::NativeFixtureCarrierKind::Node => {
-            tos_query::search_v2::SearchKind::Nodes
+            tos_query::search::SearchKind::Nodes
         }
         tos_compiler::knowledge_full_fixture::NativeFixtureCarrierKind::Relation => {
-            tos_query::search_v2::SearchKind::Relations
+            tos_query::search::SearchKind::Relations
         }
     }
 }
@@ -387,8 +387,8 @@ impl ManagedFixtureReadGrant {
             active: std::sync::Arc::new(AtomicU64::new(0)),
         }
     }
-    fn policy(&self) -> tos_query::search_v2::CurrentPolicyBinding {
-        tos_query::search_v2::CurrentPolicyBinding {
+    fn policy(&self) -> tos_query::search::CurrentPolicyBinding {
+        tos_query::search::CurrentPolicyBinding {
             scope: "private-synthetic-produced-agent-carriers".into(),
             issuer_ref: "synthetic-test-only:no-production-read-authority".into(),
             authorization_receipt_id: "synthetic-private-agent-disclosure".into(),
@@ -396,10 +396,10 @@ impl ManagedFixtureReadGrant {
             withdrawal_generation: "fixture-1".into(),
         }
     }
-    fn inspect_check(&self) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    fn inspect_check(&self) -> Result<(), tos_query::search::SearchError> {
         if self.withdrawn.load(Ordering::SeqCst) {
-            Err(tos_query::search_v2::SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::StalePolicy,
+            Err(tos_query::search::SearchError {
+                code: tos_query::search::SearchErrorCode::StalePolicy,
                 message: "finite projection hold withdrawn",
             })
         } else {
@@ -474,10 +474,10 @@ impl Drop for ManagedFixtureReadHold {
     }
 }
 impl tos_query::InspectDisclosureLease for ManagedFixtureReadHold {
-    fn recheck(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    fn recheck(&mut self) -> Result<(), tos_query::search::SearchError> {
         if self.withdrawn.load(Ordering::SeqCst) {
-            Err(tos_query::search_v2::SearchV2Error {
-                code: tos_query::search_v2::SearchV2ErrorCode::StalePolicy,
+            Err(tos_query::search::SearchError {
+                code: tos_query::search::SearchErrorCode::StalePolicy,
                 message: "finite projection hold withdrawn",
             })
         } else {
@@ -498,7 +498,7 @@ impl tos_query::CatalogDisclosureLease for ManagedFixtureReadHold {
     }
 }
 impl<'hold> tos_query::CatalogCurrentAuthority<'hold> for ManagedFixtureReadGrant {
-    fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {
+    fn policy_binding(&self) -> tos_query::search::CurrentPolicyBinding {
         self.policy()
     }
     fn disclosure_scope(&self) -> tos_query::CatalogDisclosureScope {
@@ -530,19 +530,19 @@ impl<'hold> tos_query::CatalogCurrentAuthority<'hold> for ManagedFixtureReadGran
     }
 }
 impl<'hold> tos_query::InspectCurrentAuthority<'hold> for ManagedFixtureReadGrant {
-    fn policy_binding(&self) -> tos_query::search_v2::CurrentPolicyBinding {
+    fn policy_binding(&self) -> tos_query::search::CurrentPolicyBinding {
         self.policy()
     }
     fn disclosure_scope(&self) -> tos_query::IndexedDisclosureScope {
         self.inspect_scope()
     }
-    fn check_selected(&mut self) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    fn check_selected(&mut self) -> Result<(), tos_query::search::SearchError> {
         self.inspect_check()
     }
     fn authorize_current(
         &mut self,
         carrier: &tos_query::InspectedCarrier,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inspect_check()?;
         assert!(
             self.carriers
@@ -560,7 +560,7 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for ManagedFixtureReadGran
         position: i64,
         raw: &[u8],
         sha: Digest256,
-    ) -> Result<(), tos_query::search_v2::SearchV2Error> {
+    ) -> Result<(), tos_query::search::SearchError> {
         self.inspect_check()?;
         assert_eq!(
             serde_json::to_value(receipt).unwrap(),
@@ -574,10 +574,8 @@ impl<'hold> tos_query::InspectCurrentAuthority<'hold> for ManagedFixtureReadGran
         &mut self,
         scope: &tos_query::IndexedDisclosureScope,
         consulted: &[tos_query::ObservedInspectCarrier],
-    ) -> Result<
-        Box<dyn tos_query::InspectDisclosureLease + 'hold>,
-        tos_query::search_v2::SearchV2Error,
-    > {
+    ) -> Result<Box<dyn tos_query::InspectDisclosureLease + 'hold>, tos_query::search::SearchError>
+    {
         self.inspect_check()?;
         assert_eq!(scope, &self.inspect_scope());
         assert!(
@@ -626,10 +624,10 @@ impl tos_query::knowledge_exploration::ExplorationCheckpoints for ManagedFixture
         _: &str,
     ) -> Result<
         tos_query::knowledge_exploration::ExplorationCheckpoint,
-        tos_query::search_v2::SearchV2Error,
+        tos_query::search::SearchError,
     > {
-        Err(tos_query::search_v2::SearchV2Error {
-            code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+        Err(tos_query::search::SearchError {
+            code: tos_query::search::SearchErrorCode::Unavailable,
             message: "fixture grants catalog/node/relation only",
         })
     }
@@ -642,10 +640,10 @@ impl tos_query::knowledge_exploration::ExplorationCheckpoints for ManagedFixture
         _: tos_query::knowledge_exploration::ExplorationBudget,
     ) -> Result<
         Box<dyn tos_query::knowledge_exploration::PreparedExplorationCheckpoint>,
-        tos_query::search_v2::SearchV2Error,
+        tos_query::search::SearchError,
     > {
-        Err(tos_query::search_v2::SearchV2Error {
-            code: tos_query::search_v2::SearchV2ErrorCode::Unavailable,
+        Err(tos_query::search::SearchError {
+            code: tos_query::search::SearchErrorCode::Unavailable,
             message: "fixture grants catalog/node/relation only",
         })
     }

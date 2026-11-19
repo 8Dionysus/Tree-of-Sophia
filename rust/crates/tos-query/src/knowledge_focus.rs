@@ -1,7 +1,7 @@
 //! The declared radial focus request, compiled through the shared LensSpec ABI.
 use crate::{
     knowledge_lens_spec::*,
-    search_v2::SearchV2Error,
+    search::SearchError,
     source_read_projection::{object, text},
 };
 use tos_foundation::JsonValue;
@@ -74,7 +74,7 @@ impl KnowledgeFocusRequest {
 pub fn focus_lens_spec(
     request: &KnowledgeFocusRequest,
     vocabulary: &LensVocabulary,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let identifier = strip(&request.node_id);
     if identifier.is_empty() {
         return Err(invalid("knowledge focus identifier is required"));
@@ -196,7 +196,7 @@ pub fn focus_lens_spec(
 pub fn focus_lens_spec_from_json(
     value: &JsonValue,
     vocabulary: &LensVocabulary,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let fields = value
         .as_object()
         .ok_or_else(|| invalid("focus request must be an object"))?;
@@ -221,7 +221,7 @@ pub fn focus_lens_spec_from_json(
         .as_str()
         .ok_or_else(|| invalid("knowledge focus identifier is required"))?;
     let mut request = KnowledgeFocusRequest::new(node_id);
-    fn integer(value: &JsonValue, default: usize) -> Result<usize, SearchV2Error> {
+    fn integer(value: &JsonValue, default: usize) -> Result<usize, SearchError> {
         if matches!(value, JsonValue::Null) {
             return Ok(default);
         }
@@ -230,7 +230,7 @@ pub fn focus_lens_spec_from_json(
             .and_then(|n| usize::try_from(n).ok())
             .ok_or_else(|| invalid("invalid focus integer"))
     }
-    fn strings(value: &JsonValue) -> Result<Vec<String>, SearchV2Error> {
+    fn strings(value: &JsonValue) -> Result<Vec<String>, SearchError> {
         value
             .as_array()
             .ok_or_else(|| invalid("invalid focus string list"))?
@@ -274,6 +274,6 @@ pub fn focus_lens_spec_from_json(
     normalize_lens_spec(&focus_lens_spec(&request, vocabulary)?, vocabulary)
 }
 
-pub fn normalize_published_focus_request(value: &JsonValue) -> Result<JsonValue, SearchV2Error> {
+pub fn normalize_published_focus_request(value: &JsonValue) -> Result<JsonValue, SearchError> {
     focus_lens_spec_from_json(value, &LensVocabulary::published_shape())
 }

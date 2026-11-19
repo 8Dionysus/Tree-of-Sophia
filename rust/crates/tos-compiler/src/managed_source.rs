@@ -442,12 +442,12 @@ pub(crate) fn header_basis(header: &serde_json::Value) -> Result<KnowledgeSource
 /// admission route and are not accepted here.
 pub(crate) fn with_native_cut_header_basis_owned<T>(
     header: &tos_foundation::JsonValue,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     consume: impl FnOnce(&KnowledgeSourceBasis) -> Result<T>,
 ) -> Result<T> {
     let fixed = std::mem::size_of::<(
         &tos_foundation::JsonValue,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         KnowledgeSourceBasis,
         String,
         Result<T>,
