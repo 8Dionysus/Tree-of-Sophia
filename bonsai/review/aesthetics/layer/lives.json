@@ -16734,17 +16734,7 @@
    "ru": "Сюзанна Кин",
    "en": "Suzanne Keen"
   },
-  "born": [
-   {
-    "time": "+1973-01-01T00:00:00Z",
-    "precision": 9
-   },
-   {
-    "time": "+1963-04-10T00:00:00Z",
-    "precision": 11,
-    "source": "https://id.loc.gov/authorities/names/n97063585.json"
-   }
-  ],
+  "born": [],
   "died": [],
   "checked": "2026-11-13",
   "catalogue_search": {
@@ -16776,7 +16766,19 @@
     "https://www.wikidata.org/wiki/Q60058263#P569",
     "https://id.loc.gov/authorities/names/n97063585.json"
    ],
-   "reason": "Wikidata gives 1973; the Library of Congress authority for the same scholar records 10 April 1963. Both claims remain unresolved."
+   "reason": "Wikidata gives 1973; the Library of Congress authority for the same scholar records 10 April 1963. Both claims remain unresolved.",
+   "claims": [
+    {
+     "time": "+1973-01-01T00:00:00Z",
+     "precision": 9,
+     "source": "https://www.wikidata.org/wiki/Q60058263#P569"
+    },
+    {
+     "time": "+1963-04-10T00:00:00Z",
+     "precision": 11,
+     "source": "https://id.loc.gov/authorities/names/n97063585.json"
+    }
+   ]
   }
  },
  "svetlana-boym": {

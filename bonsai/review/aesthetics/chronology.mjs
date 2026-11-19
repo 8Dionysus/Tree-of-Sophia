@@ -85,7 +85,8 @@ if(args.has('--refresh-qualifiers')){
         if(!batch.includes(life.item))continue;
         const entity=entities[life.item];if(!entity||entity.missing!==undefined)continue;
         const times=property=>{const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');return (preferred.length?preferred:claims).map(timeRecord);};
-        life.born=times('P569');life.died=times('P570');life.fetched=new Date().toISOString().slice(0,10);
+        // A documented cross-source conflict stays unresolved until explicitly reviewed.
+        life.born=life.date_conflict?.field==='born'?[]:times('P569');life.died=life.date_conflict?.field==='died'?[]:times('P570');life.fetched=new Date().toISOString().slice(0,10);
         if([...life.born,...life.died].some(date=>date.approximate))qualified++;
         count++;
       }

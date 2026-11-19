@@ -602,6 +602,7 @@ class CandidatePrivacyTest(unittest.TestCase):
 class LivingAuthorChronologyTest(unittest.TestCase):
     def test_known_birth_without_death_remains_an_unknown_lifetime(self):
         import json
+        import os
         import shutil
         import subprocess
         import tempfile
@@ -631,6 +632,18 @@ class LivingAuthorChronologyTest(unittest.TestCase):
             self.assertEqual(life['dating']['certainty'],'approximate')
             self.assertEqual(life['dating']['interval']['start'],'1723')
             self.assertIn('approximately',life['dating']['source_wording']['text'])
+            # Refreshing Wikidata must not erase an unresolved, source-visible conflict.
+            library=json.loads((home/'library.json').read_text());lives={key:value for key,value in lives.items() if key in library['agents']}
+            kant=lives['immanuel-kant'];kant['born']=[];kant['date_conflict']={'field':'born','claims':[{'time':'+1724-01-01T00:00:00Z','source':'https://example.org/one'},{'time':'+1725-01-01T00:00:00Z','source':'https://example.org/two'}]}
+            (layer/'lives.json').write_text(json.dumps(lives,ensure_ascii=False))
+            shim=target/'mock-fetch.mjs';qid=kant['item']
+            shim.write_text('globalThis.fetch=async()=>({ok:true,json:async()=>({entities:{'+json.dumps(qid)+':{claims:{P569:[{rank:"normal",mainsnak:{datavalue:{value:{time:"+1724-01-01T00:00:00Z",precision:9}}}}]}}}})});')
+            env={**os.environ,'NODE_OPTIONS':'--import='+str(shim)}
+            subprocess.run(['node',str(review/'chronology.mjs'),'--refresh-qualifiers'],check=True,capture_output=True,text=True,env=env)
+            refreshed=json.loads((layer/'lives.json').read_text())['immanuel-kant']
+            self.assertEqual(refreshed['born'],[]);self.assertEqual(len(refreshed['date_conflict']['claims']),2)
+            result=json.loads((home/'chronology.json').read_text());life=result['situations'][result['lives']['immanuel-kant']]
+            self.assertEqual(life['dating']['kind'],'unknown-date')
 
 class TranslationCorrectionTest(unittest.TestCase):
     def test_added_page_binds_words_and_invalidates_review(self):
