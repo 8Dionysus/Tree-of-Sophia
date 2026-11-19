@@ -9750,7 +9750,9 @@ fn append_text_metadata(
 ) -> Result<(), ItemRefusal> {
     use crate::text_metadata_rules::TextMetadataLimits;
     let metadata_limits = TextMetadataLimits {
-        max_packet_bytes: limits.max_member_bytes.min(TextMetadataLimits::MAX_PACKET_BYTES),
+        max_packet_bytes: limits
+            .max_member_bytes
+            .min(TextMetadataLimits::MAX_PACKET_BYTES),
         max_state_bytes: limits
             .max_state_bytes
             .saturating_sub(state.retained_bytes)
