@@ -2,8 +2,8 @@
 //! come from one selected original component; normalized metadata alone is
 //! insufficient. The kernel never grants permission to Item payload bytes.
 use crate::knowledge_inspect::{Reader, execute_selected_carrier_packet};
-use crate::search_v2::SearchKind;
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::SearchKind;
+use crate::search::{SearchError, SearchErrorCode};
 use crate::source_read_projection::{object, text};
 use crate::{BoundCmpKnowledge, DisclosableInspect, InspectBudget, InspectCurrentAuthority};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -23,15 +23,15 @@ pub struct DossierBudget {
     pub block_size: usize,
 }
 
-fn corrupt(message: &'static str) -> SearchV2Error {
-    err(SearchV2ErrorCode::CorruptSelectedCarrier, message)
+fn corrupt(message: &'static str) -> SearchError {
+    err(SearchErrorCode::CorruptSelectedCarrier, message)
 }
 
 fn members<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     read: &mut Reader<'_, '_, A>,
     collection: &str,
     count: u64,
-) -> Result<BTreeMap<String, NavigationOriginalMember>, SearchV2Error> {
+) -> Result<BTreeMap<String, NavigationOriginalMember>, SearchError> {
     let mut result = BTreeMap::new();
     let mut after: Option<String> = None;
     while let Some(member) = read.original_member(collection, after.as_deref())? {
@@ -57,12 +57,12 @@ fn original_payloads<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     members: &BTreeMap<String, NavigationOriginalMember>,
     budget: DossierBudget,
     candidate_work: &mut usize,
-) -> Result<BTreeMap<String, JsonValue>, SearchV2Error> {
+) -> Result<BTreeMap<String, JsonValue>, SearchError> {
     let sources = [source.to_owned()];
     let expected = read.scope_count(kind, &sources)?;
     if expected > budget.max_candidates.saturating_sub(*candidate_work) as u64 {
         return Err(err(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "dossier candidate cap exceeded",
         ));
     }
@@ -83,7 +83,7 @@ fn original_payloads<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             read.check_interrupt()?;
             *candidate_work = candidate_work.checked_add(1).ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "dossier candidate cap exceeded",
                 )
             })?;
@@ -120,7 +120,7 @@ fn original_payloads<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             )
             .map_err(|_| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "dossier original canonical cap exceeded",
                 )
             })?;
@@ -156,13 +156,13 @@ pub fn execute_selected_dossier<'hold, A: InspectCurrentAuthority<'hold> + ?Size
     object_id: &str,
     limit: usize,
     budget: DossierBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     if object_id.is_empty()
         || object_id.len() > budget.inspect.max_field_bytes
         || !(1..=300).contains(&limit)
     {
         return Err(err(
-            SearchV2ErrorCode::InvalidRequest,
+            SearchErrorCode::InvalidRequest,
             "invalid dossier request",
         ));
     }
@@ -172,7 +172,7 @@ pub fn execute_selected_dossier<'hold, A: InspectCurrentAuthority<'hold> + ?Size
         || budget.block_size > budget.inspect.max_rows as usize
     {
         return Err(err(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "invalid dossier budget",
         ));
     }
@@ -231,21 +231,21 @@ pub fn execute_selected_source_navigation_descend<
     request: &crate::SourceDescendRequest,
     budget: DossierBudget,
     max_retained_bytes: usize,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     if request.node_id.is_empty()
         || request.node_id.len() > budget.inspect.max_field_bytes
         || !(1..=8).contains(&request.max_depth)
         || !(1..=300).contains(&request.limit)
     {
         return Err(err(
-            SearchV2ErrorCode::InvalidRequest,
+            SearchErrorCode::InvalidRequest,
             "invalid selected original descent request",
         ));
     }
     if request.at_least_commit_seq.is_some() {
         // This immutable selected-original receipt has no publication sequence.
         return Err(err(
-            SearchV2ErrorCode::Unavailable,
+            SearchErrorCode::Unavailable,
             "selected original export has no comparable command sequence",
         ));
     }
@@ -255,7 +255,7 @@ pub fn execute_selected_source_navigation_descend<
         || budget.block_size > budget.inspect.max_rows as usize
     {
         return Err(err(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "invalid selected original descent budget",
         ));
     }
@@ -274,7 +274,7 @@ pub fn execute_selected_source_navigation_descend<
             });
             if !nodes.contains_key(&request.node_id) {
                 return Err(err(
-                    SearchV2ErrorCode::UnknownIdentifier,
+                    SearchErrorCode::UnknownIdentifier,
                     "unknown source-navigation node",
                 ));
             }
@@ -378,7 +378,7 @@ fn descent_number(value: usize) -> JsonValue {
     })
 }
 
-fn take_field(value: JsonValue, field: &str) -> Result<JsonValue, SearchV2Error> {
+fn take_field(value: JsonValue, field: &str) -> Result<JsonValue, SearchError> {
     let JsonValue::Object(entries) = value else {
         return Err(corrupt("selected original envelope is not an object"));
     };
@@ -400,14 +400,14 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
         BTreeMap<String, JsonValue>,
         Vec<JsonValue>,
     ),
-    SearchV2Error,
+    SearchError,
 > {
     let receipt = read.original_receipt()?;
     let source = bound
         .source_for_adapter("source-navigation-node-edge-v1")
         .ok_or_else(|| {
             err(
-                SearchV2ErrorCode::Unavailable,
+                SearchErrorCode::Unavailable,
                 "selected navigation source unavailable",
             )
         })?;
@@ -433,7 +433,7 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .and_then(|n| usize::try_from(n).ok())
             .ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "navigation retained byte range",
                 )
             })?;
@@ -443,7 +443,7 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .and_then(|n| usize::try_from(n).ok())
             .ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "navigation retained member range",
                 )
             })?;
@@ -454,13 +454,13 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .and_then(|n| usize::try_from(n).ok())
             .ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "navigation candidate count range",
                 )
             })?;
         if candidates > budget.max_candidates {
             return Err(err(
-                SearchV2ErrorCode::BudgetExceeded,
+                SearchErrorCode::BudgetExceeded,
                 "navigation candidate cap exceeded",
             ));
         }
@@ -478,7 +478,7 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .and_then(|n| n.checked_mul(2))
             .ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "navigation observed state overflow",
                 )
             })?;
@@ -490,7 +490,7 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .and_then(|n| n.checked_mul(2))
             .ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "navigation page state overflow",
                 )
             })?;
@@ -505,13 +505,13 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .and_then(|n| n.checked_add(4096))
             .ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "navigation retained state overflow",
                 )
             })?;
         if cap == 0 || state > cap {
             return Err(err(
-                SearchV2ErrorCode::BudgetExceeded,
+                SearchErrorCode::BudgetExceeded,
                 "navigation retained state exceeds owner allowance",
             ));
         }
@@ -547,7 +547,7 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .and_then(|n| usize::try_from(n).ok())
             .ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "navigation raw member byte range",
                 )
             })?;
@@ -556,7 +556,7 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .and_then(|n| n.checked_add(base))
             .ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "navigation original DOM state overflow",
                 )
             })?;
@@ -570,7 +570,7 @@ fn load_original_navigation<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
             .filter(|bytes| *bytes > 0)
             .ok_or_else(|| {
                 err(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "navigation original DOM leaves no response allowance",
                 )
             })?;
@@ -654,8 +654,8 @@ fn strings(v: &JsonValue) -> BTreeSet<String> {
 fn texts(v: impl IntoIterator<Item = String>) -> JsonValue {
     JsonValue::Array(v.into_iter().map(|v| text(&v)).collect())
 }
-fn err(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn err(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
 fn kind(node: &JsonValue) -> &str {
     s(get(node, "node_kind"))
@@ -688,23 +688,21 @@ fn layer_id(id: &str) -> bool {
 }
 struct Work<'a> {
     left: u64,
-    interrupt: &'a mut dyn FnMut() -> Result<(), SearchV2Error>,
+    interrupt: &'a mut dyn FnMut() -> Result<(), SearchError>,
 }
 impl Work<'_> {
-    fn step(&mut self, n: usize) -> Result<(), SearchV2Error> {
-        self.left = self.left.checked_sub(n as u64).ok_or_else(|| {
-            err(
-                SearchV2ErrorCode::BudgetExceeded,
-                "dossier work cap exceeded",
-            )
-        })?;
+    fn step(&mut self, n: usize) -> Result<(), SearchError> {
+        self.left = self
+            .left
+            .checked_sub(n as u64)
+            .ok_or_else(|| err(SearchErrorCode::BudgetExceeded, "dossier work cap exceeded"))?;
         (self.interrupt)()
     }
 }
 fn aggregate<'a>(
     records: &[&'a JsonValue],
     w: &mut Work<'_>,
-) -> Result<Vec<&'a JsonValue>, SearchV2Error> {
+) -> Result<Vec<&'a JsonValue>, SearchError> {
     let mut groups: BTreeMap<&str, Vec<&JsonValue>> = BTreeMap::new();
     for r in records {
         w.step(1)?;
@@ -756,11 +754,7 @@ struct Membership {
     legacy: bool,
     valid: bool,
 }
-fn membership(
-    edge: &JsonValue,
-    strict: bool,
-    w: &mut Work<'_>,
-) -> Result<Membership, SearchV2Error> {
+fn membership(edge: &JsonValue, strict: bool, w: &mut Work<'_>) -> Result<Membership, SearchError> {
     let refs = get(edge, "source_refs");
     let sources = strings(refs);
     let mut m = Membership {
@@ -811,7 +805,7 @@ fn membership(
     }
     Ok(m)
 }
-fn scopes(record: &JsonValue, w: &mut Work<'_>) -> Result<BTreeSet<String>, SearchV2Error> {
+fn scopes(record: &JsonValue, w: &mut Work<'_>) -> Result<BTreeSet<String>, SearchError> {
     w.step(arr(get(record, "scope_refs")).len())?;
     Ok(strings(get(record, "scope_refs")))
 }
@@ -825,7 +819,7 @@ fn file_filter<'a>(
     edges: &BTreeMap<String, &JsonValue>,
     incoming: &BTreeMap<String, Vec<&JsonValue>>,
     w: &mut Work<'_>,
-) -> Result<Vec<&'a JsonValue>, SearchV2Error> {
+) -> Result<Vec<&'a JsonValue>, SearchError> {
     let files: BTreeSet<_> = ids
         .iter()
         .filter(|id| nodes.get(*id).is_some_and(|n| kind(n) == "file"))
@@ -967,8 +961,8 @@ pub(crate) fn compute_dossier(
     object_id: &str,
     limit: usize,
     max_steps: u64,
-    interrupt: &mut dyn FnMut() -> Result<(), SearchV2Error>,
-) -> Result<JsonValue, SearchV2Error> {
+    interrupt: &mut dyn FnMut() -> Result<(), SearchError>,
+) -> Result<JsonValue, SearchError> {
     let mut w = Work {
         left: max_steps,
         interrupt,
@@ -976,14 +970,14 @@ pub(crate) fn compute_dossier(
     w.step(1)?;
     let selected = nodes.get(object_id).ok_or_else(|| {
         err(
-            SearchV2ErrorCode::UnknownIdentifier,
+            SearchErrorCode::UnknownIdentifier,
             "unknown ToS dossier object",
         )
     })?;
     let selected_kind = kind(selected);
     if !["work", "expression", "edition", "item", "file", "link"].contains(&selected_kind) {
         return Err(err(
-            SearchV2ErrorCode::InvalidRequest,
+            SearchErrorCode::InvalidRequest,
             "dossier object kind unsupported",
         ));
     }

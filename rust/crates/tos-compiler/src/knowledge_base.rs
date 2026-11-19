@@ -45,7 +45,7 @@ pub struct KnowledgeBaseNormalizer<'a> {
     entities: BTreeMap<String, Value>,
     relations: BTreeMap<String, Value>,
     limits: BaseNormalizationLimits,
-    owner_state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+    owner_state: Option<&'a crate::public_capture::CreationState<'a>>,
     descriptor_sha256: String,
     processing_run: Option<crate::processing_cache::ProcessingRunHandle>,
 }
@@ -160,7 +160,7 @@ fn layers(item: &Value) -> Vec<Value> {
     }
 }
 fn owned_btree_entry(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     key_bytes: usize,
     key_size: usize,
     value_size: usize,
@@ -175,7 +175,7 @@ fn owned_btree_entry(
 }
 fn owned_string(
     value: &str,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<String> {
     if let Some(state) = state {
         state.retain(
@@ -191,7 +191,7 @@ fn entries(
     cap: usize,
     collection: &str,
     id_field: &str,
-    owner_state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    owner_state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<BTreeMap<String, Value>> {
     let row = SourceRow::parse_scoped_with_optional_owned_state(bytes, cap, owner_state)?;
     let mut entries = BTreeMap::new();
@@ -238,7 +238,7 @@ impl std::ops::Deref for BoundedSourceRow<'_, '_> {
 fn bounded_source_value<'s, 'budget>(
     value: &Value,
     cap: usize,
-    owner_state: Option<&'s crate::d1_public_capture::CreationState<'budget>>,
+    owner_state: Option<&'s crate::public_capture::CreationState<'budget>>,
 ) -> Result<BoundedSourceRow<'s, 'budget>> {
     serde_json::to_writer(&mut CappedBytes { bytes: 0, cap }, value)
         .map_err(|_| Error::Budget("owner base display source bytes"))?;
@@ -280,7 +280,7 @@ fn add_owned_bytes(total: &mut usize, bytes: usize, label: &'static str) -> Resu
     Ok(())
 }
 fn add_source_copy(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     total: &mut usize,
     value: &Value,
     copies: usize,
@@ -293,7 +293,7 @@ fn add_source_copy(
     Ok(())
 }
 fn source_key_count(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     value: &Value,
     depth: usize,
 ) -> Result<usize> {
@@ -325,7 +325,7 @@ fn source_key_count(
     Ok(count)
 }
 fn string_array_count_and_bytes(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     value: Option<&Value>,
 ) -> Result<(usize, usize)> {
     let mut count = 0usize;
@@ -353,7 +353,7 @@ fn string_set_workspace(count: usize) -> Result<usize> {
         .ok_or(Error::Budget("owned normalized string set workspace"))
 }
 fn temporal_object_call_counts(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     object: &Map<String, Value>,
     depth: usize,
 ) -> Result<(usize, usize)> {
@@ -393,7 +393,7 @@ fn temporal_object_call_counts(
     Ok((calls, wrappers))
 }
 fn temporal_call_counts(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     value: Option<&Value>,
     depth: usize,
 ) -> Result<(usize, usize)> {
@@ -411,7 +411,7 @@ fn temporal_call_counts(
     }
 }
 fn attribute_field_map_geometry(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     item: &Value,
 ) -> Result<(usize, usize)> {
     state.active()?;
@@ -481,7 +481,7 @@ fn attribute_field_map_geometry(
     Ok((count, text_bytes))
 }
 fn assertion_output_extras(
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     item: &Value,
     total: &mut usize,
     serialized_cap: usize,
@@ -608,7 +608,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         vocabulary: &QueryVocabulary,
         descriptor_bytes: &[u8],
         limits: BaseNormalizationLimits,
-        state: &'a crate::d1_public_capture::CreationState<'a>,
+        state: &'a crate::public_capture::CreationState<'a>,
     ) -> Result<Self> {
         Self::new_inner(
             registry,
@@ -623,7 +623,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
     /// Require the repository and normalizer to share the exact capture owner.
     pub(crate) fn ensure_same_owned_state(
         &self,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
     ) -> Result<()> {
         let owner = self
             .owner_state
@@ -642,7 +642,7 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         vocabulary: &QueryVocabulary,
         descriptor_bytes: &[u8],
         limits: BaseNormalizationLimits,
-        owner_state: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+        owner_state: Option<&'a crate::public_capture::CreationState<'a>>,
     ) -> Result<Self> {
         if limits.max_registry_bytes == 0
             || limits.max_registry_bytes > 4 * 1024 * 1024
@@ -1002,8 +1002,8 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         source_graph: &str,
         canonical: bool,
         overrides: BaseNodeOverrides<'_>,
-        state: &'a crate::d1_public_capture::CreationState<'a>,
-    ) -> Result<crate::d1_public_capture::CreationStateHold<'a, 'a>> {
+        state: &'a crate::public_capture::CreationState<'a>,
+    ) -> Result<crate::public_capture::CreationStateHold<'a, 'a>> {
         let item = source.value();
         let mut total = FIXED_NODE_SCHEMA_ENVELOPE;
         // The eight separately documented destinations are attributes,
@@ -1495,8 +1495,8 @@ impl<'a> KnowledgeBaseNormalizer<'a> {
         left_title: &Value,
         right_title: &Value,
         default_authority: &str,
-        state: &'a crate::d1_public_capture::CreationState<'a>,
-    ) -> Result<crate::d1_public_capture::CreationStateHold<'a, 'a>> {
+        state: &'a crate::public_capture::CreationState<'a>,
+    ) -> Result<crate::public_capture::CreationStateHold<'a, 'a>> {
         state.active()?;
         let item = source.value();
         let mut total = FIXED_NODE_SCHEMA_ENVELOPE;

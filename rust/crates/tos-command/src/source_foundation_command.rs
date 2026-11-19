@@ -325,6 +325,19 @@ fn run_selected(
         .map_err(|error| Error::DeniedWithReason(error.public_reason()))?;
     match outcome {
         SourceFoundationOutputOutcome::Complete(assembled) => {
+            let private_custody_summary = assembled
+                .rules
+                .owner_report
+                .discovery
+                .private_artifact_custody
+                .map(|summary| {
+                    format!(
+                        "private custody: {} not hydrated, manifest verified; {} manifest entries, {} files verified",
+                        summary.not_hydrated,
+                        summary.manifest_entries,
+                        summary.files_verified
+                    )
+                });
             let ticket = inputs
                 .remaining_budget
                 .begin_window("cli-output", FoundationPhaseReservation::default())?;
@@ -337,6 +350,7 @@ fn run_selected(
                     &inputs.launch.arguments,
                     None,
                     &assembled.issues,
+                    private_custody_summary.as_deref(),
                     admitted_output,
                     deadline,
                     cancelled,
@@ -362,6 +376,7 @@ fn run_selected(
                     &inputs.launch.arguments,
                     None,
                     &assembled.issues,
+                    private_custody_summary.as_deref(),
                     admitted_output,
                     &mut selected_stdout,
                     &mut selected_stderr,

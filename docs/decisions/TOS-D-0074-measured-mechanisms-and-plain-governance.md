@@ -16,7 +16,7 @@ The target in [TOS-D-0069](TOS-D-0069-rust-execution-foundation.md) is billions 
 
 ## Decision
 
-Design expensive-to-change choices for the target now: stable identity, canonical bytes, the data model, one authoritative store per data class, and the agent API. Authored data lives in Git; records, revisions and the change queue live in PostgreSQL under [TOS-D-0071](TOS-D-0071-transactional-source-and-independent-projections.md); source bytes live in one immutable store; exports use SQLite and D1.
+Design expensive-to-change choices for the target now: stable identity, canonical bytes, the data model, one authoritative store per data class, and the agent API. Authored data lives in Git; records, revisions and the change queue live in PostgreSQL under [TOS-D-0071](TOS-D-0071-transactional-source-and-independent-projections.md); source bytes live in one immutable store; exports use SQLite and D1. The D1 publisher was later retired under `retired/d1-publication`; local SQLite publication remains.
 
 Choose mechanisms, including budgets, isolation, custom engines and load machinery, after measurement against a target capacity profile with numerical objectives. Operational limits live in deployment profile data. Every transitional implementation ships with an explicit removal condition.
 

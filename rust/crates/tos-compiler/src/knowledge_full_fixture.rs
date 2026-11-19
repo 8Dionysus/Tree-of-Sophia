@@ -477,7 +477,7 @@ fn build_fixture_configured(
         let (ceiling, streamed) = if let Some(fused) = final_semantics {
             #[cfg(test)]
             {
-                let (semantics, ceiling) = crate::d1_public_semantics::fixture_final_semantics(
+                let (semantics, ceiling) = crate::public_semantics::fixture_final_semantics(
                     &mut stage,
                     &registry,
                     entity_bytes,

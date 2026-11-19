@@ -23,6 +23,8 @@ test("public page paths map to their MPA HTML and receive security headers", asy
     ["/zarathustra/", "/zarathustra/"],
     ["/antiquity", "/antiquity/"],
     ["/antiquity/", "/antiquity/"],
+    ["/aesthetics", "/aesthetics/"],
+    ["/aesthetics/", "/aesthetics/"],
   ]) {
     const response = await app.fetch(new Request(`https://treeofsophia.com${path}`));
     assert.equal(app.paths.at(-1), expected);
@@ -178,4 +180,27 @@ test("the server reads a language tag as the page does, aliases included", async
   assert.match(await page("es-MX"), /<html lang="es"/);
   assert.match(await page("de-AT"), /<html lang="de"/);
   for (const unknown of ["fr", "zh-TW", "xx-YY"]) assert.equal(await page(unknown), STAND, unknown);
+});
+
+test("the Aesthetics stand has localized public metadata", async () => {
+  const page = `<!doctype html>
+<html lang="en">
+  <head>
+    <title>Aesthetics · Tree of Sophia</title>
+    <meta name="description" content="Aesthetics in the Tree of Sophia." />
+    <meta property="og:site_name" content="Tree of Sophia" />
+    <meta property="og:title" content="Aesthetics · Tree of Sophia" />
+    <meta property="og:description" content="Aesthetics in the Tree of Sophia." />
+    <meta property="og:locale" content="en_US" />
+  </head>
+</html>`;
+  const app = fixture(() => new Response(page, { headers: { "Content-Type": "text/html; charset=utf-8" } }));
+  const response = await app.fetch(new Request("https://treeofsophia.com/aesthetics/?lang=ru"));
+  assert.equal(app.paths.at(-1), "/aesthetics/");
+  const russian = await response.text();
+  assert.match(russian, /<html lang="ru"/);
+  assert.match(russian, /<title>Эстетика · Древо Софии<\/title>/);
+  assert.match(russian, /<meta property="og:title" content="Эстетика · Древо Софии"/);
+  assert.match(russian, /<meta name="description" content="Философия прекрасного, искусства и чувственного опыта в Древе Софии\."/);
+  assert.match(russian, /content="ru_RU"/);
 });
