@@ -5629,15 +5629,18 @@
   }
  },
  "gary-cross": {
-  "item": null,
+  "item": "Q112496784",
   "label": {
    "ru": "Гэри Кросс",
    "en": "Gary Cross"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1946-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "relation_search": {
    "complete": true,
@@ -5664,6 +5667,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://api.crossref.org/works/10.1093/acprof:oso/9780195156669.001.0001",
+   "person_url": "https://www.wikidata.org/wiki/Q112496784",
+   "basis": "Crossref identifies the author of The Cute and the Cool; Library of Congress authority n82146558 connects him to Penn State, and Wikidata P244 links that authority."
   }
  },
  "gary-d-sherman": {
@@ -10146,15 +10155,18 @@
   }
  },
  "lydia-amir": {
-  "item": null,
+  "item": "Q112487794",
   "label": {
    "ru": "Лидия Амир",
    "en": "Lydia Amir"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1955-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "searched": [
    {
@@ -10199,6 +10211,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://id.loc.gov/authorities/names/n2013003767.json",
+   "person_url": "https://www.wikidata.org/wiki/Q112487794",
+   "basis": "Library of Congress cites the exact queued book; GND 1103577174 links that authority to Wikidata P227."
   }
  },
  "lydia-l-moland": {
@@ -10887,15 +10905,18 @@
   }
  },
  "matthew-hurley": {
-  "item": null,
+  "item": "Q103339488",
   "label": {
    "ru": "Мэттью Хёрли",
    "en": "Matthew Hurley"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1977-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "searched": [
    {
@@ -10932,6 +10953,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://id.loc.gov/authorities/names/n2010073158.json",
+   "person_url": "https://www.wikidata.org/wiki/Q103339488",
+   "basis": "Library of Congress authority n2010073158 cites the exact book Inside Jokes and Indiana University; Wikidata P244 links that authority. He is a coauthor."
   }
  },
  "matthew-inglis": {
@@ -14465,15 +14492,13 @@
   }
  },
  "reginald-adams": {
-  "item": null,
+  "item": "Q88659626",
   "label": {
    "ru": "Реджинальд Адамс",
    "en": "Reginald Adams"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "searched": [
    {
@@ -14510,6 +14535,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://www.insidejokesbook.com/authors",
+   "person_url": "https://www.wikidata.org/wiki/Q88659626",
+   "basis": "The coauthor is a Penn State psychologist; ORCID 0000-0002-9497-0109 and Wikidata P496 identify the same affiliation. Another QID with a similar name was not merged."
   }
  },
  "reka-gyenis": {
