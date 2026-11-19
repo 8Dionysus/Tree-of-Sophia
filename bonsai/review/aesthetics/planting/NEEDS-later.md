@@ -113,3 +113,10 @@ images; the publisher HTML/XML endpoints returned 403. Please provide a
 versioned, digest-bound route to extract text and render selected PDF pages,
 with the original PDF retained and both readers checking the page. The maker's
 blocked packet documents attempts; translation searches remain incomplete.
+
+The independent Parker audit also found the 124 `outcome` entries written in
+one direct `json.dump` operation in the maker log, rather than through the
+owner-mandated kit commands. Please make the kit-only packet-writing route
+and its instructions consistent for new work; retain the evidence and repeat
+review after correcting the packet. Audit: `audit-parker-31-20261119.md` in
+the direction's external availability reports.
