@@ -82,10 +82,372 @@
       "firstUnitId": "tos.text-unit.sid-4a8e1ff63ce04d18be71d1dbfdc2c9f5",
       "lastUnitId": "tos.text-unit.sid-ba31c523510c434e9076a6a208c0337f",
       "source": "https://ru.wikisource.org/w/index.php?title=%D0%A2%D0%B8%D0%BC%D0%B5%D0%B9_%28%D0%9F%D0%BB%D0%B0%D1%82%D0%BE%D0%BD%3B_%D0%9A%D0%B0%D1%80%D0%BF%D0%BE%D0%B2%29&oldid=3750959",
-      "basis": "At the selected original reference, Karpov’s Russian edition assigns one or more preceding sentences to the prior numbered unit. Offer those sentences to the aligner without changing the source text.",
+      "basis": "At the selected original reference, Karpov’s Russian edition assigns one or more preceding sentences to the prior numbered unit. Offer those sentences to the aligner without changing the source text. Independent sentence matches in 28, 29, 47, 48 and 90 use unique keywords read in the two editions. In 28, 29, 47, 48 and 90 the matching Russian sentences start in the preceding printed reference.",
       "handoverUnitIds": [
         "tos.text-unit.sid-de6d24a40cc94eaea05e72f156f8f84d",
         "tos.text-unit.sid-e407e13336954d43a4453e47ca1d40b8"
+      ],
+      "localReferencePairs": [
+        {
+          "originalUnitId": "tos.text-unit.sid-73da170ec216457d981980c15db59025",
+          "translationUnitId": "tos.text-unit.sid-90f33de662f54d7bbc0d42d9eca3cfd5",
+          "precedingTranslationSentences": 2,
+          "sentenceAnchors": [
+            {
+              "source": [
+                "διαιρετέον",
+                "γένεσιν"
+              ],
+              "target": [
+                "различать",
+                "происходит"
+              ]
+            },
+            {
+              "source": [
+                "αἰσθήσεως",
+                "δοξαστόν"
+              ],
+              "target": [
+                "мышлением",
+                "погибающее"
+              ]
+            },
+            {
+              "source": [
+                "αἰτίου",
+                "ἀδύνατον"
+              ],
+              "target": [
+                "необходимо",
+                "невозможно"
+              ]
+            }
+          ]
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-95cdc70de3b54876ace90350ae660aff",
+          "translationUnitId": "tos.text-unit.sid-e5cd6aa418d8423aa47bea09508f95c4",
+          "sentenceAnchors": [
+            {
+              "source": [
+                "ποιητὴν",
+                "παραδειγμάτων"
+              ],
+              "target": [
+                "творца",
+                "образцов",
+                "произошло"
+              ]
+            },
+            {
+              "source": [
+                "θέμις",
+                "ἀίδιον"
+              ],
+              "target": [
+                "грешно",
+                "происшедшее"
+              ]
+            },
+            {
+              "source": [
+                "κάλλιστος",
+                "αἰτίων"
+              ],
+              "target": [
+                "прекрасный",
+                "совершеннейшая"
+              ]
+            },
+            {
+              "source": [
+                "δεδημιούργηται",
+                "εἰκόνα"
+              ],
+              "target": [
+                "разумом",
+                "образом"
+              ]
+            },
+            {
+              "source": [
+                "μέγιστον",
+                "ἄρξασθαι"
+              ],
+              "target": [
+                "важное",
+                "начинать"
+              ]
+            },
+            {
+              "source": [
+                "διοριστέον",
+                "ἀλήθεια"
+              ],
+              "target": [
+                "сродны",
+                "истина"
+              ]
+            },
+            {
+              "source": [
+                "θαυμάσῃς",
+                "ἀνθρωπίνην"
+              ],
+              "target": [
+                "удивляйся",
+                "повесть"
+              ]
+            },
+            {
+              "source": [
+                "προοίμιον",
+                "πέραινε"
+              ],
+              "target": [
+                "превосходно",
+                "песню"
+              ]
+            },
+            {
+              "source": [
+                "αἰτίαν",
+                "συνέστησεν"
+              ],
+              "target": [
+                "устроитель",
+                "устроил"
+              ]
+            },
+            {
+              "source": [
+                "ἐγγίγνεται",
+                "φθόνος",
+                "παραπλήσια"
+              ],
+              "target": [
+                "зависти",
+                "подобно"
+              ]
+            }
+          ],
+          "precedingTranslationSentences": 2
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-68b9e7cb3c90400d930e4bfe43d83705",
+          "translationUnitId": "tos.text-unit.sid-97d925b67de544c19f83afd15966eac7",
+          "precedingTranslationSentences": 2,
+          "sentenceAnchors": [
+            {
+              "source": [
+                "συμμεταίτια",
+                "εἴληχεν",
+                "ῥητέον"
+              ],
+              "target": [
+                "вспомогательных",
+                "служения",
+                "даровал"
+              ]
+            },
+            {
+              "source": [
+                "μεγίστης",
+                "ἄστρα"
+              ],
+              "target": [
+                "величайшей",
+                "звезд"
+              ]
+            },
+            {
+              "source": [
+                "ἰσημερίαι",
+                "φιλοσοφίας"
+              ],
+              "target": [
+                "месяцы",
+                "философии"
+              ]
+            },
+            {
+              "source": [
+                "ἐλάττω",
+                "τυφλωθεὶς"
+              ],
+              "target": [
+                "очей",
+                "слепец"
+              ]
+            },
+            {
+              "source": [
+                "λογισμῶν",
+                "ἀπλανεῖς"
+              ],
+              "target": [
+                "круговращениям",
+                "уклонившиеся"
+              ]
+            },
+            {
+              "source": [
+                "παρεληλυθότα",
+                "παραθέσθαι"
+              ],
+              "target": [
+                "исключениями",
+                "необходимости"
+              ]
+            }
+          ]
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-f212de1d5bc74cb69791b766b85dbcc4",
+          "translationUnitId": "tos.text-unit.sid-2d5ea0a35c264c82b0d85f76aa49ee24",
+          "precedingTranslationSentences": 1,
+          "sentenceAnchors": [
+            {
+              "source": [
+                "μεμειγμένη",
+                "βέλτιστον"
+              ],
+              "target": [
+                "ведь",
+                "смешанную",
+                "наилучшим"
+              ]
+            },
+            {
+              "source": [
+                "πλανωμένης",
+                "ἀναχωρητέον"
+              ],
+              "target": [
+                "уклончивой",
+                "вернуться"
+              ]
+            },
+            {
+              "source": [
+                "στοιχεῖα",
+                "συλλαβῆς"
+              ],
+              "target": [
+                "воды",
+                "слога"
+              ]
+            },
+            {
+              "source": [
+                "διεξόδου",
+                "ἁπάντων"
+              ],
+              "target": [
+                "раскрыть",
+                "порознь"
+              ]
+            },
+            {
+              "source": [
+                "σωτῆρα",
+                "διηγήσεως"
+              ],
+              "target": [
+                "призвав",
+                "необычайное"
+              ]
+            },
+            {
+              "source": [
+                "διῃρημένη",
+                "δηλωτέον"
+              ],
+              "target": [
+                "дробным",
+                "третий"
+              ]
+            }
+          ]
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-3211d2eae31d43f79f4c9b5bd0fddf1b",
+          "translationUnitId": "tos.text-unit.sid-088f0431ba3c417d98a28831b9812abc",
+          "sentenceAnchors": [
+            {
+              "source": [
+                "κατῴκισται",
+                "συμμέτρους"
+              ],
+              "target": [
+                "обителях",
+                "соразмерные"
+              ]
+            },
+            {
+              "source": [
+                "δαίμονα",
+                "ῥίζαν"
+              ],
+              "target": [
+                "гения",
+                "корень"
+              ]
+            },
+            {
+              "source": [
+                "ἐπιθυμίας",
+                "φιλομαθίαν"
+              ],
+              "target": [
+                "страстями",
+                "любознания"
+              ]
+            },
+            {
+              "source": [
+                "θεραπεία",
+                "τροφὰς"
+              ],
+              "target": [
+                "врачевство",
+                "пищу"
+              ]
+            },
+            {
+              "source": [
+                "συγγενεῖς",
+                "κατανοουμένῳ"
+              ],
+              "target": [
+                "помыслы",
+                "подобием"
+              ]
+            },
+            {
+              "source": [
+                "παραγγελθέντα",
+                "ἀνθρωπίνης"
+              ],
+              "target": [
+                "задача",
+                "рождения"
+              ]
+            },
+            {
+              "source": [
+                "ζῷα",
+                "ἐπιμνηστέον"
+              ],
+              "target": [
+                "животные",
+                "мера"
+              ]
+            }
+          ],
+          "precedingTranslationSentences": 1
+        }
       ]
     },
     {
