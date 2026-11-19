@@ -599,6 +599,12 @@ def entity_year(entity,property_):
     calendars={'Q38173183','Q26877143','Q26877139','Q27055388'}
     if not values:return None
     for claim,value in zip(chosen,values):
+        model=value.get('calendarmodel')
+        if model and model!='http://www.wikidata.org/entity/Q1985727':
+            # A Julian year can cross the Gregorian boundary. Other calendars
+            # need an explicit conversion before they establish a legal year.
+            date=value.get('time','')
+            if model!='http://www.wikidata.org/entity/Q1985786' or value.get('precision',0)<11 or not re.match(r'^\+1[89]\d\d-',date) or re.search(r'-12-(?:1[89]|2\d|3[01])T',date):return None
         all_qualifiers=claim.get('qualifiers') or {}
         if any(all_qualifiers.get(prop) for prop in ('P1319','P1326')):return None
         qualifiers=all_qualifiers.get('P1480') or []

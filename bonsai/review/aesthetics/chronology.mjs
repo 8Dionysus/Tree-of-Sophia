@@ -63,8 +63,10 @@ const timeRecord=claim=>{
     return entries.length?[[name,entries]]:[];
   }));
   const bounded=['P1319','P1326'].some(prop=>(claim.qualifiers?.[prop]??[]).length>0);
-  const uncertain=bounded||qualifiers.some(id=>!calendars.has(id))||!!value.before||!!value.after||(qualification.length>0&&(value.precision===9||/-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T/.test(value.time)));
-  return {time:value.time,precision:value.precision,...(qualification.length?{qualifiers}:{}),...(Object.keys(bounds).length?{bounds}:{}),...(uncertain?{approximate:true}:{}),...(value.before?{before:value.before}:{}),...(value.after?{after:value.after}:{})};
+  const calendar=value.calendarmodel,nonGregorian=calendar&&calendar!=='http://www.wikidata.org/entity/Q1985727';
+  const calendarUncertain=nonGregorian&&(calendar!=='http://www.wikidata.org/entity/Q1985786'||value.precision<11||!/^\+1[89]\d\d-/.test(value.time)||/-12-(?:1[89]|2\d|3[01])T/.test(value.time));
+  const uncertain=bounded||qualifiers.some(id=>!calendars.has(id))||!!value.before||!!value.after||calendarUncertain||(qualification.length>0&&(value.precision===9||/-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T/.test(value.time)));
+  return {time:value.time,precision:value.precision,...(nonGregorian?{calendar_model:calendar}:{}),...(qualification.length?{qualifiers}:{}),...(Object.keys(bounds).length?{bounds}:{}),...(uncertain?{approximate:true}:{}),...(value.before?{before:value.before}:{}),...(value.after?{after:value.after}:{})};
 };
 // Refresh the qualified date claims for already identified people in bounded batches.
 // The identity and its evidence remain unchanged; failures leave later batches untouched.

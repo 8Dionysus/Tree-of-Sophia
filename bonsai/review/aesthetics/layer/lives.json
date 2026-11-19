@@ -11605,27 +11605,26 @@
   }
  },
  "nikolay-chernyshevsky": {
-  "item": null,
+  "item": "Q192331",
   "label": {
-   "ru": "Николай Чернышевский",
    "en": "Nikolay Chernyshevsky",
-   "original": "Николай Гаврилович Чернышевский"
+   "ru": "Николай Гаврилович Чернышевский"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Nikolay Chernyshevsky"
-   },
-   {
-    "kind": "work",
-    "query": "The Aesthetic Relations of Art to Reality"
+    "time": "+1828-07-12T00:00:00Z",
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
+  "died": [
+   {
+    "time": "+1889-10-17T00:00:00Z",
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -11653,6 +11652,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Nikolay Chernyshevsky"
+   },
+   {
+    "kind": "work",
+    "query": "The Aesthetic Relations of Art to Reality"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Эстетические отношения искусства к действительности",
+   "source": "https://rusneb.ru/catalog/000199_000009_003563395/",
+   "person_url": "https://en.wikipedia.org/wiki/Nikolay_Chernyshevsky",
+   "basis": "The Russian State Library catalogue identifies N. G. Chernyshevsky as the author of this exact work; the linked biography identifies Wikidata Q192331."
   }
  },
  "noam-tractinsky": {

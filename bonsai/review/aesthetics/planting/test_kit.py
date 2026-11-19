@@ -672,6 +672,12 @@ class WikidataDatePrecisionTest(unittest.TestCase):
         self.assertIsNone(kit.entity_year({'claims':{'P570':[calendar]}},'P570'))
         calendar['mainsnak']['datavalue']['value'].update({'time':'+1910-01-01T00:00:00Z','precision':9})
         self.assertIsNone(kit.entity_year({'claims':{'P570':[calendar]}},'P570'))
+        julian=claim(1910);julian['mainsnak']['datavalue']['value'].update({'time':'+1910-12-25T00:00:00Z','calendarmodel':'http://www.wikidata.org/entity/Q1985786'})
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[julian]}},'P570'))
+        julian['mainsnak']['datavalue']['value']['time']='+1910-07-01T00:00:00Z'
+        self.assertEqual(kit.entity_year({'claims':{'P570':[julian]}},'P570'),1910)
+        julian['mainsnak']['datavalue']['value']['calendarmodel']='http://www.wikidata.org/entity/Q1985787'
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[julian]}},'P570'))
         self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951)]}},'P570'))
         self.assertEqual(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951,11,'preferred')]}},'P570'),1951)
 
