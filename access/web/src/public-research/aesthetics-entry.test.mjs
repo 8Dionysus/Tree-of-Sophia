@@ -2,6 +2,7 @@ import '../observatory/human-forms-wasm-test-runtime.mjs';
 import {it,expect,vi} from 'vitest';
 import {Window} from 'happy-dom';
 import corpusManifest from '../../public/public-corpus/manifest.json' with {type:'json'};
+import aestheticsIdentities from '../../../../bonsai/aesthetics/identities.json' with {type:'json'};
 const providerFixture=vi.hoisted(()=>({manifest:null}));
 vi.mock('../../constructor/sky.mjs',()=>({mountConstructorSky:()=>new Proxy({}, {get:()=>()=>{}})}));
 vi.mock('./bootstrap.mjs',()=>({initializePublicReaderRules:async()=>{}}));
@@ -28,7 +29,9 @@ it('starts the page, lists the three stands and enables the selected corpus read
     expect(window.tosPublicResearch.profile).toBe('aesthetics');
     expect([...document.querySelectorAll('.pr-spaces > *')].map(node=>node.textContent)).toEqual(['Antiquity','Zarathustra','Aesthetics']);
     expect(document.querySelector('.test-reader-open').disabled).toBe(false);
-    expect(document.querySelector('.pr-provider-state').textContent).toContain('3 works are listed');
+    const standWorks=new Set(Object.values(aestheticsIdentities.works).map(work=>work.tree));
+    const expectedCount=corpusManifest.profiles.antiquity.documentIds.filter(id=>standWorks.has(id)).length;
+    expect(document.querySelector('.pr-provider-state').textContent).toContain(`${expectedCount} works are listed`);
     expect(document.querySelector('.pr-error')).toBeNull();expect(errors).toEqual([]);
   }finally{window.dispatchEvent(new window.Event('pagehide'));await Promise.resolve();vi.unstubAllGlobals();window.happyDOM.abort();}
 });
