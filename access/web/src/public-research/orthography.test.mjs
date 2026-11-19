@@ -14,6 +14,7 @@ describe('Russian printed before 1918 in today\'s spelling',()=>{
     expect(modernWord('подъѣздъ')).toBe('подъезд');
     expect(modernWord('Еѵангеліе')).toBe('Евангелие');
     expect(modernRussian('какъ-то')).toBe('как-то');
+    expect(modernRussian('слѣдъ Ъ ъ')).toBe('след Ъ ъ');
   });
   it('respells the endings of adjectives and keeps nouns in -ия',()=>{
     expect(modernWord('добраго')).toBe('доброго');
