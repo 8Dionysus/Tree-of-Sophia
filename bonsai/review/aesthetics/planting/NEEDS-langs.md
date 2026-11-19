@@ -55,3 +55,14 @@ text, provenance and independent reading; a locally typed text must not be
 misrepresented as a downloaded transcription. The PDF's image of p. 86 also
 obscures its first lines, while the corresponding Google Books page image shows
 them; retain the precise source for each page.
+
+## Spinoza accepted evidence page mismatch
+
+In the accepted `baruch-spinoza.ethics` packet, `evidence.json` records
+`printed: ["183"]` for both `III affects2 p184` and `III affects3 p184`, leaf
+218. The actual [Paulus scan leaf 218](https://archive.org/download/benedictidespin01spingoog/page/n218.jpg)
+is numbered 184 at its top and contains both definitions; the packet places
+and labels also say 184. A separate research reader and the langs maker both
+visually checked that leaf on 19 November. Please correct the accepted
+packet's page evidence through the owner route and preserve/review the
+acceptance; langs has not changed the packet or its acceptance.
