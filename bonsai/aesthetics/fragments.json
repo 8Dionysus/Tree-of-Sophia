@@ -2057,16 +2057,68 @@
      "licence": "Public domain book; scan in the Internet Archive. No licence attaches to the transcribed words. The Bonn Kant-Korpus, whose transcription was compared, allows scholarly, non-commercial use with a reference to the source and forbids redistributing the corpus (korpora.org, Nutzungsbedingungen); the bonsai shows the cited places only.",
      "attribution": "Immanuel Kant, Kritik der Urtheilskraft, hrsg. von Wilhelm Windelband, in: Kant’s gesammelte Schriften, hrsg. von der Königlich Preußischen Akademie der Wissenschaften, Bd. V, Berlin: Georg Reimer, 1913; scan: Internet Archive item kantsgesammeltes05imma; transcription compared: Das Bonner Kant-Korpus, korpora.org.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Кант умер в 1804 г., редактор текста В. Виндельбанд — в 1915 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: published 1913 (before 1930).",
-      "eu": "Public domain: Kant died 1804 and the editor Wilhelm Windelband 1915, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Кант умер в 1804 г., редактор текста В. Виндельбанд — в 1915 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: published 1913 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Kant died 1804 and the editor Wilhelm Windelband 1915, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Kant (1724–1804); text of the Akademie edition, edited by Wilhelm Windelband (1848–1915), named as editor in the volume’s own apparatus. The Internet Archive’s OCR of this Fraktur volume is unusable, so the words come from the Bonn transcription and are checked against the page images as provenance.method says. The first edition of 1790 in the Deutsches Textarchiv was not used: its download addresses answer with a JavaScript cookie challenge and its robots.txt disallows them; we did not get around it."
      },
      "short": {
       "ru": "Академическое изд., т. V, 1913",
       "en": "Akademie edition, vol. V, 1913"
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Immanuel Kant",
+        "ru": "Иммануил Кант"
+       },
+       "qid": "Q9312",
+       "source": "https://www.wikidata.org/wiki/Q9312",
+       "born": [
+        {
+         "time": "+1724-04-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1804-02-12T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Wilhelm Windelband",
+        "ru": "Вильгельм Виндельбанд"
+       },
+       "qid": "Q77045",
+       "source": "https://www.wikidata.org/wiki/Q77045",
+       "born": [
+        {
+         "time": "+1848-05-11T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1915-10-22T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     },
     "en": {
      "edition": "Kant’s Critique of Judgement, translated with Introduction and Notes by J. H. Bernard. Second edition, revised. London: Macmillan and Co., 1914 (first edition 1892). Project Gutenberg eBook #48433.",
@@ -2076,19 +2128,72 @@
      "licence": "Project Gutenberg License (public domain in the USA); the words of the 1914 translation are public domain.",
      "attribution": "Immanuel Kant, Critique of Judgement, tr. J. H. Bernard, 2nd ed. (London: Macmillan, 1914); text from Project Gutenberg eBook #48433 (produced by Charlie Howard and the Online Distributed Proofreading Team from images made available by the Internet Archive).",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: переводчик Дж. Г. Бернард умер в 1927 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: published 1914 (before 1930).",
-      "eu": "Public domain: translator died 1927, more than 70 years ago.",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: переводчик Дж. Г. Бернард умер в 1927 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: published 1914 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: translator died 1927, more than 70 years ago."
+      },
       "reasoning": "Kant (d. 1804) and John Henry Bernard (1860–1927). Page numbers from the page marks of the Gutenberg HTML edition (pg48433-images.html). Gutenberg sets the book’s small capitals as capital letters; they are kept. Italics are dropped; square brackets are Bernard’s own additions. The registers of the research read the Critique in this translation; the bonsai reads it in the German and shows Bernard beside it."
      },
      "short": {
       "ru": "пер. Дж. Г. Бернарда, 1914",
       "en": "tr. J. H. Bernard, 1914"
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Immanuel Kant",
+        "ru": "Иммануил Кант"
+       },
+       "qid": "Q9312",
+       "source": "https://www.wikidata.org/wiki/Q9312",
+       "born": [
+        {
+         "time": "+1724-04-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1804-02-12T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "John Bernard",
+        "ru": "Джон Бернард"
+       },
+       "qid": "Q6221660",
+       "source": "https://www.wikidata.org/wiki/Q6221660",
+       "born": [
+        {
+         "time": "+1860-07-27T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1927-08-29T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text was taken. МЭСБЕ (art. «Кант») lists a translation by N. Sokolov, 1898; Russian Wikisource holds no text of it and a search of the Internet Archive found no scan (2026-11-09). The rights of the later Russian translations were not examined, and none was used. To add Sokolov, transcribe the cited places from a scan of the 1898 book and check the translator’s dates."
@@ -2117,19 +2222,51 @@
      "licence": "Public domain book; scan in the Internet Archive. Project Gutenberg License for the transcription the words were taken from (public domain in the USA).",
      "attribution": "Edmund Burke, A Philosophical Inquiry into the Origin of our Ideas of the Sublime and Beautiful, in: The Works of the Right Honorable Edmund Burke, revised edition, vol. I (Boston: Little, Brown, and Company, 1865); scan: Internet Archive item cu31924081205100 (Cornell University Library); transcription: Project Gutenberg eBook #15043 (produced by Paul Murray, Michael Punch and the PG Online Distributed Proofreading Team from images made available by the Bibliothèque nationale de France).",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Бёрк умер в 1797 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: published 1865 (before 1930).",
-      "eu": "Public domain: Burke died 1797.",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Бёрк умер в 1797 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: published 1865 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Burke died 1797."
+      },
       "reasoning": "Burke (1729–1797). The registers of the research read the Inquiry in Project Gutenberg #15043, which transcribes the London edition of John C. Nimmo (1887). The words of each place were taken from that transcription and compared word by word, punctuation included, with the page-indexed OCR of the Internet Archive scan of the Boston edition of 1865; the page numbers are read from the scan. The two agree at every cited place apart from OCR noise, with one exception, where the printed page stands (provenance.corrections). The capital and small capitals that open a section are written as an ordinary word; italics are dropped; footnote marks are left out."
      },
      "short": {
       "ru": "Бостонское изд., т. I, 1865",
       "en": "Boston edition, vol. I, 1865"
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Edmund Burke",
+        "ru": "Эдмунд Бёрк"
+       },
+       "qid": "Q165792",
+       "source": "https://www.wikidata.org/wiki/Q165792",
+       "born": [
+        {
+         "time": "+1729-01-12T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1797-07-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text was taken. The Russian translation of E. S. Lagutin (Moscow: Iskusstvo, 1979) is under copyright; an earlier Russian translation was not looked for."
@@ -2158,19 +2295,55 @@
      "licence": "Public domain book; scan in the Internet Archive. Project Gutenberg License for the transcription the words were taken from (public domain in the USA).",
      "attribution": "William Hogarth, The Analysis of Beauty (London: J. Reeves for the Author, 1753); scan: Internet Archive item analysisofbeauty00hoga (Getty Research Institute); transcription: Project Gutenberg eBook #51459 (produced by Clare Graham and Marc D’Hooghe from images made available by the HathiTrust).",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Хогарт умер в 1764 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: published 1753 (before 1930).",
-      "eu": "Public domain: Hogarth died 1764.",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Хогарт умер в 1764 г. — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: если 50-летний срок истёк до 1 января 1993 г. (автор умер до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: published 1753 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Hogarth died 1764."
+      },
       "reasoning": "Hogarth (1697–1764). The words of each place were taken from Project Gutenberg #51459, a transcription of the first edition, and compared word by word, punctuation included, with the page-indexed OCR of the Internet Archive scan of the same edition; the page numbers are read from the scan. The long s of the print, which the OCR reads as f, was counted as s on both sides, so the comparison does not tell f from s. The two agree at every cited place apart from OCR noise. The transcriber’s bracketed figure references, which stand in the margin of the book, are left out. The spelling and apostrophes of 1753 are kept (chace, intitles, turn’d as the transcription writes them)."
      },
      "short": {
       "ru": "Первое изд., 1753",
       "en": "First edition, 1753"
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "William Hogarth",
+        "ru": "Уильям Хогарт"
+       },
+       "qid": "Q171344",
+       "source": "https://www.wikidata.org/wiki/Q171344",
+       "born": [
+        {
+         "time": "+1697-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1764-10-26T00:00:00Z",
+         "precision": 11
+        },
+        {
+         "time": "+1764-10-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text was taken. The Russian translation this reader knows of (P. V. Melkova, Leningrad–Moscow: Iskusstvo, 1958) was not examined for rights and was not used."
@@ -2199,15 +2372,47 @@
      "licence": "Public domain 1793 book and scan; Wikisource transcription available under CC BY-SA 4.0.",
      "attribution": "Friedrich Schiller, Ueber Anmuth und Würde (Leipzig: Göschen, 1793); transcription from German Wikisource compared with the Bayerische Staatsbibliothek scan at Internet Archive.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1793 (before 1930).",
-      "eu": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1793 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Schiller wrote and edited this text. Wikisource transcribes the 1793 Neue Thalia printing; compared with the 1793 separate printing from the same sheets held by Bayerische Staatsbibliothek, on Internet Archive. Long s is represented as s and long s followed by s as ß; line-break hyphenation is joined."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No translation is taken in this pass: the line plants the original first."
@@ -2240,15 +2445,47 @@
      "licence": "Public domain book by Friedrich Schiller; scan of the Bayerische Staatsbibliothek copy in the Internet Archive. Transcription supplied by Projekt Gutenberg-DE.",
      "attribution": "Friedrich Schiller, Ueber das Erhabene, in Schillers sämmtliche Werke, vol. 12 (Stuttgart und Tübingen: Cotta, 1858); transcription from Projekt Gutenberg-DE, compared with the scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1858 (before 1930).",
-      "eu": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1858 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Schiller’s German text; Projekt Gutenberg-DE identifies its transcription as Cotta 1879, a different edition from the Cotta 1858 scan read here. Differences are corrected to the page; long s is rendered as s and printed ſs as ß."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2283,15 +2520,47 @@
      "licence": "Public domain text by Schiller; 1801 book scan provided by Bayerische Staatsbibliothek through Internet Archive. Transcription of the 1795 Horen printing provided by Friedrich Schiller Archiv; the extracted sentences are checked and corrected against the 1801 printing. The XV p172a transcription is from Projekt Gutenberg-DE’s 1879 edition, corrected against the 1801 scan.",
      "attribution": "Friedrich Schiller, Kleinere prosaische Schriften, vol. 3 (1801), pp. 159–165, 171–173, 215–216 and 236–237; text transcribed from Friedrich Schiller Archiv and checked against the BSB scan. XV p172a: Projekt Gutenberg-DE transcription of the 1879 edition, compared with the 1801 scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1801 (before 1930).",
-      "eu": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1801 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Schiller, author and compiler, died 1805; the 1801 printing is the witness. The transcriptions come from Friedrich Schiller Archiv’s 1795 Horen text; deviations from the 1801 scan are corrected as recorded, and long s is transcribed as s. XV p172a was cut from Projekt Gutenberg-DE’s 1879 edition and corrected against the 1801 scan."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2324,15 +2593,68 @@
      "licence": "Public domain book and Internet Archive scan; Project Gutenberg License applies to the Gutenberg transcription, whose underlying text is public domain in the USA.",
      "attribution": "Joseph Addison, The Spectator, no. 412, edited by Henry Morley (London and New York: G. Routledge, 1891), p. 717; transcription from Project Gutenberg, compared with the Cornell University Library scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Джозеф Аддисон (автор) — год смерти 1719; Henry Morley (редактор текста) — год смерти 1894 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1891 (before 1930).",
-      "eu": "Public domain: Joseph Addison (author) died 1719; Henry Morley (editor of the text) died 1894, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Джозеф Аддисон (автор) — год смерти 1719; Henry Morley (редактор текста) — год смерти 1894 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1891 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Joseph Addison (author) died 1719; Henry Morley (editor of the text) died 1894, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Addison’s English text as edited by Henry Morley in 1891; the Project Gutenberg transcription follows Morley’s 1891 edition and is compared with the Cornell scan of that edition. Line breaks and the superscript footnote marker are omitted; the edition’s brackets are retained."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Joseph Addison",
+        "ru": "Джозеф Аддисон"
+       },
+       "qid": "Q206384",
+       "source": "https://www.wikidata.org/wiki/Q206384",
+       "born": [
+        {
+         "time": "+1672-05-01T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1719-06-17T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Henry Morley",
+        "ru": "Henry Morley"
+       },
+       "qid": "Q2401379",
+       "source": "https://www.wikidata.org/wiki/Q2401379",
+       "born": [
+        {
+         "time": "+1822-09-15T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1894-05-14T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2361,15 +2683,47 @@
      "licence": "Public domain historical Latin book; Wikisource transcription available under CC BY-SA 4.0.",
      "attribution": "Thomas Aquinas, Summa theologica, pars prima (Rome, 1894), p. 318; Latin Wikisource transcription compared with Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фома Аквинский (автор) — год смерти 1274 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1894 (before 1930).",
-      "eu": "Public domain: Thomas Aquinas (author) died 1274, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фома Аквинский (автор) — год смерти 1274 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1894 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Thomas Aquinas (author) died 1274, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Thomas Aquinas wrote the Latin text. Latin Wikisource supplies a transcription of an unknown edition and source; it was compared against the 1894 Roman edition scan, with differences corrected to the printed page. Whitespace and line breaks are normalized."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Thomas Aquinas",
+        "ru": "Фома Аквинский"
+       },
+       "qid": "Q9438",
+       "source": "https://www.wikidata.org/wiki/Q9438",
+       "born": [
+        {
+         "time": "+1225-01-01T00:00:00Z",
+         "precision": 9
+        }
+       ],
+       "died": [
+        {
+         "time": "+1274-03-07T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2402,15 +2756,47 @@
      "licence": "Public domain text and 1859 printing; Internet Archive marks the scan Public Domain Mark 1.0. Mouseia identifies its original source texts as public domain in the United States.",
      "attribution": "Arthur Schopenhauer, Die Welt als Wille und Vorstellung, vol. I, third edition (Leipzig: Brockhaus, 1859), Oxford University copy digitised by Google; transcription from Mouseia, compared with that scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Артур Шопенгауэр (автор) — год смерти 1860 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1859 (before 1930).",
-      "eu": "Public domain: Arthur Schopenhauer (author) died 1860, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Артур Шопенгауэр (автор) — год смерти 1860 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1859 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Arthur Schopenhauer (author) died 1860, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Schopenhauer’s original German text in the third edition, 1859. Mouseia supplies a corrected transcription of another scan of the same 1859 printing. The kit normalises whitespace and note marks; page differences are corrected against the print."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Arthur Schopenhauer",
+        "ru": "Артур Шопенгауэр"
+       },
+       "qid": "Q38193",
+       "source": "https://www.wikidata.org/wiki/Q38193",
+       "born": [
+        {
+         "time": "+1788-02-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1860-09-21T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2443,15 +2829,47 @@
      "licence": "Public domain text, transcribed by Wikisource contributors; scan from Internet Archive microfilm. Wikisource site terms apply to contributor material.",
      "attribution": "David Hume, Four Dissertations (London: A. Millar, 1757), IV; transcription from Wikisource, compared with Internet Archive microfilm scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Дэвид Юм (автор) — год смерти 1776 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1757 (before 1930).",
-      "eu": "Public domain: David Hume (author) died 1776, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Дэвид Юм (автор) — год смерти 1776 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1757 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: David Hume (author) died 1776, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "The author David Hume died in 1776. First edition 1757; Wikisource transcription compared with an Internet Archive microfilm of the same printing. Long s is represented as s in the transcription."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "qid": "Q37160",
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "born": [
+        {
+         "time": "+1711-04-26T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1776-08-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian witness is taken in this pass: the original is planted first."
@@ -2480,15 +2898,47 @@
      "licence": "Public domain book and Internet Archive scan; Project Gutenberg License applies to the transcription, public domain in the United States.",
      "attribution": "Friedrich Nietzsche, Die Geburt der Tragödie (Leipzig: E. W. Fritzsch, 1886); transcription from Project Gutenberg ebook 7206, compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Ницше (автор) — год смерти 1900 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1886 (before 1930).",
-      "eu": "Public domain: Friedrich Nietzsche (author) died 1900, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Ницше (автор) — год смерти 1900 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1886 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Nietzsche (author) died 1900, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Nietzsche’s German text, transcribed by Project Gutenberg from Projekt Gutenberg-DE; its source printing is not identified there, and the readings are compared and corrected against the 1886 Fritzsch scan. Line breaks are joined and typographic emphasis is omitted."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Nietzsche",
+        "ru": "Фридрих Ницше"
+       },
+       "qid": "Q9358",
+       "source": "https://www.wikidata.org/wiki/Q9358",
+       "born": [
+        {
+         "time": "+1844-10-15T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1900-08-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2521,15 +2971,68 @@
      "licence": "Public domain book; Internet Archive scan. Wikisource transcription of the public domain 1792 printing.",
      "attribution": "Friedrich Schiller, Ueber die tragische Kunst, in Schillers Werke, vol. 15, ed. Wendelin von Maltzahn (Berlin: Gustav Hempel, 1879); transcription from German Wikisource compared with the Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805; Венделин фон Мальтцан (редактор текста) — год смерти 1889 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1879 (before 1930).",
-      "eu": "Public domain: Friedrich Schiller (author) died 1805; Wendelin von Maltzahn (editor of the text) died 1889, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805; Венделин фон Мальтцан (редактор текста) — год смерти 1889 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1879 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Schiller (author) died 1805; Wendelin von Maltzahn (editor of the text) died 1889, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Schiller’s text, edited by Maltzahn; the Wikisource transcription follows Neue Thalia (1792) and is compared with the 1879 Hempel scan. Long s is represented as s and print ß as ß; edition differences are recorded as corrections."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Wendelin von Maltzahn",
+        "ru": "Венделин фон Мальтцан"
+       },
+       "qid": "Q2558995",
+       "source": "https://www.wikidata.org/wiki/Q2558995",
+       "born": [
+        {
+         "time": "+1815-05-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1889-06-05T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No translation is taken in this pass: the line plants the original first."
@@ -2562,15 +3065,47 @@
      "licence": "Public domain 1795 printing; Deutsches Textarchiv transcription attributed to Berlin-Brandenburgische Akademie der Wissenschaften, CC BY-NC 3.0.",
      "attribution": "Friedrich Schiller, Die sentimentalischen Dichter, Die Horen, 1795, twelfth issue; transcription from Deutsches Textarchiv, compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1795 (before 1930).",
-      "eu": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1795 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Schiller’s German text in the first printing; Deutsches Textarchiv transcribes that 1795 printing from the Staatsbibliothek zu Berlin copy. Compared against the Internet Archive scan of the same printing. Long s and historical forms are retained as in the transcription."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2603,15 +3138,51 @@
      "licence": "Public domain book; Bayerische Staatsbibliothek scan via Internet Archive. TextGrid states that the underlying text is public domain; the annotated dataset is CC BY 3.0 DE.",
      "attribution": "Friedrich Schlegel, Die Griechen und Römer (Neustrelitz: Michaelis, 1797); transcription from TextGrid Digitale Bibliothek, compared with the Bayerische Staatsbibliothek scan via Internet Archive.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Шлегель (автор) — год смерти 1829 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1797 (before 1930).",
-      "eu": "Public domain: Friedrich Schlegel (author) died 1829, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Шлегель (автор) — год смерти 1829 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1797 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Schlegel (author) died 1829, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Text by Friedrich Schlegel; words from TextGrid Digitale Bibliothek, whose transcription follows a 1979 Zurich edition, compared against the 1797 first printing scanned by Bayerische Staatsbibliothek. Long s is transcribed as s and long s followed by s as ß."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schlegel",
+        "ru": "Фридрих Шлегель"
+       },
+       "qid": "Q157271",
+       "source": "https://www.wikidata.org/wiki/Q157271",
+       "born": [
+        {
+         "time": "+1772-03-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1829-01-12T00:00:00Z",
+         "precision": 11
+        },
+        {
+         "time": "+1829-01-11T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2644,15 +3215,47 @@
      "licence": "Public domain book; Internet Archive scan of the UCL copy; Wikisource transcription available under CC BY-SA 4.0.",
      "attribution": "Henri Bergson, Le Rire (Paris: Félix Alcan, 1900); transcription from French Wikisource, compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Анри Бергсон (автор) — год смерти 1941 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1900 (before 1930).",
-      "eu": "Public domain: Henri Bergson (author) died 1941, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Анри Бергсон (автор) — год смерти 1941 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1900 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Henri Bergson (author) died 1941, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Bergson’s original French; Wikisource transcribes the 1938 Alcan edition, compared against the 1900 Internet Archive UCL scan. Typography and whitespace normalized; substantive differences corrected against the printed page."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Henri Bergson",
+        "ru": "Анри Бергсон"
+       },
+       "qid": "Q42156",
+       "source": "https://www.wikidata.org/wiki/Q42156",
+       "born": [
+        {
+         "time": "+1859-10-18T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1941-01-04T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2685,15 +3288,51 @@
      "licence": "Public domain book and Internet Archive scan; Lancaster University transcription used for excerpts.",
      "attribution": "Uvedale Price, Essays on the Picturesque, volume I (London: J. Mawman, 1810); words from Lancaster University, compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Ювдейл Прайс (автор) — год смерти 1829 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1810 (before 1930).",
-      "eu": "Public domain: Uvedale Price (author) died 1829, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Ювдейл Прайс (автор) — год смерти 1829 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1810 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Uvedale Price (author) died 1829, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Price’s English text is transcribed by Lancaster from an unspecified edition and compared with the 1810 Getty scan. Lancaster typography and transcription differences are corrected to the print where necessary."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Uvedale Price",
+        "ru": "Ювдейл Прайс"
+       },
+       "qid": "Q4006821",
+       "source": "https://www.wikidata.org/wiki/Q4006821",
+       "born": [
+        {
+         "time": "+1747-04-04T00:00:00Z",
+         "precision": 11
+        },
+        {
+         "time": "+1747-04-14T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1829-09-14T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2722,15 +3361,47 @@
      "licence": "Public domain text and 1912 printing; French Wikisource transcription compared with the Internet Archive scan.",
      "attribution": "Victor Hugo, Préface de Cromwell, in Œuvres complètes, Théâtre I (Paris: Ollendorff, 1912), pp. 14–23; transcription from French Wikisource compared with the University of Toronto scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Виктор Гюго (автор) — год смерти 1885 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1912 (before 1930).",
-      "eu": "Public domain: Victor Hugo (author) died 1885, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Виктор Гюго (автор) — год смерти 1885 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1912 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Victor Hugo (author) died 1885, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Text by Victor Hugo; the French Wikisource transcription follows the 1912 Ollendorff Théâtre I printing, compared here with the University of Toronto scan of that printing. Spacing is normalized by the kit; no translation or editorial commentary is taken."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Victor Hugo",
+        "ru": "Виктор Гюго"
+       },
+       "qid": "Q535",
+       "source": "https://www.wikidata.org/wiki/Q535",
+       "born": [
+        {
+         "time": "+1802-02-26T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1885-05-22T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No translation is taken in this pass; the original is planted first."
@@ -2763,15 +3434,47 @@
      "licence": "Public domain book and Internet Archive scan; Project Gutenberg Canada transcription, public domain in Canada and the USA.",
      "attribution": "Francis Hutcheson, An Inquiry into the Original of our Ideas of Beauty and Virtue (London, 1738), transcribed by David T. Jones and Distributed Proofreaders Canada; compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фрэнсис Хатчесон (автор) — год смерти 1746 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1738 (before 1930).",
-      "eu": "Public domain: Francis Hutcheson (author) died 1746, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фрэнсис Хатчесон (автор) — год смерти 1746 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1738 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Francis Hutcheson (author) died 1746, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Hutcheson’s original English text, transcribed by Project Gutenberg Canada from the fourth edition of 1738 and compared with the Internet Archive scan of that edition. Long s and line-end hyphenation are normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Francis Hutcheson",
+        "ru": "Фрэнсис Хатчесон"
+       },
+       "qid": "Q316367",
+       "source": "https://www.wikidata.org/wiki/Q316367",
+       "born": [
+        {
+         "time": "+1694-08-08T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1746-08-08T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2800,15 +3503,47 @@
      "licence": "Public domain book; Bayerische Staatsbibliothek scan hosted by Internet Archive. The original text was transcribed by Projekt Gutenberg-DE and compared with the scan.",
      "attribution": "Friedrich Schiller, Kleinere prosaische Schriften, part 3 (Leipzig: Crusius; Jena: Göpferdt, 1801), pp. 312, 345; transcription by Projekt Gutenberg-DE compared with Bayerische Staatsbibliothek copy.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1801 (before 1930).",
-      "eu": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1801 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Schiller’s German original; Projekt Gutenberg-DE identifies its transcription as Cotta 1879. The passages are compared and corrected to the 1801 Crusius scan, Bayerische Staatsbibliothek copy on Internet Archive; long s is normalized to s and long s followed by s to ß."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2841,15 +3576,47 @@
      "licence": "Public domain book; Internet Archive scan. Project Gutenberg License for the transcription, public domain in the USA.",
      "attribution": "Samuel Taylor Coleridge, Biographia Literaria (New York: Leavitt, Lord & Co., 1834); text from Project Gutenberg compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Сэмюэл Тейлор Кольридж (автор) — год смерти 1834 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1834 (before 1930).",
-      "eu": "Public domain: Samuel Taylor Coleridge (author) died 1834, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Сэмюэл Тейлор Кольридж (автор) — год смерти 1834 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1834 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Samuel Taylor Coleridge (author) died 1834, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Coleridge’s text, cut from the Project Gutenberg transcription, whose underlying edition is not identified on its page, compared with the 1834 American printing. Typography and line wrapping are normalized."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Samuel Taylor Coleridge",
+        "ru": "Сэмюэл Тейлор Кольридж"
+       },
+       "qid": "Q82409",
+       "source": "https://www.wikidata.org/wiki/Q82409",
+       "born": [
+        {
+         "time": "+1772-10-21T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1834-07-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2879,15 +3646,47 @@
      "licence": "Public domain book; digitized Bavarian State Library copy in Internet Archive. Original Latin text compared with its 1750 printing.",
      "attribution": "Alexander Gottlieb Baumgarten, Aesthetica (Traiecti cis Viadrum: Ioannis Christiani Kleyb, 1750); transcription from Bibliotheca Augustana and the Aesthetica digital text project compared with the scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Александр Готлиб Баумгартен (автор) — год смерти 1762 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1750 (before 1930).",
-      "eu": "Public domain: Alexander Gottlieb Baumgarten (author) died 1762, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Александр Готлиб Баумгартен (автор) — год смерти 1762 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1750 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Alexander Gottlieb Baumgarten (author) died 1762, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Baumgarten’s original Latin text from Bibliotheca Augustana for the prolegomena and the Aesthetica digital text project for section 14, compared with the 1750 first printing. Bibliotheca Augustana lists the 1750 edition and the 1936 Fiore reprint among its sources; the digital project does not specify its base edition. Long s and u/v are normalized in the transcriptions; deviations from the print are corrected against its scan."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Alexander Gottlieb Baumgarten",
+        "ru": "Александр Готлиб Баумгартен"
+       },
+       "qid": "Q76517",
+       "source": "https://www.wikidata.org/wiki/Q76517",
+       "born": [
+        {
+         "time": "+1714-07-17T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1762-05-27T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2920,15 +3719,68 @@
      "licence": "Public domain book; Google scan from University of Michigan at Internet Archive; Latin Library transcription.",
      "attribution": "Benedictus de Spinoza, Ethica, in Opera quae supersunt omnia, ed. Heinrich Paulus (Jena: Bibliopolium Academicum, 1802–1803), University of Michigan copy; Latin Library transcription compared with scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Бенедикт Спиноза (автор) — год смерти 1677; Генрих Эбергард Готтлоб Паулус (редактор текста) — год смерти 1851 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1802 (before 1930).",
-      "eu": "Public domain: Benedictus de Spinoza (author) died 1677; Heinrich Paulus (editor of the text) died 1851, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Бенедикт Спиноза (автор) — год смерти 1677; Генрих Эбергард Готтлоб Паулус (редактор текста) — год смерти 1851 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1802 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Benedictus de Spinoza (author) died 1677; Heinrich Paulus (editor of the text) died 1851, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Spinoza’s Latin text in Paulus’s edition; Latin Library transcription does not identify its edition and is compared with the Paulus scan. Long s is normalized to s; line-end hyphenation is joined."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Benedictus de Spinoza",
+        "ru": "Бенедикт Спиноза"
+       },
+       "qid": "Q35802",
+       "source": "https://www.wikidata.org/wiki/Q35802",
+       "born": [
+        {
+         "time": "+1632-11-24T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1677-02-21T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Heinrich Paulus",
+        "ru": "Генрих Эбергард Готтлоб Паулус"
+       },
+       "qid": "Q68710",
+       "source": "https://www.wikidata.org/wiki/Q68710",
+       "born": [
+        {
+         "time": "+1761-09-01T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1851-08-10T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -2961,15 +3813,72 @@
      "licence": "Public domain book, Internet Archive scan; Wikisource transcription available under CC BY-SA 4.0.",
      "attribution": "Buffon, Discours, in Œuvres complètes, vol. 1 (Paris: Pillot, 1829); transcription by Wikisource contributors, compared against Internet Archive MBLWHOI scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Жорж-Луи Леклерк де Бюффон (автор) — год смерти 1788; Фредерик Кювье (редактор текста) — год смерти 1838 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1829 (before 1930).",
-      "eu": "Public domain: Georges-Louis Leclerc, Comte de Buffon (author) died 1788; Frédéric Cuvier (editor of the text) died 1838, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Жорж-Луи Леклерк де Бюффон (автор) — год смерти 1788; Фредерик Кювье (редактор текста) — год смерти 1838 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1829 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Georges-Louis Leclerc, Comte de Buffon (author) died 1788; Frédéric Cuvier (editor of the text) died 1838, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Buffon’s French text, in the edition augmented by Frédéric Cuvier; Wikisource follows the 1829 Pillot edition and the same Internet Archive scan. Line-end hyphenation and whitespace are normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Georges-Louis Leclerc, Comte de Buffon",
+        "ru": "Жорж-Луи Леклерк де Бюффон"
+       },
+       "qid": "Q229264",
+       "source": "https://www.wikidata.org/wiki/Q229264",
+       "born": [
+        {
+         "time": "+1707-09-07T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1788-04-15T00:00:00Z",
+         "precision": 11
+        },
+        {
+         "time": "+1788-04-16T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Frédéric Cuvier",
+        "ru": "Фредерик Кювье"
+       },
+       "qid": "Q467962",
+       "source": "https://www.wikidata.org/wiki/Q467962",
+       "born": [
+        {
+         "time": "+1773-06-28T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1838-07-24T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3002,15 +3911,68 @@
      "licence": "Public domain printing; page-indexed OCR from the Internet Archive scan.",
      "attribution": "G. W. F. Hegel, Vorlesungen über die Aesthetik, vols. I and III, ed. H. G. Hotho (Berlin: Duncker und Humblot, 1835 and 1838); texts cut from the scans’ OCR and checked against the printed pages.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Георг Вильгельм Фридрих Гегель (автор) — год смерти 1831; Генрих Густав Гото (редактор текста) — год смерти 1873 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1835 (before 1930).",
-      "eu": "Public domain: Georg Wilhelm Friedrich Hegel (author) died 1831; Heinrich Gustav Hotho (editor of the text) died 1873, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Георг Вильгельм Фридрих Гегель (автор) — год смерти 1831; Генрих Густав Гото (редактор текста) — год смерти 1873 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1835 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Georg Wilhelm Friedrich Hegel (author) died 1831; Heinrich Gustav Hotho (editor of the text) died 1873, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Hotho’s first edition of Hegel, vols. I (1835) and III (1838); words cut from each scan’s own OCR and corrected against its printed pages. Long s is rendered s and words divided across lines are joined."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Georg Wilhelm Friedrich Hegel",
+        "ru": "Георг Вильгельм Фридрих Гегель"
+       },
+       "qid": "Q9235",
+       "source": "https://www.wikidata.org/wiki/Q9235",
+       "born": [
+        {
+         "time": "+1770-08-27T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1831-11-14T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Heinrich Gustav Hotho",
+        "ru": "Генрих Густав Гото"
+       },
+       "qid": "Q72950",
+       "source": "https://www.wikidata.org/wiki/Q72950",
+       "born": [
+        {
+         "time": "+1802-05-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1873-12-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3043,15 +4005,47 @@
      "licence": "Public domain book; Internet Archive scan of the Bavarian State Library copy. TextGrid Digitale Bibliothek transcription of the public domain text.",
      "attribution": "Johann Wolfgang von Goethe, Goethe's Werke, vol. 12 (Tübingen: Cotta, 1808), pp. 96–98; transcription from TextGrid, compared with the scanned pages.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Иоганн Вольфганг фон Гёте (автор) — год смерти 1832 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1808 (before 1930).",
-      "eu": "Public domain: Johann Wolfgang von Goethe (author) died 1832, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Иоганн Вольфганг фон Гёте (автор) — год смерти 1832 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1808 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Johann Wolfgang von Goethe (author) died 1832, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Goethe’s German text, transcribed from TextGrid Digitale Bibliothek, Berlin 1960 edition; compared and corrected to the 1808 Cotta scan. Long s and line breaks are normalised."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Johann Wolfgang von Goethe",
+        "ru": "Иоганн Вольфганг фон Гёте"
+       },
+       "qid": "Q5879",
+       "source": "https://www.wikidata.org/wiki/Q5879",
+       "born": [
+        {
+         "time": "+1749-08-28T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1832-03-22T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No translation is taken in this pass; the original is planted first."
@@ -3083,15 +4077,47 @@
      "licence": "Public domain book; Internet Archive scan of the Bayerische Staatsbibliothek copy, Public Domain Mark.",
      "attribution": "Moses Mendelssohn, Philosophische Schriften, part 2 (Berlin: Christian Friedrich Voß, 1771), p. 161; words from the scan OCR checked against the page image.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Мозес Мендельсон (автор) — год смерти 1786 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1771 (before 1930).",
-      "eu": "Public domain: Moses Mendelssohn (author) died 1786, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Мозес Мендельсон (автор) — год смерти 1786 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1771 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Moses Mendelssohn (author) died 1786, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Moses Mendelssohn’s German text in the second edition of 1771; the words are cut from the Internet Archive scan OCR of the Bayerische Staatsbibliothek copy and corrected against its page. The kit joins line breaks, normalises long s to s and decomposed umlauts."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Moses Mendelssohn",
+        "ru": "Мозес Мендельсон"
+       },
+       "qid": "Q76997",
+       "source": "https://www.wikidata.org/wiki/Q76997",
+       "born": [
+        {
+         "time": "+1729-09-06T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1786-01-04T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No translation is taken in this pass; the line plants the original first."
@@ -3124,15 +4150,47 @@
      "licence": "Public domain book and Internet Archive scan; Project Gutenberg License applies to the transcription, public domain in the USA.",
      "attribution": "Sigmund Freud, Das Unheimliche, Imago 5 (1919), 297–324; transcription by Project Gutenberg, compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Зигмунд Фрейд (автор) — год смерти 1939 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1919 (before 1930).",
-      "eu": "Public domain: Sigmund Freud (author) died 1939, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Зигмунд Фрейд (автор) — год смерти 1939 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1919 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Sigmund Freud (author) died 1939, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Original text by Sigmund Freud; Project Gutenberg transcribes the 1919 Imago printing compared with the Internet Archive scan of the same issue. Formatting and line breaks are normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Sigmund Freud",
+        "ru": "Зигмунд Фрейд"
+       },
+       "qid": "Q9215",
+       "source": "https://www.wikidata.org/wiki/Q9215",
+       "born": [
+        {
+         "time": "+1856-05-06T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1939-09-23T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No translation is taken in this pass; the original is planted first."
@@ -3166,15 +4224,47 @@
      "licence": "Public domain historical book; scans from Internet Archive; text transcribed by Hume Texts Online.",
      "attribution": "David Hume, A Treatise of Human Nature (London: John Noon, 1739), volumes I and II; text from Hume Texts Online compared with Internet Archive scans.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Дэвид Юм (автор) — год смерти 1776 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1739 (before 1930).",
-      "eu": "Public domain: David Hume (author) died 1776, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Дэвид Юм (автор) — год смерти 1776 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1739 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: David Hume (author) died 1776, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Hume’s original English text; Hume Texts Online follows the first edition from an ECCO scan, compared here with Internet Archive microfilm of the 1739 printing. Long s is normalized to s and line breaks are joined."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "qid": "Q37160",
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "born": [
+        {
+         "time": "+1711-04-26T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1776-08-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3204,15 +4294,47 @@
      "licence": "Public domain article and 1912–1913 volume; scans at Internet Archive; transcription by Wabash College of the original article.",
      "attribution": "Edward Bullough, British Journal of Psychology 5 (1912), pp. 87–118; transcription from Wabash College compared against the University of Calcutta and Google scans of the volume at Internet Archive.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Эдвард Буллоу (автор) — год смерти 1934 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1913 (before 1930).",
-      "eu": "Public domain: Edward Bullough (author) died 1934, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Эдвард Буллоу (автор) — год смерти 1934 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1913 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Edward Bullough (author) died 1934, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Bullough is the author of the English article; Wabash transcribes the 1912 British Journal of Psychology article. The transcription is compared with the Internet Archive scans of volume V. Line breaks and typographical hyphens are normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Edward Bullough",
+        "ru": "Эдвард Буллоу"
+       },
+       "qid": "Q5342062",
+       "source": "https://www.wikidata.org/wiki/Q5342062",
+       "born": [
+        {
+         "time": "+1880-03-28T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1934-09-17T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3241,15 +4363,47 @@
      "licence": "Public domain book; Internet Archive scan; Wikisource transcription available under its reuse terms.",
      "attribution": "Émile Durkheim, Les formes élémentaires de la vie religieuse (Paris: Félix Alcan, 1912); words from French Wikisource compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Эмиль Дюркгейм (автор) — год смерти 1917 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1912 (before 1930).",
-      "eu": "Public domain: Émile Durkheim (author) died 1917, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Эмиль Дюркгейм (автор) — год смерти 1917 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1912 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Émile Durkheim (author) died 1917, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Durkheim’s original French text; the Wikisource transcription follows the 1912 Alcan edition in a Bibliothèque nationale de France scan, compared here with the Internet Archive copy of the same edition. Line-end divisions and spacing are normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Émile Durkheim",
+        "ru": "Эмиль Дюркгейм"
+       },
+       "qid": "Q15948",
+       "source": "https://www.wikidata.org/wiki/Q15948",
+       "born": [
+        {
+         "time": "+1858-04-15T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1917-11-15T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3282,15 +4436,68 @@
      "licence": "Public domain book and scan at the Internet Archive; Projekt Gutenberg-DE transcription credited to its provider.",
      "attribution": "Friedrich Schiller, Schillers sämmtliche Werke, vol. 4 (Stuttgart: Cotta, 1877), pp. 739–741; transcription Projekt Gutenberg-DE, compared with University of California scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805; Карл Гёдеке (редактор текста) — год смерти 1887 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1877 (before 1930).",
-      "eu": "Public domain: Friedrich Schiller (author) died 1805; Karl Goedeke (editor of the text) died 1887, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805; Карл Гёдеке (редактор текста) — год смерти 1887 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1877 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Schiller (author) died 1805; Karl Goedeke (editor of the text) died 1887, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Schiller text edited by Karl Goedeke, from Projekt Gutenberg-DE transcription of the Cotta 1879 printing compared with the 1877 Cotta scan. Long s is normalized to s and line-end divisions joined."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Karl Goedeke",
+        "ru": "Карл Гёдеке"
+       },
+       "qid": "Q91617",
+       "source": "https://www.wikidata.org/wiki/Q91617",
+       "born": [
+        {
+         "time": "+1814-04-15T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1887-10-28T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3323,15 +4530,47 @@
      "licence": "Public domain text and 1913 printing; Internet Archive scan and cloud-cuckoo.net transcription.",
      "attribution": "Georg Simmel, Philosophie der Landschaft, Die Güldenkammer III (1913), pp. 635–644; transcription by cloud-cuckoo.net compared to Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Георг Зиммель (автор) — год смерти 1918 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1913 (before 1930).",
-      "eu": "Public domain: Georg Simmel (author) died 1918, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Георг Зиммель (автор) — год смерти 1918 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1913 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Georg Simmel (author) died 1918, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "The text is by Georg Simmel. The cloud-cuckoo.net transcription identifies the 1913 Güldenkammer printing; its words are compared to the Internet Archive scan of that printing. Line breaks are joined and typography normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Georg Simmel",
+        "ru": "Георг Зиммель"
+       },
+       "qid": "Q76849",
+       "source": "https://www.wikidata.org/wiki/Q76849",
+       "born": [
+        {
+         "time": "+1858-03-01T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1918-09-26T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3364,15 +4603,47 @@
      "licence": "Public domain book; Internet Archive scan; Projekt Gutenberg-DE transcription.",
      "attribution": "Gotthold Ephraim Lessing, Laokoon (Berlin: Christian Friedrich Voss, 1766), Getty Research Institute copy; transcription from Projekt Gutenberg-DE compared against the scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Готхольд Эфраим Лессинг (автор) — год смерти 1781 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1766 (before 1930).",
-      "eu": "Public domain: Gotthold Ephraim Lessing (author) died 1781, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Готхольд Эфраим Лессинг (автор) — год смерти 1781 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1766 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Gotthold Ephraim Lessing (author) died 1781, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Lessing’s text, from the Projekt Gutenberg-DE transcription of the Reclam 1994 edition, compared and corrected against the Getty scan of the 1766 first printing. Long s is normalized to s; line-break hyphens are joined."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Gotthold Ephraim Lessing",
+        "ru": "Готхольд Эфраим Лессинг"
+       },
+       "qid": "Q34628",
+       "source": "https://www.wikidata.org/wiki/Q34628",
+       "born": [
+        {
+         "time": "+1729-01-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1781-02-15T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3405,15 +4676,47 @@
      "licence": "Public domain book; University of Toronto scan via Internet Archive; transcription by Projekt Gutenberg-DE.",
      "attribution": "Gustav Theodor Fechner, Vorschule der Aesthetik, Teil I (Leipzig: Breitkopf und Härtel, 1876); words from Projekt Gutenberg-DE, compared with the University of Toronto scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Густав Теодор Фехнер (автор) — год смерти 1887 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1876 (before 1930).",
-      "eu": "Public domain: Gustav Fechner (author) died 1887, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Густав Теодор Фехнер (автор) — год смерти 1887 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1876 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Gustav Fechner (author) died 1887, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Fechner’s German text comes from Projekt Gutenberg-DE, which identifies the 1876 first part; it is compared with the University of Toronto scan of the 1876 Leipzig printing. Line breaks are joined and modernized spelling is corrected to the print."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Gustav Fechner",
+        "ru": "Густав Теодор Фехнер"
+       },
+       "qid": "Q76881",
+       "source": "https://www.wikidata.org/wiki/Q76881",
+       "born": [
+        {
+         "time": "+1801-04-19T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1887-11-18T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3446,15 +4749,47 @@
      "licence": "Public domain book and Internet Archive scan; Wikisource transcription available under CC BY-SA 4.0 and GFDL.",
      "attribution": "Henri Poincaré, L’Invention mathématique (Paris: au siège de la Société, 1908); transcription by Wikisource contributors, compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Анри Пуанкаре (автор) — год смерти 1912 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1908 (before 1930).",
-      "eu": "Public domain: Henri Poincaré (author) died 1912, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Анри Пуанкаре (автор) — год смерти 1912 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1908 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Henri Poincaré (author) died 1912, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Poincaré’s French text, transcribed by Wikisource from the same 1908 Internet Archive scan and compared against its pages; whitespace and line breaks normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Henri Poincaré",
+        "ru": "Анри Пуанкаре"
+       },
+       "qid": "Q81082",
+       "source": "https://www.wikidata.org/wiki/Q81082",
+       "born": [
+        {
+         "time": "+1854-04-29T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1912-07-17T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No translation is taken in this pass: the line plants the original first."
@@ -3487,15 +4822,114 @@
      "licence": "Public domain book; Internet Archive scan. TextGrid Digitale Bibliothek transcription, used for Goethe’s public domain text.",
      "attribution": "Johann Wolfgang von Goethe, Goethes Werke, vol. 48 (Weimar: Hermann Böhlau, 1897), pp. 205–206; transcription from TextGrid compared with the University of Toronto scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Иоганн Вольфганг фон Гёте (автор) — год смерти 1832; Отто Гарнак (редактор текста) — год смерти 1914; Бернхард Людвиг Зуфан (редактор текста) — год смерти 1911; Julius Wahle (редактор текста) — год смерти 1940 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1897 (before 1930).",
-      "eu": "Public domain: Johann Wolfgang von Goethe (author) died 1832; Otto Harnack (editor of the text) died 1914; Bernhard Suphan (editor of the text) died 1911; Julius Wahle (editor of the text) died 1940, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Иоганн Вольфганг фон Гёте (автор) — год смерти 1832; Отто Гарнак (редактор текста) — год смерти 1914; Бернхард Людвиг Зуфан (редактор текста) — год смерти 1911; Julius Wahle (редактор текста) — год смерти 1940 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1897 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Johann Wolfgang von Goethe (author) died 1832; Otto Harnack (editor of the text) died 1914; Bernhard Suphan (editor of the text) died 1911; Julius Wahle (editor of the text) died 1940, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Goethe’s original German text, edited by Otto Harnack with redactors Bernhard Suphan and Julius Wahle; TextGrid transcribes the Berlin 1960 edition, based on Hecker 1907, compared with the Weimar 1897 scan. Long s normalized to s, line-end hyphenation joined; edition differences corrected to the print."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Johann Wolfgang von Goethe",
+        "ru": "Иоганн Вольфганг фон Гёте"
+       },
+       "qid": "Q5879",
+       "source": "https://www.wikidata.org/wiki/Q5879",
+       "born": [
+        {
+         "time": "+1749-08-28T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1832-03-22T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Otto Harnack",
+        "ru": "Отто Гарнак"
+       },
+       "qid": "Q119170",
+       "source": "https://www.wikidata.org/wiki/Q119170",
+       "born": [
+        {
+         "time": "+1857-11-23T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1914-03-23T00:00:00Z",
+         "precision": 11
+        },
+        {
+         "time": "+1914-03-22T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Bernhard Suphan",
+        "ru": "Бернхард Людвиг Зуфан"
+       },
+       "qid": "Q91163",
+       "source": "https://www.wikidata.org/wiki/Q91163",
+       "born": [
+        {
+         "time": "+1845-01-18T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1911-02-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Julius Wahle",
+        "ru": "Julius Wahle"
+       },
+       "qid": "Q1109076",
+       "source": "https://www.wikidata.org/wiki/Q1109076",
+       "born": [
+        {
+         "time": "+1861-02-15T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1940-11-07T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No translation is taken in this pass: the line plants the original first."
@@ -3528,15 +4962,47 @@
      "licence": "Public domain book and Internet Archive scan; Project Gutenberg License applies to the transcription, public domain in the USA.",
      "attribution": "Oscar Wilde, Intentions (New York: Brentano’s, 1905), Getty Research Institute copy; text from Project Gutenberg transcription compared against the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Оскар Уайльд (автор) — год смерти 1900 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1905 (before 1930).",
-      "eu": "Public domain: Oscar Wilde (author) died 1900, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Оскар Уайльд (автор) — год смерти 1900 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1905 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Oscar Wilde (author) died 1900, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Wilde’s English text is transcribed by David Price for Project Gutenberg from the 1913 Methuen edition and compared against the 1905 Brentano’s scan. Line-break hyphens are joined and whitespace normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Oscar Wilde",
+        "ru": "Оскар Уайльд"
+       },
+       "qid": "Q30875",
+       "source": "https://www.wikidata.org/wiki/Q30875",
+       "born": [
+        {
+         "time": "+1854-10-16T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1900-11-30T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3565,15 +5031,47 @@
      "licence": "Public domain book; Internet Archive scan; Wikisource transcription available under CC BY-SA 4.0 and public domain text.",
      "attribution": "Charles Baudelaire, Curiosités esthétiques (Paris: Michel Lévy frères, 1868); words from French Wikisource, compared with the Oxford copy scan at Internet Archive.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Шарль Бодлер (автор) — год смерти 1867 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1868 (before 1930).",
-      "eu": "Public domain: Charles Baudelaire (author) died 1867, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Шарль Бодлер (автор) — год смерти 1867 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1868 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Charles Baudelaire (author) died 1867, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Baudelaire’s French text, transcribed by Wikisource from the same 1868 edition and Oxford copy held by Internet Archive. Line breaks and whitespace are normalized by the kit; the print governs corrections."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Charles Baudelaire",
+        "ru": "Шарль Бодлер"
+       },
+       "qid": "Q501",
+       "source": "https://www.wikidata.org/wiki/Q501",
+       "born": [
+        {
+         "time": "+1821-04-09T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1867-08-31T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No translation is taken in this pass: the line plants the original first."
@@ -3606,15 +5104,47 @@
      "licence": "Public domain book and scan; Wikisource transcription is public domain.",
      "attribution": "David Hume, Four Dissertations (London: A. Millar, 1757), Of Tragedy; transcription from Wikisource compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Дэвид Юм (автор) — год смерти 1776 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1757 (before 1930).",
-      "eu": "Public domain: David Hume (author) died 1776, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Дэвид Юм (автор) — год смерти 1776 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1757 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: David Hume (author) died 1776, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Hume’s English text from the 1757 first edition; Wikisource transcribes the same first edition from another copy. Compared with the Internet Archive scan. Line breaks and long s are normalized."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "qid": "Q37160",
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "born": [
+        {
+         "time": "+1711-04-26T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1776-08-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3643,15 +5173,47 @@
      "licence": "Public domain text and printing; Internet Archive scan of microfilm and Wikisource public-domain transcription.",
      "attribution": "David Hume, Essays, Moral and Political (Edinburgh: A. Kincaid, 1741), Essay I; Wikisource transcription compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Дэвид Юм (автор) — год смерти 1776 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1741 (before 1930).",
-      "eu": "Public domain: David Hume (author) died 1776, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Дэвид Юм (автор) — год смерти 1776 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1741 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: David Hume (author) died 1776, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Hume wrote the essay; the Wikisource transcription follows the first edition of 1741, compared here with an Internet Archive microfilm scan of that printing. Long s is rendered as s; line-end hyphenation is joined."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "qid": "Q37160",
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "born": [
+        {
+         "time": "+1711-04-26T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1776-08-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3680,15 +5242,47 @@
      "licence": "Public domain book and Internet Archive scan; German transcription of the 1917 public domain text from Forage.",
      "attribution": "Edith Stein, Zum Problem der Einfühlung (Halle: Buchdruckerei des Waisenhauses, 1917); German transcription from Forage compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Эдит Штайн (автор) — год смерти 1942 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1917 (before 1930).",
-      "eu": "Public domain: Edith Stein (author) died 1942, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Эдит Штайн (автор) — год смерти 1942 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1917 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Edith Stein (author) died 1942, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Stein’s German text, transcribed by Forage from the same 1917 printing scanned by Internet Archive; line-break hyphenation is joined by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Edith Stein",
+        "ru": "Эдит Штайн"
+       },
+       "qid": "Q76749",
+       "source": "https://www.wikidata.org/wiki/Q76749",
+       "born": [
+        {
+         "time": "+1891-10-12T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1942-08-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3721,15 +5315,47 @@
      "licence": "Public domain book; scan at Internet Archive. Project Gutenberg transcription is public domain in the USA, subject to its licence for branded distribution.",
      "attribution": "Eduard Hanslick, Vom Musikalisch-Schönen (Leipzig: Rudolph Weigel, 1854), compared with the Internet Archive scan; transcription from Project Gutenberg.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Эдуард Ганслик (автор) — год смерти 1904 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1854 (before 1930).",
-      "eu": "Public domain: Eduard Hanslick (author) died 1904, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Эдуард Ганслик (автор) — год смерти 1904 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1854 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Eduard Hanslick (author) died 1904, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Hanslick’s text, transcribed by Project Gutenberg from the 1922 edition and compared with the 1854 first edition scan in Internet Archive. Differences are corrected against the print."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Eduard Hanslick",
+        "ru": "Эдуард Ганслик"
+       },
+       "qid": "Q84246",
+       "source": "https://www.wikidata.org/wiki/Q84246",
+       "born": [
+        {
+         "time": "+1825-09-11T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1904-08-06T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3762,15 +5388,47 @@
      "licence": "Public domain book and Internet Archive scan; Wikisource transcription under CC BY-SA 4.0.",
      "attribution": "Anthony Ashley Cooper, Earl of Shaftesbury, Characteristicks, vol. II (Birmingham: John Baskerville, 1773); transcription by Wikisource contributors compared with the John Adams Library scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Энтони Эшли-Купер, 3-й граф Шефтсбери (автор) — год смерти 1713 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1773 (before 1930).",
-      "eu": "Public domain: Anthony Ashley-Cooper, 3rd Earl of Shaftesbury (author) died 1713, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Энтони Эшли-Купер, 3-й граф Шефтсбери (автор) — год смерти 1713 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1773 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Anthony Ashley-Cooper, 3rd Earl of Shaftesbury (author) died 1713, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Shaftesbury’s English text, transcribed by Wikisource from the 1773 fifth edition, is compared with the Internet Archive scan of the same printing. Line-end breaks and long s are normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Anthony Ashley-Cooper, 3rd Earl of Shaftesbury",
+        "ru": "Энтони Эшли-Купер, 3-й граф Шефтсбери"
+       },
+       "qid": "Q335112",
+       "source": "https://www.wikidata.org/wiki/Q335112",
+       "born": [
+        {
+         "time": "+1671-02-26T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1713-02-04T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "Русский текст в этом проходе не взят: сначала высаживается оригинал."
@@ -3799,15 +5457,47 @@
      "licence": "Public domain book; Internet Archive scan. Project Gutenberg License for the transcription, public domain in the USA.",
      "attribution": "Sigmund Freud, Sammlung kleiner Schriften zur Neurosenlehre, zweite Folge (Leipzig und Wien: Franz Deuticke, 1909); words from Project Gutenberg compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Зигмунд Фрейд (автор) — год смерти 1939 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1909 (before 1930).",
-      "eu": "Public domain: Sigmund Freud (author) died 1939, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Зигмунд Фрейд (автор) — год смерти 1939 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1909 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Sigmund Freud (author) died 1939, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Freud’s German text; Project Gutenberg transcribes the Neue Revue first printing of 1908, compared here with the 1909 collection scan at the Internet Archive. Line breaks and typographic quotation marks are normalized by the kit; edition differences are corrected against the 1909 page."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Sigmund Freud",
+        "ru": "Зигмунд Фрейд"
+       },
+       "qid": "Q9215",
+       "source": "https://www.wikidata.org/wiki/Q9215",
+       "born": [
+        {
+         "time": "+1856-05-06T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1939-09-23T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3840,15 +5530,47 @@
      "licence": "Public domain text by Freud and historical journal scan in the Internet Archive.",
      "attribution": "Sigmund Freud, Trauer und Melancholie, Internationale Zeitschrift für ärztliche Psychoanalyse IV, 6, pp. 288–301; transcription from Textlog compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Зигмунд Фрейд (автор) — год смерти 1939 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1918 (before 1930).",
-      "eu": "Public domain: Sigmund Freud (author) died 1939, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Зигмунд Фрейд (автор) — год смерти 1939 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1918 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Sigmund Freud (author) died 1939, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Freud’s German text, transcribed by Textlog from the Gesammelte Werke volume 10, compared against the 1918 journal printing scanned by the International Psychoanalytic University Berlin; line-break hyphenation is joined by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Sigmund Freud",
+        "ru": "Зигмунд Фрейд"
+       },
+       "qid": "Q9215",
+       "source": "https://www.wikidata.org/wiki/Q9215",
+       "born": [
+        {
+         "time": "+1856-05-06T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1939-09-23T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3881,15 +5603,47 @@
      "licence": "Public domain book and Internet Archive scan; Lancaster University transcription of extracts compared with the scan.",
      "attribution": "William Gilpin, Three Essays (London: R. Blamire, 1792), words from Lancaster University extracts compared with the Getty Research Institute scan. Essay III passages from the scan’s OCR, corrected against the page images.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Уильям Гилпин (автор) — год смерти 1804 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1792 (before 1930).",
-      "eu": "Public domain: William Gilpin (author) died 1804, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Уильям Гилпин (автор) — год смерти 1804 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1792 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: William Gilpin (author) died 1804, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "William Gilpin’s English text; Lancaster University transcription of extracts refers to 1794 without identifying the printing used; compared with the Internet Archive scan of the 1792 printing. Long s is normalised to s; discrepancies are corrected from the printed page. The Essay III passages are cut from the 1792 scan OCR and corrected against its pages."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "William Gilpin",
+        "ru": "Уильям Гилпин"
+       },
+       "qid": "Q1336319",
+       "source": "https://www.wikidata.org/wiki/Q1336319",
+       "born": [
+        {
+         "time": "+1724-06-04T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1804-04-05T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3918,15 +5672,47 @@
      "licence": "Public domain book; Internet Archive scan. Project Gutenberg License applies to its transcription, public domain in the USA.",
      "attribution": "William Morris, Hopes & Fears for Art (London: Longmans, Green, and Co., 1919), transcribed by David Price for Project Gutenberg and compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Уильям Моррис (автор) — год смерти 1896 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1919 (before 1930).",
-      "eu": "Public domain: William Morris (author) died 1896, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Уильям Моррис (автор) — год смерти 1896 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1919 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: William Morris (author) died 1896, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Morris wrote the English lecture, reprinted as The Lesser Arts. David Price transcribed the 1919 pocket edition for Project Gutenberg; this is compared with the Internet Archive scan of a 1919 pocket edition. The kit normalizes line breaks and joins words divided at line ends."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "William Morris",
+        "ru": "Уильям Моррис"
+       },
+       "qid": "Q182589",
+       "source": "https://www.wikidata.org/wiki/Q182589",
+       "born": [
+        {
+         "time": "+1834-03-24T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1896-10-03T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3955,15 +5741,47 @@
      "licence": "Public domain book and Internet Archive scan; Project Gutenberg License for the transcription, public domain in the United States.",
      "attribution": "Edward Lear, Nonsense Books (Boston: Little, Brown and Company, 1888), p. 29; transcription from Project Gutenberg compared with the Library of Congress scan at Internet Archive.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Эдвард Лир (автор) — год смерти 1888 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1888 (before 1930).",
-      "eu": "Public domain: Edward Lear (author) died 1888, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Эдвард Лир (автор) — год смерти 1888 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1888 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Edward Lear (author) died 1888, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "The verses and drawings are by Edward Lear. Words are taken from Project Gutenberg Nonsense Books, whose particular printing is not identified in the transcription, and compared with the 1888 Boston scan. Line breaks and whitespace are normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Edward Lear",
+        "ru": "Эдвард Лир"
+       },
+       "qid": "Q309759",
+       "source": "https://www.wikidata.org/wiki/Q309759",
+       "born": [
+        {
+         "time": "+1812-05-12T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1888-01-29T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -3992,15 +5810,47 @@
      "licence": "Public domain book and scan; German Projekt Gutenberg transcription of the public domain work.",
      "attribution": "Friedrich Nietzsche, Die fröhliche Wissenschaft (Leipzig: E. W. Fritzsch, 1887), p. 207; transcription from Projekt Gutenberg, compared to Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Ницше (автор) — год смерти 1900 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1887 (before 1930).",
-      "eu": "Public domain: Friedrich Nietzsche (author) died 1900, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Ницше (автор) — год смерти 1900 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1887 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Nietzsche (author) died 1900, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Nietzsche’s original German text; Projekt Gutenberg transcription does not identify its base edition, and its text is compared and corrected to the 1887 Fritzsch scan. Line breaks are joined; typographic quotation marks and dashes are normalized."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Nietzsche",
+        "ru": "Фридрих Ницше"
+       },
+       "qid": "Q9358",
+       "source": "https://www.wikidata.org/wiki/Q9358",
+       "born": [
+        {
+         "time": "+1844-10-15T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1900-08-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the original is planted first."
@@ -4033,15 +5883,47 @@
      "licence": "Public domain book; Internet Archive scan. Forage German transcription is offered under CC BY-SA 4.0.",
      "attribution": "Rudolf Otto, Das Heilige, 13th edition (Gotha and Stuttgart: Friedrich Andreas Perthes, 1925); German words from Forage compared against the University of Illinois scan at Internet Archive.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Рудольф Отто (автор) — год смерти 1937 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1925 (before 1930).",
-      "eu": "Public domain: Rudolf Otto (author) died 1937, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Рудольф Отто (автор) — год смерти 1937 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1925 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Rudolf Otto (author) died 1937, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Text by Rudolf Otto; Forage transcription from the 1925 thirteenth edition follows the Internet Archive scan. The passage on pp. 6–7 is cut from the scan OCR because the Forage text interleaves an English translation, and is checked on both page images. The kit joins line-end hyphenation; corrections are recorded."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Rudolf Otto",
+        "ru": "Рудольф Отто"
+       },
+       "qid": "Q76748",
+       "source": "https://www.wikidata.org/wiki/Q76748",
+       "born": [
+        {
+         "time": "+1869-09-25T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1937-03-07T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -4073,15 +5955,47 @@
      "licence": "Public domain text, published 1906; the Internet Archive scan supplies its page-indexed OCR.",
      "attribution": "Ernst Jentsch, Zur Psychologie des Unheimlichen, Psychiatrisch-Neurologische Wochenschrift 8, no. 22 (Halle: Carl Marhold, 1906), p. 197; OCR from the Internet Archive scan checked against its page image.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Эрнст Йенч (автор) — год смерти 1919 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1906 (before 1930).",
-      "eu": "Public domain: Ernst Jentsch (author) died 1919, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Эрнст Йенч (автор) — год смерти 1919 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1906 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Ernst Jentsch (author) died 1919, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Text by Ernst Jentsch. Words are taken from the page-indexed OCR of the Internet Archive scan of the 1906 journal printing and checked against its image; line-end hyphenation and whitespace are normalized by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Ernst Jentsch",
+        "ru": "Эрнст Йенч"
+       },
+       "qid": "Q5395053",
+       "source": "https://www.wikidata.org/wiki/Q5395053",
+       "born": [
+        {
+         "time": "+1867-02-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1919-01-01T00:00:00Z",
+         "precision": 9
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -4114,15 +6028,47 @@
      "licence": "Public domain book and scan; Wikisource transcription distributed under CC BY-SA 4.0.",
      "attribution": "Friedrich Schiller, Friedrich von Schillers sämmtliche Werke, vol. 8, part 1 (Cotta, 1813), Bavarian State Library copy; transcription from German Wikisource compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1813 (before 1930).",
-      "eu": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Фридрих Шиллер (автор) — год смерти 1805 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1813 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Friedrich Schiller (author) died 1805, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Schiller authored the text; the German Wikisource transcription follows Neue Thalia (1792), and is compared to the 1813 Cotta edition scan. Long s is rendered s and line breaks joined; differences of edition are corrected to the scan."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -4155,15 +6101,68 @@
      "licence": "Public domain historical book; Internet Archive scan. Wikisource transcription available under CC BY-SA 3.0 and GFDL.",
      "attribution": "Leon Battista Alberti, Della pittura, ed. Hubert Janitschek (Vienna: W. Braumüller, 1877); Wikisource transcription compared with the Getty Research Institute scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Леон Баттиста Альберти (автор) — год смерти 1472; Губерт Янтишек (редактор текста) — год смерти 1893 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1877 (before 1930).",
-      "eu": "Public domain: Leon Battista Alberti (author) died 1472; Hubert Janitschek (editor of the text) died 1893, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Леон Баттиста Альберти (автор) — год смерти 1472; Губерт Янтишек (редактор текста) — год смерти 1893 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1877 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Leon Battista Alberti (author) died 1472; Hubert Janitschek (editor of the text) died 1893, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Italian authorial text edited by Hubert Janitschek; Wikisource transcription follows the 1973 Opere volgari edition and is compared and corrected to the 1877 Janitschek scan. Line breaks and hyphenated line endings are joined by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "editor",
+       "name": {
+        "en": "Hubert Janitschek",
+        "ru": "Губерт Янтишек"
+       },
+       "qid": "Q5828092",
+       "source": "https://www.wikidata.org/wiki/Q5828092",
+       "born": [
+        {
+         "time": "+1846-10-30T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1893-06-21T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Leon Battista Alberti",
+        "ru": "Леон Баттиста Альберти"
+       },
+       "qid": "Q182046",
+       "source": "https://www.wikidata.org/wiki/Q182046",
+       "born": [
+        {
+         "time": "+1404-02-14T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1472-04-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "The original Italian is planted first; no Russian witness is taken in this pass."
@@ -4196,15 +6195,47 @@
      "licence": "Public domain text and 1541 printing; scan from the Getty Research Institute via Internet Archive.",
      "attribution": "Leon Battista Alberti, De re aedificatoria (Strasbourg: Jacobus Cammerlander, 1541), Getty copy; words from ECHO, compared with the scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Леон Баттиста Альберти (автор) — год смерти 1472 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1541 (before 1930).",
-      "eu": "Public domain: Leon Battista Alberti (author) died 1472, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Леон Баттиста Альберти (автор) — год смерти 1472 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1541 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Leon Battista Alberti (author) died 1472, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Alberti’s Latin text, transcribed by ECHO from the 1485 Florence edition and compared with the 1541 Strasbourg scan. ECHO regularises orthography; line breaks are joined and scan differences corrected."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Leon Battista Alberti",
+        "ru": "Леон Баттиста Альберти"
+       },
+       "qid": "Q182046",
+       "source": "https://www.wikidata.org/wiki/Q182046",
+       "born": [
+        {
+         "time": "+1404-02-14T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1472-04-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -4237,15 +6268,47 @@
      "licence": "Public domain book; Internet Archive scan. Project Gutenberg License applies to the transcription, whose underlying text is public domain in the USA.",
      "attribution": "Lewis Carroll, Through the Looking-Glass (London: Macmillan and Co., 1872); text from Project Gutenberg, compared with Gettysburg College copy at Internet Archive.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Льюис Кэрролл (автор) — год смерти 1898 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1872 (before 1930).",
-      "eu": "Public domain: Lewis Carroll (author) died 1898, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Льюис Кэрролл (автор) — год смерти 1898 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1872 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Lewis Carroll (author) died 1898, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "The text is by Lewis Carroll. Project Gutenberg does not identify the particular printed edition used for its transcription; it is compared with the 1872 Macmillan scan from Gettysburg College. Line breaks are joined by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Lewis Carroll",
+        "ru": "Льюис Кэрролл"
+       },
+       "qid": "Q38082",
+       "source": "https://www.wikidata.org/wiki/Q38082",
+       "born": [
+        {
+         "time": "+1832-01-27T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1898-01-14T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -4274,15 +6337,47 @@
      "licence": "Public domain book and scan; the Wikisource transcription is available under CC BY-SA, with the underlying work in the public domain.",
      "attribution": "Oscar Wilde, The Picture of Dorian Gray (London: Ward, Lock & Co., 1891), preface; Wikisource transcription of the University of California Libraries scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Оскар Уайльд (автор) — год смерти 1900 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1891 (before 1930).",
-      "eu": "Public domain: Oscar Wilde (author) died 1900, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Оскар Уайльд (автор) — год смерти 1900 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1891 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Oscar Wilde (author) died 1900, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "The text is by Oscar Wilde. The Wikisource page transcription follows the same 1891 Ward, Lock University of California Libraries scan. Line-break hyphenation is joined; no modernization is intended."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Oscar Wilde",
+        "ru": "Оскар Уайльд"
+       },
+       "qid": "Q30875",
+       "source": "https://www.wikidata.org/wiki/Q30875",
+       "born": [
+        {
+         "time": "+1854-10-16T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1900-11-30T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -4310,15 +6405,47 @@
      "licence": "Public domain book; scan and OCR from the Internet Archive.",
      "attribution": "Otto Rank, Der Doppelgänger: Eine psychoanalytische Studie (Internationaler Psychoanalytischer Verlag, 1925); OCR compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Отто Ранк (автор) — год смерти 1939 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1925 (before 1930).",
-      "eu": "Public domain: Otto Rank (author) died 1939, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Отто Ранк (автор) — год смерти 1939 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1925 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Otto Rank (author) died 1939, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Text by Otto Rank, read from the page-indexed OCR of the 1925 scan and compared with its page images. Words broken across lines are joined by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Otto Rank",
+        "ru": "Отто Ранк"
+       },
+       "qid": "Q84172",
+       "source": "https://www.wikidata.org/wiki/Q84172",
+       "born": [
+        {
+         "time": "+1884-04-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1939-10-31T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -4351,15 +6478,47 @@
      "licence": "Public domain book and scan; Wikisource transcription available under CC BY-SA.",
      "attribution": "Philip Sidney, The Defence of Poesie (London: Thomas Creede for William Ponsonby, 1595); transcription by Wikisource contributors, compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Филип Сидни (автор) — год смерти 1586 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1595 (before 1930).",
-      "eu": "Public domain: Philip Sidney (author) died 1586, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Филип Сидни (автор) — год смерти 1586 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1595 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Philip Sidney (author) died 1586, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Sidney’s original text; Wikisource transcription follows the first edition scan from Internet Archive sidneydefenceofpoesie. Long s is normalised to s; transcription markup is removed."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Philip Sidney",
+        "ru": "Филип Сидни"
+       },
+       "qid": "Q315509",
+       "source": "https://www.wikidata.org/wiki/Q315509",
+       "born": [
+        {
+         "time": "+1554-11-30T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1586-10-17T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -4387,15 +6546,47 @@
      "licence": "Public domain book; Internet Archive scan and its page-indexed OCR.",
      "attribution": "Theodor Lipps, Das Wissen von fremden Ichen, in Psychologische Untersuchungen I (Leipzig: Wilhelm Engelmann, 1907); words from the scan OCR, checked against its page image.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Теодор Липпс (автор) — год смерти 1914 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1907 (before 1930).",
-      "eu": "Public domain: Theodor Lipps (author) died 1914, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Теодор Липпс (автор) — год смерти 1914 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1907 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: Theodor Lipps (author) died 1914, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "Text authored and edited by Theodor Lipps. Words are taken from the OCR of the Internet Archive scan of the 1907 printing and checked against its page images; line-break hyphenation is joined by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Theodor Lipps",
+        "ru": "Теодор Липпс"
+       },
+       "qid": "Q61970",
+       "source": "https://www.wikidata.org/wiki/Q61970",
+       "born": [
+        {
+         "time": "+1851-07-28T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1914-10-17T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
@@ -4428,15 +6619,47 @@
      "licence": "Public domain book and Internet Archive scan; Project Gutenberg License applies to the Gutenberg transcription, public domain in the USA.",
      "attribution": "William James, The Principles of Psychology, vol. I (New York: Henry Holt and Company, 1890); transcription by Project Gutenberg, compared with the Internet Archive scan.",
      "rights": {
-      "basis": "public-domain",
-      "russia": "Общественное достояние: Уильям Джеймс (автор) — год смерти 1910 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии.",
-      "usa": "Public domain: this printing was published in 1890 (before 1930).",
-      "eu": "Public domain: William James (author) died 1910, more than 70 years ago (Directive 2006/116/EC art. 1).",
+      "russia": {
+       "basis": "public-domain",
+       "law": "Общественное достояние: Уильям Джеймс (автор) — год смерти 1910 — ГК РФ ст. 1281 (70 лет p.m.a.) с ФЗ № 231-ФЗ от 18.12.2006, ст. 6: 50-летний срок истёк до 1 января 1993 г. (смерть до 1943 г.), произведение в общественном достоянии."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this printing was published in 1890 (before 1930)."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Public domain: William James (author) died 1910, more than 70 years ago (Directive 2006/116/EC art. 1)."
+      },
       "reasoning": "James’s English text is taken from Project Gutenberg’s transcription of the 1918 printing and compared with the Internet Archive scan of the 1890 first edition. Line-end divisions are joined by the kit."
-     }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "William James",
+        "ru": "Уильям Джеймс"
+       },
+       "qid": "Q125249",
+       "source": "https://www.wikidata.org/wiki/Q125249",
+       "born": [
+        {
+         "time": "+1842-01-11T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1910-08-26T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [
+   "absent": [],
+   "unsearched": [
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
