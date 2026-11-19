@@ -120,3 +120,12 @@ owner-mandated kit commands. Please make the kit-only packet-writing route
 and its instructions consistent for new work; retain the evidence and repeat
 review after correcting the packet. Audit: `audit-parker-31-20261119.md` in
 the direction's external availability reports.
+
+Follow-up on the PDF case: `kit.py page --file` does accept a locally rendered
+PNG with a lawful PDF URL and records the image digest, so a direct image URL
+is not technically required. This has only been verified from the command
+implementation and image validation, not through a complete packet/gate. The
+record does not by itself bind the rendered image digest to the source PDF's
+digest and rendering operation. Please clarify or implement that provenance;
+`fetch transcription --file` describes bytes fetched from its URL and must
+not silently label locally extracted text as the original PDF bytes.
