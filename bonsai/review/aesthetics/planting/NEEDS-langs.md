@@ -105,3 +105,14 @@ check the [page](https://archive.org/download/dereaedificatori00albe/page/n289.j
 and determine through the owner route whether this is an intended documented
 normalization or a correction required in the accepted packet. Langs has not
 altered that packet or its acceptance.
+
+## Entire language searched without a translated place
+
+At PR #432 `c32662da89`, `witness-missing` records per-place search results,
+but `witness_problems` unconditionally adds `no translated places` when the
+witness has none (around line 1661). For an already planted work, the langs
+objective permits an actual translation **or an exhaustively recorded search**
+for each language. Please identify or provide the reviewed route for recording
+an entirely searched but unavailable language on an existing work, without
+inventing a translator, textual witness or a false locator. Partial witness
+coverage is a separate case. No present research lead is claimed exhaustive.
