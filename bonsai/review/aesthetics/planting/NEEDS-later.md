@@ -102,3 +102,14 @@ point to the English original rather than editions in those languages. The
 Chinese 1965 Zhang Jin translation is catalogued but its target pages have not
 been obtained. The gate returns `open`; the direction is withholding the
 packet until the owner's required search and locator evidence is met.
+
+`alison-hills.aesthetic-testimony-understanding-and-virtue`, DOI
+10.1111/nous.12344, has an Oxford-hosted version-of-record PDF at
+https://ora.ox.ac.uk/objects/uuid%3A111a83ff-75f2-4e0c-8cb7-46119b5efd71/files/rnk322f032
+and Crossref identifies CC BY 4.0 for that version. The maker and independent
+research have the actual PDF and target printed pages 23, 26 and 30, but the
+line cannot turn a fetched PDF into a source-bound transcription and page
+images; the publisher HTML/XML endpoints returned 403. Please provide a
+versioned, digest-bound route to extract text and render selected PDF pages,
+with the original PDF retained and both readers checking the page. The maker's
+blocked packet documents attempts; translation searches remain incomplete.
