@@ -2430,7 +2430,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // The reader's page is opaque, and on a narrow screen it covers the whole sky: then the sky rests until any of it shows.
   const coverage=()=>{
     const reader=document.querySelector('.corpus-reader'),canvas=shell.querySelector('canvas.tree-sky');let covered=false;
-    if(reader&&reader!==watchedReader){watchedReader=reader;coverWatch.observe(reader,{attributes:true,attributeFilter:['hidden','data-open']});}
+    if(reader&&reader!==watchedReader){watchedReader=reader;coverWatch?.observe(reader,{attributes:true,attributeFilter:['hidden','data-open']});}
     if(host.dataset.corpusReading&&reader&&!reader.hidden&&canvas){
       const page=reader.getBoundingClientRect(),sky=canvas.getBoundingClientRect(),style=getComputedStyle(reader);
       const left=Math.max(sky.left,0),top=Math.max(sky.top,0),right=Math.min(sky.right,innerWidth),bottom=Math.min(sky.bottom,innerHeight);
@@ -2439,7 +2439,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     }
     sky?.setCovered?.(covered);
   };
-  let watchedReader=null;const coverWatch=new MutationObserver(coverage);coverWatch.observe(host,{attributes:true,attributeFilter:['data-corpus-reading']});
+  // A page without MutationObserver (a test's) keeps its sky drawing under the reader.
+  let watchedReader=null;const coverWatch=typeof MutationObserver==='function'?new MutationObserver(coverage):null;coverWatch?.observe(host,{attributes:true,attributeFilter:['data-corpus-reading']});
   coverage();window.addEventListener('resize',coverage);
   // One hint answers a pointer that rests on something, or a keyboard that reaches it: a tool says what it does and its key,
   // a star its kind, when and where, a link its kind and what that kind means. Nothing of it stays on the screen by itself.
@@ -2539,5 +2540,5 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const themeEvent=()=>{if(destroyed)return;inkTheme();setLocaleState();reflect();};window.addEventListener('site-theme',themeEvent);
   mountWorkbench();
   return {root:shell,index,selection:researchSelection,openBench:()=>benchView?.show(),bench:()=>benchView,setTrail,openResearch,renderResearch,renderContents,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
-    destroy(){if(destroyed)return;destroyed=true;coverWatch.disconnect();window.removeEventListener('resize',coverage);window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();standOrigin?.dispose();api.reader?.setSelectionActions?.([]);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);benchView?.dispose();benchButton?.remove();sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
+    destroy(){if(destroyed)return;destroyed=true;coverWatch?.disconnect();window.removeEventListener('resize',coverage);window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();standOrigin?.dispose();api.reader?.setSelectionActions?.([]);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);benchView?.dispose();benchButton?.remove();sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
 }
