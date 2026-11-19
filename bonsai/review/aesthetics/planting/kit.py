@@ -709,7 +709,7 @@ def compare(path,ev,places,original):
         if item not in read:read[item]=ocr(path,ev,every[item])
         return read[item]
     for loc,place in places['places'].items():
-        text=place.get('texts',{}).get(original);old=ev['places'].get(loc,{});entry={key_:old[key_] for key_ in('transcription','dropped','from_scan','scan','whole','images','quotation') if key_ in old}
+        text=place.get('texts',{}).get(original);old=ev['places'].get(loc,{});entry={key_:old[key_] for key_ in('transcription','dropped','from_scan','scan','whole','images','quotation','page_number_corrections') if key_ in old}
         if not text:out[loc]=entry;continue
         fixed=scan_of(ev,old).get('item') if old.get('scan') or old.get('from_scan') else None      # a place stays with its scan; a new one is looked for in each
         got=None
@@ -725,7 +725,12 @@ def compare(path,ev,places,original):
         for d in got['differences']:
             was=judged.get((d['transcription'],d['ocr'],d['leaf']))
             if was:d.update({key_:was[key_] for key_ in('stands','note') if key_ in was})
-        entry.update({'method':'ocr','share':got['share'],'leaves':got['leaves'],'printed':got['printed'],'differences':got['differences']});out[loc]=entry
+        printed=list(got['printed'])
+        for correction in entry.get('page_number_corrections',[]):
+            if correction.get('leaf') in got['leaves']:
+                index=got['leaves'].index(correction['leaf'])
+                if printed[index] in (correction.get('from'),correction.get('to')):printed[index]=correction['to']
+        entry.update({'method':'ocr','share':got['share'],'leaves':got['leaves'],'printed':printed,'differences':got['differences']});out[loc]=entry
     return out
 
 def cmd_compare(args):
@@ -865,6 +870,51 @@ def valid_page_image(raw):
         except (OSError,subprocess.TimeoutExpired):
             return (raw.startswith(b'\x89PNG\r\n\x1a\n') and raw.endswith(b'IEND\xaeB`\x82')) or (raw.startswith(b'\xff\xd8\xff') and raw.endswith(b'\xff\xd9')) or (len(raw)>20 and raw.startswith(b'RIFF') and raw[8:12]==b'WEBP')
     except Exception:return False
+
+def page_number_digest(correction):
+    return hashlib.sha256(json.dumps(correction,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+
+def page_number_problems(path,ev,loc,entry,offline=False):
+    problems=[];accepted=part(path,'accepted.json') or {};reviews=accepted.get('page_number_reviews') or []
+    for correction in entry.get('page_number_corrections') or []:
+        leaf=correction.get('leaf');leaves=entry.get('leaves') or [];printed=entry.get('printed') or []
+        scan=scan_of(ev,entry);offset=scan.get('image_offset');item=scan.get('item')
+        if leaf not in leaves or leaves.index(leaf)>=len(printed) or printed[leaves.index(leaf)]!=correction.get('to'):problems.append(f'{loc}: corrected page number does not match the leaf');continue
+        expected=f'https://archive.org/download/{item}/page/n{leaf+offset}.jpg' if type(leaf) is int and type(offset) is int and item else ''
+        if correction.get('url')!=expected or not re.fullmatch(r'[a-f0-9]{64}',str(correction.get('image_sha256',''))) or correction.get('file')!=f"page-number-{correction.get('image_sha256')}.img" or not correction.get('from') or not correction.get('to') or correction.get('from')==correction.get('to'):problems.append(f'{loc}: page correction needs the exact scan image and both page numbers')
+        if not correction.get('by') or not correction.get('second') or correction.get('by')==correction.get('second') or not correction.get('second_model') or len(str(correction.get('assessment','')).strip())<30:problems.append(f'{loc}: page correction needs a distinct second reader and assessment')
+        if not any(review.get('loc')==loc and review.get('sha256')==page_number_digest(correction) for review in reviews):problems.append(f'{loc}: page correction is not bound to the accepted packet review')
+        if not offline:
+            try:
+                raw=Path(cache(path,correction['file'])).read_bytes()
+                if hashlib.sha256(raw).hexdigest()!=correction.get('image_sha256') or not valid_page_image(raw):problems.append(f'{loc}: page correction image changed or is invalid')
+            except (OSError,KeyError):problems.append(f'{loc}: page correction image is unavailable')
+    return problems
+
+def cmd_page_number_correct(args):
+    """Correct a scan's page-number metadata after two readers inspect the image."""
+    path=packet(args.packet);ev=evidence(path);accepted=part(path,'accepted.json')
+    if not accepted:die('page-number correction requires an accepted packet')
+    if not args.by or not args.second or args.by==args.second or not args.second_model or len(args.assessment.strip())<30:die('record distinct readers and the second reader’s page assessment')
+    if not args.loc or len(set(args.loc))!=len(args.loc):die('choose distinct places')
+    entries=[]
+    for loc in args.loc:
+        entry=(ev.get('places') or {}).get(loc) or die(f'{loc}: no evidence')
+        scan=scan_of(ev,entry);leaves=entry.get('leaves') or [];printed=entry.get('printed') or [];offset=scan.get('image_offset')
+        if args.leaf not in leaves or leaves.index(args.leaf)>=len(printed) or str(printed[leaves.index(args.leaf)])!=args.old:die(f'{loc}: current page number does not match the stated predecessor')
+        if type(offset) is not int or args.url!=f"https://archive.org/download/{scan.get('item')}/page/n{args.leaf+offset}.jpg":die(f'{loc}: URL must identify this exact scan leaf')
+        if any(c.get('leaf')==args.leaf for c in entry.get('page_number_corrections') or []):die(f'{loc}: this leaf already has a page-number correction')
+        entries.append((loc,entry,leaves.index(args.leaf)))
+    if not args.old or not args.new or args.old==args.new:die('give distinct old and observed page numbers')
+    raw=Path(args.file).read_bytes() if args.file else get(args.url)
+    if not valid_page_image(raw):die('the page source did not yield a readable image')
+    digest=hashlib.sha256(raw).hexdigest();filename=f'page-number-{digest}.img';Path(cache(path,filename)).write_bytes(raw)
+    for loc,entry,index in entries:
+        correction={'leaf':args.leaf,'from':args.old,'to':args.new,'url':args.url,'image_sha256':digest,'file':filename,'by':args.by,'second':args.second,'second_model':args.second_model,'assessment':args.assessment,'date':today()}
+        entry.setdefault('page_number_corrections',[]).append(correction);entry['printed'][index]=args.new
+        accepted.setdefault('page_number_reviews',[]).append({'loc':loc,'sha256':page_number_digest(correction)})
+    save(os.path.join(path,'evidence.json'),ev);save(os.path.join(path,'accepted.json'),accepted)
+    print(f"{len(entries)} page-number corrections recorded; original acceptance and source predecessor retained")
 
 def cmd_page(args):
     """Keep a page from a lawful non-Archive source without modifying its bytes."""
@@ -1029,6 +1079,7 @@ def gate(path,second=False,offline=False):
     if not locs:add('places.json holds no place')
     corrections=places.get('corrections') or []
     for loc,place in locs.items():
+        problems.extend(page_number_problems(path,ev,loc,(ev.get('places') or {}).get(loc) or {},offline))
         at=f'place {loc}';text=(place.get('texts') or {}).get(original)
         if loc!=loc.strip() or not loc or (not re.search(r'\S p\d+(-\d+)?[a-z]?$',loc) and not valid_address(place.get('address'))):add(f'{at}: give a division and printed page, or a structured source address')
         if place.get('address') is not None and not valid_address(place['address']):add(f'{at}: structured address needs kind, value and lawful URL')
@@ -1089,7 +1140,7 @@ def gate(path,second=False,offline=False):
                 if problem:add(f'{at}: {problem}')
                 strip=lambda entry:[(d['transcription'],d['ocr'],d['leaf']) for d in entry.get('differences',[])]
                 if now.get('method')=='ocr':
-                    if mine.get('method')!='ocr' or strip(mine)!=strip(now) or mine.get('leaves')!=now.get('leaves') or mine.get('scan',now.get('scan'))!=now.get('scan'):add(f'{at}: the comparison on file is not the comparison of this text (run kit.py compare)');continue
+                    if mine.get('method')!='ocr' or strip(mine)!=strip(now) or mine.get('leaves')!=now.get('leaves') or mine.get('scan',now.get('scan'))!=now.get('scan') or (mine.get('page_number_corrections') and mine.get('printed')!=now.get('printed')):add(f'{at}: the comparison on file is not the comparison of this text (run kit.py compare)');continue
                     for n,d in enumerate(mine['differences'],1):
                         if d.get('stands') not in('transcription','print'):add(f'{at}: difference {n} («{d["transcription"]}» | «{d["ocr"]}») is not judged on the page image')
                         elif d['stands']=='print':add(f'{at}: difference {n} says the print stands: change the text with kit.py correct, then compare again')
@@ -1329,7 +1380,8 @@ def cmd_accept(args):
     first=next((source['file'] for source in ev['sources'] if source['role']=='transcription'),None)
     ev['sources']=[source for source in ev['sources'] if source['role']!='transcription' or source['file'] in used or (None in used and source['file']==first)];save(os.path.join(path,'evidence.json'),ev)   # a place that names no transcription was cut from the first
     basis=args.basis or f"Made by {reading['reader']['id']}; every conception and link read a second time by {review['reader']['id']}, who confirms each; the gate recomputed the comparison with the scan."
-    save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[]))})
+    prior=part(path,'accepted.json') or {}
+    save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[])),**({'page_number_reviews':prior['page_number_reviews']} if prior.get('page_number_reviews') else {})})
     print(f'accepted: {work_of(path)}')
 
 def cmd_status(args):
@@ -1638,6 +1690,30 @@ def cmd_witness_transcribe_page(args):
     (data.get('missing_places') or {}).pop(args.loc,None)
     data['review']={};save(witness_file(path,args.language),data);print(run)
 
+def witness_pages(place):
+    return [{'page':place.get('page'),'url':place.get('url'),'image_sha256':place.get('image_sha256')},*(place.get('extra_pages') or [])]
+
+def cmd_witness_add_page(args):
+    path=packet(args.packet);data=witness_data(path,args.language)
+    place=(data.get('places') or {}).get(args.loc) or die('no such place in this witness')
+    image=next((item for item in data.get('images',[]) if item.get('file')==args.image and item.get('by')=='maker'),None)
+    if not image:die('fetch the additional page image as maker first')
+    try:raw=Path(witness_cache(path,args.language,image['file'])).read_bytes()
+    except (OSError,KeyError):die('the additional page image is missing')
+    if hashlib.sha256(raw).hexdigest()!=image.get('sha256') or not valid_page_image(raw):die('the additional page image changed or is invalid')
+    if not args.page.strip():die('give the printed page of the additional image')
+    if not args.span.strip() or place.get('text','').count(args.span)!=1:die('the words on the added page must occur exactly once in the place')
+    first=args.first_span or place.get('page_span')
+    if not first or place.get('text','').count(first)!=1:die('give the unique words on the first page with --first-span')
+    if image['sha256']==place.get('image_sha256'):die('the primary image is already recorded')
+    page={'page':args.page,'url':image['url'],'image_sha256':image['sha256'],'span':args.span}
+    place['page_span']=first;extra=place.setdefault('extra_pages',[])
+    index=next((i for i,item in enumerate(extra) if item.get('url')==image['url']),None)
+    if index is None:extra.append(page)
+    else:extra[index]=page
+    data['review']={};save(witness_file(path,args.language),data)
+    print(f'{args.loc}: additional page recorded; every page requires independent review')
+
 def cmd_witness_correct(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     place=(data.get('places') or {}).get(args.loc) or die('no such place in this witness')
@@ -1645,14 +1721,17 @@ def cmd_witness_correct(args):
     if not old or not args.to or old==args.to:die('the correction must change a nonempty run into a nonempty run; include context for a deletion')
     if place.get('text','').count(old)!=1:die('the original run must occur exactly once in the place')
     if len(args.reason.strip())<30:die('explain the page reading in a full sentence')
-    image=next((item for item in data.get('images',[]) if item.get('by')=='maker' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
+    pages=witness_pages(place)
+    selected=pages[0] if not getattr(args,'image',None) else next((page for page in pages if any(item.get('file')==args.image and item.get('by')=='maker' and item.get('sha256')==page.get('image_sha256') and item.get('url')==page.get('url') for item in data.get('images',[]))),None)
+    if not selected:die('the correction image is not bound to this place')
+    image=next((item for item in data.get('images',[]) if item.get('by')=='maker' and item.get('sha256')==selected.get('image_sha256') and item.get('url')==selected.get('url')),None)
     if not image:die('the maker page image for this place is required')
     try:raw=Path(witness_cache(path,args.language,image['file'])).read_bytes()
     except (OSError,KeyError):die('the maker page image is missing')
-    if hashlib.sha256(raw).hexdigest()!=place['image_sha256']:die('the maker page image has changed')
+    if hashlib.sha256(raw).hexdigest()!=selected['image_sha256']:die('the maker page image has changed')
     offset=place['text'].index(old)
     place['text']=place['text'][:offset]+args.to+place['text'][offset+len(old):]
-    place.setdefault('corrections',[]).append({'from':old,'to':args.to,'offset':offset,'reason':args.reason,'url':place['url'],'page':place['page'],'image_sha256':place['image_sha256']})
+    place.setdefault('corrections',[]).append({'from':old,'to':args.to,'offset':offset,'reason':args.reason,'url':selected['url'],'page':selected['page'],'image_sha256':selected['image_sha256']})
     data['review']={};save(witness_file(path,args.language),data)
     print(f'{args.loc}: correction recorded; compare on the page and obtain a new second reading')
 
@@ -1660,10 +1739,11 @@ def cmd_witness_review(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     if args.loc not in data['places']:die('no such place in this witness')
     place=data['places'][args.loc]
-    if not any(item['sha256']==place['image_sha256'] and item['by']=='second' and item.get('url')==place.get('url') for item in data['images']):die('fetch the same page image from the same source as second reader first')
+    pages=witness_pages(place)
+    if any(not any(item['sha256']==page.get('image_sha256') and item['by']=='second' and item.get('url')==page.get('url') for item in data['images']) for page in pages):die('fetch every same page image from the same source as second reader first')
     review=data.setdefault('review',{})
     if review.get('reader') and review['reader']!=args.reader:die('a single second reader reviews this witness')
-    review['reader']=args.reader;review['model']=args.model;review['date']=today();review.setdefault('places',{})[args.loc]={'reads':'as the packet','alignment':args.alignment,'image_sha256':place['image_sha256']}
+    review['reader']=args.reader;review['model']=args.model;review['date']=today();review.setdefault('places',{})[args.loc]={'reads':'as the packet','alignment':args.alignment,'image_sha256':place['image_sha256'],**({'pages':[{k:p.get(k) for k in ('page','url','image_sha256')} for p in pages]} if len(pages)>1 else {})}
     save(witness_file(path,args.language),data);print(f'{args.loc}: second reader recorded')
 
 def anonymous_digest(proof):
@@ -1801,12 +1881,21 @@ def witness_problems(path,lang,data,second=False,offline=False):
         elif not source or not lawful_url(source.get('url','')):add(f'{loc}: no lawful source');continue
         if not place.get('page') or not lawful_url(place.get('url','')):add(f'{loc}: page or exact address and lawful URL are required')
         if place.get('address') is not None and (not valid_address(place['address']) or place['address'].get('url')!=place.get('url')):add(f'{loc}: structured address must name the same lawful source')
-        image=next((item for item in data.get('images') or [] if item.get('by')=='maker' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
-        if not image:add(f'{loc}: maker page image is missing')
+        extra=place.get('extra_pages') or []
+        if not isinstance(extra,list) or any(not isinstance(page,dict) for page in extra):add(f'{loc}: invalid additional pages');extra=[]
+        pages=[{'page':place.get('page'),'url':place.get('url'),'image_sha256':place.get('image_sha256')},*extra]
+        page_range=re.search(r'\b(\d+)\s*[-–—]\s*(\d+)\b',str(place.get('page') or ''))
+        if page_range and int(page_range.group(2))>=int(page_range.group(1)) and len(pages)<int(page_range.group(2))-int(page_range.group(1))+1:add(f'{loc}: a page range needs an image for every printed page')
+        if len({p.get('image_sha256') for p in pages})!=len(pages):add(f'{loc}: duplicate page image')
+        for page in extra:
+            if not page.get('page') or not lawful_url(page.get('url','')) or not page.get('span') or text.count(page['span'])!=1:add(f'{loc}: additional page needs its address and unique words from that page')
+        if extra and (not place.get('page_span') or re.sub(r'\s+','',str(place.get('page_span') or '')+''.join(str(page.get('span') or '') for page in extra))!=re.sub(r'\s+','',text)):add(f'{loc}: page spans must cover the complete place in order')
+        images=[next((item for item in data.get('images') or [] if item.get('by')=='maker' and item.get('sha256')==page.get('image_sha256') and item.get('url')==page.get('url')),None) for page in pages]
+        if any(image is None for image in images):add(f'{loc}: maker page image is missing')
         back=text
         for correction in reversed(place.get('corrections') or []):
             old,new=correction.get('from'),correction.get('to')
-            if not isinstance(old,str) or not old or not isinstance(new,str) or not new or old==new or len(str(correction.get('reason','')))<30 or correction.get('url')!=place.get('url') or correction.get('page')!=place.get('page') or correction.get('image_sha256')!=place.get('image_sha256'):
+            if not isinstance(old,str) or not old or not isinstance(new,str) or not new or old==new or len(str(correction.get('reason','')))<30 or not any(all(correction.get(k)==page.get(k) for k in ('url','page','image_sha256')) for page in pages):
                 add(f'{loc}: correction needs both readings, a reason and the same page image');continue
             offset=correction.get('offset')
             if type(offset) is not int or offset<0 or back[offset:offset+len(new)]!=new:add(f'{loc}: correction offset no longer identifies the corrected run');continue
@@ -1816,12 +1905,12 @@ def witness_problems(path,lang,data,second=False,offline=False):
             if not isinstance(original_text,str) or not original_text.strip():add(f'{loc}: human page transcription needs the original page reading')
             elif back!=(modern_russian(original_text,old_source=old_russian_source(original_text)) if lang=='ru' else original_text):add(f'{loc}: text differs from the recorded page transcription')
         if not offline:
-            for record in (source,image):
+            for record in [source,*images]:
                 if not record:continue
                 try:
                     raw=Path(witness_cache(path,lang,record['file'])).read_bytes()
                     if hashlib.sha256(raw).hexdigest()!=record.get('sha256'):add(f"{loc}: {record['file']} changed")
-                    elif record is image and not valid_page_image(raw):add(f'{loc}: maker page image is invalid')
+                    elif record in images and not valid_page_image(raw):add(f'{loc}: maker page image is invalid')
                     elif record is source:
                         problem=in_transcription(back,modern_russian(plain(raw,record['file'])) if lang=='ru' else plain(raw,record['file']))
                         if problem:add(f'{loc}: {problem}')
@@ -1834,13 +1923,15 @@ def witness_problems(path,lang,data,second=False,offline=False):
             review=data.get('review') or {};answer=(review.get('places') or {}).get(loc) or {}
             if not all(review.get(field) for field in ('reader','model','date')) or review.get('reader')==witness.get('maker'):add(f'{loc}: a different second reader with model and date is required')
             if answer.get('reads')!='as the packet' or answer.get('image_sha256')!=place.get('image_sha256') or len(str(answer.get('alignment','')))<20:add(f'{loc}: second reader must verify page and alignment')
-            second_image=next((item for item in data.get('images') or [] if item.get('by')=='second' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
-            if not second_image:add(f'{loc}: second reader page image is missing')
-            elif not offline:
-                try:
-                    second_raw=Path(witness_cache(path,lang,second_image['file'])).read_bytes()
-                    if hashlib.sha256(second_raw).hexdigest()!=place.get('image_sha256') or not valid_page_image(second_raw):add(f'{loc}: second reader image changed or is invalid')
-                except (OSError,KeyError):add(f'{loc}: second reader image is missing locally')
+            if len(pages)>1 and answer.get('pages')!=[{k:p.get(k) for k in ('page','url','image_sha256')} for p in pages]:add(f'{loc}: second reader must review every page of this place')
+            for page in pages:
+                second_image=next((item for item in data.get('images') or [] if item.get('by')=='second' and item.get('sha256')==page.get('image_sha256') and item.get('url')==page.get('url')),None)
+                if not second_image:add(f'{loc}: second reader page image is missing')
+                elif not offline:
+                    try:
+                        second_raw=Path(witness_cache(path,lang,second_image['file'])).read_bytes()
+                        if hashlib.sha256(second_raw).hexdigest()!=page.get('image_sha256') or not valid_page_image(second_raw):add(f'{loc}: second reader image changed or is invalid')
+                    except (OSError,KeyError):add(f'{loc}: second reader image is missing locally')
     return problems
 
 def cmd_witness_gate(args):
@@ -1885,8 +1976,10 @@ def main():
     sub('witness-cut',cmd_witness_cut,P,(('language',),{}),(('source',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
     sub('witness-transcribe-page',cmd_witness_transcribe_page,P,(('language',),{}),(('--text',),{'required':True}),(('--reason',),{'required':True}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
     sub('witness-cut-candidate',cmd_witness_cut_candidate,P,(('language',),{}),(('source',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}));
-    sub('witness-correct',cmd_witness_correct,P,(('language',),{}),(('loc',),{}),(('from',),{}),(('to',),{}),(('reason',),{}));
+    sub('witness-add-page',cmd_witness_add_page,P,(('language',),{}),(('loc',),{}),(('--page',),{'required':True}),(('--image',),{'required':True}),(('--span',),{'required':True}),(('--first-span',),{}));
+    sub('witness-correct',cmd_witness_correct,P,(('language',),{}),(('loc',),{}),(('from',),{}),(('to',),{}),(('reason',),{}),(('--image',),{}));
     sub('witness-review',cmd_witness_review,P,(('language',),{}),(('loc',),{}),(('--reader',),{'required':True}),(('--alignment',),{'required':True}),(('--model',),{'default':'gpt-6.1-terra'}))
+    sub('page-number-correct',cmd_page_number_correct,P,(('--loc',),{'action':'append','required':True}),(('--leaf',),{'type':int,'required':True}),(('--old',),{'required':True}),(('--new',),{'required':True}),(('--url',),{'required':True}),(('--by',),{'required':True}),(('--second',),{'required':True}),(('--second-model',),{'required':True}),(('--assessment',),{'required':True}),(('--file',),{}))
     sub('witness-gate',cmd_witness_gate,P,(('language',),{}),(('--second',),{'action':'store_true'}),(('--offline',),{'action':'store_true'}),(('--accept',),{'action':'store_true'}))
     sub('queue',cmd_queue);sub('open',cmd_open,(('work',),{}));sub('task',cmd_task,P);sub('status',cmd_status);sub('ready',cmd_ready)
     sub('fetch',cmd_fetch,P,(('role',),{'choices':['transcription','other']}),(('url',),{}),(('--name',),{}),(('--file',),{'help':'take the bytes from a local file already fetched from URL'}))

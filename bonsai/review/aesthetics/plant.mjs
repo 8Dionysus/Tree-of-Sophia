@@ -157,7 +157,12 @@ for(const name of packets){
       if(place.texts?.[lang])fail(`packet ${name}: translation ${lang} duplicates place ${loc}`);
       place.texts[lang]=translated.text;place.links??={};place.links[lang]=translated.url;
       if(translated.address){place.addresses??={};place.addresses[lang]=translated.address;}
-      place.refs??=[];place.refs.push([lang,`${record.witness.edition}, ${translated.page}`]);
+      const extraPages=translated.extra_pages??[];
+      place.refs??=[];place.refs.push([lang,`${record.witness.edition}, ${[translated.page,...extraPages.map(page=>page.page)].join(', ')}`]);
+      if(extraPages.length){
+        const provenance=translationPackets[name][lang];provenance.page_sources??={};
+        provenance.page_sources[loc]=[{page:translated.page,url:translated.url,image_sha256:translated.image_sha256},...extraPages.map(({page,url,image_sha256})=>({page,url,image_sha256}))];
+      }
       if(translated.justification){place.quotation_justification??={};place.quotation_justification[lang]=translated.justification;}
     }
   }

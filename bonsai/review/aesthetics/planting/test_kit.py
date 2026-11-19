@@ -197,6 +197,21 @@ class TranslationWitnessTest(unittest.TestCase):
                   'review':{'reader':'reader','model':'gpt-6.1-terra','date':'2026-11-12','places':{'p':{'reads':'as the packet','image_sha256':digest,'alignment':'This sentence matches the complete original.'}}}}
             with patch.object(kit,'CACHE',str(cache)), patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                image2=image+b'additional page';digest2=hashlib.sha256(image2).hexdigest()
+                (folder/'page2.jpg').write_bytes(image2);(folder/'second2.jpg').write_bytes(image2)
+                data['places']['p']['page']='pp. 1–2'
+                self.assertTrue(any('page range' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['places']['p']['extra_pages']=[{'page':'p. 2','url':'https://example.org/page2','image_sha256':digest2,'span':'sentence.'}]
+                data['places']['p']['page_span']='A whole'
+                data['images'].extend([{'file':'page2.jpg','url':'https://example.org/page2','sha256':digest2,'by':'maker'},{'file':'second2.jpg','url':'https://example.org/page2','sha256':digest2,'by':'second'}])
+                self.assertTrue(any('review every page' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['review']['places']['p']['pages']=[{'page':'pp. 1–2','url':'https://example.org/page','image_sha256':digest},{'page':'p. 2','url':'https://example.org/page2','image_sha256':digest2}]
+                self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                data['places']['p']['page_span']='A'
+                self.assertTrue(any('spans must cover' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['places']['p']['page_span']='A whole'
+                data['images'].pop();self.assertTrue(any('second reader page image' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['images'].pop();data['places']['p'].pop('extra_pages');data['places']['p'].pop('page_span');data['places']['p']['page']='1';data['review']['places']['p'].pop('pages')
                 place=data['places']['p'];place.pop('source')
                 place['transcription']={'kind':'human-page','reason':'The page image has no usable machine transcription of this passage.','original_text':'A whole sentence.'}
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
@@ -480,7 +495,7 @@ class ExtensionPlantingTest(unittest.TestCase):
             loc=next(iter(base['places']))
             rights={country:{'basis':'public-domain','law':'Public domain according to the applicable law.'} for country in kit.JURISDICTIONS}
             translated={'language':'ru','witness':{'edition':'Test edition','attribution':'Test author','url':'https://example.org','rights':rights},
-                        'places':{loc:{'text':'Русское предложение.','url':'https://example.org/page','page':'1','corrections':[{'from':'Прежнее','to':'Русское','reason':'The source page reads the corrected form.'}]}}}
+                        'places':{loc:{'text':'Русское предложение.','url':'https://example.org/page','page':'1','image_sha256':'a'*64,'extra_pages':[{'page':'2','url':'https://example.org/page2','image_sha256':'b'*64,'span':'предложение.'}],'corrections':[{'from':'Прежнее','to':'Русское','reason':'The source page reads the corrected form.'}]}}}
             raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'ru.json').write_bytes(raw)
             (witness_dir/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
             (witness_dir/'ru.json').write_bytes(raw+b' ')
@@ -492,6 +507,8 @@ class ExtensionPlantingTest(unittest.TestCase):
             projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
             self.assertEqual(projected['places'][work][loc]['texts']['ru'],'Русское предложение.')
             self.assertEqual(projected['provenance']['translation_packets'][work]['ru']['corrections'][0]['loc'],loc)
+            self.assertEqual(projected['provenance']['translation_packets'][work]['ru']['page_sources'][loc][1]['image_sha256'],'b'*64)
+            self.assertTrue(any('1, 2' in ref[1] for ref in projected['places'][work][loc]['refs'] if ref[0]=='ru'))
             self.assertFalse(any(item['language']=='ru' for item in projected['works'][work].get('unsearched',[])))
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
             # An accepted translation cannot keep the packet-owned original alive.
@@ -607,6 +624,33 @@ class LivingAuthorChronologyTest(unittest.TestCase):
             self.assertIn('approximately',life['dating']['source_wording']['text'])
 
 class TranslationCorrectionTest(unittest.TestCase):
+    def test_added_page_binds_words_and_invalidates_review(self):
+        import argparse, base64, hashlib, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
+            folder=Path(tmp)/'cache/work/witnesses/en';folder.mkdir(parents=True)
+            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')+b'page two'
+            (folder/'page2.jpg').write_bytes(raw);digest=hashlib.sha256(raw).hexdigest()
+            data={'language':'en','images':[{'file':'page2.jpg','url':'https://example.org/page2','by':'maker','sha256':digest}],
+                  'places':{'p':{'text':'The sentence continues here.','page':'37','url':'https://example.org/page1','image_sha256':'a'*64}},'review':{'reader':'old'}}
+            file=path/'witnesses/en.json';file.write_text(json.dumps(data))
+            args=argparse.Namespace(packet=str(path),language='en',loc='p',page='38',image='page2.jpg',span='continues here.',first_span='The sentence')
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_witness_add_page(args)
+            result=json.loads(file.read_text());self.assertEqual(result['places']['p']['extra_pages'][0]['image_sha256'],digest)
+            self.assertEqual(result['review'],{})
+            result['images'].append({'file':'second1.jpg','url':'https://example.org/page1','by':'second','sha256':'a'*64})
+            file.write_text(json.dumps(result))
+            review=argparse.Namespace(packet=str(path),language='en',loc='p',reader='reader',model='model',alignment='Both pages match the original place.')
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                with self.assertRaises(SystemExit):kit.cmd_witness_review(review)
+                result['images'].append({'file':'second2.jpg','url':'https://example.org/page2','by':'second','sha256':digest});file.write_text(json.dumps(result))
+                kit.cmd_witness_review(review)
+            self.assertEqual(len(json.loads(file.read_text())['review']['places']['p']['pages']),2)
+            correction=argparse.Namespace(packet=str(path),language='en',loc='p',to='there.',reason='The second page reads there rather than here.',image='page2.jpg',**{'from':'here.'})
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_witness_correct(correction)
+            changed=json.loads(file.read_text());self.assertEqual(changed['places']['p']['corrections'][0]['page'],'38');self.assertEqual(changed['review'],{})
+
     def test_page_transcription_records_image_and_invalidates_review(self):
         import argparse, base64, hashlib, json, tempfile
         from pathlib import Path
@@ -646,6 +690,28 @@ class TranslationCorrectionTest(unittest.TestCase):
             self.assertEqual(result['places']['p']['corrections'][0]['offset'],len('A sentence'))
             self.assertEqual(result['places']['p']['corrections'][0]['image_sha256'],digest)
             self.assertEqual(result['review'],{})
+
+class AcceptedPageNumberTest(unittest.TestCase):
+    def test_corrected_number_keeps_predecessor_and_review(self):
+        import argparse, base64, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir();scan={'item':'book','ocr':True,'image_offset':0}
+            ev={'scan':scan,'scans':{'book':scan},'places':{'loc':{'scan':'book','method':'ocr','leaves':[218],'printed':['183'],'differences':[]}}}
+            (path/'evidence.json').write_text(json.dumps(ev));(path/'accepted.json').write_text(json.dumps({'by':'original','basis':'original acceptance'}))
+            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+            image=Path(tmp)/'page.png';image.write_bytes(raw)
+            args=argparse.Namespace(packet=str(path),loc=['loc'],leaf=218,old='183',new='184',url='https://archive.org/download/book/page/n218.jpg',by='maker',second='reader',second_model='model',assessment='Both definitions and printed page 184 are visible on this page.',file=str(image))
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                kit.cmd_page_number_correct(args);ev=json.loads((path/'evidence.json').read_text());accepted=json.loads((path/'accepted.json').read_text());entry=ev['places']['loc']
+                self.assertEqual(entry['printed'],['184']);self.assertEqual(entry['page_number_corrections'][0]['from'],'183');self.assertEqual(accepted['basis'],'original acceptance')
+                self.assertEqual(kit.page_number_problems(str(path),ev,'loc',entry),[])
+                places={'places':{'loc':{'texts':{'en':'A whole sentence.'}}}}
+                found={'share':1,'leaves':[218],'printed':['183'],'differences':[]}
+                with patch.object(kit,'ocr',return_value={'available':True}),patch.object(kit,'against_ocr',return_value=found):
+                    fresh=kit.compare(str(path),ev,places,'en');self.assertEqual(fresh['loc']['printed'],['184'])
+                accepted['page_number_reviews']=[];(path/'accepted.json').write_text(json.dumps(accepted))
+                self.assertTrue(any('accepted packet review' in p for p in kit.page_number_problems(str(path),ev,'loc',entry)))
 
 class StructuredAddressTest(unittest.TestCase):
     def test_section_identifies_a_lawful_unpaginated_source(self):

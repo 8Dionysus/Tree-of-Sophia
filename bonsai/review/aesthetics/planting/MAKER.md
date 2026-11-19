@@ -267,6 +267,24 @@ by SHA-256. Changes require a new independent reading and acceptance. Local
 source files and images stay in the kit cache outside Git. A partial witness
 leaves the other places without a translation.
 
+For a place that runs across printed pages, fetch each additional page as
+maker and bind its unique words to the place. Open every image and read the
+complete passage; the second reader independently fetches and opens the same
+images before recording one review of the whole place:
+
+```
+K witness-image . en https://example.org/page38 --name page38.jpg
+K witness-add-page . en 'I p39a' --page 'p. 38' --image page38.jpg --first-span 'words on the first page' --span 'words on the second page'
+K witness-image . en https://example.org/page38 --name second38.jpg --by second
+K witness-review . en 'I p39a' --reader another-reader --alignment 'Both pages read against the original place.'
+```
+
+The spans cover the whole place in order; each records the words read on that
+page. The review binds the URL, printed page and digest of every image. A page
+range needs an image for every page. For a correction on an additional page, pass
+`--image page38.jpg` to `witness-correct`; update that page's span if needed.
+The citation and packet provenance preserve the additional page references.
+
 When no usable transcription contains the passage, open and read the maker's
 page image, then record the actual words as a human page transcription:
 
@@ -286,6 +304,20 @@ use `K import . review FILE`. `K import . blocked FILE` records a block and
 `K unblock .` clears it for another attempt. Import does not validate or
 accept the packet. The gate still checks the source files, page evidence and
 reading. Accepted packets cannot be replaced by these commands.
+
+For an accepted packet whose Archive page-number metadata disagrees with the
+visible printed page, the line owner and a different reader open that exact
+leaf. The owner can record the two observations without replacing acceptance:
+
+```
+K page-number-correct . --loc 'III affects2 p184' --loc 'III affects3 p184' --leaf 218 --old 183 --new 184 --url 'https://archive.org/download/benedictidespin01spingoog/page/n218.jpg' --by maker-id --second second-id --second-model model --assessment 'What the second reader actually saw on this image.'
+```
+
+The source page image is kept in the local cache; its URL and digest, the
+previous number, both readers and the assessment are recorded in evidence.
+The original acceptance stays in place and binds the correction review. A new
+comparison retains the correction only while its original leaf and recorded
+predecessor still match.
 
 ## Continue an accepted reading
 
