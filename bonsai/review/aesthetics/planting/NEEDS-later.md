@@ -60,3 +60,15 @@ Please provide a maker route to complete legacy-packet rights and witnesses
 before second-reader acceptance; `drive.py line --retake` otherwise advances
 an already open gate directly to the second reader. Full search evidence is
 in the later availability reports; no absence should be inferred.
+
+## Licensed work with a coauthor lacking Wikidata
+
+`winfried-menninghaus.towards-a-psychological-construct-of-being-moved`, DOI
+10.1371/journal.pone.0128451, is a publisher version under CC BY 4.0. The
+maker documented that Milena Kuehnast is named by both PLOS and PubMed but no
+matching Wikidata person was found; `kit.py person` requires a QID or integer
+`--died`, while the gate asks for every coauthor. Please support a
+source-backed named participant with an explicitly unknown death date for a
+licensed or short-quotation witness. Do not infer death or reuse a wrong QID.
+The maker's `blocked.json` preserves the exact attempted sources; other
+language searches and independent review remain outstanding.
