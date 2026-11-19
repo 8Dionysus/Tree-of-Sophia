@@ -1,7 +1,7 @@
 //! Exact three-Original reads for maintained domain kernels. Custody remains
 //! with the cold owner; authorization remains with the live Inspect owner.
 use crate::controlled_query_adapter::compiler_query_error;
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode};
 use crate::{InspectBudget, InspectCurrentAuthority};
 use tos_compiler::{
     ControlledKnowledgeModel, ControlledOriginalCollection, ControlledOriginalReceipt,
@@ -9,15 +9,15 @@ use tos_compiler::{
 };
 use tos_foundation::JsonValue;
 
-fn budget() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::BudgetExceeded,
+fn budget() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::BudgetExceeded,
         message: "controlled Original read budget exceeded",
     }
 }
-fn corrupt() -> SearchV2Error {
-    SearchV2Error {
-        code: SearchV2ErrorCode::CorruptSelectedCarrier,
+fn corrupt() -> SearchError {
+    SearchError {
+        code: SearchErrorCode::CorruptSelectedCarrier,
         message: "controlled Original namespace differs",
     }
 }
@@ -45,7 +45,7 @@ pub(crate) fn read_original<
     caps: InspectBudget,
     charges: &mut OriginalReadCharges,
     heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
-) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
+) -> Result<Option<(i64, JsonValue)>, SearchError> {
     read_original_selected(
         model, authority, collection, None, after, caps, charges, heap,
     )
@@ -66,7 +66,7 @@ pub(crate) fn read_corpus_selected_original<
     caps: InspectBudget,
     charges: &mut OriginalReadCharges,
     heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
-) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
+) -> Result<Option<(i64, JsonValue)>, SearchError> {
     read_original_selected(
         model,
         authority,
@@ -94,7 +94,7 @@ fn read_original_selected<
     caps: InspectBudget,
     charges: &mut OriginalReadCharges,
     heap: &mut ControlledQueryHeap<'model, 'state, 'budget>,
-) -> Result<Option<(i64, JsonValue)>, SearchV2Error> {
+) -> Result<Option<(i64, JsonValue)>, SearchError> {
     authority.check_selected()?;
     if charges.rows >= caps.max_rows {
         return Err(budget());

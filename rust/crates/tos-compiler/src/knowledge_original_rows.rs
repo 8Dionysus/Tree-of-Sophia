@@ -7,7 +7,7 @@ pub(crate) const MAX_ROW_BYTES: usize = 8 * 1024 * 1024;
 pub(crate) const MAX_TOTAL_BYTES: u64 = 256 * 1024 * 1024;
 pub(crate) const MAX_COLD_WORK: u64 = 320 * 1024 * 1024;
 pub(crate) fn stage_work_limit(
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<u64> {
     state.map_or(Ok(MAX_COLD_WORK), |state| state.remaining_work_bytes())
 }

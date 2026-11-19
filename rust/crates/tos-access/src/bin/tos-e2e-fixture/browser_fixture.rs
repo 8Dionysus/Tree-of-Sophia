@@ -146,8 +146,7 @@ impl BrowserFixtureExecutor {
     }
     fn search_capabilities(&self) -> Value {
         json!({"schema":"tos_knowledge_search_capabilities_v1","source_revision":REV,"writes_to_tree":false,
-            "modes":{"compressed":{"available":true,"schema":"tos_knowledge_search_compressed_v3","source_revision":REV},
-                "indexed":{"available":false,"schema":"tos_knowledge_search_indexed_v2","source_revision":REV}}})
+            "modes":{"compressed":{"available":true,"schema":"tos_knowledge_search_compressed_v3","source_revision":REV}}})
     }
     fn exploration_capabilities(&self) -> Value {
         json!({"schema":"tos_exploration_capabilities_v1","available":true,"writes_to_tree":false,"source_revision":REV,

@@ -25,6 +25,13 @@ export function loadAntiquityCollection(){
 const RENDERINGS=import.meta.glob('../../../../bonsai/*/renderings.json',{import:'default'});
 const renderingsOf=profile=>RENDERINGS[`../../../../bonsai/${profile}/renderings.json`]?.()??Promise.resolve(null);
 const LOADERS=Object.freeze({
+  aesthetics:()=>Promise.all([
+    import('../../../../bonsai/aesthetics/field.json'),
+    import('../../../../bonsai/aesthetics/library.json'),
+    import('../../../../bonsai/aesthetics/chronology.json'),
+    import('../../../../bonsai/aesthetics/identities.json'),
+    import('../../../../bonsai/aesthetics/fragments.json'),
+  ]).then(([field,library,chronology,identities,fragments])=>({field:json(field),library:json(library),chronology:json(chronology),identities:json(identities),fragments:json(fragments)})),
   antiquity:()=>Promise.all([
     loadAntiquityCollection().then(collection=>({default:collection})),
     import('../../../../bonsai/antiquity/first-branches.json'),
@@ -53,7 +60,6 @@ const LOADERS=Object.freeze({
   ]).then(([chronology,places,identities,basemap,core,renderings])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core,renderings})),
 });
 const BONSAI={
-  // Aesthetics is planted before its stand opens: its manifest is here, and its modules load once the stand reads them.
   aesthetics:Object.freeze({manifest:aestheticsManifest}),
   antiquity:Object.freeze({manifest:antiquityManifest}),
   zarathustra:Object.freeze({manifest:zarathustraManifest}),
@@ -100,3 +106,9 @@ export function lensPositions(profile,lensId){
   const declared=BONSAI[profile]?.manifest?.lenses?.[lensId];
   return declared??{positions:'group'};
 }
+
+// The public corpus publishes its works under a profile per stand, and a stand's profile appears in the published
+// manifest only with the next corpus publication. Until `profiles.aesthetics` is published (it is declared in
+// access/public-corpus/selection.v1.json), Aesthetics reads the three corpus works its alignment names through
+// Antiquity's selection, which holds them. Remove this mapping when the manifest carries the profile.
+export const corpusProfile=profile=>profile==='aesthetics'?'antiquity':profile;

@@ -19,7 +19,7 @@ pub struct CorpusOriginalSourceLimits {
 }
 enum CaptureReader<'a> {
     Software(&'a SoftwareCaptureReader),
-    Public(&'a crate::d1_public_capture::PublicCapture),
+    Public(&'a crate::public_capture::PublicCapture),
 }
 struct Source<'a> {
     reader: CaptureReader<'a>,
@@ -29,14 +29,14 @@ struct Source<'a> {
     cancelled: &'a AtomicBool,
     work: u64,
     members: BTreeMap<String, CorpusOriginalMember>,
-    owned: Option<&'a crate::d1_public_capture::CreationState<'a>>,
+    owned: Option<&'a crate::public_capture::CreationState<'a>>,
 }
 // Raw parts and decoded input trees belong to the current read/walk scope.
 // Output packet owners are admitted independently by the sink. Drop the value
 // before releasing its state reservation, including on early return.
 struct ScopedCorpusInput<'a, T> {
     value: T,
-    _state: Option<crate::d1_public_capture::CreationStateHold<'a, 'a>>,
+    _state: Option<crate::public_capture::CreationStateHold<'a, 'a>>,
 }
 impl<T> std::ops::Deref for ScopedCorpusInput<'_, T> {
     type Target = T;
@@ -677,7 +677,7 @@ fn visit_captured_rows(
 fn detached_header(
     payload: &Value,
     cap: usize,
-    owned: Option<&crate::d1_public_capture::CreationState<'_>>,
+    owned: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<Vec<u8>> {
     let omitted = [
         "nodes",
@@ -701,7 +701,7 @@ fn detached_header(
     if let Some(state) = owned {
         state.retain(
             (fields.len() * 8 + 4)
-                * std::mem::size_of::<crate::d1_public_capture::CreationStateHold<'_, '_>>(),
+                * std::mem::size_of::<crate::public_capture::CreationStateHold<'_, '_>>(),
         )?;
         holds.push(
             state.hold(crate::knowledge_normalization::serde_object_slots_upper(
@@ -886,7 +886,7 @@ pub fn prepare_captured_corpus_original(
 /// Capture-only original projection import. No Git origin or authored producer
 /// identity is invented for an immutable public runtime projection.
 pub(crate) fn prepare_runtime_corpus_original(
-    capture: &crate::d1_public_capture::PublicCapture,
+    capture: &crate::public_capture::PublicCapture,
     source_path: &RelativePath,
     binding: &SourceBinding,
     vocab: &QueryVocabulary,
@@ -917,14 +917,14 @@ pub(crate) fn prepare_runtime_corpus_original(
     prepare_original_plan(source, source_path, binding, vocab, limits)
 }
 pub(crate) fn prepare_runtime_corpus_original_owned<'a>(
-    capture: &'a crate::d1_public_capture::PublicCapture,
+    capture: &'a crate::public_capture::PublicCapture,
     source_path: &'a RelativePath,
     binding: &SourceBinding,
     vocab: &QueryVocabulary,
     limits: CorpusOriginalSourceLimits,
     deadline: Instant,
     cancelled: &'a AtomicBool,
-    state: &'a crate::d1_public_capture::CreationState<'a>,
+    state: &'a crate::public_capture::CreationState<'a>,
 ) -> Result<CapturedCorpusOriginalPlan> {
     limits.originals.validate()?;
     if limits.max_members == 0

@@ -325,8 +325,18 @@ fn source_anchor_preparation_binds_exact_provider_and_antecedent_without_plantin
                 tos_ops_mechanics_plan::source_reading::sha256_bytes(&raw)
             );
         }
-        let raw =
-            fs::read(root.join(v["source_backlog_anchor"]["path"].as_str().unwrap())).unwrap();
+        let atlas = fs::read_to_string(
+            root.join("ToS/philosophy/atlas/dossiers/source-anchor-backlog.jsonl"),
+        )
+        .unwrap();
+        let raw: Vec<u8> = atlas
+            .split_inclusive('\n')
+            .filter(|line| {
+                let row: Value = serde_json::from_str(line).unwrap();
+                row["branch_path"] == v["branch_path"]
+            })
+            .flat_map(|line| line.as_bytes().iter().copied())
+            .collect();
         assert_eq!(
             v["backlog_sha256"],
             tos_ops_mechanics_plan::source_reading::sha256_bytes(&raw)

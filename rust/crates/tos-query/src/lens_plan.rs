@@ -6,7 +6,7 @@ use crate::{
     inspect_plan::{AbortProbe, AbortReason},
     knowledge_lens::{LensBudget, LensExecutionCounts, finalize_knowledge_lens},
     knowledge_lens_spec::*,
-    search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode, SearchKind},
     source_read_projection::{object, text},
 };
 use std::{
@@ -25,14 +25,14 @@ use tos_foundation::{CanonicalProfile, JsonValue, canonical_bytes_v1};
 /// resume; all these holds outlive continuations and final packet delivery.
 /// Query VM remains in the controlled reader, never in this pure plan.
 pub(crate) trait OriginalLensBudget {
-    fn check(&self) -> Result<(), SearchV2Error>;
-    fn charge_work(&self, units: usize) -> Result<(), SearchV2Error>;
-    fn admit_workspace(&self, bytes: usize) -> Result<(), SearchV2Error>;
+    fn check(&self) -> Result<(), SearchError>;
+    fn charge_work(&self, units: usize) -> Result<(), SearchError>;
+    fn admit_workspace(&self, bytes: usize) -> Result<(), SearchError>;
     fn canonicalize(
         &self,
         value: &JsonValue,
         limits: tos_foundation::JsonLimits,
-    ) -> Result<Vec<u8>, SearchV2Error>;
+    ) -> Result<Vec<u8>, SearchError>;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -213,7 +213,7 @@ struct ReadSlot {
     max_row_bytes: usize,
     max_rows: u64,
     need: Option<Rc<LensNeed>>,
-    reply: Option<Result<LensReply, SearchV2Error>>,
+    reply: Option<Result<LensReply, SearchError>>,
 }
 #[derive(Clone)]
 struct LensRead(Rc<RefCell<ReadSlot>>);
@@ -222,7 +222,7 @@ struct PendingRead {
     need: Option<LensNeed>,
 }
 impl Future for PendingRead {
-    type Output = Result<LensReply, SearchV2Error>;
+    type Output = Result<LensReply, SearchError>;
     fn poll(mut self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
         if let Some(need) = self.need.take() {
             let mut slot = self.slot.0.borrow_mut();
@@ -240,7 +240,7 @@ impl Future for PendingRead {
     }
 }
 impl LensRead {
-    fn transfer_row(&self, size: usize) -> Result<(), SearchV2Error> {
+    fn transfer_row(&self, size: usize) -> Result<(), SearchError> {
         let mut slot = self.0.borrow_mut();
         slot.reply_bytes = slot
             .reply_bytes
@@ -271,18 +271,18 @@ impl LensRead {
 /// independently; this plan checks between bounded synchronous domain phases.
 pub struct LensPlan<'original> {
     read: LensRead,
-    execution: Option<Pin<Box<dyn Future<Output = Result<JsonValue, SearchV2Error>> + 'original>>>,
+    execution: Option<Pin<Box<dyn Future<Output = Result<JsonValue, SearchError>> + 'original>>>,
     output: Option<JsonValue>,
     terminal: bool,
 }
-fn interrupt(probe: Option<&dyn AbortProbe>) -> Result<(), SearchV2Error> {
+fn interrupt(probe: Option<&dyn AbortProbe>) -> Result<(), SearchError> {
     match probe.and_then(AbortProbe::reason) {
-        Some(AbortReason::Cancelled) => Err(SearchV2Error {
-            code: SearchV2ErrorCode::Cancelled,
+        Some(AbortReason::Cancelled) => Err(SearchError {
+            code: SearchErrorCode::Cancelled,
             message: "lens cancelled",
         }),
-        Some(AbortReason::DeadlineExceeded) => Err(SearchV2Error {
-            code: SearchV2ErrorCode::DeadlineExceeded,
+        Some(AbortReason::DeadlineExceeded) => Err(SearchError {
+            code: SearchErrorCode::DeadlineExceeded,
             message: "lens deadline exceeded",
         }),
         None => Ok(()),
@@ -410,8 +410,8 @@ struct PublishedMetadata {
     relations: Vec<Cell>,
 }
 impl PublishedMetadata {
-    fn parse(value: &JsonValue) -> Result<Self, SearchV2Error> {
-        fn cells(value: &JsonValue) -> Result<Vec<Cell>, SearchV2Error> {
+    fn parse(value: &JsonValue) -> Result<Self, SearchError> {
+        fn cells(value: &JsonValue) -> Result<Vec<Cell>, SearchError> {
             let values = value
                 .as_array()
                 .filter(|values| values.len() <= 16384)
@@ -506,7 +506,7 @@ impl Execution<'_> {
             .iter()
             .any(|source| source == string(get(row, "source_graph")))
     }
-    fn candidate(&mut self) -> Result<(), SearchV2Error> {
+    fn candidate(&mut self) -> Result<(), SearchError> {
         self.check()?;
         self.candidates = self.candidates.checked_add(1).ok_or_else(budget)?;
         if self.candidates > self.budget.max_candidates {
@@ -514,7 +514,7 @@ impl Execution<'_> {
         }
         Ok(())
     }
-    fn callback(&mut self) -> Result<(), SearchV2Error> {
+    fn callback(&mut self) -> Result<(), SearchError> {
         self.check()?;
         self.callbacks = self.callbacks.checked_add(1).ok_or_else(budget)?;
         if self
@@ -525,7 +525,7 @@ impl Execution<'_> {
         }
         Ok(())
     }
-    fn group(&mut self, row: &JsonValue, group: &JsonValue) -> Result<bool, SearchV2Error> {
+    fn group(&mut self, row: &JsonValue, group: &JsonValue) -> Result<bool, SearchError> {
         self.callback()?;
         try_matches_group(row, group, &self.vocabulary)
     }
@@ -533,7 +533,7 @@ impl Execution<'_> {
         &mut self,
         kind: SearchKind,
         ids: Vec<String>,
-    ) -> Result<Vec<Rc<RetainedRow>>, SearchV2Error> {
+    ) -> Result<Vec<Rc<RetainedRow>>, SearchError> {
         if ids.is_empty() {
             return Ok(vec![]);
         }
@@ -622,7 +622,7 @@ impl Execution<'_> {
             .filter_map(|id| result.remove(&id))
             .collect())
     }
-    fn retain(&self, value: JsonValue, size: usize) -> Result<Rc<RetainedRow>, SearchV2Error> {
+    fn retain(&self, value: JsonValue, size: usize) -> Result<Rc<RetainedRow>, SearchError> {
         if size == 0 || size > self.budget.inspect.max_payload_bytes {
             return Err(budget());
         }
@@ -639,14 +639,11 @@ impl Execution<'_> {
         &mut self,
         kind: SearchKind,
         id: &str,
-    ) -> Result<Option<Rc<RetainedRow>>, SearchV2Error> {
+    ) -> Result<Option<Rc<RetainedRow>>, SearchError> {
         let mut rows = self.rows(kind, vec![id.to_owned()]).await?;
         Ok(rows.pop().filter(|row| self.scoped(row)))
     }
-    async fn scoped_neighbor(
-        &mut self,
-        id: &str,
-    ) -> Result<Option<Rc<RetainedRow>>, SearchV2Error> {
+    async fn scoped_neighbor(&mut self, id: &str) -> Result<Option<Rc<RetainedRow>>, SearchError> {
         if self.published.is_some() {
             let LensReply::Sources(sources) = self
                 .read
@@ -673,7 +670,7 @@ impl Execution<'_> {
         &mut self,
         field: &str,
         identifier: &str,
-    ) -> Result<Vec<Rc<RetainedRow>>, SearchV2Error> {
+    ) -> Result<Vec<Rc<RetainedRow>>, SearchError> {
         if self.published.is_some() {
             let mut after = Some(LensCandidateCursor::Id(String::new()));
             let mut out = vec![];
@@ -781,7 +778,7 @@ impl Execution<'_> {
             Ok(retained)
         }
     }
-    fn check_ids(&self, ids: &[String], after: &str, limit: usize) -> Result<(), SearchV2Error> {
+    fn check_ids(&self, ids: &[String], after: &str, limit: usize) -> Result<(), SearchError> {
         if ids.len() > limit
             || ids.iter().any(|id| {
                 id.is_empty()
@@ -798,7 +795,7 @@ impl Execution<'_> {
         &self,
         page: &LensCandidatePage,
         after: &Option<LensCandidateCursor>,
-    ) -> Result<(), SearchV2Error> {
+    ) -> Result<(), SearchError> {
         if page.rows.len() > self.budget.block_size {
             return Err(corrupt("lens candidate page exceeds declared limit"));
         }
@@ -865,7 +862,7 @@ struct OrderedStream {
     done: bool,
 }
 impl Execution<'_> {
-    fn check(&self) -> Result<(), SearchV2Error> {
+    fn check(&self) -> Result<(), SearchError> {
         if let Some(original) = self.original {
             original.check()?;
             original.charge_work(1)?;
@@ -977,7 +974,7 @@ impl Execution<'_> {
             done: false,
         }
     }
-    async fn scan_page(&mut self, scan: &mut Scan) -> Result<Vec<Rc<RetainedRow>>, SearchV2Error> {
+    async fn scan_page(&mut self, scan: &mut Scan) -> Result<Vec<Rc<RetainedRow>>, SearchError> {
         self.check()?;
         if scan.done {
             return Ok(vec![]);
@@ -1053,7 +1050,7 @@ impl Execution<'_> {
         }
         Ok(rows)
     }
-    async fn focus(&mut self, requested: &str) -> Result<Rc<RetainedRow>, SearchV2Error> {
+    async fn focus(&mut self, requested: &str) -> Result<Rc<RetainedRow>, SearchError> {
         if self.published.is_some() {
             let mut priority = self.vocabulary.sources.clone();
             priority.sort_by_key(|source| {
@@ -1115,8 +1112,8 @@ impl Execution<'_> {
                 return Ok(row);
             }
         }
-        Err(SearchV2Error {
-            code: SearchV2ErrorCode::UnknownIdentifier,
+        Err(SearchError {
+            code: SearchErrorCode::UnknownIdentifier,
             message: "unknown knowledge lens focus",
         })
     }
@@ -1128,7 +1125,7 @@ impl Execution<'_> {
         nodes: Vec<JsonValue>,
         relations: Vec<JsonValue>,
         path_id: &'a str,
-    ) -> Pin<Box<dyn Future<Output = Result<Option<JsonValue>, SearchV2Error>> + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = Result<Option<JsonValue>, SearchError>> + 'a>> {
         Box::pin(async move {
             self.check()?;
             if index == steps.len() {
@@ -1228,7 +1225,7 @@ impl Execution<'_> {
     async fn native_incident(
         &mut self,
         identifier: &str,
-    ) -> Result<Vec<Rc<RetainedRow>>, SearchV2Error> {
+    ) -> Result<Vec<Rc<RetainedRow>>, SearchError> {
         let mut rows = vec![];
         let mut after = String::new();
         loop {
@@ -1284,7 +1281,7 @@ impl Execution<'_> {
             .cloned()
             .collect()
     }
-    fn header_query(&mut self, kind: SearchKind) -> Result<LensHeaderQuery, SearchV2Error> {
+    fn header_query(&mut self, kind: SearchKind) -> Result<LensHeaderQuery, SearchError> {
         let group = get(
             &self.spec,
             if kind == SearchKind::Nodes {
@@ -1359,7 +1356,7 @@ impl Execution<'_> {
             eligible: None,
         })
     }
-    async fn count(&mut self, query: &LensHeaderQuery) -> Result<u64, SearchV2Error> {
+    async fn count(&mut self, query: &LensHeaderQuery) -> Result<u64, SearchError> {
         let LensReply::Count(count) = self
             .read
             .request(LensNeed::Count {
@@ -1374,7 +1371,7 @@ impl Execution<'_> {
         }
         Ok(count)
     }
-    fn histogram_count(&mut self, kind: SearchKind) -> Result<u64, SearchV2Error> {
+    fn histogram_count(&mut self, kind: SearchKind) -> Result<u64, SearchError> {
         let group = get(
             &self.spec,
             if kind == SearchKind::Nodes {
@@ -1410,7 +1407,7 @@ impl Execution<'_> {
     async fn next_header(
         &mut self,
         stream: &mut OrderedStream,
-    ) -> Result<Option<LensHeader>, SearchV2Error> {
+    ) -> Result<Option<LensHeader>, SearchError> {
         self.check()?;
         if stream.rows.is_empty() && !stream.done {
             let limit = if stream.after.is_none() && stream.endpoint.is_some() {
@@ -1463,11 +1460,7 @@ impl Execution<'_> {
         }
         Ok(stream.rows.pop_front())
     }
-    fn sort_key(
-        &mut self,
-        row: &JsonValue,
-        rules: &JsonValue,
-    ) -> Result<Vec<String>, SearchV2Error> {
+    fn sort_key(&mut self, row: &JsonValue, rules: &JsonValue) -> Result<Vec<String>, SearchError> {
         let mut keys = vec![];
         for rule in array(rules) {
             self.callback()?;
@@ -1585,7 +1578,7 @@ impl RelationCursor {
         &mut self,
         execution: &mut Execution<'_>,
         generic: Option<&[KeyedHeader]>,
-    ) -> Result<Option<LensHeader>, SearchV2Error> {
+    ) -> Result<Option<LensHeader>, SearchError> {
         if let Some(headers) = generic {
             return Ok(self
                 .indices
@@ -1628,7 +1621,7 @@ impl Execution<'_> {
         revision: String,
         authority: JsonValue,
         publication: Option<JsonValue>,
-    ) -> Result<JsonValue, SearchV2Error> {
+    ) -> Result<JsonValue, SearchError> {
         self.check()?;
         if self.published.is_some() {
             let compact = compact_covered(&self.spec);
@@ -2126,11 +2119,11 @@ impl Execution<'_> {
         let nodes = selected
             .into_values()
             .map(unwrap)
-            .collect::<Result<Vec<_>, SearchV2Error>>()?;
+            .collect::<Result<Vec<_>, SearchError>>()?;
         let relations = relations
             .into_iter()
             .map(unwrap)
-            .collect::<Result<Vec<_>, SearchV2Error>>()?;
+            .collect::<Result<Vec<_>, SearchError>>()?;
         let (nodes, node_guards): (Vec<_>, Vec<_>) = nodes.into_iter().unzip();
         let (relations, relation_guards): (Vec<_>, Vec<_>) = relations.into_iter().unzip();
         self.check()?;
@@ -2167,7 +2160,7 @@ impl<'original> LensPlan<'original> {
         revision: &str,
         publication: Option<&JsonValue>,
         budget: PublishedLensBudget,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         Self::published_with_abort(value, metadata, top, revision, publication, budget, None)
     }
     pub(crate) fn published_with_abort(
@@ -2178,7 +2171,7 @@ impl<'original> LensPlan<'original> {
         publication: Option<&JsonValue>,
         budget: PublishedLensBudget,
         probe: Option<std::sync::Arc<dyn AbortProbe>>,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         let vocabulary = LensVocabulary::from_published_metadata(metadata)?;
         let public = normalize_lens_spec(value, &vocabulary)?;
         let spec = bind_plan_properties(&public, &vocabulary)?;
@@ -2235,7 +2228,7 @@ impl<'original> LensPlan<'original> {
         budget: LensBudget,
         available: (u64, u64),
         probe: Option<std::sync::Arc<dyn AbortProbe>>,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         let spec = bind_plan_properties(&public, &vocabulary)?;
         Self::create(
             public,
@@ -2269,7 +2262,7 @@ impl<'original> LensPlan<'original> {
         probe: Option<std::sync::Arc<dyn AbortProbe>>,
         original: &'original dyn OriginalLensBudget,
         workspace_bytes: usize,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         if workspace_bytes == 0 {
             return Err(budget_error());
         }
@@ -2306,7 +2299,7 @@ impl<'original> LensPlan<'original> {
         limits: Option<(usize, usize, usize, usize)>,
         probe: Option<std::sync::Arc<dyn AbortProbe>>,
         original: Option<&'original dyn OriginalLensBudget>,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         if budget.max_candidates == 0
             || budget.max_candidates >= i64::MAX as usize
             || budget.max_path_steps == 0
@@ -2368,7 +2361,7 @@ impl<'original> LensPlan<'original> {
     }
     /// Run one continuation until a concrete read or terminal packet. Never
     /// wait or repoll a pending read; the host must supply exactly one reply.
-    pub fn advance(&mut self) -> Result<bool, SearchV2Error> {
+    pub fn advance(&mut self) -> Result<bool, SearchError> {
         if self.terminal {
             return Err(corrupt("lens plan already terminal"));
         }
@@ -2401,13 +2394,13 @@ impl<'original> LensPlan<'original> {
     pub fn need(&self) -> Option<Rc<LensNeed>> {
         self.read.0.borrow().need.clone()
     }
-    pub fn resume(&mut self, reply: LensReply) -> Result<(), SearchV2Error> {
+    pub fn resume(&mut self, reply: LensReply) -> Result<(), SearchError> {
         self.supply(Ok(reply))
     }
-    pub fn fail(&mut self, error: SearchV2Error) -> Result<(), SearchV2Error> {
+    pub fn fail(&mut self, error: SearchError) -> Result<(), SearchError> {
         self.supply(Err(error))
     }
-    fn supply(&mut self, reply: Result<LensReply, SearchV2Error>) -> Result<(), SearchV2Error> {
+    fn supply(&mut self, reply: Result<LensReply, SearchError>) -> Result<(), SearchError> {
         if self.terminal {
             return Err(corrupt("lens plan already terminal"));
         }
@@ -2457,7 +2450,7 @@ impl<'original> LensPlan<'original> {
         slot.reply_bytes = 0;
         self.terminal = true;
     }
-    pub fn finish(&mut self) -> Result<JsonValue, SearchV2Error> {
+    pub fn finish(&mut self) -> Result<JsonValue, SearchError> {
         if !self.terminal {
             return Err(corrupt("lens plan is not terminal"));
         }
@@ -2471,6 +2464,6 @@ impl Drop for LensPlan<'_> {
         self.clear();
     }
 }
-fn budget_error() -> SearchV2Error {
+fn budget_error() -> SearchError {
     budget()
 }

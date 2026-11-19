@@ -31,15 +31,13 @@ pub mod knowledge_exploration;
 pub mod knowledge_focus;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 mod knowledge_inspect;
-#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
-pub mod knowledge_legacy_search;
 pub mod knowledge_lens;
 pub mod knowledge_lens_spec;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
-mod knowledge_packet;
-pub mod knowledge_presentation;
+mod knowledge_scope;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
-mod knowledge_sqlite;
+pub use knowledge_scope::IndexedDisclosureScope;
+pub mod knowledge_presentation;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 mod knowledge_temporal;
 pub mod research_index_search;
@@ -72,11 +70,8 @@ mod prepared_inspect;
 mod prepared_lens;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 mod prepared_operations;
-pub mod search_candidate;
-mod search_document;
-mod search_execute;
+pub mod search;
 pub mod search_index;
-pub mod search_v2;
 mod source_descend;
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub mod source_diagnostic;
@@ -98,13 +93,8 @@ pub use inspect_plan::{
 };
 
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
-pub use controlled_query_adapter::indexed_limit_from_foundation;
-#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub use controlled_query_adapter::{
     execute_controlled_catalog_response, execute_controlled_knowledge_header_response,
-    execute_scoped_controlled_indexed_search_response,
-    execute_scoped_controlled_sidecar_indexed_search_response, with_controlled_knowledge_binding,
-    with_controlled_sidecar_knowledge_binding,
 };
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub use knowledge_binding::{
@@ -125,21 +115,9 @@ pub use knowledge_inspect::{
     RELATION_INSPECT_OPERATION, execute_selected_inspect, execute_selected_knowledge_header,
 };
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
-pub use knowledge_packet::{
-    DisclosableIndexedSearch, DisclosableScopedIndexedSearch, INDEXED_SEARCH_INTENDED_USE,
-    INDEXED_SEARCH_OPERATION_ID, IndexedDisclosureLease, IndexedDisclosureScope,
-    IndexedKnowledgeAuthority, IndexedPageBudget, IndexedWireCursorCodec,
-    ScopedIndexedKnowledgeAuthority, execute_indexed_search_page,
-    execute_scoped_indexed_search_page,
-};
-#[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 pub use knowledge_temporal::{
     execute_selected_claim_list, execute_selected_claim_projection, execute_selected_temporal,
 };
-pub use search_document::{
-    SearchDocumentBudget, VerifiedSearchDocument, verify_indexed_search_document,
-};
-pub use search_execute::{ObservedSearchCandidate, SearchKindBudget};
 pub use source_descend::{
     AdjacencyPage, Binding, Budget, Charged, CpuStepsMeter, CurrentPolicy,
     DisclosableSourceDescend, DisclosureLease, DisclosureScope, ExactNode, QueryError,

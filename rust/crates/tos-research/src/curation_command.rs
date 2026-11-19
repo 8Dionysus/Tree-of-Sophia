@@ -1332,6 +1332,20 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             {
                 return Err("TEI selected items differ from plan or contain duplicates".into());
             }
+            let input = Path::new(input_root.ok_or("--local-input-root is required")?);
+            let output = Path::new(output_root.ok_or("--local-output-root is required")?);
+            if !input.is_absolute() || !output.is_absolute() {
+                return Err("local roots must be absolute".into());
+            }
+            let tracked = if action == "build" {
+                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
+                let selected = select_empty_output(&ctx, path, &[&root, input, output])?;
+                Some((path, selected))
+            } else {
+                None
+            };
+            // Arguments are checked before the frozen outputs are read: the outputs may
+            // be in private custody and hydrated only for an actual check or build.
             let mut frozen = Vec::new();
             for output in recipe["frozen_outputs"]
                 .as_array()
@@ -1355,18 +1369,6 @@ fn execute(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 .map_err(|e| format!("TEI frozen output: {e:?}"))?;
                 frozen.push((reference.to_owned(), raw));
             }
-            let input = Path::new(input_root.ok_or("--local-input-root is required")?);
-            let output = Path::new(output_root.ok_or("--local-output-root is required")?);
-            if !input.is_absolute() || !output.is_absolute() {
-                return Err("local roots must be absolute".into());
-            }
-            let tracked = if action == "build" {
-                let path = Path::new(tracked_root.ok_or("build requires --tracked-output-root")?);
-                let selected = select_empty_output(&ctx, path, &[&root, input, output])?;
-                Some((path, selected))
-            } else {
-                None
-            };
             let build = action == "build";
             let mut result = crate::tei_technical_markup::run(
                 &ctx,

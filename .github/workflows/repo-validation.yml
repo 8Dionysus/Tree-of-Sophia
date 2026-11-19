@@ -472,12 +472,12 @@ jobs:
           limits=(--max-total-bytes "$total_cap" --max-archive-bytes "$archive_cap" --max-members "$member_cap" --max-metadata-bytes "$metadata_cap")
           mkdir -p -- "$root/dist"
           "$native" software build --root "$root" --source-ref "${{ github.sha }}" \
-            --web-dist "$root/access/web/dist" --output "$archive" \
+            --output "$archive" \
             --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" \
             --native-command-products "$RUNNER_TEMP/tos-native-command-products.json" "${limits[@]}"
           repeated="$RUNNER_TEMP/tree-of-sophia-software-repeat.zip"
           "$native" software build --root "$root" --source-ref "${{ github.sha }}" \
-            --web-dist "$root/access/web/dist" --output "$repeated" \
+            --output "$repeated" \
             --native-access-binary "$native" --native-access-receipt "$RUNNER_TEMP/tos-native-build.json" \
             --native-command-products "$RUNNER_TEMP/tos-native-command-products.json" "${limits[@]}"
           if ! cmp --silent "$archive" "$repeated"; then
@@ -500,7 +500,7 @@ jobs:
           printf 'TOS_RESEARCH_EXECUTOR=%s\n' "$RUNNER_TEMP/tos-native-install/bin/tos-research" >> "$GITHUB_ENV"
           printf 'TOS_E2E_FIXTURE_BIN=%s\n' "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/debug/tos-e2e-fixture" >> "$GITHUB_ENV"
           printf 'TOS_E2E_SITE_EXECUTABLE=%s\n' "$RUNNER_TEMP/tos-native-install/software/access/src/tos_access/tos-access" >> "$GITHUB_ENV"
-      - name: Test browser behavior with bounded native fixtures
+      - name: Test shared reader browser behavior
         # The harness bounds fresh native host/browser pairs to two, then runs
         # shared-cache Vite scenarios serially. Keep every original case and
         # the complete cohort's existing slow-renderer timeout envelope.
@@ -566,7 +566,6 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          # Frozen SQLite fixture files were captured with SQLite 3.51.2.
           node-version: "24.14.0"
           cache: npm
           cache-dependency-path: access/deploy/cloudflare-worker/package-lock.json
@@ -576,8 +575,6 @@ jobs:
           CARGO_BUILD_JOBS: "2"
         run: |
           rustup toolchain install 1.98.1 --profile minimal --target wasm32-unknown-unknown
-          cargo +1.98.1 build --locked -p tos-access --bin tos-access --target x86_64-unknown-linux-gnu
-          cargo +1.98.1 build --locked -p tos-validation --bin tos-schema-worker --target x86_64-unknown-linux-gnu
           cargo +1.98.1 build --locked --release -p tos-web-rules --features wasm --target wasm32-unknown-unknown
           archive="$RUNNER_TEMP/worker-wasm-bindgen.tar.gz"
           curl --fail --location --silent --show-error \
@@ -590,12 +587,7 @@ jobs:
             "$CARGO_TARGET_DIR/wasm32-unknown-unknown/release/tos_web_rules.wasm"
 
       - name: Test Worker contracts without deployment or production data
-        env:
-          TOS_ACCESS_BIN: ${{ runner.temp }}/worker-cargo-target/x86_64-unknown-linux-gnu/debug/tos-access
-          TOS_SCHEMA_WORKER_PATH: ${{ runner.temp }}/worker-cargo-target/x86_64-unknown-linux-gnu/debug/tos-schema-worker
         run: |
-          test -x "$TOS_ACCESS_BIN"
-          node --input-type=module -e 'import { strict as assert } from "node:assert"; assert.equal(process.versions.sqlite, "3.51.2", "frozen SQLite fixture engine");'
           npm ci --prefer-offline --no-audit --no-fund --prefix access/deploy/cloudflare-worker
           npm run typecheck --prefix access/deploy/cloudflare-worker
           npm test --prefix access/deploy/cloudflare-worker

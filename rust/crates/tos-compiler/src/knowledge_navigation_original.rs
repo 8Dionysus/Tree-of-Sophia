@@ -1378,7 +1378,7 @@ pub(crate) fn verify_with_owned_state(
     limits: ColdOpenLimits,
     context: &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
 ) -> Result<Option<NavigationOriginalReceipt>> {
-    use crate::d1_public_capture::CreationStateHold;
+    use crate::public_capture::CreationStateHold;
     let state = context.owned_state();
     let statement_bytes =
         tos_source_store::PinnedSqliteConnection::bounded_statement_rust_workspace_upper_bound();
@@ -1387,7 +1387,7 @@ pub(crate) fn verify_with_owned_state(
         &KnowledgeSelectedExpectation,
         ColdOpenLimits,
         &crate::knowledge_payload_read::RuntimeKnowledgeReadContext<'_, '_>,
-        &crate::d1_public_capture::CreationState<'_>,
+        &crate::public_capture::CreationState<'_>,
         CreationStateHold<'_, '_>,
         Result<Option<NavigationOriginalReceipt>>,
         Option<NavigationOriginalReceipt>,
@@ -1482,7 +1482,7 @@ fn verify_rows_with_owned_state(
     db: &Connection,
     receipt: &NavigationOriginalReceipt,
     limits: NavigationOriginalLimits,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     check: &impl Fn() -> Result<()>,
 ) -> Result<()> {
     if receipt
@@ -1569,7 +1569,7 @@ fn verify_members_with_owned_state(
     db: &Connection,
     receipt: &NavigationOriginalReceipt,
     row_cap: u64,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
     check: &impl Fn() -> Result<()>,
 ) -> Result<()> {
     let statement_bytes =
