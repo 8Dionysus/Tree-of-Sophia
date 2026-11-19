@@ -75,6 +75,31 @@ def load(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def extend_complete_profiles(
+    profiles: dict[str, dict[str, Any]],
+    previous_document_ids: list[str],
+    all_document_ids: list[str],
+) -> None:
+    """Append new corpus works only to profiles that selected the prior full corpus."""
+    previous = list(dict.fromkeys(previous_document_ids))
+    previous_set = set(previous)
+    if not previous_set:
+        return
+    additions = [item for item in dict.fromkeys(all_document_ids) if item not in previous_set]
+    if not additions:
+        return
+    for profile in profiles.values():
+        selected = profile.get("documentIds")
+        if (
+            not isinstance(selected, list)
+            or any(not isinstance(item, str) for item in selected)
+            or len(selected) != len(previous)
+            or set(selected) != previous_set
+        ):
+            continue
+        selected.extend(item for item in additions if item not in selected)
+
+
 def text_sha(text: str) -> str:
     return sha(text.encode("utf-8"))
 
@@ -782,6 +807,7 @@ def main() -> int:
     selection_path = REPO / "access/public-corpus/selection.v1.json"
     acquisition_path = REPO / "access/public-corpus/acquisition-index.v1.json"
     selection = load(selection_path)
+    previous_document_ids = list(dict.fromkeys(doc["id"] for doc in selection["documents"]))
     acquisition = load(acquisition_path)
     existing_docs = {doc["id"]: doc for doc in selection["documents"]}
     additions_by_doc: dict[str, list[dict[str, Any]]] = {}
@@ -865,8 +891,7 @@ def main() -> int:
             else:
                 current["versions"][by_version_id[version["id"]]] = version
     all_document_ids = list(dict.fromkeys(doc["id"] for doc in selection["documents"]))
-    for profile in selection["profiles"].values():
-        profile["documentIds"] = all_document_ids
+    extend_complete_profiles(selection["profiles"], previous_document_ids, all_document_ids)
     selection_bytes = json_bytes(selection)
     selection_path.write_bytes(selection_bytes)
 

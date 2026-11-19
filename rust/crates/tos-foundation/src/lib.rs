@@ -44,9 +44,9 @@ pub use json::{
     canonical_bytes_v1_with_state_budget_and_visits_and_check, canonical_bytes_v1_with_visits,
     canonical_count_v1, canonical_digest_v1, canonical_feed_digest_v1,
     canonical_feed_digest_v1_with_check, canonical_raw_bytes_profile, canonical_raw_bytes_v1,
-    canonical_source_command_into_reuse, emit_json_profile, emit_preserved_json,
-    emit_python_compact_json, emit_python_compact_json_with_state_budget_and_visits_and_check,
-    emit_python_pretty_sorted_json_with_state_budget, emit_value_preserved_json,
+    canonical_source_command_into_reuse, emit_json_profile, emit_ordered_compact_json_v1,
+    emit_ordered_compact_json_v1_with_state_budget_and_visits_and_check, emit_preserved_json,
+    emit_sorted_indent2_json_v1_with_state_budget, emit_value_preserved_json,
     order_json_object_members_with_check, parse_json, parse_json_profile, parse_json_with_check,
     parse_json_with_state_budget, parse_json_with_state_budget_and_admission,
     parse_json_with_state_budget_and_check, prepare_source_command_reuse,
@@ -121,4 +121,12 @@ mod schema_profile;
 pub use schema_profile::{
     CutPreparedSchemaExecutionBinding, CutPreparedSchemaProtocol, FormatProfile,
     IN_PROCESS_SCHEMA_ENGINE_ID, InProcessSchemaExecutionBinding, SchemaExecutionBinding,
+};
+
+// Transitional aliases for the parallel access, D1 and local-prepared retirement
+// packages. Remove each alias once their remaining callers have been migrated.
+pub use json::{
+    emit_ordered_compact_json_v1 as emit_python_compact_json,
+    emit_ordered_compact_json_v1_with_state_budget_and_visits_and_check as emit_python_compact_json_with_state_budget_and_visits_and_check,
+    emit_sorted_indent2_json_v1_with_state_budget as emit_python_pretty_sorted_json_with_state_budget,
 };

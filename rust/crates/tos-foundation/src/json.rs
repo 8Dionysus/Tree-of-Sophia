@@ -11,7 +11,7 @@ pub enum JsonMode {
     PublishedStrict,
     /// Legacy request/cursor input: last value wins at the first key position.
     RequestLastWins,
-    /// Explicit legacy Python input compatibility. Retains nonfinite float
+    /// Historical identifier for legacy input compatibility. Retains nonfinite float
     /// lexemes; this does not make them publishable or canonically encodable.
     LegacyPythonObserved,
 }
@@ -301,9 +301,9 @@ impl JsonValue {
     {
         limits.validate()?;
         let style = if profile == CanonicalProfile::CorpusSnapshotV1 {
-            WriteStyle::PythonCompactLf
+            WriteStyle::SortedCompactV1Lf
         } else {
-            WriteStyle::PythonCompact
+            WriteStyle::SortedCompactV1
         };
         let mut output = JsonOutput {
             numeric_input_max_bytes: limits.max_bytes,
@@ -1035,11 +1035,11 @@ impl Parser<'_, '_> {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CanonicalProfile {
-    /// `scripts/corpus_store.py` v1: sorted compact JSON plus one LF.
+    /// Sorted compact v1 bytes with one final LF; see `canonical_bytes_v1`.
     CorpusSnapshotV1,
-    /// `knowledge_assessment.py` source-record digest: sorted compact JSON, no LF.
+    /// Sorted compact v1 bytes without a final LF; see `canonical_bytes_v1`.
     SourceRecordDigestV1,
-    /// Legacy `source_commands.py` request identity: the same bytes as the
+    /// Command request identity: the same bytes as the
     /// source-record digest, but a distinct owner contract and lifetime.
     SourceCommandInputV1,
 }
@@ -1078,19 +1078,19 @@ pub fn emit_value_preserved_json(value: &JsonValue, limits: JsonLimits) -> Resul
     write_document(value, limits, WriteStyle::PreservedCompact)
 }
 
-/// Published packet framing: Python compact JSON with insertion-ordered object
-/// members, Python numeric spelling and no final line feed. This selects only
-/// bytes; it does not grant publication or change canonical digest profiles.
-pub fn emit_python_compact_json(value: &JsonValue, limits: JsonLimits) -> Result<Vec<u8>> {
-    write_document(value, limits, WriteStyle::PythonPublishedCompact)
+/// Ordered compact v1: insertion-order object keys, `,` and `:` separators,
+/// no whitespace or final LF. Strings and numbers follow `canonical_bytes_v1`.
+/// This selects bytes, not publication or a canonical digest profile.
+pub fn emit_ordered_compact_json_v1(value: &JsonValue, limits: JsonLimits) -> Result<Vec<u8>> {
+    write_document(value, limits, WriteStyle::OrderedCompactV1)
 }
 
-/// Insertion-ordered Python compact bytes under the original owner's state,
+/// Ordered compact v1 bytes (see `emit_ordered_compact_json_v1`) under the owner's state,
 /// cooperative cutoff and aggregate visit/work allowance. `admit` runs before
 /// each output-sink byte chunk and node visit in both passes. Numeric
 /// validation additionally admits its input-byte windows before inspection.
 /// Successfully admitted prefixes stay charged even on later failure.
-pub fn emit_python_compact_json_with_state_budget_and_visits_and_check(
+pub fn emit_ordered_compact_json_v1_with_state_budget_and_visits_and_check(
     value: &JsonValue,
     limits: JsonLimits,
     available: usize,
@@ -1099,7 +1099,7 @@ pub fn emit_python_compact_json_with_state_budget_and_visits_and_check(
 ) -> Result<(Vec<u8>, usize)> {
     write_with_state_budget_and_visits(
         value,
-        WriteStyle::PythonPublishedCompact,
+        WriteStyle::OrderedCompactV1,
         limits,
         available,
         Some(check),
@@ -1108,8 +1108,16 @@ pub fn emit_python_compact_json_with_state_budget_and_visits_and_check(
     )
 }
 
-/// Produce owner-profile bytes using Python's sorted compact JSON spelling.
-/// Only `CorpusSnapshotV1` includes a final line feed.
+/// Sorted compact v1: object keys in Unicode scalar order; arrays retain order;
+/// `,` and `:` separators with no spaces. Strings are UTF-8 without Unicode
+/// normalization; quote, backslash and controls are escaped, with short JSON
+/// escapes where available and lowercase `\u00xx` otherwise. Lone surrogates,
+/// duplicate keys and nonfinite numbers are rejected. Integers retain decimal
+/// digits except `-0` becomes `0`. Floats round to binary64 and use shortest
+/// round-trip digits, fixed notation for decimal exponents -4 through 15,
+/// otherwise `e`, an explicit sign and at least two exponent digits. Fixed
+/// integral floats retain `.0`; negative floating zero is `-0.0`.
+/// Only `CorpusSnapshotV1` ends in one LF; the other profiles have none.
 pub fn canonical_bytes_v1(
     value: &JsonValue,
     profile: CanonicalProfile,
@@ -1117,10 +1125,10 @@ pub fn canonical_bytes_v1(
 ) -> Result<Vec<u8>> {
     match profile {
         CanonicalProfile::CorpusSnapshotV1 => {
-            write_document(value, limits, WriteStyle::PythonCompactLf)
+            write_document(value, limits, WriteStyle::SortedCompactV1Lf)
         }
         CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
-            write_document(value, limits, WriteStyle::PythonCompact)
+            write_document(value, limits, WriteStyle::SortedCompactV1)
         }
     }
 }
@@ -1133,9 +1141,9 @@ pub fn canonical_bytes_v1_with_check(
     check: &mut dyn FnMut() -> Result<()>,
 ) -> Result<Vec<u8>> {
     let style = if profile == CanonicalProfile::CorpusSnapshotV1 {
-        WriteStyle::PythonCompactLf
+        WriteStyle::SortedCompactV1Lf
     } else {
-        WriteStyle::PythonCompact
+        WriteStyle::SortedCompactV1
     };
     let mut bytes = Vec::new();
     let mut output = JsonOutput::bytes(&mut bytes, limits.max_bytes);
@@ -1198,9 +1206,9 @@ fn canonical_state_and_visits(
 
 fn canonical_write_style(profile: CanonicalProfile) -> WriteStyle {
     match profile {
-        CanonicalProfile::CorpusSnapshotV1 => WriteStyle::PythonCompactLf,
+        CanonicalProfile::CorpusSnapshotV1 => WriteStyle::SortedCompactV1Lf,
         CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
-            WriteStyle::PythonCompact
+            WriteStyle::SortedCompactV1
         }
     }
 }
@@ -1677,10 +1685,12 @@ pub fn canonical_bytes_v1_with_state_budget_and_visits_and_admission(
     )
 }
 
-/// Resource text: Python ensure_ascii=False, indent=2, sort_keys=True, no LF.
+/// Sorted indent2 v1: Unicode-scalar key order, two spaces per level, `,` then
+/// LF between members and `: ` after keys; empty containers stay on one line.
+/// Strings and numbers follow `canonical_bytes_v1`; there is no final LF.
 /// Reuses the owner visitor, actual state reservation and original count+emit visits.
 /// The owner reserves original declared two-pass work before traversal or sorting.
-pub fn emit_python_pretty_sorted_json_with_state_budget(
+pub fn emit_sorted_indent2_json_v1_with_state_budget(
     value: &JsonValue,
     limits: JsonLimits,
     available: usize,
@@ -1689,7 +1699,7 @@ pub fn emit_python_pretty_sorted_json_with_state_budget(
 ) -> Result<(Vec<u8>, usize)> {
     write_with_state_budget_and_visits(
         value,
-        WriteStyle::PythonPretty2Sorted,
+        WriteStyle::SortedIndent2V1,
         limits,
         available,
         Some(check),
@@ -1827,9 +1837,9 @@ pub fn canonical_bytes_v1_with_visits(
     limits: JsonLimits,
 ) -> Result<(Vec<u8>, usize, usize)> {
     let style = match profile {
-        CanonicalProfile::CorpusSnapshotV1 => WriteStyle::PythonCompactLf,
+        CanonicalProfile::CorpusSnapshotV1 => WriteStyle::SortedCompactV1Lf,
         CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
-            WriteStyle::PythonCompact
+            WriteStyle::SortedCompactV1
         }
     };
     let mut bytes = Vec::new();
@@ -1850,9 +1860,9 @@ pub fn canonical_count_v1(
     limits: JsonLimits,
 ) -> Result<usize> {
     let style = match profile {
-        CanonicalProfile::CorpusSnapshotV1 => WriteStyle::PythonCompactLf,
+        CanonicalProfile::CorpusSnapshotV1 => WriteStyle::SortedCompactV1Lf,
         CanonicalProfile::SourceRecordDigestV1 | CanonicalProfile::SourceCommandInputV1 => {
-            WriteStyle::PythonCompact
+            WriteStyle::SortedCompactV1
         }
     };
     let mut output = JsonOutput::count(limits.max_bytes);
@@ -1918,9 +1928,9 @@ fn canonical_feed_digest_inner(
         poll: JsonCheck::new(check),
     };
     let style = if profile == CanonicalProfile::CorpusSnapshotV1 {
-        WriteStyle::PythonCompactLf
+        WriteStyle::SortedCompactV1Lf
     } else {
-        WriteStyle::PythonCompact
+        WriteStyle::SortedCompactV1
     };
     let mut numeric_parse_visits = 0;
     write_value(
@@ -1978,8 +1988,10 @@ pub struct EncodedJson {
     pub sha256: Digest256,
 }
 
-/// Python `json.dumps(value, ensure_ascii=False, allow_nan=False, indent=2)
-/// + '\n'` for a caller-built, insertion-ordered entire form-set value.
+/// Indent2 v1 bytes: two spaces per level, `,` then LF between members,
+/// `: ` after keys, empty containers on one line, and exactly one final LF.
+/// Form-set and catalog keys retain insertion order; lab-report keys sort by
+/// Unicode scalar value. Strings and numbers follow `canonical_bytes_v1`.
 pub fn emit_json_profile(
     value: &JsonValue,
     profile: JsonEmissionProfile,
@@ -1998,7 +2010,7 @@ pub fn emit_json_profile(
                     },
                 ));
             }
-            write_document(value, limits, WriteStyle::PythonPretty2Lf)?
+            write_document(value, limits, WriteStyle::OrderedIndent2V1Lf)?
         }
         JsonEmissionProfile::SourceFoundationLabReportV1 => {
             if value.as_object().is_none() {
@@ -2007,7 +2019,7 @@ pub fn emit_json_profile(
                     "foundation lab report must be a JSON object",
                 ));
             }
-            write_document(value, limits, WriteStyle::PythonPretty2SortedLf)?
+            write_document(value, limits, WriteStyle::SortedIndent2V1Lf)?
         }
     };
     Ok(EncodedJson {
@@ -2049,37 +2061,37 @@ pub fn canonical_raw_bytes_profile(
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum WriteStyle {
     PreservedCompact,
-    PythonPublishedCompact,
-    PythonCompact,
-    PythonCompactLf,
-    PythonPretty2Lf,
-    PythonPretty2Sorted,
-    PythonPretty2SortedLf,
+    OrderedCompactV1,
+    SortedCompactV1,
+    SortedCompactV1Lf,
+    OrderedIndent2V1Lf,
+    SortedIndent2V1,
+    SortedIndent2V1Lf,
 }
 
 impl WriteStyle {
     fn sort_keys(self) -> bool {
         matches!(
             self,
-            Self::PythonCompact
-                | Self::PythonCompactLf
-                | Self::PythonPretty2Sorted
-                | Self::PythonPretty2SortedLf
+            Self::SortedCompactV1
+                | Self::SortedCompactV1Lf
+                | Self::SortedIndent2V1
+                | Self::SortedIndent2V1Lf
         )
     }
-    fn python_numbers(self) -> bool {
+    fn profile_numbers(self) -> bool {
         self != Self::PreservedCompact
     }
     fn pretty(self) -> bool {
         matches!(
             self,
-            Self::PythonPretty2Lf | Self::PythonPretty2Sorted | Self::PythonPretty2SortedLf
+            Self::OrderedIndent2V1Lf | Self::SortedIndent2V1 | Self::SortedIndent2V1Lf
         )
     }
     fn newline(self) -> bool {
         matches!(
             self,
-            Self::PythonCompactLf | Self::PythonPretty2Lf | Self::PythonPretty2SortedLf
+            Self::SortedCompactV1Lf | Self::OrderedIndent2V1Lf | Self::SortedIndent2V1Lf
         )
     }
 }
@@ -2292,10 +2304,6 @@ fn emit(output: &mut JsonOutput<'_, '_>, bytes: &[u8], limits: JsonLimits) -> Re
     Ok(())
 }
 
-/// Render a finite IEEE-754 value with CPython's `repr(float)` layout used by
-/// `json.dumps`. Ryu's shortest, ties-to-even decimal supplies the significant
-/// digits; Python's fixed/scientific threshold and exponent spelling are
-/// applied without converting an integer through binary64.
 fn state_error() -> FoundationError {
     FoundationError::new(Code::BudgetExceeded, "canonical writer state/visit budget")
 }
@@ -2306,7 +2314,9 @@ impl std::fmt::Write for FormatCount {
         Ok(())
     }
 }
-fn python_float_into(
+// Finite binary64 shortest round-trip digits, with the profile's fixed and
+// scientific thresholds and exponent spelling. Integers never pass here.
+fn profile_float_into(
     value: f64,
     shortest: &str,
     out: &mut impl std::fmt::Write,
@@ -2378,11 +2388,11 @@ fn python_float_into(
     }
     Ok(())
 }
-fn python_float_text(value: f64) -> String {
+fn profile_float_text(value: f64) -> String {
     let mut buffer = ryu::Buffer::new();
     let shortest = buffer.format_finite(value.abs());
     let mut result = String::new();
-    python_float_into(value, &shortest, &mut result).expect("String formatting");
+    profile_float_into(value, &shortest, &mut result).expect("String formatting");
     result
 }
 fn emit_state_float(value: f64, output: &mut JsonOutput<'_, '_>, limits: JsonLimits) -> Result<()> {
@@ -2390,7 +2400,7 @@ fn emit_state_float(value: f64, output: &mut JsonOutput<'_, '_>, limits: JsonLim
     let mut buffer = ryu::Buffer::new();
     let shortest = buffer.format_finite(value.abs());
     let mut count = FormatCount(0);
-    python_float_into(value, &shortest, &mut count).map_err(|_| state_error())?;
+    profile_float_into(value, &shortest, &mut count).map_err(|_| state_error())?;
     if count.0 > output.state_remaining().ok_or_else(state_error)? {
         return Err(state_error());
     }
@@ -2399,7 +2409,7 @@ fn emit_state_float(value: f64, output: &mut JsonOutput<'_, '_>, limits: JsonLim
         .try_reserve_exact(count.0)
         .map_err(|_| state_error())?;
     output.reserve_scratch(result.capacity())?;
-    python_float_into(value, &shortest, &mut result).map_err(|_| state_error())?;
+    profile_float_into(value, &shortest, &mut result).map_err(|_| state_error())?;
     emit(output, result.as_bytes(), limits)?;
     let result_capacity = result.capacity();
     drop(result);
@@ -2499,22 +2509,22 @@ fn write_value(
                 ));
             }
             drop(checked);
-            if style.python_numbers() && number.kind == JsonNumberKind::Float {
+            if style.profile_numbers() && number.kind == JsonNumberKind::Float {
                 let value = number.lexeme.parse::<f64>().map_err(|_| {
                     FoundationError::new(Code::InvalidNumber, "float lexeme is invalid")
                 })?;
                 if output.state_remaining().is_some() {
                     emit_state_float(value, output, limits)?;
                 } else {
-                    emit(output, python_float_text(value).as_bytes(), limits)?;
+                    emit(output, profile_float_text(value).as_bytes(), limits)?;
                 }
-            } else if style.python_numbers() && number.lexeme == "-0" {
+            } else if style.profile_numbers() && number.lexeme == "-0" {
                 emit(output, b"0", limits)?;
             } else {
                 emit(output, number.lexeme.as_bytes(), limits)?;
             }
         }
-        JsonValue::String(value) => write_string(value, output, style.python_numbers(), limits)?,
+        JsonValue::String(value) => write_string(value, output, style.profile_numbers(), limits)?,
         JsonValue::Array(items) => {
             emit(output, b"[", limits)?;
             for (index, item) in items.iter().enumerate() {
@@ -2774,7 +2784,7 @@ fn write_value(
                     if style.pretty() {
                         emit_indent(output, depth + 1, limits)?;
                     }
-                    write_string(key, output, style.python_numbers(), limits)?;
+                    write_string(key, output, style.profile_numbers(), limits)?;
                     emit(
                         output,
                         if style.pretty() {

@@ -497,7 +497,7 @@ fn cursor_restart_query_expiry_and_same_binding_aba() {
 
 #[test]
 fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_meter() {
-    use tos_query::search_v2::{SearchKind, SearchV2ErrorCode};
+    use tos_query::search::{SearchErrorCode, SearchKind};
     let mut input = rows();
     set(&mut input.nodes[1], "entity_id", text("ea"));
     set(&mut input.nodes[0], "native_id", text("shared-native"));
@@ -582,7 +582,7 @@ fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_me
             .inspect(&f.binding, SearchKind::Nodes, "absent", 1)
             .unwrap_err()
             .code,
-        SearchV2ErrorCode::UnknownIdentifier
+        SearchErrorCode::UnknownIdentifier
     );
     db.execute_batch("COMMIT;BEGIN").unwrap();
     session.recheck_binding(&f.binding).unwrap();
@@ -606,7 +606,7 @@ fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_me
                 .inspect(&f.binding, SearchKind::Relations, "r", 1)
                 .unwrap_err()
                 .code,
-            SearchV2ErrorCode::CorruptSelectedCarrier
+            SearchErrorCode::CorruptSelectedCarrier
         );
         db.execute_batch("ROLLBACK").unwrap();
     }
@@ -626,7 +626,7 @@ fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_me
             .inspect(&broken.binding, SearchKind::Nodes, "a", 1)
             .unwrap_err()
             .code,
-        SearchV2ErrorCode::CorruptSelectedCarrier
+        SearchErrorCode::CorruptSelectedCarrier
     );
     broken_db.execute_batch("ROLLBACK").unwrap();
     let mut session = PreparedSearchSession::new(
@@ -642,7 +642,7 @@ fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_me
             .inspect(&f.binding, SearchKind::Nodes, "a", 1)
             .unwrap_err()
             .code,
-        SearchV2ErrorCode::BudgetExceeded
+        SearchErrorCode::BudgetExceeded
     );
     db.execute_batch("ROLLBACK").unwrap();
 }
@@ -650,7 +650,7 @@ fn prepared_inspect_alias_endpoints_counts_and_selected_corruption_use_shared_me
 #[test]
 fn prepared_lens_full_plan_preserves_selected_rows_and_refuses_corruption_and_abort() {
     use std::sync::Arc;
-    use tos_query::search_v2::SearchV2ErrorCode;
+    use tos_query::search::SearchErrorCode;
     let f = Fixture::publish(rows(), 1_048_576);
     let db = Connection::open_with_flags(&f.path, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();
     db.execute_batch("PRAGMA query_only=ON;BEGIN").unwrap();
@@ -711,7 +711,7 @@ fn prepared_lens_full_plan_preserves_selected_rows_and_refuses_corruption_and_ab
         let mut session = PreparedSearchSession::new(&db, limits).unwrap();
         assert_eq!(
             session.lens(&f.binding, &spec).unwrap_err().code,
-            SearchV2ErrorCode::CorruptSelectedCarrier
+            SearchErrorCode::CorruptSelectedCarrier
         );
         db.execute_batch("ROLLBACK").unwrap();
     }
@@ -728,7 +728,7 @@ fn prepared_lens_full_plan_preserves_selected_rows_and_refuses_corruption_and_ab
         PreparedSearchSession::new_with_abort(&db, limits, Some(Arc::new(Cancel))).unwrap();
     assert_eq!(
         session.lens(&f.binding, &spec).unwrap_err().code,
-        SearchV2ErrorCode::Cancelled
+        SearchErrorCode::Cancelled
     );
     db.execute_batch("ROLLBACK").unwrap();
 }

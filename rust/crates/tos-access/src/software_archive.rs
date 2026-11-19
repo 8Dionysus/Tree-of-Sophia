@@ -42,7 +42,6 @@ fn executable_member(name: &str) -> bool {
 }
 const MANIFEST: &str = "software.manifest.json";
 const MANIFEST_BYTES: usize = 1_048_576;
-const STATIC: &str = "access/src/tos_access/web_dist/";
 const TARGET: &str = "x86_64-unknown-linux-gnu";
 const NATIVE_SCHEMA: &str = "tos_native_access_build_v1";
 const NATIVE_SCHEMA_V2: &str = "tos_native_access_build_v2";
@@ -237,9 +236,8 @@ fn allowed(name: &str) -> bool {
                 .iter()
                 .any(|s| rest == format!("ToS/contracts/{s}"));
     }
-    name.starts_with(STATIC)
-        || ((name.starts_with("access/contracts/") || name.starts_with("access/profiles/"))
-            && name.ends_with(".json"))
+    (name.starts_with("access/contracts/") || name.starts_with("access/profiles/"))
+        && name.ends_with(".json")
 }
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 fn child(root: &File, name: &str) -> Result<File> {
@@ -405,8 +403,10 @@ fn source(root: &File) -> Result<(String, String)> {
             ":(glob)access/profiles/**/*.json",
             "access/web/src",
             "access/web/public",
-            "access/web/index.html",
-            "access/web/research.html",
+            "access/web/home/index.html",
+            "access/web/zarathustra/index.html",
+            "access/web/antiquity/index.html",
+            "access/web/not-found/index.html",
             ":(glob)access/web/package*.json",
             "access/web/tsconfig.json",
             "access/web/vite.config.ts",
@@ -595,9 +595,6 @@ fn add(
         .filter(|n| *n <= limits.max_metadata_bytes)
         .ok_or("software retained input metadata exceeds structural budget")?;
     let id = identity(&f)?;
-    if name.starts_with(STATIC) && id.2 > crate::site::MAX_STATIC_BYTES as u64 {
-        return Err("static member exceeds delivery cap".into());
-    }
     let admitted = total
         .checked_add(id.2)
         .filter(|n| *n <= limits.max_total_bytes)
@@ -680,21 +677,17 @@ impl Seek for ArchiveOutput {
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub fn build(
     root: &Path,
-    web_dist: &Path,
     output: &Path,
     source_ref: &str,
     binary: &Path,
     receipt: &Path,
     limits: ArchiveLimits,
 ) -> Result<JsonValue> {
-    build_with_commands(
-        root, web_dist, output, source_ref, binary, receipt, None, limits,
-    )
+    build_with_commands(root, output, source_ref, binary, receipt, None, limits)
 }
 #[cfg(any(feature = "source-tools", feature = "research-tools"))]
 pub fn build_with_commands(
     root: &Path,
-    web_dist: &Path,
     output: &Path,
     source_ref: &str,
     binary: &Path,
@@ -770,28 +763,6 @@ pub fn build_with_commands(
         if admitted == 0 {
             return Err("required software directory is empty".into());
         }
-    }
-    let web_root = tos_fd_open::open_absolute_directory(web_dist).checked()?;
-    let mut web_paths = Vec::new();
-    walk(
-        &web_root,
-        "",
-        &mut web_paths,
-        limits,
-        &mut 0,
-        false,
-        0,
-        &mut 0,
-    )?;
-    for path in web_paths {
-        add(
-            &mut inputs,
-            format!("{STATIC}{path}"),
-            child(&web_root, &path)?,
-            limits,
-            &mut total,
-            &mut input_metadata,
-        )?;
     }
     for schema in TOS_SCHEMAS {
         let path = format!("ToS/contracts/{schema}");
@@ -942,11 +913,6 @@ pub fn build_with_commands(
             sha: Digest256::of_bytes(README.as_bytes()),
         },
     );
-    for required in ["assets/tos-graph.js", "assets/tos-graph.css"] {
-        if !inputs.contains_key(&format!("{STATIC}{required}")) {
-            return Err("native software required web asset absent".into());
-        }
-    }
     if total > limits.max_total_bytes || inputs.len() + 1 > limits.max_members {
         return Err("software closure exceeds declared budget".into());
     }
@@ -1264,9 +1230,7 @@ impl VerifiedArchive {
                 .checked_add(size)
                 .filter(|n| *n <= limits.max_total_bytes)
                 .ok_or("software expanded total exceeds budget before decompression")?;
-            if (name == MANIFEST && size > MANIFEST_BYTES as u64)
-                || (name.starts_with(STATIC) && size > crate::site::MAX_STATIC_BYTES as u64)
-            {
+            if name == MANIFEST && size > MANIFEST_BYTES as u64 {
                 return Err("software member exceeds delivery/document cap".into());
             }
             // The explicit typed/name charge precedes owned metadata allocation.
@@ -1389,9 +1353,6 @@ impl VerifiedArchive {
                 .checked_add(size)
                 .filter(|n| *n <= limits.max_total_bytes)
                 .ok_or("software uncompressed closure exceeds cap")?;
-            if name.starts_with(STATIC) && size > crate::site::MAX_STATIC_BYTES as u64 {
-                return Err("static member exceeds software delivery cap".into());
-            }
             let digest = Digest256::from_hex(string(row, "sha256")?).checked()?;
             metadata = metadata
                 .checked_add(std::mem::size_of::<(&str, (u64, Digest256))>())
@@ -1447,11 +1408,6 @@ impl VerifiedArchive {
         for required in [PROGRAM, "Cargo.lock", "rust-toolchain.toml"] {
             if !declared.contains_key(required) {
                 return Err("native proof member closure absent".into());
-            }
-        }
-        for asset in ["assets/tos-graph.js", "assets/tos-graph.css"] {
-            if !declared.contains_key(format!("{STATIC}{asset}").as_str()) {
-                return Err("native software required asset absent".into());
             }
         }
         let image = declared.get(PROGRAM).unwrap();
@@ -1736,7 +1692,6 @@ pub fn run_if_requested(
         let keys: &[&str] = match action.as_str() {
             "build" => &[
                 "root",
-                "web-dist",
                 "output",
                 "source-ref",
                 "native-access-binary",
@@ -1763,7 +1718,6 @@ pub fn run_if_requested(
         let value = match action.as_str() {
             "build" => build_with_commands(
                 Path::new(&required("root")?),
-                Path::new(&required("web-dist")?),
                 Path::new(&required("output")?),
                 &required("source-ref")?,
                 Path::new(&required("native-access-binary")?),

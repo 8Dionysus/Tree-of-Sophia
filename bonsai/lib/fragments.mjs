@@ -18,6 +18,17 @@
 export const FRAGMENTS_SCHEMA='tos.bonsai.fragments.v1';
 export const CORPUS_ALIGNMENT_SCHEMA='tos.bonsai.corpus-alignment.v1';
 export const TRANSLATION_SCOPES_SCHEMA='tos.bonsai.translation-scopes.v1';
+/** Optional evidence for refining a local reference by sentences. */
+export function validLocalSentenceOptions(pair){
+  const {sentenceAnchors,precedingTranslationSentences}=pair;
+  if(precedingTranslationSentences!==undefined&&
+    (!Number.isInteger(precedingTranslationSentences)||precedingTranslationSentences<1||precedingTranslationSentences>3||!sentenceAnchors))return false;
+  if(sentenceAnchors===undefined)return true;
+  const keywords=words=>Array.isArray(words)&&words.length>=1&&words.length<=8&&
+    words.every(word=>typeof word==='string'&&word.length<=64&&/^\p{L}[\p{L}\p{M}]*$/u.test(word));
+  return Array.isArray(sentenceAnchors)&&sentenceAnchors.length>=1&&sentenceAnchors.length<=32&&
+    sentenceAnchors.every(anchor=>anchor&&keywords(anchor.source)&&keywords(anchor.target));
+}
 /** Shape of explicit original ranges for partial translations. */
 export function translationScopesIssues(module){
   const issues=[];
@@ -31,6 +42,10 @@ export function translationScopesIssues(module){
     if(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))issues.push('maxSourceSentences');
     if(scope.translationStart!==undefined&&(typeof scope.translationStart?.unitId!=='string'||!scope.translationStart.unitId.trim()||!Number.isInteger(scope.translationStart?.offset)||scope.translationStart.offset<1))issues.push('translationStart');
     if(scope.handoverUnitIds!==undefined&&(!Array.isArray(scope.handoverUnitIds)||!scope.handoverUnitIds.length||scope.handoverUnitIds.some(id=>typeof id!=='string'||!id.trim())||new Set(scope.handoverUnitIds).size!==scope.handoverUnitIds.length))issues.push('handoverUnitIds');
+    if(scope.localReferencePairs!==undefined&&(!Array.isArray(scope.localReferencePairs)||!scope.localReferencePairs.length||scope.localReferencePairs.some(pair=>!pair||typeof pair.originalUnitId!=='string'||!pair.originalUnitId.trim()||typeof pair.translationUnitId!=='string'||!pair.translationUnitId.trim()||(pair.includeFollowingContinuation!==undefined&&pair.includeFollowingContinuation!==true)||!validLocalSentenceOptions(pair))||new Set(scope.localReferencePairs.map(pair=>pair?.originalUnitId)).size!==scope.localReferencePairs.length||new Set(scope.localReferencePairs.map(pair=>pair?.translationUnitId)).size!==scope.localReferencePairs.length))issues.push('localReferencePairs');
+    if(scope.completePreviousUnitIds!==undefined&&(!Array.isArray(scope.completePreviousUnitIds)||!scope.completePreviousUnitIds.length||!Array.isArray(scope.handoverUnitIds)||new Set(scope.completePreviousUnitIds).size!==scope.completePreviousUnitIds.length||scope.completePreviousUnitIds.some(id=>typeof id!=='string'||(!scope.handoverUnitIds.includes(id)||(Array.isArray(scope.localReferencePairs)&&scope.localReferencePairs.some(pair=>pair?.originalUnitId===id))))))issues.push('completePreviousUnitIds');
+    if(scope.withheld!==undefined&&scope.withheld!==true)issues.push('withheld');
+    if(scope.withheld&&(scope.maxSourceSentences!==undefined||scope.translationStart!==undefined||scope.handoverUnitIds!==undefined||scope.localReferencePairs!==undefined||scope.completePreviousUnitIds!==undefined))issues.push('withheld options');
     if(!/^https:\/\//.test(scope.source??''))issues.push('source');
     const key=`${scope.work}:${scope.translationVersionId}`;if(seen.has(key))issues.push(`duplicate ${key}`);seen.add(key);
   }

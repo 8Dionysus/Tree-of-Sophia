@@ -209,7 +209,7 @@ pub(crate) fn registry_value(
     raw: &[u8],
     expected_sha256: &str,
     cap: usize,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<Value> {
     let limits = registry_limits(raw, expected_sha256, cap, state)?;
     if let Some(state) = state {
@@ -223,10 +223,10 @@ pub(crate) fn registry_value_scoped<'state, 'budget>(
     raw: &[u8],
     expected_sha256: &str,
     cap: usize,
-    state: &'state crate::d1_public_capture::CreationState<'budget>,
+    state: &'state crate::public_capture::CreationState<'budget>,
 ) -> Result<(
     Value,
-    crate::d1_public_capture::CreationStateHold<'state, 'budget>,
+    crate::public_capture::CreationStateHold<'state, 'budget>,
 )> {
     let limits = registry_limits(raw, expected_sha256, cap, Some(state))?;
     state.serde_scoped_with_limits(raw, limits)
@@ -236,7 +236,7 @@ fn registry_limits(
     raw: &[u8],
     expected_sha256: &str,
     cap: usize,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<JsonLimits> {
     if cap == 0 || cap > 4 * 1024 * 1024 || raw.is_empty() || raw.len() > cap {
         return Err(Error::Budget("full knowledge registry bytes"));
@@ -488,7 +488,7 @@ fn compile_inner(
 #[cfg(not(target_arch = "wasm32"))]
 fn full_component_stage<T>(
     name: &'static str,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
     run: impl FnOnce() -> Result<T>,
 ) -> Result<T> {
     let retained = || state.map(|s| s.observed_retained_state_bytes());
@@ -513,7 +513,7 @@ fn full_component_stage<T>(
 #[cfg(target_arch = "wasm32")]
 fn full_component_stage<T>(
     _: &'static str,
-    _: Option<&crate::d1_public_capture::CreationState<'_>>,
+    _: Option<&crate::public_capture::CreationState<'_>>,
     run: impl FnOnce() -> Result<T>,
 ) -> Result<T> {
     run()

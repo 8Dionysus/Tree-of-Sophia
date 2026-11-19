@@ -75,7 +75,7 @@ it('sets the saved theme before the first paint, from the same names',()=>{
   const boot=readFileSync(new URL('../../public/theme.js',import.meta.url),'utf8');
   expect(boot).toContain(THEME_KEY);
   expect(/\^\(([^)]*)\)\$/.exec(boot)[1].split('|').sort()).toEqual(THEMES.map(theme=>theme.id).sort());
-  for(const page of ['zarathustra','antiquity','home','not-found'])expect(readFileSync(new URL(`../../${page}/index.html`,import.meta.url),'utf8')).toContain('<script src="/theme.js"></script>');
+  for(const page of ['zarathustra','antiquity','aesthetics','home','not-found'])expect(readFileSync(new URL(`../../${page}/index.html`,import.meta.url),'utf8')).toContain('<script src="/theme.js"></script>');
 });
 
 it('gives each bonsai its own tree with one crown star, the tree its card and the sky both show',()=>{

@@ -114,3 +114,15 @@ fn planting_atlas_membership_requires_exact_current_row_and_branch() {
         );
     }
 }
+
+#[test]
+fn branch_backlog_slices_preserve_bytes_and_logical_line_order() {
+    let raw = b"{\"branch_path\":\"a\",\"n\":1}\n{\"branch_path\":\"b\",\"n\":2}\n{\"branch_path\":\"a\",\"n\":3}\n";
+    let slices = backlog_slices(raw).unwrap();
+    assert_eq!(
+        slices["a"],
+        b"{\"branch_path\":\"a\",\"n\":1}\n{\"branch_path\":\"a\",\"n\":3}\n"
+    );
+    assert_eq!(slices["b"], b"{\"branch_path\":\"b\",\"n\":2}\n");
+    assert!(backlog_slices(b"{}\n").is_err());
+}

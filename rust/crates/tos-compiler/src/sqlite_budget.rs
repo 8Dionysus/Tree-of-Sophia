@@ -80,7 +80,7 @@ pub(crate) fn configure_with_counter_until(
 pub(crate) fn configure_prepaid_limits_with_owned_state(
     db: &Connection,
     limits: Limits,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     use std::fmt::Write;
     struct Sql {
@@ -108,7 +108,7 @@ pub(crate) fn configure_prepaid_limits_with_owned_state(
     fn run(
         db: &Connection,
         sql: &std::ffi::CStr,
-        state: &crate::d1_public_capture::CreationState<'_>,
+        state: &crate::public_capture::CreationState<'_>,
         integer: bool,
     ) -> Result<Option<i64>> {
         state.active()?;

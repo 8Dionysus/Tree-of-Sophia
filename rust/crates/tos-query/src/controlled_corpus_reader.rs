@@ -3,7 +3,7 @@
 use crate::controlled_original_reader::{OriginalReadCharges, read_corpus_selected_original};
 use crate::controlled_query_adapter::compiler_query_error;
 use crate::corpus_read::CorpusOriginalRead;
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode};
 use crate::{InspectBudget, InspectCurrentAuthority};
 use tos_compiler::{
     ControlledKnowledgeModel, ControlledQueryHeap, CorpusOriginalCollection, CorpusOriginalReceipt,
@@ -18,27 +18,27 @@ pub(crate) struct ControlledCorpusReader<'a, 'model, 'state, 'budget, A: ?Sized>
     pub charges: &'a mut OriginalReadCharges,
     pub heap: &'a mut ControlledQueryHeap<'model, 'state, 'budget>,
 }
-fn budget() -> SearchV2Error {
-    SearchV2Error::new(
-        SearchV2ErrorCode::BudgetExceeded,
+fn budget() -> SearchError {
+    SearchError::new(
+        SearchErrorCode::BudgetExceeded,
         "controlled Corpus kernel budget exceeded",
     )
 }
-fn corrupt() -> SearchV2Error {
-    SearchV2Error::new(
-        SearchV2ErrorCode::CorruptSelectedCarrier,
+fn corrupt() -> SearchError {
+    SearchError::new(
+        SearchErrorCode::CorruptSelectedCarrier,
         "controlled Corpus receipt differs",
     )
 }
 impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusOriginalRead
     for ControlledCorpusReader<'_, '_, '_, '_, A>
 {
-    fn check_interrupt(&mut self) -> Result<(), SearchV2Error> {
+    fn check_interrupt(&mut self) -> Result<(), SearchError> {
         self.authority.check_selected()?;
         self.heap.check().map_err(compiler_query_error)?;
         self.model.check_pin().map_err(compiler_query_error)
     }
-    fn charge_kernel_work(&mut self, steps: usize) -> Result<(), SearchV2Error> {
+    fn charge_kernel_work(&mut self, steps: usize) -> Result<(), SearchError> {
         self.check_interrupt()?;
         self.heap.charge_work(steps).map_err(compiler_query_error)
     }
@@ -48,7 +48,7 @@ impl<'hold, A: InspectCurrentAuthority<'hold> + ?Sized> CorpusOriginalRead
         collection: CorpusOriginalCollection,
         selector: &CorpusOriginalSelector,
         after: Option<u64>,
-    ) -> Result<Option<(u64, JsonValue)>, SearchV2Error> {
+    ) -> Result<Option<(u64, JsonValue)>, SearchError> {
         self.check_interrupt()?;
         let actual = self.model.corpus_original_receipt().ok_or_else(corrupt)?;
         if receipt.descriptor_sha256 != actual.descriptor_sha256
