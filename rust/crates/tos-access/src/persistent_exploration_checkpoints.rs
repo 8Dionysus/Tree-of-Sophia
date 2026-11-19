@@ -22,43 +22,43 @@ use tos_query::{
         PUBLISHED_EXPLORATION_CACHE_VERSION, PreparedExplorationCheckpoint,
         decode_published_exploration_state,
     },
-    search_v2::{SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode},
 };
 const SCHEMA: &str = "tos_rust_private_exploration_checkpoints_v1";
 const TABLE_META: &str = "CREATE TABLE checkpoint_meta(singleton INTEGER PRIMARY KEY CHECK(singleton=1),config TEXT NOT NULL,last_time INTEGER NOT NULL CHECK(last_time>=0))";
 const TABLE_ROWS: &str = "CREATE TABLE checkpoints(token TEXT PRIMARY KEY,revision TEXT NOT NULL,expires INTEGER NOT NULL,sequence INTEGER NOT NULL,kind INTEGER NOT NULL CHECK(kind IN(0,1)),digest TEXT NOT NULL,raw BLOB NOT NULL)";
 const INDEX: &str = "CREATE INDEX checkpoints_sequence ON checkpoints(sequence)";
-fn err(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn err(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
-fn unavailable() -> SearchV2Error {
+fn unavailable() -> SearchError {
     err(
-        SearchV2ErrorCode::Unavailable,
+        SearchErrorCode::Unavailable,
         "persistent checkpoint unavailable, busy or incompatible; no automatic reset",
     )
 }
-fn corrupt() -> SearchV2Error {
+fn corrupt() -> SearchError {
     err(
-        SearchV2ErrorCode::CorruptSelectedCarrier,
+        SearchErrorCode::CorruptSelectedCarrier,
         "persistent checkpoint framing or custody changed",
     )
 }
-fn capacity() -> SearchV2Error {
+fn capacity() -> SearchError {
     err(
-        SearchV2ErrorCode::BudgetExceeded,
+        SearchErrorCode::BudgetExceeded,
         "replay and successor exceed protected checkpoint capacity",
     )
 }
-fn expired() -> SearchV2Error {
+fn expired() -> SearchError {
     err(
-        SearchV2ErrorCode::CursorExpired,
+        SearchErrorCode::CursorExpired,
         "exploration checkpoint expired or evicted; restart",
     )
 }
-fn sql<T>(v: rusqlite::Result<T>) -> Result<T, SearchV2Error> {
+fn sql<T>(v: rusqlite::Result<T>) -> Result<T, SearchError> {
     v.map_err(|_| unavailable())
 }
-fn now() -> Result<i64, SearchV2Error> {
+fn now() -> Result<i64, SearchError> {
     let ms = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|_| unavailable())?
@@ -68,7 +68,7 @@ fn now() -> Result<i64, SearchV2Error> {
 fn bare(s: &str) -> bool {
     tos_foundation::is_lower_hex(s, 64)
 }
-fn path_checked(p: &Path) -> Result<PathBuf, SearchV2Error> {
+fn path_checked(p: &Path) -> Result<PathBuf, SearchError> {
     if !p.is_absolute() || p.file_name().is_none() {
         return Err(corrupt());
     }
@@ -116,13 +116,13 @@ struct Held {
     loaded: Option<(String, String, i64)>,
     probe: Option<Arc<dyn tos_query::AbortProbe>>,
 }
-fn check(probe: Option<&dyn tos_query::AbortProbe>) -> Result<(), SearchV2Error> {
+fn check(probe: Option<&dyn tos_query::AbortProbe>) -> Result<(), SearchError> {
     match probe.and_then(tos_query::AbortProbe::reason) {
         Some(tos_query::AbortReason::Cancelled) => {
-            Err(err(SearchV2ErrorCode::Cancelled, "checkpoint cancelled"))
+            Err(err(SearchErrorCode::Cancelled, "checkpoint cancelled"))
         }
         Some(tos_query::AbortReason::DeadlineExceeded) => Err(err(
-            SearchV2ErrorCode::DeadlineExceeded,
+            SearchErrorCode::DeadlineExceeded,
             "checkpoint deadline exceeded",
         )),
         None => Ok(()),
@@ -134,7 +134,7 @@ impl Drop for Held {
     }
 }
 impl Config {
-    fn verify(&self) -> Result<(), SearchV2Error> {
+    fn verify(&self) -> Result<(), SearchError> {
         let m = fs::symlink_metadata(&self.path).map_err(|_| unavailable())?;
         let a = self.anchor.metadata().map_err(|_| unavailable())?;
         if !m.is_file()
@@ -196,7 +196,7 @@ impl Config {
     fn connect(
         &self,
         probe: Option<Arc<dyn tos_query::AbortProbe>>,
-    ) -> Result<Connection, SearchV2Error> {
+    ) -> Result<Connection, SearchError> {
         check(probe.as_deref())?;
         self.verify()?;
         // SQLite's own O_NOFOLLOW accompanies retained-FD and pathname checks.
@@ -241,7 +241,7 @@ impl Config {
         }
         Ok(db)
     }
-    fn validate(&self, db: &Connection) -> Result<i64, SearchV2Error> {
+    fn validate(&self, db: &Connection) -> Result<i64, SearchError> {
         // Exact Rust schema, including no triggers/views/foreign schema objects.
         let mut stmt=sql(db.prepare("SELECT CASE WHEN length(name)<=128 THEN name ELSE NULL END,CASE WHEN length(sql)<=8192 THEN sql ELSE NULL END FROM sqlite_master WHERE name NOT LIKE 'sqlite_autoindex_%' ORDER BY name LIMIT 5"))?;
         let objects =
@@ -271,7 +271,7 @@ impl Config {
         rows(self, db)?;
         Ok(last)
     }
-    fn begin(&self, probe: Option<Arc<dyn tos_query::AbortProbe>>) -> Result<Held, SearchV2Error> {
+    fn begin(&self, probe: Option<Arc<dyn tos_query::AbortProbe>>) -> Result<Held, SearchError> {
         check(probe.as_deref())?;
         let db = self.connect(probe.clone())?;
         sql(db.execute_batch("BEGIN IMMEDIATE"))?;
@@ -279,7 +279,7 @@ impl Config {
             let clock = now()?;
             if clock < self.validate(&db)? {
                 return Err(err(
-                    SearchV2ErrorCode::Unavailable,
+                    SearchErrorCode::Unavailable,
                     "checkpoint wall clock moved backwards; state retained",
                 ));
             }
@@ -321,7 +321,7 @@ impl PersistentExplorationCheckpoints {
         source_path: &Path,
         limits: CheckpointLimits,
         budget: ExplorationBudget,
-    ) -> Result<Self, SearchV2Error> {
+    ) -> Result<Self, SearchError> {
         if limits.ttl.as_millis() == 0
             || limits.ttl > Duration::from_secs(86400)
             || limits.max_entries == 0
@@ -338,7 +338,7 @@ impl PersistentExplorationCheckpoints {
             || limits.max_encoded_bytes > budget.max_checkpoint_bytes
         {
             return Err(err(
-                SearchV2ErrorCode::InvalidRequest,
+                SearchErrorCode::InvalidRequest,
                 "invalid persistent checkpoint limits",
             ));
         }
@@ -420,14 +420,14 @@ impl PersistentExplorationCheckpoints {
             probe: None,
         })
     }
-    fn take(&mut self) -> Result<Option<Held>, SearchV2Error> {
+    fn take(&mut self) -> Result<Option<Held>, SearchError> {
         self.pending
             .get_mut()
             .map_err(|_| unavailable())
             .map(Option::take)
     }
 }
-fn random_token() -> Result<String, SearchV2Error> {
+fn random_token() -> Result<String, SearchError> {
     let mut bytes = [0u8; 32];
     File::open("/dev/urandom")
         .and_then(|mut f| f.read_exact(&mut bytes))
@@ -435,7 +435,7 @@ fn random_token() -> Result<String, SearchV2Error> {
     Ok(Digest256::of_bytes(&bytes).to_hex())
 }
 // Read no more than the declared maximum plus one poisoned-row sentinel.
-fn rows(config: &Config, db: &Connection) -> Result<Vec<(String, usize, i64)>, SearchV2Error> {
+fn rows(config: &Config, db: &Connection) -> Result<Vec<(String, usize, i64)>, SearchError> {
     let mut stmt = sql(db.prepare("SELECT CASE WHEN length(token)=64 THEN token ELSE NULL END,length(raw),sequence,expires,kind FROM checkpoints LIMIT 129"))?;
     let values = sql(stmt.query_map([], |r| {
         Ok((
@@ -473,7 +473,7 @@ fn put(
     kind: i64,
     raw: &[u8],
     protected: &BTreeSet<String>,
-) -> Result<(), SearchV2Error> {
+) -> Result<(), SearchError> {
     if raw.len() > config.limits.max_encoded_bytes || !bare(token) {
         return Err(capacity());
     }
@@ -512,13 +512,9 @@ fn put(
     Ok(())
 }
 impl ExplorationCheckpoints for PersistentExplorationCheckpoints {
-    fn load(
-        &mut self,
-        cursor: &str,
-        revision: &str,
-    ) -> Result<ExplorationCheckpoint, SearchV2Error> {
+    fn load(&mut self, cursor: &str, revision: &str) -> Result<ExplorationCheckpoint, SearchError> {
         let operation_probe = self.probe.clone();
-        let result: Result<ExplorationCheckpoint, SearchV2Error> = (|| {
+        let result: Result<ExplorationCheckpoint, SearchError> = (|| {
             check(self.probe.as_deref())?;
             if !bare(cursor)
                 || revision.is_empty()
@@ -539,7 +535,7 @@ impl ExplorationCheckpoints for PersistentExplorationCheckpoints {
             held.expires = expires;
             if stored != revision {
                 return Err(err(
-                    SearchV2ErrorCode::StaleContinuation,
+                    SearchErrorCode::StaleContinuation,
                     "checkpoint source snapshot or execution changed",
                 ));
             }
@@ -590,9 +586,9 @@ impl ExplorationCheckpoints for PersistentExplorationCheckpoints {
         successor: Option<&ExplorationState>,
         _packet: &JsonValue,
         budget: ExplorationBudget,
-    ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> {
+    ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchError> {
         let operation_probe = self.probe.clone();
-        let result = (|| -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error> {
+        let result = (|| -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchError> {
             check(self.probe.as_deref())?;
             if format!("{budget:?}") != format!("{:?}", self.config.budget)
                 || revision.is_empty()
@@ -664,27 +660,26 @@ impl ExplorationCheckpoints for PersistentExplorationCheckpoints {
     }
     fn prepare_replay(
         &mut self,
-    ) -> Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchV2Error> {
+    ) -> Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchError> {
         let operation_probe = self.probe.clone();
-        let result =
-            (|| -> Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchV2Error> {
-                check(self.probe.as_deref())?;
-                let held = self.take()?.ok_or_else(expired)?;
-                if !held.loaded.as_ref().is_some_and(|(_, _, kind)| *kind == 1) {
-                    return Err(corrupt());
-                }
-                Ok(Some(Box::new(Staged {
-                    config: Arc::clone(&self.config),
-                    held: Some(held),
-                    input: None,
-                    revision: String::new(),
-                    next: None,
-                    protected: BTreeSet::new(),
-                    staged: false,
-                    replay_only: true,
-                    state_raw: None,
-                })))
-            })();
+        let result = (|| -> Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchError> {
+            check(self.probe.as_deref())?;
+            let held = self.take()?.ok_or_else(expired)?;
+            if !held.loaded.as_ref().is_some_and(|(_, _, kind)| *kind == 1) {
+                return Err(corrupt());
+            }
+            Ok(Some(Box::new(Staged {
+                config: Arc::clone(&self.config),
+                held: Some(held),
+                input: None,
+                revision: String::new(),
+                next: None,
+                protected: BTreeSet::new(),
+                staged: false,
+                replay_only: true,
+                state_raw: None,
+            })))
+        })();
         if result.is_err() {
             check(operation_probe.as_deref())?;
         }
@@ -706,9 +701,9 @@ impl PreparedExplorationCheckpoint for Staged {
     fn next_cursor(&self) -> Option<&str> {
         self.next.as_deref()
     }
-    fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchV2Error> {
+    fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchError> {
         let operation_probe = self.held.as_ref().and_then(|held| held.probe.clone());
-        let result: Result<(), SearchV2Error> = (|| {
+        let result: Result<(), SearchError> = (|| {
             check(self.held.as_ref().ok_or_else(corrupt)?.probe.as_deref())?;
             if self.staged
                 || self.held.is_none()
@@ -748,9 +743,9 @@ impl PreparedExplorationCheckpoint for Staged {
         }
         result
     }
-    fn commit(&mut self) -> Result<(), SearchV2Error> {
+    fn commit(&mut self) -> Result<(), SearchError> {
         let operation_probe = self.held.as_ref().and_then(|held| held.probe.clone());
-        let result: Result<(), SearchV2Error> = (|| {
+        let result: Result<(), SearchError> = (|| {
             if !self.staged && !self.replay_only {
                 return Err(corrupt());
             }
@@ -760,7 +755,7 @@ impl PreparedExplorationCheckpoint for Staged {
             let committed_clock = now()?;
             if committed_clock < held.clock {
                 return Err(err(
-                    SearchV2ErrorCode::Unavailable,
+                    SearchErrorCode::Unavailable,
                     "checkpoint wall clock moved backwards; state retained",
                 ));
             }

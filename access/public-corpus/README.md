@@ -129,8 +129,8 @@ Their authored owners remain the same-named packets under
 metadata projections, then verify their byte parity:
 
 ```sh
-python3 access/public-corpus/prepare_reader_companions.py --write
-python3 access/public-corpus/prepare_reader_companions.py
+node access/public-corpus/prepare-reader-companions.mjs --write
+node access/public-corpus/prepare-reader-companions.mjs
 ```
 
 This route does not rebuild texts or change references. Software builds consume

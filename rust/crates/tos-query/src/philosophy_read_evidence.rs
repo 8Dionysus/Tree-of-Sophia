@@ -50,7 +50,7 @@ pub(super) fn phi_context<'a>(
     base_edges: &'a [JsonValue],
     request: &EvidenceRequest,
     w: &mut Work<'_>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let selection = graph
         .nodes
         .iter()
@@ -82,7 +82,7 @@ fn context(
     request: &EvidenceRequest,
     phi: bool,
     w: &mut Work<'_>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let node = truthy(get(selection, "node_id"));
     let endpoints = if node {
         BTreeSet::from([request.item_id.as_str()])
@@ -262,7 +262,7 @@ fn join(
     context: &JsonValue,
     request: &EvidenceRequest,
     w: &mut Work<'_>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let mode = match request.mode {
         EvidenceMode::Philosophy => "philosophy",
         EvidenceMode::Corpus => "corpus",
@@ -493,7 +493,7 @@ pub fn execute_selected_evidence<'hold, A: InspectCurrentAuthority<'hold> + ?Siz
     evidence_raw: &[u8],
     corpus_context: Option<&crate::corpus_read::CorpusReadContext>,
     budget: PhilosophyReadBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     if request.item_id.is_empty()
         || request.item_id.len() > budget.inspect.max_field_bytes
         || request
@@ -509,7 +509,7 @@ pub fn execute_selected_evidence<'hold, A: InspectCurrentAuthority<'hold> + ?Siz
         || evidence_raw.len() as u64 > budget.max_work_steps
     {
         return Err(failure(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "evidence projection work/byte budget",
         ));
     }
@@ -525,14 +525,14 @@ pub fn execute_selected_evidence<'hold, A: InspectCurrentAuthority<'hold> + ?Siz
             let document = parse_json(evidence_raw, JsonMode::PublishedStrict, budget.inspect.json)
                 .map_err(|_| {
                     failure(
-                        SearchV2ErrorCode::CorruptSelectedCarrier,
+                        SearchErrorCode::CorruptSelectedCarrier,
                         "invalid evidence projection",
                     )
                 })?;
             let evidence = document.root();
             if s(get(evidence, "schema_version")) != "tos_epistemic_evidence_projection_v1" {
                 return Err(failure(
-                    SearchV2ErrorCode::CorruptSelectedCarrier,
+                    SearchErrorCode::CorruptSelectedCarrier,
                     "evidence projection schema",
                 ));
             }
