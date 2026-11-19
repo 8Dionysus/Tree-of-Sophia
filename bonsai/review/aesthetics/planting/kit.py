@@ -276,11 +276,13 @@ def scan_of(ev,entry):
 def letters(text):
     """The letters of a word, with case, accents, ligatures, umlaut spellings and the long s set aside."""
     for a,b in (('ſ','s'),('æ','ae'),('Æ','ae'),('œ','oe'),('Œ','oe'),('ß','ss'),('ä','ae'),('ö','oe'),('ü','ue'),('Ä','ae'),('Ö','oe'),('Ü','ue')):text=text.replace(a,b)
-    return re.sub(r'[\W\d_]','',''.join(c for c in unicodedata.normalize('NFD',text) if not unicodedata.combining(c)).lower())
+    # Indic vowel signs and virama are part of the spelling, not accents.
+    text=unicodedata.normalize('NFD',unicodedata.normalize('NFKC',text).casefold())
+    return ''.join(c for c in text if c.isalpha() or ('\u0900'<=c<='\u097f' and unicodedata.category(c).startswith('M')))
 
 def changed(a,b):
     """The words a correction changes in their letters, as pairs (before, after)."""
-    wa,wb=re.findall(r'\w+',a),re.findall(r'\w+',b);na,nb=[letters(w) for w in wa],[letters(w) for w in wb]
+    wa,wb=PART.findall(a),PART.findall(b);na,nb=[letters(w) for w in wa],[letters(w) for w in wb]
     return [(' '.join(wa[i1:i2]),' '.join(wb[j1:j2])) for tag,i1,i2,j1,j2 in difflib.SequenceMatcher(None,na,nb,autojunk=False).get_opcodes() if tag!='equal' and ''.join(na[i1:i2])!=''.join(nb[j1:j2])]
 
 def by_eye(places,ev):
@@ -291,9 +293,9 @@ def by_eye(places,ev):
         pairs=changed(str(correction.get('from','')),str(correction.get('to','')))
         loc=str(correction.get('place','')).removeprefix(work+' ');entry=(ev.get('places') or {}).get(loc)
         if not pairs or entry is None:continue
-        read={letters(word) for difference in entry.get('differences',[]) for word in re.findall(r'\w+',difference.get('transcription',''))}
+        read={letters(word) for difference in entry.get('differences',[]) for word in PART.findall(difference.get('transcription',''))}
         long_s=scan_of(ev,entry).get('long_s')
-        if entry.get('method')!='ocr' or any(letters(word) in read for _,after in pairs for word in re.findall(r'\w+',after)) or (long_s and any(letters(a).replace('f','s')==letters(b).replace('f','s') for a,b in pairs)):
+        if entry.get('method')!='ocr' or any(letters(word) in read for _,after in pairs for word in PART.findall(after)) or (long_s and any(letters(a).replace('f','s')==letters(b).replace('f','s') for a,b in pairs)):
             found.append((loc,'; '.join(f'«{a}» → «{b}»' for a,b in pairs)))
     return found
 
@@ -340,10 +342,38 @@ def cmd_ia(args):
 # ---- words ---------------------------------------------------------------------------------------------------------
 
 QUOTES=str.maketrans({'“':'"','”':'"','„':'"','«':'"','»':'"','‟':'"','‘':"'",'’':"'",'‚':"'",'‛':"'",'—':'-','–':'-','‒':'-','‐':'-','‑':'-','⸗':'-','…':'.'})
-TOKEN=re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)*|\d+|[^\s\w]|_")
-WORD=re.compile(r'[^\W\d_]+')
-def key(token,long_s=False):
+_LETTER=r'(?:[^\W\d_]|[\u0900-\u0903\u093a-\u094f\u0951-\u0957\u0962-\u0963])'
+TOKEN=re.compile(r"[\u3400-\u9fff]|"+_LETTER+r"+(?:'"+_LETTER+r"+)*|\d+|[^\s\w]|_")
+WORD=re.compile(_LETTER+r'+')
+PART=re.compile(_LETTER+r'+|\d+')
+
+# IAST is a search key only; the printed and transcribed words stay in the evidence.
+_VOWELS=dict(zip('अआइईउऊऋॠऌॡएऐओऔ',('a','ā','i','ī','u','ū','ṛ','ṝ','ḷ','ḹ','e','ai','o','au')))
+_SIGNS=dict(zip('ािीुूृॄॢॣेैोौ',('ā','i','ī','u','ū','ṛ','ṝ','ḷ','ḹ','e','ai','o','au')))
+_CONSONANTS=dict(zip('कखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसहळ',('k','kh','g','gh','ṅ','c','ch','j','jh','ñ','ṭ','ṭh','ḍ','ḍh','ṇ','t','th','d','dh','n','p','ph','b','bh','m','y','r','l','v','ś','ṣ','s','h','ḻ')))
+_SANSKRIT_MARKS={'ं':'ṃ','ः':'ḥ','ँ':'m̐','ऽ':'’'}
+# A small, explicit set of frequent traditional/simplified or graphic variants.
+# Unknown variants remain visible mismatches; a folded match still requires page review.
+_HAN_VARIANTS=str.maketrans({'國':'国','學':'学','體':'体','藝':'艺','樂':'乐','聲':'声','書':'书','畫':'画','萬':'万','與':'与','爲':'为','為':'为','說':'说','時':'时','見':'见','無':'无','有':'有','異':'异','風':'风','氣':'气'})
+def iast(text):
+    """Transliterate Devanagari Sanskrit for lookup, keeping unrecognised signs visible."""
+    text=unicodedata.normalize('NFC',text);out=[];i=0
+    while i<len(text):
+        c=text[i]
+        if c in _CONSONANTS:
+            out.append(_CONSONANTS[c]);i+=1
+            if i<len(text) and text[i]=='्':i+=1
+            elif i<len(text) and text[i] in _SIGNS:out.append(_SIGNS[text[i]]);i+=1
+            else:out.append('a')
+            continue
+        out.append(_VOWELS.get(c,_SANSKRIT_MARKS.get(c,c)));i+=1
+    return unicodedata.normalize('NFC',''.join(out))
+
+def key(token,long_s=False,script=None):
     token=unicodedata.normalize('NFKC',token).casefold().replace("'",'')
+    if script=='sa':token=iast(token)
+    if script=='la':token=token.translate(str.maketrans({'j':'i','v':'u'}))
+    if script=='zh':token=token.translate(_HAN_VARIANTS)
     return token.replace('f','s') if long_s else token
 def tokens(text,broken=False):
     """Words, numbers and marks with their offsets. In an OCR text (broken) a word divided at a line end is joined."""
@@ -369,7 +399,8 @@ def locate(needle,hay,index):
     votes={}
     for offset,word in enumerate(needle[:40]):
         places=index.get(word,())
-        if len(word)<4 or not places or len(places)>60:continue
+        han=len(word)==1 and '\u3400'<=word<='\u9fff'
+        if (len(word)<4 and not han) or not places or len(places)>60:continue
         for place in places:votes[place-offset]=votes.get(place-offset,0)+1
     if not votes:
         for offset,word in enumerate(needle[:12]):
@@ -381,15 +412,15 @@ def locate(needle,hay,index):
         if best is None or matched>best[0]:best=(matched,start,match)
     return best
 
-def against_ocr(text,o,modern_ru=False):
+def against_ocr(text,o,modern_ru=False,script=None):
     """A place beside the OCR: its leaves, how much of it the OCR reads the same, and every difference."""
     mine=tokens(text);a=[token for token,_ in mine]
     normalized=modern_russian('\n'.join(a)).split('\n') if modern_ru else a
-    ak=[key(token,o['long_s']) for token in normalized]
-    cache_key='modern_keys' if modern_ru else 'keys';index_key=cache_key+'_index'
+    ak=[key(token,o['long_s'],script) for token in normalized]
+    cache_key=('modern_keys' if modern_ru else 'keys')+'_'+str(script);index_key=cache_key+'_index'
     if cache_key not in o:
         words=modern_russian('\n'.join(o['words'])).split('\n') if modern_ru else o['words']
-        o[cache_key]=[key(token,o['long_s']) for token in words];o[index_key]={}
+        o[cache_key]=[key(token,o['long_s'],script) for token in words];o[index_key]={}
         for position,word in enumerate(o[cache_key]):o[index_key].setdefault(word,[]).append(position)
     best=locate(ak,o[cache_key],o[index_key])
     if not best:return None
@@ -398,7 +429,14 @@ def against_ocr(text,o,modern_ru=False):
     leaf=lambda position:bisect.bisect_right(o['starts'],o['at'][min(start+position,len(o['at'])-1)])-1
     ops=match.get_opcodes();differences=[]
     for n,(tag,i1,i2,j1,j2) in enumerate(ops):
-        if tag=='equal' or (tag=='insert' and n in(0,len(ops)-1)):continue
+        if tag=='equal':
+            # Search folding must not hide a different printed spelling or script from review.
+            if script:
+                for i,j in zip(range(i1,i2),range(j1,j2)):
+                    if key(a[i],o['long_s'])!=key(o['words'][start+j],o['long_s']):
+                        differences.append({'transcription':a[i],'ocr':o['words'][start+j],'leaf':leaf(j)})
+            continue
+        if tag=='insert' and n in(0,len(ops)-1):continue
         differences.append({'transcription':' '.join(a[i1:i2]),'ocr':' '.join(o['words'][start+j1:start+j2]),'leaf':leaf(j1)})
     first,last=leaf(blocks[0].b),leaf(blocks[-1].b+blocks[-1].size-1)
     return {'share':round(matched/len(ak),3),'leaves':list(range(first,last+1)),'printed':[o['printed'].get(n) for n in range(first,last+1)],'differences':differences}
@@ -411,7 +449,7 @@ def in_transcription(text,source,dropped=None):
         positions=[m.start() for m in re.finditer(re.escape(text),source)]
         for position in positions:
             before=source[:position].rstrip().rstrip(CLOSING).rstrip()
-            if not before or before[-1] in '.!?:…。！？؟':return None
+            if not before or before[-1] in '.!?:…。！？؟।॥':return None
         if positions:return 'it opens inside a sentence of the transcription'
     words=[(m.group(0),m.start()) for m in WORD.finditer(source.translate(QUOTES))];hay=[key(word) for word,_ in words];index={}
     for position,word in enumerate(hay):index.setdefault(word,[]).append(position)
@@ -427,7 +465,7 @@ def in_transcription(text,source,dropped=None):
     opened=bool(re.search(r'\n\s*\n[\s"“„«‘\'(\[_*]*$',before)) or not before.strip()
     before=re.sub(r'(\[[^\]]{0,12}\]|\(\d+\)|[\d*†‡§]+)\s*$','',re.sub(r'[\s"“„«‘\'(\[_*]+$','',before))
     before=re.sub(r'[\s"”»’\')\]_*]+$','',re.sub(r'[\s—–-]+$','',re.sub(r'[\s"”»’\')\]_*]+$','',before)))   # «… kommen. — Eben jene …»: the dash after a full stop opens a sentence
-    if not opened and before and before[-1] not in '.!?:…。！？؟':return f'it opens inside a sentence of the transcription (after «…{before[-40:]}»)'
+    if not opened and before and before[-1] not in '.!?:…。！？؟।॥':return f'it opens inside a sentence of the transcription (after «…{before[-40:]}»)'
     blocks=[block for block in match.get_matching_blocks() if block.size];a=words[start+blocks[0].b][1];last=words[start+blocks[-1].b+blocks[-1].size-1];z=last[1]+len(last[0])
     def written(end,begin=a):
         run=source[begin:end]
@@ -505,7 +543,7 @@ def sentences(text,limit=LONGEST):
     if text!=text.strip() or '  ' in text or '\t' in text:problems.append('stray whitespace')
     first=text.lstrip(OPENING)[:1]
     if not first or not first.isalpha() or (first.lower()!=first.upper() and not first.isupper()):problems.append(f'it does not open with a capital letter or uncased sentence initial («{text[:24]}»)')
-    if text.rstrip(CLOSING)[-1:] not in '.!?…。！？؟':problems.append(f'it does not close a sentence («{text[-24:]}»)')
+    if text.rstrip(CLOSING)[-1:] not in '.!?…。！？؟।॥':problems.append(f'it does not close a sentence («{text[-24:]}»)')
     if limit is not None and len(text)>limit:problems.append(f'{len(text)} characters: a place is the sentences that say the thing, at most {limit} characters')
     return problems
 
@@ -515,9 +553,11 @@ def cmd_find(args):
         _,text=transcription(path,ev,args.inside);flat=re.compile(r'\s+'.join(re.escape(word) for word in args.words.split()),re.I)
         for m in list(flat.finditer(text))[:12]:print(f'@{m.start()}: …{" ".join(text[max(0,m.start()-160):m.end()+260].split())}…\n')
         return
+    places=part(path,'places.json',{});original=(places.get('entry') or {}).get('original') or (world()['fragments']['works'].get(places.get('work')) or {}).get('original')
+    script='zh' if (original or '').startswith('zh') else original if original in ('la','sa') else None
     found=False
     for item,scan in scans(ev).items():
-        o=ocr(path,ev,scan);got=against_ocr(args.words,o) if o else None
+        o=ocr(path,ev,scan);got=against_ocr(args.words,o,script=script) if o else None
         if got and 'leaves' in got:found=True;print(f"{item}: leaves {got['leaves']} (printed pages {got['printed']}), {round(got['share']*100)}% read the same")
     if not found:die('the words are not found in the OCR of any scan of this packet')
 
@@ -698,7 +738,8 @@ def compare(path,ev,places,original):
         fixed=scan_of(ev,old).get('item') if old.get('scan') or old.get('from_scan') else None      # a place stays with its scan; a new one is looked for in each
         got=None
         for item in [fixed] if fixed in every else [active]+[item for item in every if item!=active]:
-            o=reading(item) if item in every else None;found=against_ocr(text,o,modern_ru=original=='ru') if o else None
+            script='zh' if original.startswith('zh') else original if original in ('la','sa') else None
+            o=reading(item) if item in every else None;found=against_ocr(text,o,modern_ru=original=='ru',script=script) if o else None
             if found and (got is None or 'leaves' in found or (found.get('share') or 0)>(got.get('share') or 0)):got=found;entry['scan']=item
             if found and 'leaves' in found:break
         if entry.get('from_scan') and got and 'leaves' in got:               # the OCR beside itself proves nothing: the page is read instead
@@ -897,7 +938,7 @@ def quotation_problems(loc,text,proof,ev,second=False,path=None,offline=False):
                     elif not raw:problems.append(f'place {loc}: {by} image is empty')
                 except (OSError,KeyError):problems.append(f'place {loc}: {by} image is missing locally')
     # Sentence endings are an upper-bound aid. The printed page still decides the boundaries.
-    count=len(re.findall(r'(?:[.!?…]+(?:[”»’」』\"\')\]]+)?(?=\s|$)|[。！？؟]+[”»’」』\"\')\]]*)',text))
+    count=len(re.findall(r'(?:[.!?…]+(?:[”»’」』\"\')\]]+)?(?=\s|$)|[。！？؟।॥]+[”»’」』\"\')\]]*)',text))
     if (len(text)>900 or count>3) and len(str(proof.get('justification',''))) < 30:problems.append(f'place {loc}: quotation exceeds 900 characters or three sentences and needs a justification')
     return problems
 
@@ -1694,7 +1735,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
                 except (OSError,KeyError):add(f'{loc}: local source or image is missing')
         if quote:
             if not place.get('lines'):add(f'{loc}: quotation lines are missing')
-            count=len(re.findall(r'(?:[.!?…]+(?:[”»’」』\"\')\]]+)?(?=\s|$)|[。！？؟]+[”»’」』\"\')\]]*)',text))
+            count=len(re.findall(r'(?:[.!?…]+(?:[”»’」』\"\')\]]+)?(?=\s|$)|[。！？؟।॥]+[”»’」』\"\')\]]*)',text))
             if (len(text)>900 or count>3) and len(str(place.get('justification','')))<30:add(f'{loc}: quotation exceeds the default and needs a justification')
         if second:
             review=data.get('review') or {};answer=(review.get('places') or {}).get(loc) or {}
