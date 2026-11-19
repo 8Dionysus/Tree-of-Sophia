@@ -53,3 +53,17 @@ needs an explicit, sourced and jurisdiction-specific route for an anonymous
 ancient work where a reliable historical witness establishes an appropriate
 upper bound. It must retain the author's anonymity, account for later textual
 contributors and avoid inventing a year or presuming all editions are free.
+
+## Mahima Bhatta identity and unknown death
+
+The Vyaktiviveka maker located a possible author entity Q15140044, but the
+layer's `mahima-bhatta` identity remains unresolved; its English label differs
+from the layer label, and the kit cannot supply alternative names for an item
+without supplying a fabricated exact death year. Open Library's author record
+https://openlibrary.org/authors/OL13268938A identifies Mahimabhatta as active
+in the eleventh century and lists *Vyaktiviveka*; it is evidence for review,
+not by itself proof that this is Wikidata Q15140044. The packet's
+`blocked.json` has the searches and distinctions. Please resolve the identity
+through the line's source route and preserve uncertain dates. The recent 1964
+edition has an editor whose independent contribution and rights also need
+separate assessment; ancient authorship alone does not free that edition.
