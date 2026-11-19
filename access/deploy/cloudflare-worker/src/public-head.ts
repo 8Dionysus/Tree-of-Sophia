@@ -41,6 +41,18 @@ export const HEADS: Record<string, Record<"en" | "ru", Head>> = {
       description: "Философия Древней Греции и Рима в Древе Софии.",
     },
   },
+  aesthetics: {
+    en: {
+      title: "Aesthetics · Tree of Sophia",
+      og: "Aesthetics · Tree of Sophia",
+      description: "The philosophy of beauty, art and sensory experience in the Tree of Sophia.",
+    },
+    ru: {
+      title: "Эстетика · Древо Софии",
+      og: "Эстетика · Древо Софии",
+      description: "Философия прекрасного, искусства и чувственного опыта в Древе Софии.",
+    },
+  },
 };
 const SITE = { en: "Tree of Sophia", ru: "Древо Софии" } as const;
 const OG_LOCALE = { en: "en_US", ru: "ru_RU" } as const;
@@ -67,4 +79,3 @@ export function localizeHead(html: string, stand: string, requested: string | nu
     (text: string) => text.replace(/(<meta property="og:image" content="[^"]*\/og\/[a-z]+)-(?:ru|en)(\.jpg")/, `$1-${copy}$2`),
   ].reduce((text, step) => step(text), html);
 }
-

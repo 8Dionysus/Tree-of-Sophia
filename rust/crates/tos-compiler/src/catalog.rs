@@ -6,8 +6,8 @@
 use crate::knowledge_normalization::python_casefold_with_state;
 use crate::{
     Error, QueryVocabulary, Result,
-    d1_public_capture::{CreationState, CreationStateHold},
     knowledge_stage::KnowledgePayloadLayout,
+    public_capture::{CreationState, CreationStateHold},
 };
 use rusqlite::{Connection, params};
 use serde_json::{Map, Value, json};

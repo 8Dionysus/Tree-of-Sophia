@@ -2,7 +2,7 @@
 //! readers and bounded platform adapters. Search examines JSON values only:
 //! object keys, number spellings and serialized punctuation are not content.
 
-use crate::search_v2::{SearchV2Error, SearchV2ErrorCode};
+use crate::search::{SearchError, SearchErrorCode};
 use tos_foundation::{JsonValue, python_lower_unicode16_v1, python_strip_unicode16_v1};
 
 const CORPUS_COLLECTIONS: &[&str] = &["nodes", "resources", "manifests", "branches", "graph_views"];
@@ -15,16 +15,16 @@ const PHILOSOPHY_COLLECTIONS: &[&str] = &[
     "graph_layers",
 ];
 
-fn budget_error() -> SearchV2Error {
-    SearchV2Error::new(
-        SearchV2ErrorCode::BudgetExceeded,
+fn budget_error() -> SearchError {
+    SearchError::new(
+        SearchErrorCode::BudgetExceeded,
         "source-value search budget exceeded",
     )
 }
 
-fn corrupt_error() -> SearchV2Error {
-    SearchV2Error::new(
-        SearchV2ErrorCode::CorruptSelectedCarrier,
+fn corrupt_error() -> SearchError {
+    SearchError::new(
+        SearchErrorCode::CorruptSelectedCarrier,
         "source-value search candidate is invalid",
     )
 }
@@ -33,8 +33,8 @@ fn corrupt_error() -> SearchV2Error {
 /// used by the maintained QRY readers. The callback charges its own work meter.
 pub fn normalize_query(
     query: &str,
-    charge: &mut impl FnMut(usize) -> Result<(), SearchV2Error>,
-) -> Result<String, SearchV2Error> {
+    charge: &mut impl FnMut(usize) -> Result<(), SearchError>,
+) -> Result<String, SearchError> {
     let chars = query.chars().count();
     charge(chars)?;
     if query.is_empty() {
@@ -58,8 +58,8 @@ pub fn normalize_query(
 pub fn contains_values(
     value: &JsonValue,
     needle: &str,
-    charge: &mut impl FnMut(usize) -> Result<(), SearchV2Error>,
-) -> Result<bool, SearchV2Error> {
+    charge: &mut impl FnMut(usize) -> Result<(), SearchError>,
+) -> Result<bool, SearchError> {
     charge(1)?;
     match value {
         JsonValue::String(value) => {

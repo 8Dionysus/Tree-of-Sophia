@@ -683,7 +683,7 @@ fn vocabulary(
 fn vocabulary_with_state(
     value: &Value,
     cap: usize,
-    state: Option<&crate::d1_public_capture::CreationState<'_>>,
+    state: Option<&crate::public_capture::CreationState<'_>>,
 ) -> Result<(Value, BTreeMap<(String, String), Value>, BTreeSet<String>)> {
     let map = value
         .as_object()
@@ -873,7 +873,7 @@ pub(crate) fn validate_current_context_presentation(value: &Value) -> Result<()>
 /// immutable presentation value remains held by its original CreationState.
 pub(crate) fn validate_current_context_presentation_owned(
     value: &Value,
-    state: &crate::d1_public_capture::CreationState<'_>,
+    state: &crate::public_capture::CreationState<'_>,
 ) -> Result<()> {
     fn add(total: &mut usize, bytes: usize) -> Result<()> {
         *total = total

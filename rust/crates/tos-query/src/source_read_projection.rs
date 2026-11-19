@@ -242,11 +242,8 @@ pub(crate) fn controlled_source_read_targets(
     identity: &str,
     managed: bool,
     limits: JsonLimits,
-    mut canonical: impl FnMut(
-        &JsonValue,
-        JsonLimits,
-    ) -> Result<Vec<u8>, crate::search_v2::SearchV2Error>,
-) -> Result<JsonValue, crate::search_v2::SearchV2Error> {
+    mut canonical: impl FnMut(&JsonValue, JsonLimits) -> Result<Vec<u8>, crate::search::SearchError>,
+) -> Result<JsonValue, crate::search::SearchError> {
     let mut refused = None;
     let mut checked = |record: &JsonValue, limits| {
         if refused.is_some() {
