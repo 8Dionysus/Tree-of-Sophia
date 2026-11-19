@@ -16738,6 +16738,11 @@
    {
     "time": "+1973-01-01T00:00:00Z",
     "precision": 9
+   },
+   {
+    "time": "+1963-04-10T00:00:00Z",
+    "precision": 11,
+    "source": "https://id.loc.gov/authorities/names/n97063585.json"
    }
   ],
   "died": [],
@@ -16764,6 +16769,14 @@
    "source": "https://english.as.uky.edu/sites/default/files/zunshineTheory%20of%20Narrative%20Empathy.pdf",
    "person_url": "https://www.wikidata.org/wiki/Q60058263",
    "basis": "The exact article names Suzanne Keen and Washington and Lee University; Wikidata P108 identifies the same institution."
+  },
+  "date_conflict": {
+   "field": "born",
+   "sources": [
+    "https://www.wikidata.org/wiki/Q60058263#P569",
+    "https://id.loc.gov/authorities/names/n97063585.json"
+   ],
+   "reason": "Wikidata gives 1973; the Library of Congress authority for the same scholar records 10 April 1963. Both claims remain unresolved."
   }
  },
  "svetlana-boym": {
