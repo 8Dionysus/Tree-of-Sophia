@@ -2,10 +2,10 @@
   "status": "research-candidate; short-quotation review required outside US; not admitted",
   "work": "emile-durkheim.les-formes-elementaires-de-la-vie-religieuse",
   "language": "en",
-  "edition_candidate": "The Elementary Forms of the Religious Life, translated Joseph Ward Swain, London: George Allen & Unwin, 1915. Gutenberg transcription lists a later impression; these specific sentences were compared with the 1915 page images.",
+  "edition_candidate": "The Elementary Forms of the Religious Life, translated Joseph Ward Swain, London: George Allen & Unwin and New York: Macmillan, 1915. Swain’s 1916 dissertation autobiography confirms translation and date. Gutenberg lists a later impression.",
   "transcription": "https://www.gutenberg.org/ebooks/41360.txt.utf-8",
   "transcription_sha256": "187a7bef23497646a6a68bf11b4dd40e52fa7aba1eb90405d91243505dd5691d",
-  "scan": "https://archive.org/details/elementaryformso00durk",
+  "scan": "https://archive.org/details/elementaryformso1915durk",
   "persons": [
     {
       "name": "Émile Durkheim",
@@ -18,24 +18,25 @@
     }
   ],
   "rights": "Candidate US public domain due to 1915 edition; translator died 1971, translation is not presumed public domain under life-plus-70 in EU or Russia. Two short sentences are candidates for quotation with attribution in research, subject to jurisdiction-specific review and line gate.",
-  "method": "Two whole sentences cut from Gutenberg by boundary strings, whitespace normalized; maker compared against 1915 scan pages. Independent review pending.",
+  "method": "Two whole sentences cut from Gutenberg by boundary strings, whitespace normalized. Maker originally examined the fifth impression (1964); a separate research reader compared both passages with the 1915 copy, 1964 copy and French 1912 p. 56. Kit review and scoped rights assessment pending.",
   "places": {
     "I.1 p56a": {
       "text": "Sacred things are those which the interdictions protect and isolate; profane things, those to which these interdictions are applied and which must remain at a distance from the first.",
       "printed_pages": "40–41",
       "scan_images": [
-        "https://archive.org/download/elementaryformso00durk/page/n55/mode/1up",
-        "https://archive.org/download/elementaryformso00durk/page/n56/mode/1up"
+        "https://archive.org/download/elementaryformso1915durk/page/n57/mode/1up",
+        "https://archive.org/download/elementaryformso1915durk/page/n58/mode/1up"
       ],
-      "verification": "maker compared 1915 scan image to Gutenberg; independent review and scoped rights gate pending"
+      "verification": "research reader compared 1915 and 1964 scans and French original; formal independent kit review and scoped rights gate pending"
     },
     "I.1 p56b": {
       "text": "Finally, rites are the rules of conduct which prescribe how a man should comport himself in the presence of these sacred objects.",
       "printed_pages": "41",
       "scan_images": [
-        "https://archive.org/download/elementaryformso00durk/page/n56/mode/1up"
+        "https://archive.org/download/elementaryformso1915durk/page/n58/mode/1up"
       ],
-      "verification": "maker compared 1915 scan image to Gutenberg; independent review and scoped rights gate pending"
+      "verification": "research reader compared 1915 and 1964 scans and French original; formal independent kit review and scoped rights gate pending"
     }
-  }
+  },
+  "research_update": "The former scan elementaryformso00durk is the fifth impression, 1964, not the 1915 impression: its own verso n7 says so. Both places were compared against the separately identified 1915 copy and French p. 56 by a research reader on 19 November. For p56b French se comporter avec les choses sacrées becomes in the presence of these sacred objects; assess the nuance. Rutgers confirms translator 1891–1971: https://dbcs.rutgers.edu/all-scholars/9157-swain-joseph-ward. No formal kit review."
 }
