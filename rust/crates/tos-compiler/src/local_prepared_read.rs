@@ -323,6 +323,21 @@ impl<'a> PreparedReadTransaction<'a> {
     pub fn top(&self) -> &JsonValue {
         &self.top
     }
+
+    /// Read the lens metadata bound by the independently selected top record.
+    /// Its rows and bytes are charged to this transaction's admission meter.
+    pub fn bound_lens_metadata(&self) -> Result<JsonValue> {
+        let (raw, lens) = self.metadata("knowledge_lens_top", 1_048_576)?;
+        if text(&self.top, "lens_sha256") != Some(Digest256::of_bytes(&raw).to_hex().as_str())
+            || text(&lens, "schema") != Some("tos_published_lens_metadata_v1")
+            || text(&lens, "source_revision") != text(&self.top, "source_revision")
+        {
+            return Err(unavailable(
+                "prepared lens metadata differs from selected publication",
+            ));
+        }
+        Ok(lens)
+    }
     pub fn limits(&self) -> &PreparedReadLimits {
         &self.limits
     }

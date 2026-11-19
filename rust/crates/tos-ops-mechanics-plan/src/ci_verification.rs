@@ -148,9 +148,6 @@ impl Run<'_> {
         self.check()?;
         Ok(bytes)
     }
-    fn json(&self, p: &Path) -> io::Result<Value> {
-        serde_json::from_slice(&self.bytes(p, 1024 * 1024)?).map_err(|e| bad(e.to_string()))
-    }
     fn digest(&self, p: &Path) -> io::Result<String> {
         use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
         self.check()?;
@@ -203,23 +200,31 @@ impl Run<'_> {
 fn strings(values: &[&str]) -> Vec<String> {
     values.iter().map(|v| (*v).into()).collect()
 }
-fn decoded_hex(value: &str) -> io::Result<Vec<u8>> {
-    if value.len() % 2 != 0 || value.len() > 2 * 1024 * 1024 {
-        return Err(bad("invalid exact-byte fixture hex"));
-    }
-    value
-        .as_bytes()
-        .chunks_exact(2)
-        .map(|pair| {
-            let nibble = |b: u8| match b {
-                b'0'..=b'9' => Ok(b - b'0'),
-                b'a'..=b'f' => Ok(b - b'a' + 10),
-                b'A'..=b'F' => Ok(b - b'A' + 10),
-                _ => Err(bad("invalid exact-byte fixture hex")),
+fn copy_reader_fixture(source: &Path, target: &Path, r: &Run<'_>) -> io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    fs::create_dir(target)?;
+    fs::set_permissions(target, fs::Permissions::from_mode(0o700))?;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let kind = entry.file_type()?;
+        let destination = target.join(entry.file_name());
+        if kind.is_dir() {
+            copy_reader_fixture(&entry.path(), &destination, r)?;
+        } else if kind.is_file() {
+            fs::write(&destination, r.bytes(&entry.path(), 1024 * 1024)?)?;
+            let mode = if target.file_name().is_some_and(|name| name == "objects")
+                || entry.file_name() == "rootset-v2.json"
+            {
+                0o444
+            } else {
+                0o600
             };
-            Ok(nibble(pair[0])? * 16 + nibble(pair[1])?)
-        })
-        .collect()
+            fs::set_permissions(&destination, fs::Permissions::from_mode(mode))?;
+        } else {
+            return Err(bad("reader fixture contains a non-regular entry"));
+        }
+    }
+    Ok(())
 }
 fn installed(prefix: &Path, name: &str) -> io::Result<PathBuf> {
     let resolved = prefix.join("bin").join(name).canonicalize()?;
@@ -238,7 +243,7 @@ fn verify_reader(root: &Path, prefix: &Path, work: &Path, r: &Run<'_>) -> io::Re
         &[("PATH", "".into())],
     )?)
     .map_err(|e| bad(e.to_string()))?;
-    let required = json!({"schema_version":"tos_reader_capabilities_v1","store_format":"tos_corpus_snapshot_v1","supported_store_formats":["tos_corpus_snapshot_v1","tos_native_admission_v2"],"default_format":"v1","platform":"linux","minimum_kernel":"5.6","required_open_api":"openat2","path_traversal":"beneath_no_symlinks","unsafe_fallback":false});
+    let required = json!({"schema_version":"tos_reader_capabilities_v1","store_format":"tos_native_admission_v2","supported_store_formats":["tos_native_admission_v2"],"default_format":"v2","platform":"linux","minimum_kernel":"5.6","required_open_api":"openat2","path_traversal":"beneath_no_symlinks","unsafe_fallback":false});
     for (key, value) in required.as_object().unwrap() {
         if capabilities.get(key) != Some(value) {
             return Err(bad(format!(
@@ -246,52 +251,110 @@ fn verify_reader(root: &Path, prefix: &Path, work: &Path, r: &Run<'_>) -> io::Re
             )));
         }
     }
-    let fixture = root.join("tests/conformance/rust/corpus-v1");
-    let corpus = r.json(&fixture.join("fixture.json"))?;
-    let cases = corpus["selected_cases"]
-        .as_array()
-        .ok_or_else(|| bad("reader fixture selected cases absent"))?;
+    let (code, out, _) = r.capture(
+        work,
+        vec![binary.clone(), "--format".into(), "v1".into()],
+        &[("PATH", "".into())],
+    )?;
+    if code == 0 || !out.is_empty() {
+        return Err(bad("installed reader accepted V1 or returned bytes"));
+    }
+    let fixture = root.join("tests/conformance/rust/corpus-v2/store");
+    let store = work.join("reader-v2-store");
+    copy_reader_fixture(&fixture, &store, r)?;
+    let stage = work.join("reader-v2-stage");
+    fs::create_dir(&stage)?;
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(&stage, fs::Permissions::from_mode(0o700))?;
+    for name in [
+        "staging",
+        "segments-v2/staging",
+        "segments-v2/segments",
+        "segments-v2/pins",
+        "segments-v2/attempts",
+        "segments-v2/leaves",
+    ] {
+        fs::create_dir_all(store.join(name))?;
+        fs::set_permissions(store.join(name), fs::Permissions::from_mode(0o700))?;
+    }
+    let cases = [
+        (
+            "fb256b25e0c6295ffe7f2d26c984d128075acbf4ac614fbed75887eebe83fc0b",
+            "retained bytes",
+        ),
+        (
+            "f285308fdf95feabdf64174575b89ee8ac7c31cecb407fd814a7e3cd502d775a",
+            "current bytes",
+        ),
+    ];
     let mut verified = 0;
-    for case in cases {
-        let (Some(hex), Some(source)) = (
-            case["expected_bytes_hex"].as_str(),
-            case["source_id"].as_str(),
-        ) else {
-            continue;
-        };
-        let revision = case["revision"]
-            .as_str()
-            .ok_or_else(|| bad("reader fixture revision absent"))?;
-        let argv = vec![
-            binary.clone(),
-            "--store".into(),
-            path(&fixture.join("store").canonicalize()?)?,
-            "--revision".into(),
-            revision.into(),
-            "--source-id".into(),
-            source.into(),
-            "--stage-dir".into(),
-            path(work)?,
-            "--max-manifest-bytes".into(),
-            "1048576".into(),
-            "--max-manifest-entries".into(),
-            "1000".into(),
-            "--max-selected-object-bytes".into(),
-            "1048576".into(),
-            "--json-max-depth".into(),
-            "64".into(),
-            "--json-max-visits".into(),
-            "300000".into(),
-            "--json-max-integer-digits".into(),
-            "4300".into(),
-        ];
-        if r.run(work, argv, &[("PATH", "".into())])? != decoded_hex(hex)? {
-            return Err(bad(format!(
-                "installed reader bytes differ for {}",
-                case["case_id"]
-            )));
+    for (revision, expected) in cases {
+        for (selector, selected) in [
+            ("--source-id", "tos.item.example"),
+            ("--member-path", "texts/exact.txt"),
+        ] {
+            let argv = vec![
+                binary.clone(),
+                "--store".into(),
+                path(&store)?,
+                "--revision".into(),
+                revision.into(),
+                selector.into(),
+                selected.into(),
+                "--stage-dir".into(),
+                path(&stage)?,
+                "--max-manifest-bytes".into(),
+                "65536".into(),
+                "--max-manifest-entries".into(),
+                "16".into(),
+                "--max-selected-object-bytes".into(),
+                "4096".into(),
+                "--json-max-depth".into(),
+                "32".into(),
+                "--json-max-visits".into(),
+                "100000".into(),
+                "--json-max-integer-digits".into(),
+                "64".into(),
+                "--max-read-bytes".into(),
+                "33554432".into(),
+                "--max-write-bytes".into(),
+                "1048576".into(),
+                "--max-segment-bytes".into(),
+                "1048576".into(),
+                "--max-frame-bytes".into(),
+                "65536".into(),
+                "--max-frames".into(),
+                "8".into(),
+                "--max-journal-bytes".into(),
+                "65536".into(),
+                "--tree-max-key-bytes".into(),
+                "1024".into(),
+                "--tree-max-value-bytes".into(),
+                "65536".into(),
+                "--tree-max-kind-bytes".into(),
+                "64".into(),
+                "--tree-max-node-bytes".into(),
+                "131072".into(),
+                "--tree-max-children".into(),
+                "16".into(),
+                "--tree-max-nodes".into(),
+                "128".into(),
+                "--tree-max-total-bytes".into(),
+                "16777216".into(),
+                "--tree-max-rows".into(),
+                "16".into(),
+                "--max-state-bytes".into(),
+                "134217728".into(),
+                "--deadline-seconds".into(),
+                "30".into(),
+            ];
+            if r.run(work, argv, &[("PATH", "".into())])? != expected.as_bytes() {
+                return Err(bad(format!(
+                    "installed reader bytes differ for {revision} {selector}"
+                )));
+            }
+            verified += 1;
         }
-        verified += 1;
     }
     if verified == 0 || r.digest(&executable)? != before {
         return Err(bad("reader verification empty or installed image changed"));

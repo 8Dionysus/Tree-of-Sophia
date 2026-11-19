@@ -4,7 +4,7 @@ use crate::{
     inspect_plan::InspectBudget,
     knowledge_lens_spec::*,
     knowledge_presentation::{knowledge_scene, lens_carrier},
-    search_v2::{SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode},
     source_read_projection::{object, text},
 };
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
@@ -13,7 +13,7 @@ use crate::{
     knowledge_inspect::{
         DisclosableInspect, InspectCurrentAuthority, execute_selected_carrier_packet,
     },
-    search_v2::SearchKind,
+    search::SearchKind,
 };
 use std::collections::{BTreeMap, BTreeSet};
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
@@ -149,7 +149,7 @@ pub fn execute_selected_lens<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     authority: &mut A,
     value: &JsonValue,
     budget_value: LensBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     execute_selected_lens_request(
         model,
         bound,
@@ -165,7 +165,7 @@ pub fn execute_selected_focus<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>
     authority: &mut A,
     request: &crate::knowledge_focus::KnowledgeFocusRequest,
     budget_value: LensBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     execute_selected_lens_request(
         model,
         bound,
@@ -181,7 +181,7 @@ pub fn execute_selected_stored_lens<'hold, A: InspectCurrentAuthority<'hold> + ?
     authority: &mut A,
     lens_id: &str,
     budget_value: LensBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     if lens_id.is_empty() || lens_id.len() > 128 {
         return Err(invalid("invalid stored lens identifier"));
     }
@@ -207,7 +207,7 @@ fn execute_selected_lens_request<'hold, A: InspectCurrentAuthority<'hold> + ?Siz
     authority: &mut A,
     request: LensRequest<'_>,
     budget_value: LensBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     bound.require_source_revision()?;
     if budget_value.max_candidates == 0
         || budget_value.max_candidates >= i64::MAX as usize
@@ -398,7 +398,7 @@ pub fn finalize_knowledge_lens(
     traversed: &BTreeSet<String>,
     publication: Option<&JsonValue>,
     vocabulary: &LensVocabulary,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     sort_items(&mut nodes, field(public, "composition.sort_nodes"));
     sort_items(&mut relations, field(public, "composition.sort_relations"));
     let focus = if let Some(requested) = field(public, "seed.focus_node_id").as_str() {
@@ -791,7 +791,7 @@ fn b64_encode(input: &[u8]) -> String {
     }
     out
 }
-fn b64_decode(s: &str) -> Result<Vec<u8>, SearchV2Error> {
+fn b64_decode(s: &str) -> Result<Vec<u8>, SearchError> {
     if s.len() % 4 == 1 {
         return Err(invalid("invalid lens cursor"));
     }
@@ -815,7 +815,7 @@ fn b64_decode(s: &str) -> Result<Vec<u8>, SearchV2Error> {
 pub fn paginate_lens(
     mut result: JsonValue,
     cursor_fingerprint: Option<&str>,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let options = field(&result, "lens.pagination").clone();
     if matches!(options, JsonValue::Null) {
         return Ok(result);
@@ -852,8 +852,8 @@ pub fn paginate_lens(
             .filter(|n| *n <= 2000)
             .ok_or_else(|| invalid("invalid lens cursor position"))? as usize;
         if string(get(&token, "fingerprint")) != fingerprint {
-            return Err(SearchV2Error {
-                code: SearchV2ErrorCode::StaleSelection,
+            return Err(SearchError {
+                code: SearchErrorCode::StaleSelection,
                 message: "lens query or snapshot changed; restart pagination",
             });
         }

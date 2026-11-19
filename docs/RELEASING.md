@@ -92,7 +92,7 @@ owner surfaces.
 
    ```sh
    /path/to/tos-access software build --root /absolute/clean-source --source-ref HEAD_SHA \
-     --web-dist /absolute/current-web-dist --output /absolute/tos-software.zip \
+     --output /absolute/tos-software.zip \
      --native-access-binary /path/to/tos-access --native-access-receipt /absolute/native-build.json \
      --max-total-bytes EXPANDED_CAP --max-archive-bytes ZIP_CAP --max-members MEMBER_CAP --max-metadata-bytes METADATA_CAP
    /path/to/tos-access software verify --archive /absolute/tos-software.zip \
@@ -106,7 +106,7 @@ owner surfaces.
    admitted finite package budgets. The native receipt binds source commit/tree,
    lock, target, toolchain, profile/Access opt level and actual image
    size/hash; dirty source is refused. Archive validation and fresh-prefix install check the exact native,
-   JSON and web closure without a Python runtime or corpus. Preserve the
+   and JSON closure without a Python runtime or corpus. Preserve the
    previous prefix and its matching verifier for rollback. This new verifier
    intentionally refuses older mixed Python/native archives.
    CI prepares eighteen native command roles, receipts, E2E fixture and browser
@@ -116,13 +116,12 @@ owner surfaces.
    and Command/source (including process-cold Work37), with private Cargo targets
    and fs-verity volumes. The package job installs npm and Playwright dependencies
    using the signed HTTPS Ubuntu archive and derives limits from nineteen actual
-   executables, web assets and bounded inputs.
+   executables and bounded inputs.
 
    The package job builds and compares the archive and sidecar twice before
    verify/install. DEFLATE level 3 may differ from older builders; repeated bytes,
-   member digests, custody and budgets must match. Installed browser scenarios
-   run in at most two isolated hosts/browsers; six Vite cases run serially, with
-   all actions, assertions and timeouts retained. The gate
+   member digests, custody and budgets must match. Shared reader browser cases
+   run through Vite. The gate
    requires `software_prepare`, `software` and `software_package`, verifies the
    provisional archive and sidecar digests, and uploads the qualified artifact
    under the source SHA. The candidate uses the native prefix without a Python
@@ -337,7 +336,7 @@ When software is selected, `software_package` uploads a provisional archive and
 sidecar. After the required gate accepts all selected work and verifies both
 reported digests, it uploads `tree-of-sophia-software.zip` and its digest
 manifest as the qualified artifact.
-It contains program code, API contracts, static schemas and browser assets;
+It contains program code, API contracts and static schemas;
 `data_included` is false. Production activation, tags and public releases require their intended scope
 and authorization. Standalone ToS software follows this repository's release
 route independently of AbyssOS helpers.
@@ -450,8 +449,8 @@ Select data explicitly through `TOS_DATA_ROOT` or `--root`; the reader does not
 search the current working directory or sibling repositories. Existing
 `TOS_DATA_ROOT` selects a dataset; `TOS_RELEASE_ROOT` selects a managed release
 pair. The former `TOS_ROOT` and `AOA_TOS_ROOT` aliases have been removed.
-Code-owned API schemas and browser assets always come from the software.
-A UI change does not require rebuilding a compatible selected query store.
+Code-owned API schemas come from the software. The public research site is built
+and published separately; UI changes do not require rebuilding a compatible query store.
 
 Corpus identity, provenance, fixity, rights, review and admission remain with
 `ToS/` owners. Changing a source record requires its affected owner validation;

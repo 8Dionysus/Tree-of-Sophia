@@ -22,7 +22,7 @@ pub fn catalog_projector_sha256() -> String {
         include_bytes!("prepared_maintenance.rs").as_slice(),
         include_bytes!("prepared_semantic_kernel.rs").as_slice(),
         include_bytes!("local_prepared.rs").as_slice(),
-        include_bytes!("d1_public_capture.rs").as_slice(),
+        include_bytes!("public_capture.rs").as_slice(),
         include_bytes!("knowledge_normalization.rs").as_slice(),
         include_bytes!("../../tos-foundation/src/json.rs").as_slice(),
         include_bytes!("../../tos-foundation/src/unicode.rs").as_slice(),
