@@ -63,5 +63,43 @@
   "anonymous_translation_evidence": {
     "source": "https://books.google.com/books?id=nOwBEsoNiUMC&pg=PA748",
     "description": "Google Books search snippet for Encyclopedia of the Essay, edited Tracy Chevalier, p. 748, describes the 1902 Dole Aesthetical and Philosophical Essays translation as anonymous; the cited entry itself was below the visible preview area and still needs direct verification. This does not establish every earlier edition or final territorial rights admission."
+  },
+  "research_update": "A separate research reader compared four original 1877 pp.739–741 and Dole 1902 pp.262–264. Current 1902 wording matches print, but at p741 certain places omits the rarity of einige seltene Fälle and masked weakens ausgelöscht; p739 manners shifts Gesinnungen. The reader located a distinct 1845 translation by John Weiss covering all four places and inspected pp.268–271; this is a separate edition and does not identify the anonymous 1902 translator. Its historical text and contributor dates make it a priority candidate subject to print, semantic and territorial rights review. No formal kit review.",
+  "alternative_research": {
+    "edition": "The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated John Weiss, Boston: Little & Brown, 1845, pp.268–271.",
+    "translator": {
+      "name": "John Weiss",
+      "born": 1818,
+      "died": 1879,
+      "source": "https://www.uudb.org/weiss-john/"
+    },
+    "bibliography": "https://books.google.com/books?id=G8AqAAAAYAAJ",
+    "transcription": "https://archive.org/download/aestheticletter00schigoog/aestheticletter00schigoog_djvu.txt",
+    "transcription_sha256": "7eff98c3ea27bd07f2d5c88a74683ef3930f55715a5f5a7044169412ee34802b",
+    "status": "Separate research reader inspected print pages; OCR needs corrections and p268 punctuation requires independent recheck. This is not formal kit review.",
+    "places": {
+      "Essay p739": {
+        "text": "The Low stands yet one degree below the Common, and is distinguished from it by the fact, that it indicates not only something negative, not only a want of the spiritual and noble, but something positive, namely rudeness of feeling, bad manners and degraded sentiments.",
+        "page": "268",
+        "image": "https://archive.org/download/aestheticletter00schigoog/page/n354.jpg",
+        "note": "Particularly recheck wording and punctuation on scan; OCR is damaged."
+      },
+      "Essay p740a": {
+        "text": "In works of art also, the low may be apparent, not only by selecting low objects, which a sense of fitness and propriety forbids, but also by treating them in a low way. We so treat an object, either if we render that side conspicuous which propriety demands should be concealed, or if we give it an expression which suggests low, accessory representations.",
+        "page": "269",
+        "image": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg"
+      },
+      "Essay p740b": {
+        "text": "There are cases, it is true, where even in art the low may be allowed; there, namely, where its object is to excite laughter.",
+        "page": "270",
+        "image": "https://archive.org/download/aestheticletter00schigoog/page/n356.jpg"
+      },
+      "Essay p741": {
+        "text": "But there are a few cases even in the serious and tragic, where the low may be introduced. Yet then it must pass over into the fearful, and the momentary offence of taste must be counteracted by a powerful employment of emotion, and become as it were, swallowed up by a deeply tragical effect.",
+        "page": "271",
+        "image": "https://archive.org/download/aestheticletter00schigoog/page/n357.jpg",
+        "note": "A few cases conveys limitation but not explicitly seltene; counteracted interprets ausgelöscht."
+      }
+    }
   }
 }
