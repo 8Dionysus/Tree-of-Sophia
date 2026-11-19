@@ -2149,15 +2149,18 @@
   }
  },
  "carol-duncan": {
-  "item": null,
+  "item": "Q42564192",
   "label": {
    "ru": "Кэрол Дункан",
    "en": "Carol Duncan"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1936-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -2175,6 +2178,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://cpb-us-w2.wpmucdn.com/portfolio.newschool.edu/dist/2/14941/files/2017/06/Interpreting_Objects_and_Collections-qtv11g.pdf",
+   "person_url": "https://www.wikidata.org/wiki/Q42564192",
+   "basis": "The chapter Art Museums and the Ritual of Citizenship names Carol Duncan and references her work with Alan Wallach; Ramapo College and Library of Congress n92057658 identify the scholar of Civilizing Rituals, linked by Wikidata P244."
   }
  },
  "caroline-curwen": {
@@ -3760,15 +3769,23 @@
   }
  },
  "de-witt-henry-parker": {
-  "item": null,
+  "item": "Q5268261",
   "label": {
    "ru": "Де Уитт Генри Паркер",
    "en": "De Witt Henry Parker"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
+  "born": [
+   {
+    "time": "+1885-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "died": [
+   {
+    "time": "+1949-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "checked": "2026-11-13",
   "relation_search": {
    "complete": true,
@@ -3795,6 +3812,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://www.gutenberg.org/ebooks/6366",
+   "person_url": "https://www.wikidata.org/wiki/Q5268261",
+   "basis": "The Project Gutenberg text names De Witt H. Parker of University of Michigan as author of The Principles of Aesthetics; Wikidata P1938 links its author identifier 2016."
   }
  },
  "deena-skolnick-weisberg": {
