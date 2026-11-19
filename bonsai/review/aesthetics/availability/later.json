@@ -1,0 +1,2328 @@
+{
+  "schema": "tos.aesthetics.availability-research.v1",
+  "scope": "later and unread works with no excluded areas, plus four separately assigned first-wave works; queue snapshot 6c78ee512",
+  "status": "in-progress; research-pending means not yet investigated, never absence",
+  "works": [
+    {
+      "work": "george-santayana.the-sense-of-beauty",
+      "queue_wave": "first",
+      "queue_year": 1896,
+      "areas": [
+        "AE01",
+        "AE03"
+      ],
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "George Santayana",
+          "role": "author",
+          "birth": 1863,
+          "death": 1952,
+          "evidence": [
+            "https://archive.org/metadata/senseofbeautybei00sant",
+            "https://d-nb.info/gnd/118794507"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "The Sense of Beauty, New York: Charles Scribner’s Sons, 1896",
+          "scan": "https://archive.org/details/senseofbeautybei00sant",
+          "metadata": "https://archive.org/metadata/senseofbeautybei00sant",
+          "ocr": "https://archive.org/download/senseofbeautybei00sant/senseofbeautybei00sant_djvu.txt",
+          "status": "candidate; verify scan pages and editorial hands"
+        },
+        {
+          "edition": "The Sense of Beauty, New York: Scribner, 1896",
+          "scan": "https://archive.org/details/thesenseofbeauty00santuoft",
+          "metadata": "https://archive.org/metadata/thesenseofbeauty00santuoft",
+          "status": "candidate"
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary; independently verify hands and jurisdictional grounds",
+        "usa": "1896 publication, subject to edition verification",
+        "eu": "author died 1952; other textual contributors remain to verify",
+        "russia": "brief directs short quotation until 2027; independently verify facts and relevant law"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive advancedsearch",
+          "query": "title:(\"sense of beauty\") AND creator:(santayana) AND year:[1890 TO 1930]",
+          "result": "multiple 1896 scans, including NYPL and Toronto copies",
+          "url": "https://archive.org/advancedsearch.php?q=title%3A%28%22sense+of+beauty%22%29+AND+creator%3A%28santayana%29+AND+year%3A%5B1890+TO+1930%5D&output=json"
+        },
+        {
+          "source": "Open Library and German National Library SRU",
+          "query": "Santayana sense of beauty, belleza, чувство красоты, gefühl schönheit, 美感; DNB title variants",
+          "result": "one Spanish candidate (Tecnos 2002), other exact translation searches returned no useful records; not an absence conclusion",
+          "url": "https://openlibrary.org/works/OL1862090W/editions.json?limit=20"
+        }
+      ],
+      "remaining": "Identify requested places and translations, examine named hands and quotation rights, and complete required source search. No conclusion of absence has been made.",
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "El sentido de la belleza, Madrid: Tecnos, 2002, ISBN 9788430932993",
+          "catalogue": "https://openlibrary.org/books/OL13231704M",
+          "status": "catalogue candidate only: translator identity, page and lawful copy not established"
+        }
+      ]
+    },
+    {
+      "work": "charles-sanders-peirce.what-is-a-sign",
+      "queue_wave": "first",
+      "queue_year": 1894,
+      "areas": [
+        "AE22",
+        "AE23"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "edmund-husserl.ideen-zu-einer-reinen-phaenomenologie",
+      "queue_wave": "first",
+      "queue_year": 1912,
+      "areas": [
+        "AE15"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "howard-phillips-lovecraft.supernatural-horror-in-literature",
+      "queue_wave": "first",
+      "queue_year": 1927,
+      "areas": [
+        "AE08"
+      ],
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Howard Phillips Lovecraft",
+          "role": "author",
+          "birth": 1890,
+          "death": 1937,
+          "evidence": [
+            "https://d-nb.info/gnd/118729241"
+          ]
+        },
+        {
+          "name": "W. Paul Cook",
+          "role": "publisher/editor of journal, exact role and dates to verify",
+          "evidence": [
+            "https://archive.org/metadata/therecluse",
+            "https://www.wikidata.org/w/rest.php/v1/search/page?q=W.%20Paul%20Cook&limit=5"
+          ],
+          "birth": 1881,
+          "death": 1948,
+          "identifiers": {
+            "wikidata": "Q7945883"
+          }
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "The Recluse, 1927, The Recluse Press",
+          "scan": "https://archive.org/details/therecluse",
+          "metadata": "https://archive.org/metadata/therecluse",
+          "ocr": "https://archive.org/download/therecluse/9923699973506421_djvu.txt",
+          "status": "OCR fetched: names Lovecraft and contains Introduction. Page images and full textual comparison pending."
+        }
+      ],
+      "requested_places": [
+        "A:E128: I, Introduction, weird atmosphere and natural order",
+        "A:E129: I, Introduction, effect on reader"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; verify editorial role, each contributor and jurisdictional grounds before admission",
+        "usa": "1927 printing; confirm text and edition",
+        "eu": "author died 1937; editor and textual contributors still require date evidence",
+        "russia": "author died 1937; editor and textual contributors still require date evidence"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive advancedsearch",
+          "query": "title:(\"the recluse\") AND year:1927",
+          "result": "two journal scan records including therecluse",
+          "url": "https://archive.org/advancedsearch.php?q=title%3A%28%22the+recluse%22%29+AND+year%3A1927&output=json"
+        },
+        {
+          "source": "Internet Archive OCR",
+          "result": "1927 journal OCR contains the essay and Introduction",
+          "url": "https://archive.org/download/therecluse/9923699973506421_djvu.txt"
+        },
+        {
+          "source": "German National Library",
+          "result": "Lovecraft authority dates 1890–1937",
+          "url": "https://d-nb.info/gnd/118729241"
+        },
+        {
+          "source": "Wikidata REST search",
+          "query": "W. Paul Cook",
+          "result": "Q7945883 described as American writer 1881–1948; match against publisher role and source edition still to verify",
+          "url": "https://www.wikidata.org/w/rest.php/v1/search/page?q=W.%20Paul%20Cook&limit=5"
+        }
+      ],
+      "remaining": "Find and verify exact scan pages, editor identity and dates, ru/es/de/zh-Hans witnesses and their rights; complete mandatory catalog searches. No conclusion of absence has been made."
+    },
+    {
+      "work": "richard-payne-knight.an-analytical-inquiry-into-the-principles",
+      "queue_wave": "unread",
+      "queue_year": 1805,
+      "areas": [
+        "AE01",
+        "AE10"
+      ],
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Richard Payne Knight",
+          "role": "author",
+          "birth": "1750 or 1751, sources differ",
+          "death": 1824,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q833886",
+            "https://data.bnf.fr/ark:/12148/cb13573265r",
+            "https://archive.org/metadata/analyticalinquir00knig"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "An analytical inquiry into the principles of taste, London: Luke Hansard for T. Payne and J. White, 1806",
+          "scan": "https://archive.org/details/analyticalinquir00knig",
+          "metadata": "https://archive.org/metadata/analyticalinquir00knig",
+          "pages": "II §17 pp148–149, image n171–n172",
+          "status": "packet accepted by old gate; edition number and scan attribution require review"
+        }
+      ],
+      "requested_places": [
+        "II §17 pp148–149, sentence concerning pittoresco"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; verify historical text, scan and each other contribution separately",
+        "usa": "1806 publication before 1931",
+        "eu": "author died 1824",
+        "russia": "author died 1824",
+        "mexico": "transition rules and foreign edition require independent review"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive advancedsearch",
+          "query": "title:(\"analytical inquiry\") AND creator:(knight)",
+          "result": "1806 and 1808 English editions; global full-text endpoint attempted but not established",
+          "url": "https://archive.org/advancedsearch.php?q=title%3A%28%22analytical+inquiry%22%29+AND+creator%3A%28knight%29&output=json"
+        },
+        {
+          "source": "BnF SRU",
+          "query": "Richard Payne Knight",
+          "result": "44 catalogue records; 1808 and 1999 English editions identified; target translations not established",
+          "url": "https://catalogue.bnf.fr/api/SRU?version=1.2&operation=searchRetrieve&query=bib.anywhere%20all%20%22Richard%20Payne%20Knight%22&maximumRecords=50"
+        },
+        {
+          "source": "Open Library",
+          "result": "English editions; specific multilingual search variants yielded no relevant records",
+          "url": "https://openlibrary.org/search.json?q=Analytical%20inquiry%20principles%20taste&limit=25"
+        },
+        {
+          "source": "Google Books, Hathi, Gallica, NЭБ, BDH, OAPEN",
+          "result": "403/429 or unavailable; these searches remain incomplete",
+          "url": "https://catalog.hathitrust.org/"
+        }
+      ],
+      "remaining": "Find and verify translators, matching passages and lawful witnesses in ru/es/de/zh-Hans; complete required catalogue and full-text searches. No conclusion of absence has been made."
+    },
+    {
+      "work": "benedetto-croce.estetica-come-scienza-dell-espressione",
+      "queue_wave": "later",
+      "queue_year": 1902,
+      "areas": [
+        "AE18",
+        "AE22",
+        "AE23",
+        "AE24"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "maurice-merleau-ponty.phenomenologie-de-la-perception",
+      "queue_wave": "later",
+      "queue_year": 1945,
+      "areas": [
+        "AE13",
+        "AE15"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "kendall-l-walton.categories-of-art",
+      "queue_wave": "later",
+      "queue_year": 1970,
+      "areas": [
+        "AE16",
+        "AE17",
+        "AE24",
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "clive-bell.art",
+      "queue_wave": "later",
+      "queue_year": 1914,
+      "areas": [
+        "AE21",
+        "AE22",
+        "AE24"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "de-witt-henry-parker.the-principles-of-aesthetics",
+      "queue_wave": "later",
+      "queue_year": 1920,
+      "areas": [
+        "AE21"
+      ],
+      "status": "research-in-progress",
+      "people": [
+        {
+          "name": "De Witt Henry Parker",
+          "role": "author",
+          "birth": 1885,
+          "death": 1949,
+          "evidence": [
+            "https://openlibrary.org/authors/OL126988A.json",
+            "https://archive.org/metadata/principlesofaest00parkiala"
+          ],
+          "identifiers": {
+            "wikidata": "Q5268261",
+            "viaf": "17110947"
+          }
+        }
+      ],
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "The principles of aesthetics, Boston: Silver, Burdett and Company, 1920",
+          "scan": "https://archive.org/details/principlesofaest00parkiala",
+          "metadata": "https://archive.org/metadata/principlesofaest00parkiala",
+          "ocr": "https://archive.org/download/principlesofaest00parkiala/principlesofaest00parkiala_djvu.txt",
+          "status": "candidate; exact pages and transcription-to-scan comparison pending"
+        },
+        {
+          "edition": "The principles of aesthetics, Boston: Silver, c1920",
+          "scan": "https://archive.org/details/theprinciplesofa00parkuoft",
+          "metadata": "https://archive.org/metadata/theprinciplesofa00parkuoft",
+          "status": "candidate"
+        }
+      ],
+      "transcription_candidates": [
+        {
+          "language": "en",
+          "url": "https://www.gutenberg.org/ebooks/6366",
+          "text": "https://www.gutenberg.org/cache/epub/6366/pg6366-images.html",
+          "licence": "Gutenberg labels public domain in USA; ebook terms apply",
+          "status": "usable candidate; edition and scan alignment pending"
+        }
+      ],
+      "rights_assessment": {
+        "status": "preliminary; verify edition hands and legal basis before admission",
+        "usa": "1920 publication; Gutenberg labels its work public domain in the USA",
+        "eu": "author died 1949; other textual contributors remain to be verified",
+        "russia": "author died 1949; other textual contributors and applicable term remain to be verified"
+      },
+      "requested_places": [
+        "C:A-I040: chapter V contrast",
+        "C:A-I041: chapter V complexity of plot",
+        "C:A-I042: chapter V unity, dominance, equilibrium",
+        "C:A-I043: chapter V form and content",
+        "C:A-I044: chapter IX poetry, sound and thought-pulsations"
+      ],
+      "searches": [
+        {
+          "source": "Internet Archive advancedsearch",
+          "query": "title:(\"principles of aesthetics\") AND creator:(\"Parker\")",
+          "result": "19 records; 1920 scans identified",
+          "url": "https://archive.org/advancedsearch.php?q=title%3A%28%22principles+of+aesthetics%22%29+AND+creator%3A%28%22Parker%22%29&output=json"
+        },
+        {
+          "source": "Internet Archive advancedsearch",
+          "query": "Russian, Spanish and Chinese title variants with Parker",
+          "result": "0 matching metadata records in these exact searches; not an absence determination",
+          "url": "https://archive.org/advancedsearch.php"
+        },
+        {
+          "source": "Project Gutenberg",
+          "query": "ebook 6366",
+          "result": "English full text, copyright described as public domain in USA",
+          "url": "https://www.gutenberg.org/ebooks/6366"
+        },
+        {
+          "source": "Open Library",
+          "query": "title and author; Russian, Spanish and Chinese variants",
+          "result": "1920 English records; exact variant searches returned no records; further catalogues remain",
+          "url": "https://openlibrary.org/search.json?title=The%20principles%20of%20aesthetics&author=De%20Witt%20Parker"
+        },
+        {
+          "source": "Google Books API and ru/en Wikisource API",
+          "result": "HTTP 429; not searched successfully",
+          "url": "https://www.googleapis.com/books/v1/volumes?q=intitle:principles+of+aesthetics+inauthor:parker"
+        }
+      ],
+      "remaining": "Search other required catalogues and actual translations for ru, es, de and zh-Hans; verify named hands, places and rights. No conclusion of absence has been made."
+    },
+    {
+      "work": "max-koelbel.aesthetic-judge-dependence-and-expertise",
+      "queue_wave": "later",
+      "queue_year": 2016,
+      "areas": [
+        "AE16",
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "mikhail-bakhtin.tvorchestvo-fransua-rable",
+      "queue_wave": "later",
+      "queue_year": 1965,
+      "areas": [
+        "AE07"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "viktor-shklovsky.iskusstvo-kak-priem",
+      "queue_wave": "later",
+      "queue_year": 1917,
+      "areas": [
+        "AE18",
+        "AE21",
+        "AE22"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "aaron-smuts.the-paradox-of-suspense",
+      "queue_wave": "later",
+      "queue_year": 2009,
+      "areas": [
+        "AE08",
+        "AE12"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "berys-gaut.the-ethical-criticism-of-art",
+      "queue_wave": "later",
+      "queue_year": 1998,
+      "areas": [
+        "AE32",
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "catherine-z-elgin.art-in-the-advancement-of-understanding",
+      "queue_wave": "later",
+      "queue_year": 2002,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "david-lewis.truth-in-fiction",
+      "queue_wave": "later",
+      "queue_year": 1978,
+      "areas": [
+        "AE18",
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "frank-sibley.aesthetic-concepts",
+      "queue_wave": "later",
+      "queue_year": 1959,
+      "areas": [
+        "AE16",
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "george-dickie.the-myth-of-the-aesthetic-attitude",
+      "queue_wave": "later",
+      "queue_year": 1964,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "j-r-r-tolkien.on-fairy-stories",
+      "queue_wave": "later",
+      "queue_year": 1939,
+      "areas": [
+        "AE18",
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "janet-h-murray.hamlet-on-the-holodeck",
+      "queue_wave": "later",
+      "queue_year": 1997,
+      "areas": [
+        "AE20"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "jean-paul-sartre.l-imaginaire",
+      "queue_wave": "later",
+      "queue_year": 1940,
+      "areas": [
+        "AE18",
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "john-morreall.philosophy-of-humor",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE06"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "joseph-kosuth.art-after-philosophy",
+      "queue_wave": "later",
+      "queue_year": 1969,
+      "areas": [
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "karl-rosenkranz.aesthetik-des-haesslichen",
+      "queue_wave": "unread",
+      "queue_year": 1853,
+      "areas": [
+        "AE03"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "kendall-l-walton.fearing-fictions",
+      "queue_wave": "later",
+      "queue_year": 1978,
+      "areas": [
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "mikhail-bakhtin.slovo-v-romane",
+      "queue_wave": "later",
+      "queue_year": 1934,
+      "areas": [
+        "AE24"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "mircea-eliade.the-sacred-and-the-profane",
+      "queue_wave": "later",
+      "queue_year": 1957,
+      "areas": [
+        "AE31"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "noel-carroll.the-paradox-of-suspense",
+      "queue_wave": "later",
+      "queue_year": 2001,
+      "areas": [
+        "AE08",
+        "AE20"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "richard-shusterman.thinking-through-the-body-educating",
+      "queue_wave": "later",
+      "queue_year": 2012,
+      "areas": [
+        "AE15"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "sianne-ngai.our-aesthetic-categories",
+      "queue_wave": "later",
+      "queue_year": 2012,
+      "areas": [
+        "AE11",
+        "AE12"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "susan-sontag.regarding-the-pain-of-others",
+      "queue_wave": "later",
+      "queue_year": 2003,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "umberto-eco.opera-aperta",
+      "queue_wave": "later",
+      "queue_year": 1962,
+      "areas": [
+        "AE21",
+        "AE23"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "wassily-kandinsky.ueber-das-geistige-in-der-kunst",
+      "queue_wave": "later",
+      "queue_year": 1911,
+      "areas": [
+        "AE22",
+        "AE23",
+        "AE24"
+      ],
+      "status": "research-in-progress",
+      "original_language": "de",
+      "people": [
+        {
+          "name": "Wassily Kandinsky",
+          "role": "author",
+          "birth": 1866,
+          "death": 1944,
+          "evidence": [
+            "https://d-nb.info/gnd/118559737"
+          ]
+        },
+        {
+          "name": "Michael Thomas Harvey Sadler / Michael Sadleir",
+          "role": "English translator",
+          "birth": 1888,
+          "death": 1957,
+          "evidence": [
+            "https://www.gutenberg.org/ebooks/5321",
+            "https://archive.org/metadata/artofspiritualha00kandrich"
+          ]
+        },
+        {
+          "name": "Hilla Rebay",
+          "role": "English translator of 1946 edition",
+          "birth": 1890,
+          "death": 1967,
+          "evidence": [
+            "https://archive.org/metadata/onspiritualinart00kand"
+          ]
+        },
+        {
+          "name": "Genoveva Dieterich",
+          "role": "Spanish translator",
+          "birth": 1941,
+          "death_status": "not established",
+          "evidence": [
+            "https://d-nb.info/gnd/108767833"
+          ]
+        },
+        {
+          "name": "查立",
+          "role": "Chinese translator, 1987 edition",
+          "date_status": "not established",
+          "evidence": [
+            "https://book.douban.com/subject/3040948/"
+          ]
+        },
+        {
+          "name": "吕澎",
+          "role": "Chinese translator, 2014 edition",
+          "date_status": "not established",
+          "evidence": [
+            "https://book.douban.com/subject/25894735/"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Über das Geistige in der Kunst, third edition, Munich: R. Piper, 1912",
+          "transcription": "https://www.gutenberg.org/ebooks/46203",
+          "text": "https://www.gutenberg.org/cache/epub/46203/pg46203.txt",
+          "scan": "https://archive.org/details/kandinsky_202603",
+          "status": "OCR suggests pages 54–55 may be missing; images and exact edition alignment require review"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "The Art of Spiritual Harmony, translated M. T. H. Sadler, 1914",
+          "scan": "https://archive.org/details/artofspiritualha00kandrich",
+          "transcription": "https://www.gutenberg.org/ebooks/5321",
+          "status": "title OCR and catalogue differ in publisher imprint; exact passage alignment and completeness to verify"
+        },
+        {
+          "language": "ru",
+          "edition": "О духовном в искусстве, Moscow: BuksMArt, 2020, editor Nadezhda Podzemskaya",
+          "catalogue": "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=per%3DKandinsky%20and%20tit%3Dduchovnom&maximumRecords=8&recordSchema=MARC21-xml",
+          "status": "catalogue only; translator, source text and lawful page copies not established"
+        },
+        {
+          "language": "es",
+          "edition": "De lo espiritual en el arte, Genoveva Dieterich, Paidós, 2020; earlier editions catalogued",
+          "catalogue": "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=per%3DKandinsky%20and%20tit%3Despiritual&maximumRecords=8&recordSchema=MARC21-xml",
+          "status": "catalogue only; lawful passage copy and translator dates incomplete"
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "论艺术的精神, trans. 查立, 1987; 论艺术里的精神, trans. 吕澎, 2014",
+          "catalogue": "https://book.douban.com/subject/3040948/",
+          "status": "catalogue only; lawful passage copies and translator dates incomplete"
+        }
+      ],
+      "requested_places": [
+        "C:A-I051 chapter VI abstract and organic forms",
+        "C:A-I052 chapter VI form and colour",
+        "C:A-I053 chapters VI–VII inner necessity and theory"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; territory, text layer and each hand require independent admission",
+        "usa": "German 1912 and Sadler 1914 editions precede 1931; verify exact printing, omitted text and newer contributions",
+        "eu": "author died 1944; Sadler died 1957, ordinary life-plus-70 term through 2027",
+        "russia": "author died 1944; Sadler died 1957, translation rights and possible special term need review",
+        "mexico": "LFDA life-plus-100 and transitional rules require case-specific review; do not infer worldwide freedom from US public-domain marking"
+      },
+      "searches": [
+        {
+          "source": "Project Gutenberg",
+          "result": "German third edition 1912 and Sadler English text 1914",
+          "url": "https://www.gutenberg.org/ebooks/46203"
+        },
+        {
+          "source": "Internet Archive metadata and OCR",
+          "result": "German 1912 scan, Sadler 1914 scan and later Rebay 1946 edition; publisher and missing-pages questions remain",
+          "url": "https://archive.org/details/kandinsky_202603"
+        },
+        {
+          "source": "DNB and Douban catalogues",
+          "result": "Russian, Spanish and Chinese candidate editions identified; no lawful passage copies established",
+          "url": "https://d-nb.info/gnd/118559737"
+        },
+        {
+          "source": "Hathi, Google Books, Gallica, NЭБ, Cervantes, BDH, OAPEN",
+          "result": "403/429 or incomplete responses; searches not completed",
+          "url": "https://catalog.hathitrust.org/"
+        }
+      ],
+      "remaining": "Obtain complete German scan and check original pages; verify Sadler imprint, completeness and alignment; locate lawful matching ru/es/zh-Hans passages and dates; complete minimum searches. No conclusion of absence has been made."
+    },
+    {
+      "work": "albert-camus.le-mythe-de-sisyphe",
+      "queue_wave": "later",
+      "queue_year": 1942,
+      "areas": [
+        "AE09"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "alison-hills.aesthetic-testimony-understanding-and-virtue",
+      "queue_wave": "later",
+      "queue_year": 2020,
+      "areas": [
+        "AE16",
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "berys-gaut.the-cluster-account-of-art-defended",
+      "queue_wave": "later",
+      "queue_year": 2005,
+      "areas": [
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "catherine-z-elgin.epistemic-gatekeepers",
+      "queue_wave": "later",
+      "queue_year": 2020,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "catherine-z-elgin.fiction-as-thought-experiment",
+      "queue_wave": "later",
+      "queue_year": 2014,
+      "areas": [
+        "AE18",
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "clifford-geertz.religion-as-a-cultural-system",
+      "queue_wave": "later",
+      "queue_year": 1966,
+      "areas": [
+        "AE31"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "colin-radford.how-can-we-be-moved-by-the-fate-of-anna-karenina",
+      "queue_wave": "later",
+      "queue_year": 1975,
+      "areas": [
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "e-h-gombrich.art-and-illusion",
+      "queue_wave": "later",
+      "queue_year": 1960,
+      "areas": [
+        "AE22",
+        "AE24"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "e-h-gombrich.illusion-and-art",
+      "queue_wave": "later",
+      "queue_year": 1973,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "erwin-panofsky.meaning-in-the-visual-arts",
+      "queue_wave": "later",
+      "queue_year": 1955,
+      "areas": [
+        "AE23"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "fredric-jameson.postmodernism-or-the-cultural-logic-of-late",
+      "queue_wave": "later",
+      "queue_year": 1984,
+      "areas": [
+        "AE24"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "frits-staal.the-meaninglessness-of-ritual",
+      "queue_wave": "later",
+      "queue_year": 1979,
+      "areas": [
+        "AE31"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "g-h-hardy.a-mathematicians-apology",
+      "queue_wave": "later",
+      "queue_year": 1940,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "gaston-bachelard.la-poetique-de-l-espace",
+      "queue_wave": "later",
+      "queue_year": 1957,
+      "areas": [
+        "AE20"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "gernot-boehme.atmosphere-as-the-fundamental-concept-of-a-new",
+      "queue_wave": "later",
+      "queue_year": 1993,
+      "areas": [
+        "AE20"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "gian-carlo-rota.the-phenomenology-of-mathematical-beauty",
+      "queue_wave": "later",
+      "queue_year": 1997,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "giorgio-agamben.elogio-della-profanazione",
+      "queue_wave": "later",
+      "queue_year": 2005,
+      "areas": [
+        "AE31"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "hal-foster.postmodernism",
+      "queue_wave": "later",
+      "queue_year": 1983,
+      "areas": [
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "hans-belting.bild-und-kult",
+      "queue_wave": "later",
+      "queue_year": 1990,
+      "areas": [
+        "AE31",
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "helmut-leder.a-model-of-aesthetic-appreciation-and-aesthetic",
+      "queue_wave": "later",
+      "queue_year": 2004,
+      "areas": [
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "hiroshi-nittono.the-two-layer-model-of-kawaii",
+      "queue_wave": "later",
+      "queue_year": 2016,
+      "areas": [
+        "AE11"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "johan-huizinga.homo-ludens",
+      "queue_wave": "later",
+      "queue_year": 1938,
+      "areas": [
+        "AE26"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "john-r-searle.the-logical-status-of-fictional-discourse",
+      "queue_wave": "later",
+      "queue_year": 1975,
+      "areas": [
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "marieke-rohde.the-rubber-hand-illusion",
+      "queue_wave": "later",
+      "queue_year": 2011,
+      "areas": [
+        "AE15"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "matthew-inglis.beauty-is-not-simplicity",
+      "queue_wave": "later",
+      "queue_year": 2015,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "matthew-kieran.forbidden-knowledge",
+      "queue_wave": "later",
+      "queue_year": 2003,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "maxine-greene.the-aesthetic-and-the-artistic-in-aesthetic",
+      "queue_wave": "later",
+      "queue_year": 2009,
+      "areas": [
+        "AE35"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "michel-foucault.technologies-of-the-self",
+      "queue_wave": "later",
+      "queue_year": 1982,
+      "areas": [
+        "AE35"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "milena-ivanova.beauty-truth-and-understanding",
+      "queue_wave": "later",
+      "queue_year": 2020,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "morris-weitz.the-role-of-theory-in-aesthetics",
+      "queue_wave": "later",
+      "queue_year": 1956,
+      "areas": [
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "nelson-goodman.when-is-art",
+      "queue_wave": "later",
+      "queue_year": 1977,
+      "areas": [
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "nick-zangwill.aesthetic-judgment",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE16",
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "nicolas-j-bullot.the-artful-mind-meets-art-history",
+      "queue_wave": "later",
+      "queue_year": 2013,
+      "areas": [
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "noel-carroll.moderate-moralism",
+      "queue_wave": "later",
+      "queue_year": 1996,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "noel-carroll.the-philosophy-of-horror-or-paradoxes",
+      "queue_wave": "later",
+      "queue_year": 1990,
+      "areas": [
+        "AE07",
+        "AE08",
+        "AE12"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "panos-paris.the-moralism-in-immoralism",
+      "queue_wave": "later",
+      "queue_year": 2018,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "richard-shusterman.somaesthetics",
+      "queue_wave": "later",
+      "queue_year": 1999,
+      "areas": [
+        "AE35"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "sol-lewitt.paragraphs-on-conceptual-art",
+      "queue_wave": "later",
+      "queue_year": 1967,
+      "areas": [
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "susan-sontag.against-interpretation",
+      "queue_wave": "later",
+      "queue_year": 1964,
+      "areas": [
+        "AE21",
+        "AE23"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "susanne-k-langer.feeling-and-form",
+      "queue_wave": "later",
+      "queue_year": 1953,
+      "areas": [
+        "AE23"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "suzanne-keen.a-theory-of-narrative-empathy",
+      "queue_wave": "later",
+      "queue_year": 2006,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "tamar-szabo-gendler.alief-and-belief",
+      "queue_wave": "later",
+      "queue_year": 2008,
+      "areas": [
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "thomas-nagel.the-absurd",
+      "queue_wave": "later",
+      "queue_year": 1971,
+      "areas": [
+        "AE04",
+        "AE09"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "tzvetan-todorov.introduction-a-la-litterature-fantastique",
+      "queue_wave": "later",
+      "queue_year": 1970,
+      "areas": [
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "wolfgang-iser.the-reading-process",
+      "queue_wave": "later",
+      "queue_year": 1972,
+      "areas": [
+        "AE18",
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "wolfgang-welsch.aestheticization-processes",
+      "queue_wave": "later",
+      "queue_year": 1996,
+      "areas": [
+        "AE32",
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "akane-ohashi.beyond-the-baby-schema",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE11"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "albert-camus.nobel-banquet-speech",
+      "queue_wave": "later",
+      "queue_year": 1957,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "alexander-pope.peri-bathous-or-the-art-of-sinking-in-poetry",
+      "queue_wave": "unread",
+      "queue_year": 1727,
+      "areas": [
+        "AE04"
+      ],
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Alexander Pope",
+          "role": "author",
+          "birth": 1688,
+          "death": 1744,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q164047"
+          ]
+        },
+        {
+          "name": "Thomas Sheridan",
+          "role": "editor of English edition",
+          "birth": 1719,
+          "death": 1788,
+          "evidence": [
+            "https://archive.org/metadata/worksofrevjonath17swif"
+          ]
+        },
+        {
+          "name": "John Nichols",
+          "role": "editor of English edition",
+          "birth": 1745,
+          "death": 1826,
+          "evidence": [
+            "https://archive.org/metadata/worksofrevjonath17swif"
+          ]
+        },
+        {
+          "name": "Johann Joachim Schwabe",
+          "role": "adapter of German candidate",
+          "birth": 1714,
+          "death": 1784,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q95447",
+            "https://de.wikisource.org/wiki/ADB:Schwabe,_Johann_Joachim"
+          ]
+        },
+        {
+          "name": "Н. О.",
+          "role": "translator of Russian 1797 partial edition",
+          "identity_status": "unresolved",
+          "evidence": [
+            "http://elib.shpl.ru/ru/nodes/92301"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "The Works of the Rev. Jonathan Swift, vol. XVII, London, 1801, eds. Sheridan and Nichols",
+          "scan": "https://archive.org/details/worksofrevjonath17swif",
+          "transcription": "https://en.wikisource.org/wiki/The_Works_of_the_Rev._Jonathan_Swift/Volume_17/Martinus_Scriblerus,_or_the_Art_of_Sinking_In_Poetry",
+          "page": "IV p10",
+          "status": "English page image n15 personally inspected: printed page 10 and both cited sentences are present; IA leaf numbering differs",
+          "page_image": "https://archive.org/download/worksofrevjonath17swif/page/n15_w1400.jpg"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "de",
+          "edition": "Anti-Longin, oder die Kunst in der Poesie zu kriechen, Leipzig, 1734, Johann Joachim Schwabe",
+          "scan": "https://www.digitale-sammlungen.de/en/view/bsb10923568",
+          "ocr": "https://archive.org/download/10923568bsb/10923568bsb_djvu.txt",
+          "page": "chapter IV p15, IA leaf 82",
+          "status": "German page image n82 personally inspected: printed page 15 contains corresponding passage; adaptation through French, intermediary and full semantic alignment remain to review",
+          "page_image": "https://archive.org/download/10923568bsb/page/n82_w1600.jpg"
+        },
+        {
+          "language": "de",
+          "edition": "Peri bathous, s. Anti-sublime, Leipzig, 1733, translator Georg Christian Wolf",
+          "catalogue": "https://openlibrary.org/books/OL62446122M",
+          "status": "possible direct translation; passage, physical scan, translator identity and dates unverified"
+        },
+        {
+          "language": "ru",
+          "edition": "Пери Вафус, или Противовысокое, СПб., 1797, translator Н. О.",
+          "catalogue": "http://elib.shpl.ru/ru/nodes/92301",
+          "ocr": "https://archive.org/download/sviftdzhperivafusiliprotivovysokoeto84/sviftdzhperivafusiliprotivovysokoeto84_djvu.txt",
+          "status": "extant 16 pages end before target passage; translator identity and dates unresolved"
+        }
+      ],
+      "requested_places": [
+        "IV p10, two sentences beginning I grant, that to excel in the bathos"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; each textual layer and intermediary requires separate verification",
+        "usa": "English printing 1801, German candidate 1734, Russian partial 1797; applicable contributors still require confirmation",
+        "eu": "English editorial hands died by 1826; German intermediary and Russian translator not identified",
+        "russia": "English editorial hands died by 1826; German intermediary and Russian translator not identified"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive advancedsearch, metadata and OCR",
+          "result": "English original, German 1734 adaptation and Russian 1797 partial printing; latter ends before target passage",
+          "url": "https://archive.org/advancedsearch.php?q=%22Peri+Bathous%22&output=json"
+        },
+        {
+          "source": "Open Library",
+          "result": "German 1733 possible direct translation by Georg Christian Wolf, target passage and translator dates unverified",
+          "url": "https://openlibrary.org/books/OL62446122M"
+        },
+        {
+          "source": "English Wikisource",
+          "result": "English transcription of 1801 edition used in provisional packet",
+          "url": "https://en.wikisource.org/wiki/The_Works_of_the_Rev._Jonathan_Swift/Volume_17/Martinus_Scriblerus,_or_the_Art_of_Sinking_In_Poetry"
+        },
+        {
+          "source": "Hathi full text, Gallica SRU, Google Books API",
+          "result": "403 or 429; not successfully searched",
+          "url": "https://catalog.hathitrust.org/"
+        },
+        {
+          "source": "Russian Historical Public Library",
+          "result": "catalogue of Russian 1797 printing, identifies initial partial publication",
+          "url": "http://elib.shpl.ru/ru/nodes/92301"
+        }
+      ],
+      "remaining": "Investigate IA global full text and remaining required catalogues; check candidate images and French intermediary; locate matching ru/es/zh-Hans witnesses and precise dates. No conclusion of absence has been made."
+    },
+    {
+      "work": "audre-lorde.uses-of-the-erotic",
+      "queue_wave": "later",
+      "queue_year": 1978,
+      "areas": [
+        "AE15"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "bence-nanay.aesthetic-attention",
+      "queue_wave": "later",
+      "queue_year": 2015,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "brian-massumi.the-autonomy-of-affect",
+      "queue_wave": "later",
+      "queue_year": 1995,
+      "areas": [
+        "AE14"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "c-thi-nguyen.autonomy-and-aesthetic-engagement",
+      "queue_wave": "later",
+      "queue_year": 2020,
+      "areas": [
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "caroline-curwen.action-emotion-and-music-colour-synaesthesia",
+      "queue_wave": "later",
+      "queue_year": 2024,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "catherine-bell.ritual-theory-ritual-practice",
+      "queue_wave": "later",
+      "queue_year": 1992,
+      "areas": [
+        "AE31"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "chen-crystal-chen.what-is-being-there-an-ontology-of-the-immersive",
+      "queue_wave": "later",
+      "queue_year": 2024,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "christopher-mole.real-objective-beauty",
+      "queue_wave": "later",
+      "queue_year": 2016,
+      "areas": [
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "claire-horisk.dangerous-jokes",
+      "queue_wave": "later",
+      "queue_year": 2024,
+      "areas": [
+        "AE04",
+        "AE06"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "claudio-rozzoni.grotesque",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE07"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "constantine-sedikides.nostalgia",
+      "queue_wave": "later",
+      "queue_year": 2008,
+      "areas": [
+        "AE14"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "constantine-sedikides.nostalgia-fosters-self-continuity",
+      "queue_wave": "later",
+      "queue_year": 2016,
+      "areas": [
+        "AE14"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "daniel-e-berlyne.conflict-arousal-and-curiosity",
+      "queue_wave": "unread",
+      "queue_year": 1960,
+      "areas": [
+        "AE12"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "daniel-e-berlyne.novelty-complexity-and-hedonic-value",
+      "queue_wave": "later",
+      "queue_year": 1970,
+      "areas": [
+        "AE21"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "david-comer-kidd.reading-literary-fiction-and-theory-of-mind",
+      "queue_wave": "later",
+      "queue_year": 2018,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "david-comer-kidd.reading-literary-fiction-improves-theory-of-mind",
+      "queue_wave": "later",
+      "queue_year": 2013,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "david-dodell-feder.fiction-reading-has-a-small-positive-impact",
+      "queue_wave": "later",
+      "queue_year": 2018,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "david-mcneill.hand-and-mind",
+      "queue_wave": "later",
+      "queue_year": 1992,
+      "areas": [
+        "AE15"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "dominic-mciver-lopes.aesthetic-experts-guides-to-value",
+      "queue_wave": "later",
+      "queue_year": 2015,
+      "areas": [
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "dominic-mciver-lopes.the-myth-of-non-aesthetic-artistic-value",
+      "queue_wave": "later",
+      "queue_year": 2011,
+      "areas": [
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "donald-davidson.what-metaphors-mean",
+      "queue_wave": "later",
+      "queue_year": 1978,
+      "areas": [
+        "AE23"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "e-h-gombrich.preface-to-art-and-illusion2000",
+      "queue_wave": "later",
+      "queue_year": 2000,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "elisabeth-schellekens.conceptual-art",
+      "queue_wave": "later",
+      "queue_year": 2007,
+      "areas": [
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "ella-peek.ethical-criticism-of-art",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "eugene-ionesco.la-cantatrice-chauve",
+      "queue_wave": "later",
+      "queue_year": 1950,
+      "areas": [
+        "AE09"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "eugene-ionesco.the-art-of-theater-no",
+      "queue_wave": "later",
+      "queue_year": 1984,
+      "areas": [
+        "AE09"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "frank-sibley.general-criteria-and-reasons-in-aesthetics",
+      "queue_wave": "later",
+      "queue_year": 1983,
+      "areas": [
+        "AE16"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "gary-d-sherman.viewing-cute-images-increases-behavioral",
+      "queue_wave": "later",
+      "queue_year": 2009,
+      "areas": [
+        "AE11"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "george-kinnear.does-understanding-moderate-aesthetic-appraisals",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "georges-bataille.informe",
+      "queue_wave": "later",
+      "queue_year": 1929,
+      "areas": [
+        "AE03"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "georges-bataille.l-erotisme",
+      "queue_wave": "later",
+      "queue_year": 1957,
+      "areas": [
+        "AE15"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "gerhard-thonhauser.beyond-mood-and-atmosphere",
+      "queue_wave": "later",
+      "queue_year": 2021,
+      "areas": [
+        "AE20"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "hans-ulrich-gumbrecht.production-of-presence",
+      "queue_wave": "later",
+      "queue_year": 2004,
+      "areas": [
+        "AE15"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "harri-maecklin.aesthetic-self-forgetfulness",
+      "queue_wave": "later",
+      "queue_year": 2021,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "harry-drummond.value-of-art",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "harry-mcgurk.hearing-lips-and-seeing-voices",
+      "queue_wave": "later",
+      "queue_year": 1976,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "heinrich-woelfflin.kunstgeschichtliche-grundbegriffe",
+      "queue_wave": "later",
+      "queue_year": 1915,
+      "areas": [
+        "AE24"
+      ],
+      "status": "research-in-progress",
+      "original_language": "de",
+      "people": [
+        {
+          "name": "Heinrich Wölfflin",
+          "role": "author",
+          "birth": 1864,
+          "death": 1945,
+          "evidence": [
+            "https://openlibrary.org/authors/OL116205A.json"
+          ],
+          "verification": "verify national authority identity"
+        },
+        {
+          "name": "Adrian Frankovsky",
+          "role": "Russian translator, 1930 candidate",
+          "birth": 1888,
+          "death": 1942,
+          "evidence": [
+            "https://ru.wikipedia.org/wiki/Франковский,_Адриан_Антонович"
+          ],
+          "verification": "secondary account; verify title page and authority"
+        },
+        {
+          "name": "Mary Donald Hottinger",
+          "role": "English translator",
+          "birth": 1893,
+          "death": 1978,
+          "evidence": [
+            "https://en.wikipedia.org/wiki/Mary_Hottinger",
+            "https://archive.org/metadata/princarth00wlff"
+          ],
+          "verification": "verify identity on title page"
+        },
+        {
+          "name": "José Moreno Villa",
+          "role": "Spanish translator, 1924 candidate",
+          "birth": 1887,
+          "death": 1955,
+          "evidence": [
+            "https://es.wikipedia.org/wiki/José_Moreno_Villa"
+          ],
+          "verification": "verify title and authority"
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Bruckmann, 1915, first edition",
+          "catalogue": "https://openlibrary.org/books/OL52927149M",
+          "scan": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1915",
+          "status": "catalogue and OA metadata; server delivered challenge instead of scan"
+        },
+        {
+          "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Hugo Bruckmann, 1917, second edition",
+          "scan": "https://archive.org/details/kunstgeschichtli00wluoft",
+          "ocr": "https://archive.org/download/kunstgeschichtli00wluoft/kunstgeschichtli00wluoft_djvu.txt",
+          "page": "p57, IA leaf 73, image n72",
+          "status": "image personally inspected: p57 contains the colour and arrangement passage; correspondence to 1943 still requires review",
+          "page_image": "https://archive.org/download/kunstgeschichtli00wluoft/page/n72_w1400.jpg"
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "Principles of Art History, M. D. Hottinger, 1932; Dover reprint 1950",
+          "scan": "https://archive.org/details/princarth00wlff",
+          "page": "p53, IA leaf 71, image n70",
+          "status": "image personally inspected: p53 contains corresponding passage; short-quotation rights, exact boundaries and independent alignment require review",
+          "page_image": "https://archive.org/download/princarth00wlff/page/n70_w1400.jpg"
+        },
+        {
+          "language": "ru",
+          "edition": "Основные понятия истории искусств, translation attributed Adrian Frankovsky, Academia, 1930",
+          "catalogue": "https://ru.wikipedia.org/wiki/Франковский,_Адриан_Антонович",
+          "status": "secondary bibliography; target page and lawful source unverified"
+        },
+        {
+          "language": "es",
+          "edition": "Conceptos fundamentales en la Historia del Arte, translation attributed José Moreno Villa, 1924",
+          "catalogue": "https://es.wikipedia.org/wiki/José_Moreno_Villa",
+          "status": "secondary bibliography; title page and target lawful source unverified"
+        }
+      ],
+      "requested_places": [
+        "C:A-I086 1943 p58, isolated colour versus relationships and movement"
+      ],
+      "rights_assessment": {
+        "status": "preliminary; verify national transitional provisions, editions and participants before admission",
+        "usa": "1915/1917 original printed before 1931; English translation 1932 renewal and restoration not researched",
+        "eu": "author died 1945; Hottinger died 1978, translation requires separate term; Spanish transitional rules require examination",
+        "russia": "author died 1945; independent contributions and special term questions remain",
+        "mexico": "life-plus-100 and transitional provisions require case-specific review"
+      },
+      "searches": [
+        {
+          "source": "Internet Archive metadata and OCR",
+          "result": "1917 German scan and 1950 English reprint identified; target passage located in OCR, images not yet checked",
+          "url": "https://archive.org/details/kunstgeschichtli00wluoft"
+        },
+        {
+          "source": "Hathi bibliographic API",
+          "result": "1921 German copies tagged pdus and full view in catalogue; Spanish 1945 copy search-only",
+          "url": "https://catalog.hathitrust.org/api/volumes/brief/oclc/1021790.json"
+        },
+        {
+          "source": "Open Library",
+          "result": "1915 original and Spanish 1945 edition catalogued; publication and translator still require title pages",
+          "url": "https://openlibrary.org/works/OL19679702W/editions.json"
+        },
+        {
+          "source": "Gallica, Google Books, Hathi full text, NЭБ",
+          "result": "403, 429 or unavailable; search is incomplete",
+          "url": "https://catalog.hathitrust.org/"
+        }
+      ],
+      "remaining": "View and compare 1915/1917/1943 source pages; identify lawful target pages and contributors of all translation witnesses; search remaining required catalogues. No conclusion of absence has been made."
+    },
+    {
+      "work": "hermann-schmitz.emotions-outside-the-box-the-new-phenomenology",
+      "queue_wave": "later",
+      "queue_year": 2011,
+      "areas": [
+        "AE20"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "hiroshi-nittono.cross-cultural-comparisons-of-the-cute",
+      "queue_wave": "later",
+      "queue_year": 2021,
+      "areas": [
+        "AE11"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "hiroshi-nittono.the-power-of-kawaii",
+      "queue_wave": "later",
+      "queue_year": 2012,
+      "areas": [
+        "AE11"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "iris-vidmar.literature-and-truth",
+      "queue_wave": "later",
+      "queue_year": 2019,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "james-harold.autonomism-reconsidered",
+      "queue_wave": "later",
+      "queue_year": 2011,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "james-shelley.the-concept-of-the-aesthetic",
+      "queue_wave": "later",
+      "queue_year": 2009,
+      "areas": [
+        "AE36"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "jamie-ward.synesthesia",
+      "queue_wave": "later",
+      "queue_year": 2013,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "janis-h-zickfeld.kama-muta",
+      "queue_wave": "later",
+      "queue_year": 2019,
+      "areas": [
+        "AE14"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "jerome-stolnitz.aesthetics-and-philosophy-of-art-criticism",
+      "queue_wave": "later",
+      "queue_year": 1960,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "jerome-stolnitz.on-the-cognitive-triviality-of-art",
+      "queue_wave": "later",
+      "queue_year": 1992,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "joshua-paul-dale.the-development-of-the-american-cute-aesthetic",
+      "queue_wave": "later",
+      "queue_year": 2025,
+      "areas": [
+        "AE11"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "julia-kristeva.pouvoirs-de-l-horreur",
+      "queue_wave": "later",
+      "queue_year": 1980,
+      "areas": [
+        "AE03",
+        "AE07",
+        "AE08"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "kevin-schilbrack.the-concept-of-religion",
+      "queue_wave": "later",
+      "queue_year": 2022,
+      "areas": [
+        "AE31"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "l-a-paul.who-will-i-become",
+      "queue_wave": "later",
+      "queue_year": 2020,
+      "areas": [
+        "AE35"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "lara-harb.arabic-poetics",
+      "queue_wave": "later",
+      "queue_year": 2020,
+      "areas": [
+        "AE21"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "leonard-b-meyer.emotion-and-meaning-in-music",
+      "queue_wave": "later",
+      "queue_year": 1956,
+      "areas": [
+        "AE20"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "linda-hutcheon.a-theory-of-parody",
+      "queue_wave": "later",
+      "queue_year": 1985,
+      "areas": [
+        "AE24"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "lothar-pikulik.aesthetik-des-interessanten",
+      "queue_wave": "later",
+      "queue_year": 2014,
+      "areas": [
+        "AE12"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "louise-hanson.moral-realism-aesthetic-realism",
+      "queue_wave": "later",
+      "queue_year": 2018,
+      "areas": [
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "louise-hanson.the-reality-of-non-aesthetic-artistic-value",
+      "queue_wave": "later",
+      "queue_year": 2013,
+      "areas": [
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "lydia-l-moland.friedrich-schiller",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE35"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "maria-eugenia-panero.does-reading-a-single-passage-of-literary",
+      "queue_wave": "later",
+      "queue_year": 2016,
+      "areas": [
+        "AE32"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "martin-esslin.the-theatre-of-the-absurd",
+      "queue_wave": "later",
+      "queue_year": 1960,
+      "areas": [
+        "AE09"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "matthew-botvinick.rubber-hands-feel-touch-that-eyes-see",
+      "queue_wave": "later",
+      "queue_year": 1998,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "max-black.metaphor",
+      "queue_wave": "later",
+      "queue_year": 1954,
+      "areas": [
+        "AE23"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "melanie-c-green.transportation-into-narrative-worlds",
+      "queue_wave": "later",
+      "queue_year": 2021,
+      "areas": [
+        "AE20"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "melanie-c-green.understanding-media-enjoyment",
+      "queue_wave": "later",
+      "queue_year": 2004,
+      "areas": [
+        "AE20"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "melanie-l-glocker.baby-schema-in-infant-faces-induces-cuteness",
+      "queue_wave": "later",
+      "queue_year": 2009,
+      "areas": [
+        "AE11"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "meyer-schapiro.style",
+      "queue_wave": "later",
+      "queue_year": 1953,
+      "areas": [
+        "AE24"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "michael-y-bennett.the-cambridge-introduction-to-theatre",
+      "queue_wave": "later",
+      "queue_year": 2015,
+      "areas": [
+        "AE09"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "nelson-goodman.ways-of-worldmaking",
+      "queue_wave": "later",
+      "queue_year": 1978,
+      "areas": [
+        "AE24"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "noel-carroll.the-grotesque-today",
+      "queue_wave": "later",
+      "queue_year": 2003,
+      "areas": [
+        "AE07"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "ophelia-deroy.the-complex-interplay-between-multisensory",
+      "queue_wave": "later",
+      "queue_year": 2016,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "paul-guyer.18th-century-german-aesthetics",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "paul-j-silvia.cognitive-appraisals-and-interest-in-visual-art",
+      "queue_wave": "later",
+      "queue_year": 2005,
+      "areas": [
+        "AE12"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "paul-j-silvia.what-is-interesting-exploring-the-appraisal",
+      "queue_wave": "later",
+      "queue_year": 2005,
+      "areas": [
+        "AE12"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "peter-lamarque.how-can-we-fear-and-pity-fictions",
+      "queue_wave": "later",
+      "queue_year": 1981,
+      "areas": [
+        "AE19"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "philip-pettit.the-possibility-of-aesthetic-realism",
+      "queue_wave": "later",
+      "queue_year": 1983,
+      "areas": [
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "pierre-destree.aristotles-aesthetics",
+      "queue_wave": "later",
+      "queue_year": 2024,
+      "areas": [
+        "AE14"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "pierre-hadot.philosophy-as-a-way-of-life",
+      "queue_wave": "later",
+      "queue_year": 1995,
+      "areas": [
+        "AE35"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "richard-parncutt.the-emotional-connotations-of-major-versus-minor",
+      "queue_wave": "later",
+      "queue_year": 2014,
+      "areas": [
+        "AE20"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "richard-wollheim.painting-as-an-art",
+      "queue_wave": "later",
+      "queue_year": 1987,
+      "areas": [
+        "AE22"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "robert-hopkins.picture-image-and-experience",
+      "queue_wave": "later",
+      "queue_year": 1998,
+      "areas": [
+        "AE22"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "samantha-matherne.aesthetic-autonomy-and-norms-of-exposure",
+      "queue_wave": "later",
+      "queue_year": 2021,
+      "areas": [
+        "AE17"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "samuel-beckett.en-attendant-godot",
+      "queue_wave": "later",
+      "queue_year": 1952,
+      "areas": [
+        "AE09"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "sebastien-caudron.perception-of-body-movement-when-real",
+      "queue_wave": "later",
+      "queue_year": 2018,
+      "areas": [
+        "AE15"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "simon-lacey.consistency-and-strength-of-grapheme-color",
+      "queue_wave": "later",
+      "queue_year": 2021,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "simon-may.the-power-of-cute",
+      "queue_wave": "unread",
+      "queue_year": 2019,
+      "areas": [
+        "AE07",
+        "AE11"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "svetlana-boym.the-future-of-nostalgia",
+      "queue_wave": "later",
+      "queue_year": 2001,
+      "areas": [
+        "AE14"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "t-s-eliot.hamlet-and-his-problems",
+      "queue_wave": "later",
+      "queue_year": 1919,
+      "areas": [
+        "AE18"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "thomas-j-palmeri.the-perceptual-reality-of-synesthetic-colors",
+      "queue_wave": "later",
+      "queue_year": 2002,
+      "areas": [
+        "AE13"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "tzvetan-todorov.the-origin-of-genres",
+      "queue_wave": "later",
+      "queue_year": 1976,
+      "areas": [
+        "AE24"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "u-s-national-library-of-medicine.medical-subject-headings",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE15"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "victor-turner.the-forest-of-symbols",
+      "queue_wave": "later",
+      "queue_year": 1967,
+      "areas": [
+        "AE31"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "viktor-v-bychkov.bezobraznoe",
+      "queue_wave": "later",
+      "queue_year": 2026,
+      "areas": [
+        "AE03"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "vladimir-j-konecni.being-moved-as-one-of-the-major-aesthetic",
+      "queue_wave": "later",
+      "queue_year": 2015,
+      "areas": [
+        "AE14"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "vladimir-nabokov.nikolai-gogol",
+      "queue_wave": "later",
+      "queue_year": 1944,
+      "areas": [
+        "AE04"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "walter-gropius.bauhaus-manifesto",
+      "queue_wave": "later",
+      "queue_year": 1919,
+      "areas": [
+        "AE24"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "william-empson.seven-types-of-ambiguity",
+      "queue_wave": "later",
+      "queue_year": 1930,
+      "areas": [
+        "AE23"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "william-k-wimsatt.the-intentional-fallacy",
+      "queue_wave": "later",
+      "queue_year": 1946,
+      "areas": [
+        "AE23"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "winfried-menninghaus.the-distancing-embracing-model-of-the-enjoyment",
+      "queue_wave": "later",
+      "queue_year": 2017,
+      "areas": [
+        "AE03",
+        "AE08"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "winfried-menninghaus.towards-a-psychological-construct-of-being-moved",
+      "queue_wave": "later",
+      "queue_year": 2015,
+      "areas": [
+        "AE14"
+      ],
+      "status": "research-pending"
+    },
+    {
+      "work": "wolfgang-kayser.das-groteske",
+      "queue_wave": "later",
+      "queue_year": 1957,
+      "areas": [
+        "AE07",
+        "AE08"
+      ],
+      "status": "research-pending"
+    }
+  ]
+}

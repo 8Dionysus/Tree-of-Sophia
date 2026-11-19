@@ -18,8 +18,8 @@
 
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {ALIGNMENT,LexicalModel,alignRun,sentencesOf} from './align.mjs';
-import {CORPUS_ALIGNMENT_SCHEMA} from './fragments.mjs';
+import {ALIGNMENT,LexicalModel,alignAnchoredSentences,alignRun,sentencesOf} from './align.mjs';
+import {CORPUS_ALIGNMENT_SCHEMA,validLocalSentenceOptions} from './fragments.mjs';
 
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
 const chars=text=>Array.from(text);
@@ -103,8 +103,9 @@ const PERIODS=new Set(['grc','la']),LONG_PERIOD=[[1,4],[1,5],[1,6]];
 
 // Some editions join several short original sentences into one long translation sentence. The scope may
 // opt into larger groups for that exact pair of revisions; the aligner still chooses every correspondence.
-export function alignVersion(original,translation,cited,{maxSourceSentences=3,handoverUnitIds=[]}={}){
+export function alignVersion(original,translation,cited,{maxSourceSentences=3,handoverUnitIds=[],completePreviousUnitIds=[],sentenceAnchors=[]}={}){
   if(!Number.isInteger(maxSourceSentences)||maxSourceSentences<3||maxSourceSentences>6)throw new Error('Invalid maximum source sentence group');
+  if(!Array.isArray(completePreviousUnitIds)||new Set(completePreviousUnitIds).size!==completePreviousUnitIds.length||completePreviousUnitIds.some(id=>!handoverUnitIds.includes(id)))throw new Error('Invalid preceding continuation scope');
   const beads=(PERIODS.has(original.language)?LONG_PERIOD:[]).concat(Array.from({length:Math.max(0,maxSourceSentences-3)},(_,i)=>[i+4,1]));
   const {how,map}=counterparts(original,translation),textOf=new Map(translation.units.map(unit=>[unit.id,unit.text]));
   const position=new Map(translation.units.map((unit,index)=>[unit.id,index])),whole=unit=>({id:unit.id,s:0,e:chars(unit.text).length});
@@ -186,7 +187,13 @@ export function alignVersion(original,translation,cited,{maxSourceSentences=3,ha
     const one=group.units.length===1&&!group.whole;
     return {...group,S,T,ratio,variance:one?VARIANCE*ALIGNMENT.sentenceVariance:VARIANCE,band:one?ALIGNMENT.band:60};
   });
-  const align=(run,model)=>run.S.length===1&&run.T.length===1?[{s:[run.S[0].id],t:[run.T[0].id],shape:'1:1',cost:0}]:alignRun(run.S,run.T,run.ratio,run.variance,{model,band:run.band,beads});
+  if(sentenceAnchors.length&&runs.length!==1)throw new Error('Sentence keyword matches require one reference run');
+  const align=(run,model)=>{
+    const options={model,band:run.band,beads};
+    if(sentenceAnchors.length)return alignAnchoredSentences(run.S,run.T,run.ratio,run.variance,options,sentenceAnchors);
+    if(run.S.length===1&&run.T.length===1)return [{s:[run.S[0].id],t:[run.T[0].id],shape:'1:1',cost:0}];
+    return alignRun(run.S,run.T,run.ratio,run.variance,options);
+  };
   // First pass by length; the confident one-to-one pairs teach the model the words of the two languages.
   const training=runs.flatMap(run=>pairsOf(run.S,run.T,align(run,null),null).training);
   const model=new LexicalModel(training);
@@ -208,6 +215,20 @@ export function alignVersion(original,translation,cited,{maxSourceSentences=3,ha
           ||!unfinished(currentText)||!continues(nextText))continue;
         const sentence=sentencesOf([{index:j+1,raw:chars(nextText).slice(0,textEnd(nextText)).join('')}],translation.language)[0];
         if(sentence&&!t.some(([k,a,b])=>k===j+1&&a<=sentence.id[1]&&b>=sentence.id[2]))t.push(sentence.id);
+      }
+      // A scoped handover can also pair only the continuation of a sentence
+      // with a later original sentence. Keep the beginning in its own unit.
+      if(run.units.some(unit=>completePreviousUnitIds.includes(unit.id))){
+        for(const [j,start,end] of targets){
+          const current=run.targets[j],previous=run.targets[j-1];
+          if(!previous||position.get(current.id)!==position.get(previous.id)+1||current.s!==0)continue;
+          const currentText=textOf.get(current.id),previousText=textOf.get(previous.id);
+          if(previous.e!==textEnd(previousText)||!unfinished(previousText)||!continues(currentText))continue;
+          const first=sentencesOf([{index:j,raw:chars(currentText).slice(0,Math.min(current.e,textEnd(currentText))).join('')}],translation.language)[0];
+          const prior=sentencesOf([{index:j-1,raw:chars(previousText).slice(previous.s,previous.e).join('')}],translation.language).at(-1);
+          if(first&&prior&&start<=first.id[1]&&end>=first.id[2]&&!t.some(([k,a,b])=>k===j-1&&a<=prior.id[1]&&b>=prior.id[2]))t.push(prior.id);
+        }
+        t.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
       }
       for(const index of new Set(s.map(([unit])=>unit))){
         const unit=run.units[index].id;if(!cited.has(unit))continue;
@@ -257,7 +278,19 @@ export function alignCorpus(cited,works,read,scopes=[]){
     const invalidStart=start!==undefined&&(!firstTarget||start?.unitId!==firstTarget.id||!Number.isInteger(start?.offset)||start.offset<1||start.offset>=chars(firstTarget.text).length);
     const handovers=scope.handoverUnitIds;
     const invalidHandovers=handovers!==undefined&&(!Array.isArray(handovers)||!handovers.length||new Set(handovers).size!==handovers.length||handovers.some(id=>{const i=original?.units.findIndex(unit=>unit.id===id)??-1;return typeof id!=='string'||i<=first||i>last;}));
-    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))||invalidStart||invalidHandovers||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
+    const locals=scope.localReferencePairs;
+    const invalidLocals=locals!==undefined&&(!Array.isArray(locals)||!locals.length||start!==undefined||new Set(locals.map(pair=>pair?.originalUnitId)).size!==locals.length||new Set(locals.map(pair=>pair?.translationUnitId)).size!==locals.length||locals.some(pair=>{
+      const i=original?.units.findIndex(unit=>unit.id===pair?.originalUnitId)??-1,from=original?.units[i],j=translation?.units.findIndex(unit=>unit.id===pair?.translationUnitId)??-1,to=translation?.units[j],next=translation?.units[j+1];
+      const a=numbers(from?.reference),b=numbers(to?.reference);
+      const continuation=pair?.includeFollowingContinuation;
+      const invalidContinuation=continuation!==undefined&&(continuation!==true||!to||!next||!unfinished(chars(to.text).slice(0,textEnd(to.text)).join(''))||!continues(next.text)||!sentencesOf([{index:0,raw:chars(next.text).slice(0,textEnd(next.text)).join('')}],translation.language).length);
+      return i<first||i>last||!to||!a.length||!b.length||a.at(-1)!==b.at(-1)||invalidContinuation||
+        !validLocalSentenceOptions(pair)||(pair.precedingTranslationSentences!==undefined&&j<1);
+    }));
+    const complete=scope.completePreviousUnitIds;
+    const invalidComplete=complete!==undefined&&(!Array.isArray(complete)||!complete.length||!Array.isArray(handovers)||new Set(complete).size!==complete.length||complete.some(id=>!handovers.includes(id)||(Array.isArray(locals)&&locals.some(pair=>pair?.originalUnitId===id))));
+    const invalidWithheld=scope.withheld!==undefined&&(scope.withheld!==true||first!==0||last!==original?.units.length-1||typeof scope.basis!=='string'||!scope.basis.trim()||scope.maxSourceSentences!==undefined||start!==undefined||handovers!==undefined||locals!==undefined||complete!==undefined);
+    if(seenScopes.has(key)||!original||!translation||original===translation||original.language===translation.language||!scope.originalRevision||!scope.translationRevision||scope.originalRevision!==original.revision||scope.translationRevision!==translation.revision||(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))||invalidStart||invalidHandovers||invalidLocals||invalidComplete||invalidWithheld||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${scope.work}: invalid or stale translation scope for ${scope.translationVersionId}`);
     seenScopes.add(key);
   }
   const out={schema:CORPUS_ALIGNMENT_SCHEMA,mechanism:'bonsai/lib/corpus-align.mjs',review:'unreviewed',works:{},units:{},receipt:{}};
@@ -274,13 +307,57 @@ export function alignCorpus(cited,works,read,scopes=[]){
         if(scope.originalVersionId!==original.id||scope.originalRevision!==original.revision||first<0||last<first||!/^https:\/\//.test(scope.source??''))throw new Error(`${key}: invalid or stale translation scope for ${version.id}`);
         source={...original,units:original.units.slice(first,last+1)};
       }
+      // A reviewed quality finding may withhold this version's alignment without removing its corpus witness.
+      // The binding above requires the complete original and exact revisions, so a later source change fails closed.
+      if(scope?.withheld){
+        translations.push({...meta(version),coverage:null});
+        out.receipt[`${key}:${version.id}`]={how:'withheld',sourceScope:{firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source,basis:scope.basis,withheld:true}};
+        continue;
+      }
       // Ignore a declared front matter prefix only while aligning; all returned offsets still address
       // the unmodified, revision-bound corpus unit. Other annotations may remain within the text.
       const start=scope?.translationStart;
       const target=start?{...version,units:version.units.map(unit=>unit.id===start.unitId?{...unit,text:chars(unit.text).slice(start.offset).join('')}:unit)}:version;
-      const {entries,receipt}=alignVersion(source,target,units,{maxSourceSentences:scope?.maxSourceSentences??3,handoverUnitIds:scope?.handoverUnitIds??[]});
+      const {entries,receipt}=alignVersion(source,target,units,{maxSourceSentences:scope?.maxSourceSentences??3,handoverUnitIds:scope?.handoverUnitIds??[],completePreviousUnitIds:scope?.completePreviousUnitIds??[]});
+      // Some editions label the same numbered place differently. For explicitly
+      // reviewed, revision-bound units, align both complete units independently;
+      // the sentence aligner still selects all text and original offsets remain intact.
+      const localReceipts=[];
+      for(const pair of scope?.localReferencePairs??[]){
+        const from=source.units.find(unit=>unit.id===pair.originalUnitId),index=target.units.findIndex(unit=>unit.id===pair.translationUnitId),to=target.units[index],localTargets=[to];
+        const previous=target.units[index-1];
+        let precedingOffset;
+        if(pair.precedingTranslationSentences){
+          const text=chars(previous.text).slice(0,textEnd(previous.text));
+          const sentences=sentencesOf([{index:0,raw:text.join('')}],target.language);
+          const first=sentences.at(-pair.precedingTranslationSentences);
+          if(!first)throw new Error(`${key}: not enough sentences before ${to.id}`);
+          precedingOffset=first.id[1];
+          localTargets.unshift({...previous,text:text.slice(precedingOffset).join('')});
+        }
+        if(pair.includeFollowingContinuation){
+          const next=target.units[index+1],head=sentencesOf([{index:0,raw:chars(next.text).slice(0,textEnd(next.text)).join('')}],target.language)[0];
+          localTargets.push({...next,text:chars(next.text).slice(0,head.id[2]).join('')});
+        }
+        let local;
+        try{
+          local=alignVersion({...source,units:[{...from,reference:to.reference}]},{...target,units:localTargets},new Set([from.id]),{
+            maxSourceSentences:scope?.maxSourceSentences??3,sentenceAnchors:pair.sentenceAnchors,
+          });
+        }catch(error){
+          throw new Error(`${key}: sentence alignment for ${from.reference} / ${to.reference} failed: ${error.message}`,{cause:error});
+        }
+        const entry=local.entries[from.id];
+        if(entry&&precedingOffset!==undefined){
+          for(const [,targets] of entry.pairs)for(const span of targets){
+            if(entry.u[span[0]]===previous.id){span[1]+=precedingOffset;span[2]+=precedingOffset;}
+          }
+        }
+        if(units.has(from.id)){if(entry)entries[from.id]=entry;else delete entries[from.id];}
+        localReceipts.push({...pair,...local.receipt});
+      }
       if(start)for(const entry of Object.values(entries))for(const [,targets] of entry.pairs)for(const span of targets)if(entry.u[span[0]]===start.unitId){span[1]+=start.offset;span[2]+=start.offset;}
-      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source,...(scope.maxSourceSentences!==undefined?{maxSourceSentences:scope.maxSourceSentences}:{}),...(start?{translationStart:start}:{}),...(scope.handoverUnitIds?{handoverUnitIds:scope.handoverUnitIds}:{})};
+      if(scope)receipt.sourceScope={firstUnitId:scope.firstUnitId,lastUnitId:scope.lastUnitId,originalRevision:scope.originalRevision,translationRevision:scope.translationRevision,source:scope.source,...(scope.maxSourceSentences!==undefined?{maxSourceSentences:scope.maxSourceSentences}:{}),...(start?{translationStart:start}:{}),...(scope.handoverUnitIds?{handoverUnitIds:scope.handoverUnitIds}:{}),...(localReceipts.length?{localReferenceAlignments:localReceipts}:{}),...(scope.completePreviousUnitIds?{completePreviousUnitIds:scope.completePreviousUnitIds}:{})};
       translations.push({...meta(version),coverage:receipt.coverage,...(mixedNotes(version)>2?{notesInText:true}:{})});
       out.receipt[`${key}:${version.id}`]=receipt;
       for(const [unit,entry] of Object.entries(entries))(out.units[unit]??={w:key,t:{}}).t[version.id]=entry;

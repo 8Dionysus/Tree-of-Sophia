@@ -5,7 +5,7 @@ use crate::{
     inspect_plan::InspectBudget,
     knowledge_lens_spec::{LensVocabulary, array, get, number, set, string, uint},
     knowledge_presentation::{knowledge_scene, lens_carrier},
-    search_v2::{SearchKind, SearchV2Error, SearchV2ErrorCode},
+    search::{SearchError, SearchErrorCode, SearchKind},
     source_read_projection::{object, text},
 };
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
@@ -32,14 +32,14 @@ pub const PUBLISHED_EXPLORATION_CACHE_VERSION: &str =
 pub const EXPLORATION_EXECUTION_VERSION: &str = "tos-exploration-execution-v6";
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 const SNAPSHOT_SCHEMA: &str = "tos_rust_selected_exploration_snapshot_v1";
-fn error(code: SearchV2ErrorCode, message: &'static str) -> SearchV2Error {
-    SearchV2Error { code, message }
+fn error(code: SearchErrorCode, message: &'static str) -> SearchError {
+    SearchError { code, message }
 }
-fn invalid(message: &'static str) -> SearchV2Error {
-    error(SearchV2ErrorCode::InvalidRequest, message)
+fn invalid(message: &'static str) -> SearchError {
+    error(SearchErrorCode::InvalidRequest, message)
 }
-fn corrupt(message: &'static str) -> SearchV2Error {
-    error(SearchV2ErrorCode::CorruptSelectedCarrier, message)
+fn corrupt(message: &'static str) -> SearchError {
+    error(SearchErrorCode::CorruptSelectedCarrier, message)
 }
 pub(crate) fn bare(id: &str) -> bool {
     id.len() == 64
@@ -61,7 +61,7 @@ fn int(value: &JsonValue) -> Option<usize> {
     }
     n.lexeme.parse().ok()
 }
-fn names(value: &JsonValue) -> Result<Vec<String>, SearchV2Error> {
+fn names(value: &JsonValue) -> Result<Vec<String>, SearchError> {
     let values = value
         .as_array()
         .ok_or_else(|| invalid("exploration selector must be array"))?;
@@ -78,7 +78,7 @@ fn names(value: &JsonValue) -> Result<Vec<String>, SearchV2Error> {
 pub fn normalize_exploration(
     request: &JsonValue,
     vocabulary: &LensVocabulary,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let fields = request
         .as_object()
         .ok_or_else(|| invalid("exploration request must be object"))?;
@@ -218,7 +218,7 @@ pub fn published_exploration_snapshot(
     data_revision: &str,
     epoch: u64,
     limits: JsonLimits,
-) -> Result<String, SearchV2Error> {
+) -> Result<String, SearchError> {
     if !bare(data_revision) || epoch > 9_007_199_254_740_991 {
         return Err(corrupt("exploration snapshot identity invalid"));
     }
@@ -231,7 +231,7 @@ pub fn published_exploration_snapshot(
         &canonical_bytes_v1(&binding, CanonicalProfile::SourceRecordDigestV1, limits).map_err(
             |_| {
                 error(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "exploration snapshot byte budget exceeded",
                 )
             },
@@ -261,7 +261,7 @@ pub(crate) fn normalize_for_profile(
     request: &JsonValue,
     vocabulary: &LensVocabulary,
     profile: ExplorationProfile,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let normalized = normalize_exploration(request, vocabulary)?;
     Ok(if profile == ExplorationProfile::PublishedD1 {
         ordered(
@@ -288,7 +288,7 @@ pub(crate) fn normalize_for_profile(
 /// is opaque and selects only disposable host state, never a source grant.
 pub fn validate_published_exploration_request(
     request: &JsonValue,
-) -> Result<Option<String>, SearchV2Error> {
+) -> Result<Option<String>, SearchError> {
     if request.object_get("cursor").is_some() {
         if !request.as_object().is_some_and(|fields| fields.len() == 1)
             || !get(request, "cursor").as_str().is_some_and(bare)
@@ -304,7 +304,7 @@ pub fn validate_published_exploration_request(
     )?;
     Ok(None)
 }
-pub(crate) fn validate_budget(budget: ExplorationBudget) -> Result<(), SearchV2Error> {
+pub(crate) fn validate_budget(budget: ExplorationBudget) -> Result<(), SearchError> {
     if budget.max_work_units == 0
         || budget.max_work_units > 512
         || budget.max_session_nodes == 0
@@ -325,7 +325,7 @@ pub(crate) fn validate_budget(budget: ExplorationBudget) -> Result<(), SearchV2E
 pub fn set_exploration_cursor(
     packet: &mut JsonValue,
     cursor: Option<&str>,
-) -> Result<(), SearchV2Error> {
+) -> Result<(), SearchError> {
     if cursor.is_some_and(|id| !bare(id))
         || cursor.is_some() != (string(get(packet, "status")) == "paused")
     {
@@ -439,7 +439,7 @@ impl ExplorationState {
             ),
         ])
     }
-    pub fn encoded_state(&self, limits: JsonLimits) -> Result<Vec<u8>, SearchV2Error> {
+    pub fn encoded_state(&self, limits: JsonLimits) -> Result<Vec<u8>, SearchError> {
         canonical_bytes_v1(
             &self.state_value(),
             CanonicalProfile::SourceRecordDigestV1,
@@ -449,7 +449,7 @@ impl ExplorationState {
     }
     /// Exact native checkpoint admission through the existing FND count visitor,
     /// using the same state value/profile as actual published persistence.
-    pub fn encoded_state_count(&self, limits: JsonLimits) -> Result<usize, SearchV2Error> {
+    pub fn encoded_state_count(&self, limits: JsonLimits) -> Result<usize, SearchError> {
         canonical_count_v1(
             &self.state_value(),
             CanonicalProfile::SourceRecordDigestV1,
@@ -458,10 +458,10 @@ impl ExplorationState {
         .map_err(state_emission_error)
     }
 }
-fn state_emission_error(reason: tos_foundation::FoundationError) -> SearchV2Error {
+fn state_emission_error(reason: tos_foundation::FoundationError) -> SearchError {
     if reason.code == FoundationErrorCode::BudgetExceeded {
         error(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "exploration state byte cap exceeded",
         )
     } else {
@@ -476,7 +476,7 @@ pub fn decode_published_exploration_state(
     raw: &[u8],
     snapshot_revision: &str,
     budget: ExplorationBudget,
-) -> Result<ExplorationState, SearchV2Error> {
+) -> Result<ExplorationState, SearchError> {
     validate_budget(budget)?;
     let mut limits = budget.read.json;
     limits.max_bytes = limits.max_bytes.min(budget.max_state_bytes);
@@ -515,7 +515,7 @@ pub fn decode_published_exploration_state(
     {
         return Err(corrupt("invalid exploration checkpoint framing"));
     }
-    let id_list = |key: &str, max: usize| -> Result<Vec<String>, SearchV2Error> {
+    let id_list = |key: &str, max: usize| -> Result<Vec<String>, SearchError> {
         let list = get(value, key)
             .as_array()
             .ok_or_else(|| corrupt("invalid checkpoint ID array"))?;
@@ -748,7 +748,7 @@ pub fn decode_published_exploration_state(
         identity_entity,
     })
 }
-fn validate_checkpoint_scalars(value: &JsonValue) -> Result<(), SearchV2Error> {
+fn validate_checkpoint_scalars(value: &JsonValue) -> Result<(), SearchError> {
     match value {
         JsonValue::Number(n)
             if n.kind != tos_foundation::JsonNumberKind::Int
@@ -783,7 +783,7 @@ fn validate_checkpoint_scalars(value: &JsonValue) -> Result<(), SearchV2Error> {
 pub fn validate_published_exploration_replay(
     raw: &[u8],
     limits: JsonLimits,
-) -> Result<(), SearchV2Error> {
+) -> Result<(), SearchError> {
     let document = parse_json(raw, JsonMode::PublishedStrict, limits)
         .map_err(|_| corrupt("exploration replay JSON invalid"))?;
     let value = document.root();
@@ -794,7 +794,7 @@ pub fn validate_published_exploration_replay(
     {
         return Err(corrupt("exploration replay packet invalid"));
     }
-    fn unicode(value: &JsonValue) -> Result<(), SearchV2Error> {
+    fn unicode(value: &JsonValue) -> Result<(), SearchError> {
         match value {
             JsonValue::String(s) if s.as_str().is_none() => {
                 return Err(corrupt("exploration replay Unicode invalid"));
@@ -832,8 +832,8 @@ pub trait PreparedExplorationCheckpoint: Send {
     /// Admit the one final response emitted by QRY, after cursor insertion and
     /// response cap, before acquiring disclosure. May stage size/digest only;
     /// the checkpoint never supplies or substitutes response bytes.
-    fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchV2Error>;
-    fn commit(&mut self) -> Result<(), SearchV2Error>;
+    fn stage_response(&mut self, body: &[u8]) -> Result<(), SearchError>;
+    fn commit(&mut self) -> Result<(), SearchError>;
 }
 /// Clock, expiry, opaque-token generation, replay and bounded checkpoint storage
 /// belong to this host adapter, separate from immutable selected corpus bytes.
@@ -842,14 +842,14 @@ pub trait ExplorationCheckpoints {
     /// fence too; process-only hosts have no clock/pruning write to admit.
     fn prepare_replay(
         &mut self,
-    ) -> Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchV2Error> {
+    ) -> Result<Option<Box<dyn PreparedExplorationCheckpoint>>, SearchError> {
         Ok(None)
     }
     fn load(
         &mut self,
         cursor: &str,
         snapshot_revision: &str,
-    ) -> Result<ExplorationCheckpoint, SearchV2Error>;
+    ) -> Result<ExplorationCheckpoint, SearchError>;
     fn prepare(
         &mut self,
         input_cursor: Option<&str>,
@@ -857,12 +857,12 @@ pub trait ExplorationCheckpoints {
         successor: Option<&ExplorationState>,
         packet_without_cursor: &JsonValue,
         budget: ExplorationBudget,
-    ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchV2Error>;
+    ) -> Result<Box<dyn PreparedExplorationCheckpoint>, SearchError>;
 }
 fn strings(values: &[String]) -> JsonValue {
     JsonValue::Array(values.iter().map(|s| text(s)).collect())
 }
-fn strict_carrier(value: &JsonValue, kind: SearchKind) -> Result<(), SearchV2Error> {
+fn strict_carrier(value: &JsonValue, kind: SearchKind) -> Result<(), SearchError> {
     let mut keys = vec!["id", "native_id", "source_graph"];
     if kind == SearchKind::Nodes {
         keys.extend(["entity_id", "kind_id", "type_id"]);
@@ -927,7 +927,7 @@ pub(crate) async fn start(
     rows: &mut Rows,
     vocabulary: &LensVocabulary,
     budget: ExplorationBudget,
-) -> Result<ExplorationState, SearchV2Error> {
+) -> Result<ExplorationState, SearchError> {
     let mut query = query;
     let sources = names(get(&query, "sources"))?;
     let mut origin = None;
@@ -935,7 +935,7 @@ pub(crate) async fn start(
     let roots = if string(get(&query, "schema_version")) == "tos_exploration_request_v2" {
         if string(get(&query, "source_revision")) != revision {
             return Err(error(
-                SearchV2ErrorCode::StaleSelection,
+                SearchErrorCode::StaleSelection,
                 "exploration source revision changed",
             ));
         }
@@ -950,14 +950,14 @@ pub(crate) async fn start(
             .await?
             .ok_or_else(|| {
                 error(
-                    SearchV2ErrorCode::UnknownIdentifier,
+                    SearchErrorCode::UnknownIdentifier,
                     "unknown exact exploration origin",
                 )
             })?;
         strict_carrier(&item, kind)?;
         if get(&item, "content_revision") != get(requested, "content_revision") {
             return Err(error(
-                SearchV2ErrorCode::StaleSelection,
+                SearchErrorCode::StaleSelection,
                 "exploration origin content changed",
             ));
         }
@@ -1045,7 +1045,7 @@ pub(crate) async fn advance(
     revision: &str,
     authority_boundary: &JsonValue,
     budget: ExplorationBudget,
-) -> Result<JsonValue, SearchV2Error> {
+) -> Result<JsonValue, SearchError> {
     let query = state.query.clone();
     let sources = names(get(&query, "sources"))?;
     let predicates = names(get(&query, "predicate_ids"))?;
@@ -1425,7 +1425,7 @@ pub(crate) async fn advance(
     }
     state.page_number = state.page_number.checked_add(1).ok_or_else(|| {
         error(
-            SearchV2ErrorCode::BudgetExceeded,
+            SearchErrorCode::BudgetExceeded,
             "exploration page ordinal overflow",
         )
     })?;
@@ -1612,10 +1612,10 @@ pub(crate) async fn advance(
 #[cfg(all(not(target_arch = "wasm32"), feature = "native-models"))]
 fn snapshot(
     bound: &BoundCmpKnowledge<'_>,
-    scope: &crate::knowledge_packet::IndexedDisclosureScope,
+    scope: &crate::knowledge_scope::IndexedDisclosureScope,
     limits: JsonLimits,
     budget: ExplorationBudget,
-) -> Result<String, SearchV2Error> {
+) -> Result<String, SearchError> {
     let value = object(vec![
         ("schema", text(SNAPSHOT_SCHEMA)),
         ("execution_version", text(EXPLORATION_EXECUTION_VERSION)),
@@ -1657,7 +1657,7 @@ fn snapshot(
         &canonical_bytes_v1(&value, CanonicalProfile::SourceRecordDigestV1, limits).map_err(
             |_| {
                 error(
-                    SearchV2ErrorCode::BudgetExceeded,
+                    SearchErrorCode::BudgetExceeded,
                     "exploration binding cap exceeded",
                 )
             },
@@ -1675,7 +1675,7 @@ fn drive_selected<'hold, A: InspectCurrentAuthority<'hold> + ?Sized>(
     boundary: JsonValue,
     vocabulary: LensVocabulary,
     budget: ExplorationBudget,
-) -> Result<crate::exploration_plan::ExplorationOutput, SearchV2Error> {
+) -> Result<crate::exploration_plan::ExplorationOutput, SearchError> {
     use crate::exploration_plan::{ExplorationNeed, ExplorationPlan, ExplorationReply};
     struct Probe(Option<std::sync::Arc<dyn crate::AbortProbe>>);
     impl crate::AbortProbe for Probe {
@@ -1787,7 +1787,7 @@ pub fn execute_selected_exploration<
     checkpoints: &mut C,
     request: &JsonValue,
     budget: ExplorationBudget,
-) -> Result<DisclosableInspect<'hold>, SearchV2Error> {
+) -> Result<DisclosableInspect<'hold>, SearchError> {
     validate_budget(budget)?;
     let prepared = std::cell::RefCell::new(None::<Box<dyn PreparedExplorationCheckpoint>>);
     let packet = execute_selected_carrier_packet_observed(
@@ -1826,7 +1826,7 @@ pub fn execute_selected_exploration<
                     canonical_bytes_v1(packet, CanonicalProfile::SourceRecordDigestV1, limits)
                         .map_err(|_| {
                             error(
-                                SearchV2ErrorCode::BudgetExceeded,
+                                SearchErrorCode::BudgetExceeded,
                                 "exploration replay packet cap exceeded",
                             )
                         })?;
@@ -1837,7 +1837,7 @@ pub fn execute_selected_exploration<
                     || string(get(packet, "source_revision")) != bound.require_source_revision()?
                 {
                     return Err(error(
-                        SearchV2ErrorCode::StaleContinuation,
+                        SearchErrorCode::StaleContinuation,
                         "exploration replay binding changed",
                     ));
                 }
@@ -1855,7 +1855,7 @@ pub fn execute_selected_exploration<
                             .ok_or_else(|| corrupt("exploration replay carrier missing"))?;
                         if get(&selected, "content_revision") != get(carrier, "content_revision") {
                             return Err(error(
-                                SearchV2ErrorCode::StaleContinuation,
+                                SearchErrorCode::StaleContinuation,
                                 "exploration replay carrier changed",
                             ));
                         }

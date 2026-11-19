@@ -1110,3 +1110,109 @@ fn snapshot_row_state_bytes(path: &str) -> Result<usize, ItemRefusal> {
 }
 
 use tos_foundation::encode_lower_hex as hex_lower;
+
+#[cfg(test)]
+mod missing_parent_tests {
+    use super::*;
+    use std::path::Path;
+    use tos_validation::record_biblio_cut::{
+        SourceCutInput, SourceCutInputCoverage, SourceCutMemberMeta,
+    };
+
+    struct EmptySourceCutInput;
+
+    impl SourceCutInput for EmptySourceCutInput {
+        fn for_each_current_member_meta(
+            &self,
+            _: Instant,
+            _: &AtomicBool,
+            _: &mut dyn FnMut(SourceCutMemberMeta<'_>) -> Result<(), ItemRefusal>,
+        ) -> Result<(), ItemRefusal> {
+            Ok(())
+        }
+
+        fn with_current_member(
+            &self,
+            _: &str,
+            _: usize,
+            _: Instant,
+            _: &AtomicBool,
+            _: &mut dyn FnMut(SourceCutMemberMeta<'_>, &[u8]) -> Result<(), ItemRefusal>,
+        ) -> Result<(), ItemRefusal> {
+            Err(ItemRefusal::Source("unused empty test input".into()))
+        }
+
+        fn for_each_current_member(
+            &self,
+            _: Instant,
+            _: &AtomicBool,
+            _: &mut dyn FnMut(SourceCutMemberMeta<'_>, &[u8]) -> Result<(), ItemRefusal>,
+        ) -> Result<SourceCutInputCoverage, ItemRefusal> {
+            Err(ItemRefusal::Source("unused empty test input".into()))
+        }
+
+        fn path_presence(
+            &self,
+            _: &str,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<Option<tos_source_store::SourcePresenceV1>, ItemRefusal> {
+            Ok(None)
+        }
+
+        fn verify_current_fence(
+            &self,
+            _: &SourceCutInputCoverage,
+            _: Instant,
+            _: &AtomicBool,
+        ) -> Result<(), ItemRefusal> {
+            Err(ItemRefusal::Source("unused empty test input".into()))
+        }
+    }
+
+    #[test]
+    fn absent_parent_directories_are_normal_missing_payload_facts() {
+        let root = tempfile::tempdir().expect("temporary root");
+        std::fs::create_dir_all(
+            root.path()
+                .join("ToS/source-witnesses/artifacts/with-parent/representations/r1"),
+        )
+        .expect("retained representation directory");
+        let paths = vec![
+            "ToS/source-witnesses/artifacts/no-parent/payload/photo.jpg".to_owned(),
+            "ToS/source-witnesses/artifacts/with-parent/representations/r1/payload/photo.jpg"
+                .to_owned(),
+        ];
+        let deadline = Instant::now() + std::time::Duration::from_secs(5);
+        let cancelled = AtomicBool::new(false);
+        let mut sources = RouteSources::new(Path::new(root.path())).expect("held root");
+        let input = EmptySourceCutInput;
+        let limits = PhysicalPayloadLimits {
+            max_files: 2,
+            max_observations: 4,
+            max_file_bytes: 1024,
+            max_total_bytes: 2048,
+            max_state_bytes: 256 * 1024,
+        };
+        let mut payloads = FoundationPayloadSources::new_membership(
+            &mut sources,
+            PayloadMembership::Candidate(&input),
+            None,
+            limits,
+            deadline,
+            &cancelled,
+        )
+        .expect("payload reader");
+        let facts = payloads
+            .snapshot_facts(&paths)
+            .expect("snapshot absent paths");
+        for path in &paths {
+            let facts = facts.get(path).expect("selected path facts");
+            assert!(!facts.exists);
+            assert!(!facts.regular_file);
+            assert!(!facts.symlink);
+        }
+        let completion = payloads.finish_with_cost().expect("recheck absent paths");
+        assert_eq!(completion.facts, facts);
+    }
+}
