@@ -3781,7 +3781,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         deadline,
         cancelled,
     );
-    let schema_set = match selected_schema_set {
+    let mut schema_set = match selected_schema_set {
         Ok(set) => set,
         Err(error) => {
             return fail_window(
@@ -4390,6 +4390,14 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             return fail_window(execution_limits, remaining_budget, default_ticket, error);
         }
     };
+    if let Err(error) = schema_set.bind_evaluation_limits(default_schema_limits) {
+        return fail_window(
+            execution_limits,
+            remaining_budget,
+            default_ticket,
+            schema_load(error),
+        );
+    }
     // Check the existing selected-schema preparation allowance before allocation.
     if schema_preparation_state > default_operation.state_bytes {
         return fail_window(
@@ -5498,6 +5506,14 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             return fail_window(execution_limits, remaining_budget, persisted_ticket, error);
         }
     };
+    if let Err(error) = schema_set.bind_evaluation_limits(persisted_schema_limits) {
+        return fail_window(
+            execution_limits,
+            remaining_budget,
+            persisted_ticket,
+            schema_load(error),
+        );
+    }
     let persisted_before = match worker_quota.usage() {
         Ok(usage) => usage,
         Err(_) => {
