@@ -1501,6 +1501,7 @@ def language_search_scope(path):
 
 def language_search_problems(path,lang,data,second=False):
     problems=[];proof=data.get('search') or {};review=data.get('review') or {}
+    if Path(path).parent.name=='extensions':problems.append('record a whole-language search on the parent packet, not an extension')
     if data.get('language')!=lang:problems.append('language differs from filename')
     work=((world()['fragments'].get('works') or {}).get(work_of(path)) or {})
     if not work or lang==work.get('original') or lang in (work.get('witnesses') or {}):problems.append('the language must still be missing from an existing work')

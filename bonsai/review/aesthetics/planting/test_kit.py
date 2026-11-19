@@ -463,6 +463,8 @@ class LanguageSearchTest(unittest.TestCase):
                 data=json.loads(file.read_text());self.assertEqual(kit.language_search_problems(str(path),'es',data,second=True),[])
                 data['search']['reason']='A different unreviewed search conclusion appears here.'
                 self.assertTrue(kit.language_search_problems(str(path),'es',data,second=True))
+                extension=path/'extensions'/'test';extension.mkdir(parents=True)
+                self.assertTrue(any('parent packet' in p for p in kit.language_search_problems(str(extension),'es',data)))
                 world['fragments']['places']['work']['new']={}
                 self.assertTrue(any('every current original place' in p for p in kit.language_search_problems(str(path),'es',data)))
 

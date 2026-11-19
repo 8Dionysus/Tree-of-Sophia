@@ -335,7 +335,7 @@ both readings and the separate assessment remain bound to the acceptance.
 ## Continue an accepted reading
 
 If every required source has actually been searched and no translation of any
-current place was found, record the language search without inventing a
+current place was found, record the search on the parent packet, without inventing a
 translation witness or book locator. The input JSON has `maker`, a detailed
 `reason`, and `tried` entries with `site`, `url`, and `outcome` for each
 required source. The command records the current original-place scope.
