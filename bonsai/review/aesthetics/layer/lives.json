@@ -5532,15 +5532,23 @@
   "fetched": "2026-11-19"
  },
  "frits-staal": {
-  "item": null,
+  "item": "Q972829",
   "label": {
    "ru": "Фриц Сталь",
    "en": "Frits Staal"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
+  "born": [
+   {
+    "time": "+1930-11-03T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2012-02-19T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -5558,6 +5566,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://api.crossref.org/works/10.1163/156852779X00244",
+   "person_url": "https://www.wikidata.org/wiki/Q972829",
+   "basis": "Crossref identifies the author of The Meaninglessness of Ritual; the original article names his collaboration with Robert Gardner on Altar of Fire, also documented by Indiana University and the Library of Congress authority n81066911."
   }
  },
  "g-h-hardy": {
@@ -9259,15 +9273,18 @@
   }
  },
  "kathleen-m-higgins": {
-  "item": null,
+  "item": "Q6376746",
   "label": {
    "ru": "Кэтлин Хиггинс",
    "en": "Kathleen M. Higgins"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1954-10-15T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "searched": [
    {
@@ -9304,6 +9321,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://assets.cambridge.org/97811070/49857/frontmatter/9781107049857_frontmatter.pdf",
+   "person_url": "https://www.wikidata.org/wiki/Q6376746",
+   "basis": "Cambridge University Press identifies the exact book Comic Relief and its author, a philosophy professor at UT Austin; Library of Congress authority n85280565 links her full name and institution to Wikidata P244."
   }
  },
  "kazimir-malevich": {
