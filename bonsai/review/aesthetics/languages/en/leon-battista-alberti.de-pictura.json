@@ -2,7 +2,7 @@
   "status": "research-candidate; not admitted; independent review and rights assessment pending",
   "work": "leon-battista-alberti.de-pictura",
   "language": "en",
-  "edition_candidate": "Of Painting in Three Books, in The Architecture of Leon Batista Alberti, translated into Italian by Cosimo Bartoli and into English by James Leoni, 1755, book II, pp. 255–256.",
+  "edition_candidate": "Of Painting in Three Books, in The Architecture of Leon Batista Alberti, translated into Italian by Cosimo Bartoli and into English as attributed to James Leoni, 1755, book II, pp. 254–255.",
   "scan": "https://archive.org/details/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755",
   "persons": [
     {
@@ -18,19 +18,32 @@
       "name": "Giacomo (James) Leoni",
       "died": 1746,
       "source": "https://id.loc.gov/authorities/names/n84216325.html"
+    },
+    {
+      "name": "John Ozell",
+      "died": 1743,
+      "role": "English translator of the 1726 edition according to the Met; exact contribution to this passage and 1755 version unverified",
+      "source": "https://www.metmuseum.org/art/collection/search/377377"
     }
   ],
   "rights": "Historical publication and deaths offer strong public-domain evidence; independent review and scope-specific assessment pending.",
-  "method": "Maker transcribed directly from scan, normalized long s to s, retained original spelling and capitalization. Translation proceeds through Bartoli Italian; compare with original Italian edition. The second English sentence adds a contrast and explanation not present in this Italian place.",
+  "method": "The initially chosen passage was the second occurrence of the definition, with a colossus; research reader found and checked the first occurrence on 1755 pp. 254–255 against the selected Italian place. Manual print transcription, long s normalized; formal second reader and rights review remain pending.",
   "places": {
     "II p105": {
-      "text": "Composition is that Part of Drawing, by which the several Parts of the Picture are joined together to form a Whole. The greatest Work of the Painter is, not a Colossus, but a History, in which there is much more need of Genius than in the hugest Figure that can be imagined. The Parts of a History are Bodies; the Parts of a Body are the Members; the Parts of the Members are Superficies.",
-      "verification": "maker compared scan; translation adds contrast with a colossus and need of genius, extending beyond the Italian place; independent reader, rights and alignment pending",
-      "printed_pages": "255–256",
+      "text": "Composition is that Rule or Method in Painting, whereby the several Parts in a Picture are joined together in order to form a Whole. The greatest Subject of Picture is History; the Parts of History are Bodies; the Parts of a Body are the Members; the Parts of the Members are Superficies.",
+      "printed_pages": "254–255",
       "scan_images": [
-        "https://archive.org/details/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755/page/n414/mode/1up",
-        "https://archive.org/details/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755/page/n415/mode/1up"
-      ]
+        "https://archive.org/download/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755/page/n411.jpg",
+        "https://archive.org/download/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755/page/n414.jpg"
+      ],
+      "verification": "a separate research reader inspected both pages and aligned the first occurrence; maker, formal independent kit review and rights decision pending",
+      "note": "The earlier research candidate chose the second occurrence on pp. 255–256, including a colossus. That occurrence corresponds to a later repeated discussion; do not call its contrast a translator addition to this Italian place."
     }
+  },
+  "transcription_candidate": {
+    "url": "https://mixwell.art/alberti/",
+    "sha256": "49b3f2a82e03cff78600433e57a98fad3231eee4abe98aa535b4f8afcbe533ad",
+    "retrieved": "2026-11-19",
+    "note": "Contains matching first occurrence; source edition, lawfulness and use conditions require verification before kit use. IA OCR also fetched SHA 6c3d79f1de1b3b045fe557e090509453b1ec3bac2ac8cb0fb382cb3239b2264c but is too inaccurate to locate this passage by the ordinary strings."
   }
 }
