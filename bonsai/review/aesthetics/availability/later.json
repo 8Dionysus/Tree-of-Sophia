@@ -83,6 +83,12 @@
           "status": "Google Books record identifies translator and 1999, while Open Library gives 2002; verify title page, translator dates, lawful pages and exact edition",
           "translator": "Carmen García Trevijano",
           "additional_catalogue": "https://books.google.com/books?vid=ISBN8430932992"
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "美感, translated 杨向荣, Beijing: 人民出版社, 2013",
+          "catalogue": "https://wisvora.org/index.php/rwsk/article/download/496/478",
+          "status": "A 2026 article bibliography identifies this edition and translator; the book and its relationship to the 1896 work, target pages, lawful copy and translator rights still need direct confirmation. Its cited p49 concerns the five senses, not the requested places."
         }
       ],
       "transcription_candidates": [
@@ -144,7 +150,7 @@
           "language": "es",
           "edition": "¿Qué es un signo?, translation Uxía Rivas, Grupo de Estudios Peirceanos, 1999, revision 2011",
           "url": "https://www.unav.es/gep/Signo.html",
-          "status": "institutional online text, sections 1–9 available; no page numbers or open redistribution licence established; quotation and alignment need review"
+          "status": "institutional online text, sections 1–9 available; note 1 states manuscript numbering began at §31 and this edition renumbers from §1. No page numbers or open redistribution licence established; quotation and exact alignment need review"
         },
         {
           "language": "ru",
@@ -403,6 +409,11 @@
           "source": "FantLab bibliography, inspected in browser",
           "url": "https://fantlab.ru/edition45858",
           "result": "One possible 2010 Eksmo/Domino collection Зов Ктулху ISBN 9785699423583 includes essay pp.549–656 credited to Игорь Богданов and Олег Мичковский. The university article says only Domino 2010, so identity with this collection and attribution of its quotation remain unproved."
+        },
+        {
+          "source": "World Literature Studies, 2026, article and bibliography",
+          "url": "https://pdf.hanspub.org/wls_2931309.pdf",
+          "result": "Printed p446 quotes an abbreviated Chinese passage resembling the opening of A:E128, without establishing the complete sentence. Its bibliography p449 cites 死灵之书, translated by 竹子 and others, Beijing, 2018. The article does not establish the book page, exact source passage or rights in that translation; verify the primary edition independently."
         }
       ],
       "remaining": "Find and verify target ru/es/zh-Hans passages and participants; choose and independently align short German quotation from publisher preview; establish editorial role and complete required source search. No conclusion of absence has been made.",
@@ -593,6 +604,12 @@
           "edition": "Estética, José Sánchez-Rojas, Madrid: Francisco Beltrán, 1912",
           "scan": "https://archive.org/details/estetica-croce",
           "status": "candidate; title date, target pages and rights need review"
+        },
+        {
+          "language": "es",
+          "edition": "Estética, second Spanish edition, revised by Ángel Vegue y Goldoni, 1926",
+          "scan": "https://archive.org/details/croce-benedetto.-estetica-ocr-1926",
+          "status": "OCR of the editorial note attributes the 1912 translation to the third Italian edition and the revised 1926 version to the fifth; OCR p47 includes both sides of a contrast absent in the 1912 scan. Check title and page images, source alignment, editor identity and independent rights before use."
         },
         {
           "language": "zh-Hans",
@@ -2147,6 +2164,12 @@
           "edition": "О духовном в искусстве, Moscow: BuksMArt, 2020, editor Nadezhda Podzemskaya",
           "catalogue": "https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=per%3DKandinsky%20and%20tit%3Dduchovnom&maximumRecords=8&recordSchema=MARC21-xml",
           "status": "catalogue only; translator, source text and lawful page copies not established"
+        },
+        {
+          "language": "ru",
+          "edition": "О духовном в искусстве, translated Andrei Lisovsky, New York: Mezhdunarodnoe literaturnoe sodruzhestvo, 1967",
+          "catalogue": "https://lccn.loc.gov/74213554/marcxml",
+          "status": "Library of Congress catalogue records translator and Nina Kandinsky preface; target pages, lawful text, translator dates and separate rights remain to establish"
         },
         {
           "language": "es",
@@ -3997,7 +4020,7 @@
           "edition": "Kunstgeschichtliche Grundbegriffe, Munich: Bruckmann, 1915, first edition",
           "catalogue": "https://openlibrary.org/books/OL52927149M",
           "scan": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1915",
-          "status": "Heidelberg 1915 edition and page opened, OCR gives gerüstet where 1943 gives gefaßt; complete visual collation and first-edition attribution remain to review",
+          "status": "Heidelberg 1915 p57 visually inspected: the passage includes gerüstet and the sentence on isolated colour and on connection and movement. OCR for 1943 gives gefaßt; visual collation with that edition remains to review.",
           "page": "p57, image 0075",
           "page_image": "https://digi.ub.uni-heidelberg.de/diglit/woelfflin1915/0075"
         },
