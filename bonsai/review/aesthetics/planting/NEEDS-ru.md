@@ -32,3 +32,5 @@ Clarification: `witness-open` accepts an initial metadata object containing `rig
 ## Continue an accepted partial language witness
 
 The accepted Buffon Russian witness covers p5a and p5b; p6 and p12 remain under investigation. The existing `witness_conflict` says to extend an accepted witness after the shared-edition route lands, but the current kit has no supported continuation of the same language and edition. Please provide that route with a new independent review and digest binding, preserving the old accepted reading and its provenance. The partial publication must not imply the remaining places have been searched to exhaustion or translated.
+
+The same protected-person correction is needed in the unaccepted `baruch-spinoza.ethics` Russian witness: the maker mistakenly added author Q358 (a heritage site) before verifying it; the correct Baruch Spinoza entity Q35802 is now also recorded. Remove only the wrong `author Q358`, retain Q35802, invalidate any review and require re-review; no acceptance is claimed. Preventing wrong-class QIDs before mutation would also help, but must not replace the correction route.
