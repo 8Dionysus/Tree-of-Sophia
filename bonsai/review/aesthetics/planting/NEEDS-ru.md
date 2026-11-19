@@ -8,3 +8,13 @@ The current planting kit cannot create the five required Russian-work packets un
 - Accept the prepared source research and per-place files under `bonsai/review/aesthetics/languages/ru/` through kit commands after review; keep page-level evidence and translator/editor dates and rights.
 
 Reproduced 12 November on `kit.py ready` (open) then `drive.py line` for Tolstoy, Chernyshevsky and Solovyov: maker gate requires fields the kit cannot set; the one-witness gate also prevents the five requested languages. Source discovery is continuing independently; this is a tooling limitation, not a finding that translations are absent.
+
+## Witness person correction after PR #432
+
+The `witness-person` command only replaces the same QID and role. A mistaken QID cannot be removed or changed through kit, and `witness-info` protects `persons`. In the unaccepted `friedrich-schiller.ueber-anmut-und-wuerde` Russian witness, an erroneous `author Q8984` was recorded; Q8984 is Ostragehege, while the verified Friedrich Schiller entity is Q22670. Please provide a supported removal/correction command that invalidates review. The wrong person remains visibly unaccepted; no gate or acceptance is claimed. Continue other witnesses meanwhile.
+
+## Non-IA page images and OCR for original works
+
+`kazimir-malevich.ot-kubizma-i-futurizma-k-suprematizmu` has a real, openly readable 1916 scan at https://www.digar.ee/arhiiv/ru/download/114870 (National Library of Estonia), while `kit.py ia`, `image`, and `compare` hard-code Internet Archive identifiers and page links. Please support a genuine external source with page-indexed OCR and page-image URLs or a source-bound PDF page, without labelling DIGAR as IA. The maker recorded a `kit` block; source and rights research remains open. Details: `out/ru-planting/ru-malevich-sources-2.md` and that packet's `blocked.json`.
+
+An obsolete `block_checked` in the driver also makes `line --retake` skip a formerly checked block after the tool changes. We cleared the superseded blocks explicitly through `kit.py unblock` and restarted those works; consider resetting the check when the block or kit changes.
