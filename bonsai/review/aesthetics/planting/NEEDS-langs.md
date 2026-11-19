@@ -116,3 +116,12 @@ for each language. Please identify or provide the reviewed route for recording
 an entirely searched but unavailable language on an existing work, without
 inventing a translator, textual witness or a false locator. Partial witness
 coverage is a separate case. No present research lead is claimed exhaustive.
+
+## Mexico quotation assessment in witness route
+
+The shared brief names Mexico LFDA art. 148 I among the required
+short-quotation bases. PR #432 `c32662da89` defines `JURISDICTIONS` as
+`russia`, `usa`, `eu`; `witness-rights` accepts only those three. Please
+identify the owner-approved way to record and review the Mexico quotation
+assessment for a witness before public display, or extend the route if needed.
+This note does not assume the duration or outcome of Mexican copyright law.
