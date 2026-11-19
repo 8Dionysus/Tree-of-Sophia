@@ -1569,7 +1569,7 @@ def mexico_problems(witness,places,review,maker,second=False,path=None,lang=None
         if len(str(proof.get(field,'')).strip())<40:problems.append(f'Mexico quotation assessment needs a detailed {field} account')
     if second:
         check=(review or {}).get('mexico_quotation') or {};reader=(review or {}).get('reader');reader=reader.get('id') if isinstance(reader,dict) else reader
-        if not reader or reader==maker or check.get('reader')!=reader or check.get('sha256')!=page_number_digest(proof) or len(str(check.get('assessment','')).strip())<60:problems.append('Mexico quotation assessment needs a distinct second reader and review of the same evidence')
+        if not reader or reader==maker or check.get('reader')!=reader or not check.get('date') or check.get('sha256')!=page_number_digest(proof) or len(str(check.get('assessment','')).strip())<60:problems.append('Mexico quotation assessment needs a distinct second reader and dated review of the same evidence')
     return problems
 
 def mexico_context(path,lang):
@@ -1600,7 +1600,7 @@ def cmd_mexico_quotation(args):
 def cmd_mexico_quotation_review(args):
     path=packet(args.packet);data,witness,places,review,maker=mexico_context(path,args.language);reader=review.get('reader');reader=reader.get('id') if isinstance(reader,dict) else reader
     if not reader or reader==maker:die('record a different second reader first')
-    proof=witness.get('mexico_quotation') or {};review['mexico_quotation']={'reader':reader,'sha256':page_number_digest(proof),'assessment':args.assessment}
+    proof=witness.get('mexico_quotation') or {};review['mexico_quotation']={'reader':reader,'date':today(),'sha256':page_number_digest(proof),'assessment':args.assessment}
     issues=mexico_problems(witness,places,review,maker,second=True,path=path,lang=args.language)
     if issues:die('Mexico quotation review is incomplete: '+'; '.join(issues))
     if args.language:data['review']=review;save(witness_file(path,args.language),data)

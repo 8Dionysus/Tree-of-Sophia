@@ -417,7 +417,7 @@ class AnonymousTranslationTest(unittest.TestCase):
                     'normal_exploitation':'The quotation does not replace the edition or affect its normal exploitation.',
                     'source_integrity':'The source, attribution and exact page are given and the text is unchanged.'}
             data['witness']['mexico_quotation']=mexico
-            data['review']['mexico_quotation']={'reader':'second','sha256':kit.page_number_digest(mexico),'assessment':'I independently checked the quotation, source, text integrity and normal exploitation.'}
+            data['review']['mexico_quotation']={'reader':'second','date':'2026-11-19','sha256':kit.page_number_digest(mexico),'assessment':'I independently checked the quotation, source, text integrity and normal exploitation.'}
             with patch.object(kit,'CACHE',str(cache)),patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True,offline=True),[])
                 del data['witness']['mexico_quotation']
