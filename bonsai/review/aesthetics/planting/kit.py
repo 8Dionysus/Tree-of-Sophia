@@ -769,6 +769,23 @@ def cmd_correct(args):
     places['corrections'].append({'lang':original,'from':getattr(args,'from'),'to':args.to,'evidence':args.evidence,'place':f"{places['work']} {args.loc}"})
     save(os.path.join(path,'places.json'),places);print(f'{args.loc}: corrected; run kit.py compare again')
 
+def cmd_accepted_text_correct(args):
+    """Record a new, independently reviewed correction without replacing the original acceptance."""
+    path=packet(args.packet);accepted=part(path,'accepted.json') or die('an accepted packet is required')
+    ev=evidence(path);entry=(ev.get('places') or {}).get(args.loc) or die('no evidence for this place')
+    scan=scan_of(ev,entry)
+    if args.n not in (entry.get('images') or []) or args.url!=f"https://archive.org/download/{scan.get('item')}/page/n{args.n}.jpg":die('the URL must be the recorded scan page for this place')
+    if not args.by or not args.second or args.by==args.second or not args.second_model or len(args.assessment.strip())<30:die('record distinct readers and the second reader’s page assessment')
+    raw=Path(args.file).read_bytes() if args.file else get(args.url)
+    if not valid_page_image(raw):die('the page source did not yield a readable image')
+    digest=hashlib.sha256(raw).hexdigest();filename=f'text-correction-{digest}.img';Path(cache(path,filename)).write_bytes(raw)
+    cmd_correct(argparse.Namespace(packet=args.packet,loc=args.loc,to=args.to,evidence=args.assessment,**{'from':getattr(args,'from')}))
+    places=part(path,'places.json');correction=places['corrections'][-1]
+    correction['review']={'url':args.url,'image_sha256':digest,'file':filename,'by':args.by,'second':args.second,'second_model':args.second_model,'assessment':args.assessment,'date':today()}
+    accepted.setdefault('text_correction_reviews',[]).append({'loc':args.loc,'sha256':page_number_digest(correction)})
+    save(os.path.join(path,'places.json'),places);save(os.path.join(path,'accepted.json'),accepted)
+    print('original acceptance retained; the correction and independent assessment are bound to it')
+
 # ---- the gate ------------------------------------------------------------------------------------------------------
 
 NEGATES={'ru':r'\b(не|ни|нет|без|безо|никогда|никак|ничто|ничего|никто|никакой|никакая|никакое|никакие|нельзя|невозможно)\b',
@@ -1100,12 +1117,37 @@ def gate(path,second=False,offline=False):
             problems.extend(quotation_problems(loc,text,(ev.get('places',{}).get(loc) or {}).get('quotation'),ev,second=second,path=path,offline=offline))
         if not str((place.get('links') or {}).get(original,'')).startswith('https://'):add(f'{at}: links.{original} wants the address of the page of the scan')
         if not any(isinstance(ref,list) and len(ref)==2 and ref[0]==original and ref[1] for ref in place.get('refs') or []):add(f'{at}: refs wants [["{original}", "edition, printed page"]]')
-    for correction in corrections:
+    predecessors={loc:place.get('texts',{}).get(original,'') for loc,place in locs.items()}
+    for receipt in (part(path,'accepted.json') or {}).get('text_correction_reviews') or []:
+        if not any(c.get('review') and c.get('place')==f"{work} {receipt.get('loc')}" and page_number_digest(c)==receipt.get('sha256') for c in corrections):add(f"{receipt.get('loc')}: accepted text correction review has no matching correction")
+    for correction in reversed(corrections):
+        loc=str(correction.get('place','')).removeprefix(work+' ')
+        if correction.get('review') and loc in predecessors:
+            if correction.get('to') and correction['to'] in predecessors[loc]:predecessors[loc]=predecessors[loc].replace(correction['to'],correction.get('from',''),1)
+            else:add(f'{loc}: reviewed correction does not match the current text')
+    previous_texts=dict(predecessors)
+    for correction in reversed(corrections):
         loc=str(correction.get('place','')).removeprefix(work+' ')
         if loc not in locs or not all(correction.get(name) for name in('lang','from','to','evidence')):add(f'correction {correction.get("place")}: lang, from, to, evidence and an existing place are wanted')
-        elif correction['to'] not in locs[loc]['texts'].get(original,''):add(f'correction {correction["place"]}: «{correction["to"]}» is not in the place')
+        elif not correction.get('review') and correction['to'] not in previous_texts[loc]:add(f'correction {correction["place"]}: «{correction["to"]}» is not in the place')
         elif correction['from']==correction['to']:add(f'correction {correction["place"]}: it changes nothing; take it out of corrections')
         elif any(scan.get('long_s') for scan in scans(ev).values()) and correction['from'].replace('ß','ss')==correction['to'].replace('ß','ss'):add(f'correction {correction["place"]}: «{correction["from"]}» → «{correction["to"]}» only trades ß and ss. In a print with the long s, ſs is the print’s ß and stays ß; ſſ is ss. Put the text back with kit.py cut and take this out of corrections')
+        review=correction.get('review')
+        if review:
+            receipt=(part(path,'accepted.json') or {}).get('text_correction_reviews') or []
+            if not any(item.get('loc')==loc and item.get('sha256')==page_number_digest(correction) for item in receipt):add(f'{loc}: text correction is not bound to the accepted packet review')
+            if not review.get('by') or not review.get('second') or review.get('by')==review.get('second') or not review.get('second_model') or len(str(review.get('assessment','')).strip())<30:add(f'{loc}: text correction needs a distinct second reader and assessment')
+            scan=scan_of(ev,(ev.get('places') or {}).get(loc));images=(ev.get('places') or {}).get(loc,{}).get('images') or []
+            if not any(review.get('url')==f"https://archive.org/download/{scan.get('item')}/page/n{n}.jpg" for n in images) or not re.fullmatch(r'[a-f0-9]{64}',str(review.get('image_sha256',''))) or review.get('file')!=f"text-correction-{review.get('image_sha256')}.img":add(f'{loc}: text correction needs its exact scan page and digest')
+            if not offline:
+                try:
+                    raw=Path(cache(path,review['file'])).read_bytes()
+                    if hashlib.sha256(raw).hexdigest()!=review.get('image_sha256') or not valid_page_image(raw):add(f'{loc}: text correction image changed or is invalid')
+                except (OSError,KeyError):add(f'{loc}: text correction image is unavailable')
+    for correction in corrections:
+        loc=str(correction.get('place','')).removeprefix(work+' ')
+        if loc in predecessors and not correction.get('review') and correction.get('to') and correction.get('from'):
+            predecessors[loc]=predecessors[loc].replace(correction['to'],correction['from'],1)
     # a letter changed against the transcription, which the OCR does not read either, is read on the enlarged line
     for loc,what in by_eye(places,ev):
         if loc in locs and loc not in enlarged(ev,'maker'):owe(f'correction {work} {loc}: {what} rests on the eye alone, for the transcription reads otherwise and the OCR of the page does not read it either. Look at the line at the size of the scan: kit.py image . N --loc "{loc}" --zoom TOP-BOTTOM (the leaf of the place; the band of the page height in percent that holds the line). Keep the correction where the enlarged line bears it letter by letter; where it does not, put the word of the transcription back (kit.py cut) and take the correction out')
@@ -1133,9 +1175,7 @@ def gate(path,second=False,offline=False):
                 if scan.get('ocr') and offset is None and scan['item'] not in unfixed:unfixed.add(scan['item']);add(f"{scan['item']}: the image offset is not fixed (look at one image of this scan, compare it with kit.py leaf, then kit.py offset)")
                 try:_,source=transcription(path,ev,mine.get('transcription'))
                 except SystemExit:add(f'{at}: no transcription is named for it');continue
-                back=text
-                for correction in corrections:
-                    if correction.get('place')==f'{work} {loc}':back=back.replace(correction['to'],correction['from'],1)
+                back=predecessors[loc]
                 problem=in_transcription(back,modern_russian(source) if original=='ru' else source,mine.get('dropped'))
                 if problem:add(f'{at}: {problem}')
                 strip=lambda entry:[(d['transcription'],d['ocr'],d['leaf']) for d in entry.get('differences',[])]
@@ -1381,7 +1421,7 @@ def cmd_accept(args):
     ev['sources']=[source for source in ev['sources'] if source['role']!='transcription' or source['file'] in used or (None in used and source['file']==first)];save(os.path.join(path,'evidence.json'),ev)   # a place that names no transcription was cut from the first
     basis=args.basis or f"Made by {reading['reader']['id']}; every conception and link read a second time by {review['reader']['id']}, who confirms each; the gate recomputed the comparison with the scan."
     prior=part(path,'accepted.json') or {}
-    save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[])),**({'page_number_reviews':prior['page_number_reviews']} if prior.get('page_number_reviews') else {})})
+    save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[])),**{key:prior[key] for key in ('page_number_reviews','text_correction_reviews') if prior.get(key)}})
     print(f'accepted: {work_of(path)}')
 
 def cmd_status(args):
@@ -1986,6 +2026,7 @@ def main():
     sub('witness-correct',cmd_witness_correct,P,(('language',),{}),(('loc',),{}),(('from',),{}),(('to',),{}),(('reason',),{}),(('--image',),{}));
     sub('witness-review',cmd_witness_review,P,(('language',),{}),(('loc',),{}),(('--reader',),{'required':True}),(('--alignment',),{'required':True}),(('--model',),{'default':'gpt-6.1-terra'}))
     sub('page-number-correct',cmd_page_number_correct,P,(('--loc',),{'action':'append','required':True}),(('--leaf',),{'type':int,'required':True}),(('--old',),{'required':True}),(('--new',),{'required':True}),(('--url',),{'required':True}),(('--by',),{'required':True}),(('--second',),{'required':True}),(('--second-model',),{'required':True}),(('--assessment',),{'required':True}),(('--file',),{}))
+    sub('accepted-text-correct',cmd_accepted_text_correct,P,(('loc',),{}),(('from',),{}),(('to',),{}),(('--n',),{'type':int,'required':True}),(('--url',),{'required':True}),(('--by',),{'required':True}),(('--second',),{'required':True}),(('--second-model',),{'required':True}),(('--assessment',),{'required':True}),(('--file',),{}))
     sub('witness-gate',cmd_witness_gate,P,(('language',),{}),(('--second',),{'action':'store_true'}),(('--offline',),{'action':'store_true'}),(('--accept',),{'action':'store_true'}))
     sub('queue',cmd_queue);sub('open',cmd_open,(('work',),{}));sub('task',cmd_task,P);sub('status',cmd_status);sub('ready',cmd_ready)
     sub('fetch',cmd_fetch,P,(('role',),{'choices':['transcription','other']}),(('url',),{}),(('--name',),{}),(('--file',),{'help':'take the bytes from a local file already fetched from URL'}))

@@ -197,7 +197,8 @@ class TranslationWitnessTest(unittest.TestCase):
                   'review':{'reader':'reader','model':'gpt-6.1-terra','date':'2026-11-12','places':{'p':{'reads':'as the packet','image_sha256':digest,'alignment':'This sentence matches the complete original.'}}}}
             with patch.object(kit,'CACHE',str(cache)), patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
-                image2=image+b'additional page';digest2=hashlib.sha256(image2).hexdigest()
+                import struct, zlib
+                chunk=b'tEXtpage\x00two';image2=image[:-12]+struct.pack('>I',len(chunk)-4)+chunk+struct.pack('>I',zlib.crc32(chunk))+image[-12:];digest2=hashlib.sha256(image2).hexdigest()
                 (folder/'page2.jpg').write_bytes(image2);(folder/'second2.jpg').write_bytes(image2)
                 data['places']['p']['page']='pp. 1–2'
                 self.assertTrue(any('page range' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
@@ -638,7 +639,7 @@ class TranslationCorrectionTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
             folder=Path(tmp)/'cache/work/witnesses/en';folder.mkdir(parents=True)
-            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')+b'page two'
+            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
             (folder/'page2.jpg').write_bytes(raw);digest=hashlib.sha256(raw).hexdigest()
             data={'language':'en','images':[{'file':'page2.jpg','url':'https://example.org/page2','by':'maker','sha256':digest}],
                   'places':{'p':{'text':'The sentence continues here.','page':'37','url':'https://example.org/page1','image_sha256':'a'*64}},'review':{'reader':'old'}}
@@ -702,6 +703,34 @@ class TranslationCorrectionTest(unittest.TestCase):
             self.assertEqual(result['review'],{})
 
 class AcceptedPageNumberTest(unittest.TestCase):
+    def test_accepted_correction_gate_rejects_changed_review(self):
+        import json, shutil, tempfile
+        from pathlib import Path
+        name='leon-battista-alberti.de-re-aedificatoria'
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/name;shutil.copytree(Path(kit.PACKETS)/name,path)
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                problems,_=kit.gate(str(path),second=True,offline=True);self.assertEqual(problems,[])
+                file=path/'accepted.json';accepted=json.loads(file.read_text());accepted['text_correction_reviews']=[];file.write_text(json.dumps(accepted))
+                problems,_=kit.gate(str(path),second=True,offline=True)
+                self.assertTrue(any('not bound to the accepted packet review' in problem for problem in problems))
+
+    def test_accepted_text_correction_keeps_review_and_predecessor(self):
+        import argparse, base64, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir()
+            (path/'places.json').write_text(json.dumps({'work':'work','entry':{'original':'la'},'places':{'loc':{'texts':{'la':'gratiam auctoritatem vendicat'}}},'corrections':[]}))
+            (path/'accepted.json').write_text(json.dumps({'basis':'original acceptance'}))
+            (path/'evidence.json').write_text(json.dumps({'scan':{'item':'book'},'places':{'loc':{'images':[3]}}}))
+            image=Path(tmp)/'page.png';image.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='))
+            args=argparse.Namespace(packet=str(path),loc='loc',to='autoritatem',n=3,url='https://archive.org/download/book/page/n3.jpg',by='maker',second='reader',second_model='model',assessment='The page reads autoritatem without the letter c.',file=str(image),**{'from':'auctoritatem'})
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_accepted_text_correct(args)
+            places=json.loads((path/'places.json').read_text());accepted=json.loads((path/'accepted.json').read_text());correction=places['corrections'][0]
+            self.assertEqual(places['places']['loc']['texts']['la'],'gratiam autoritatem vendicat')
+            self.assertEqual(correction['from'],'auctoritatem');self.assertEqual(accepted['basis'],'original acceptance')
+            self.assertEqual(accepted['text_correction_reviews'][0]['sha256'],kit.page_number_digest(correction))
+
     def test_corrected_number_keeps_predecessor_and_review(self):
         import argparse, base64, json, tempfile
         from pathlib import Path

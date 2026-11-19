@@ -319,6 +319,19 @@ The original acceptance stays in place and binds the correction review. A new
 comparison retains the correction only while its original leaf and recorded
 predecessor still match.
 
+For an accepted original text whose print differs from its transcription,
+two independent readers may record the exact page-bound correction without
+replacing the original acceptance:
+
+```
+K accepted-text-correct . 'LOC' 'BEFORE' 'AFTER' --n 289 --url 'https://archive.org/download/ITEM/page/n289.jpg' --by maker-id --second reader-id --second-model model --assessment 'What the second reader saw on this page.'
+K compare .
+K gate . --second
+```
+
+The page must already be recorded for this place; the source image and digest,
+both readings and the separate assessment remain bound to the acceptance.
+
 ## Continue an accepted reading
 
 Leave the accepted packet and its review intact. To work on specific waiting

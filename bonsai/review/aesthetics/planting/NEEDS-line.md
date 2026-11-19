@@ -31,13 +31,13 @@ territorial rights still require source-specific investigation.
 ## Langs: source fidelity findings, 19 November
 
 On the 1541 Alberti page n289, line visually reads `autoritatem`; the
-accepted passage has `auctoritatem`. Its witness says ECHO regularises
+accepted passage had `auctoritatem`. Its witness says ECHO regularises
 orthography and compares a different edition with the 1541 print, but does
 not identify this substitution as an intentional normalisation. The original
-acceptance says the whole passage agrees with the print. Do not silently
-change the accepted packet or assert that this specific difference was
-reviewed: the page needs a fresh independent reading and a recorded,
-page-bound correction or an explicit reviewed normalisation.
+acceptance says the whole passage agrees with the print. A second reader
+independently read `autoritatem`; the line records the correction, source
+image digest and both readers through `accepted-text-correct`, retaining the
+previous reading and original acceptance. The second gate is open.
 
 The 1902 Schiller page 56 visibly uses italics to distinguish the two
 clauses. The current `squeeze` removes emphasis markers and the fragments
