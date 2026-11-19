@@ -443,6 +443,29 @@ class LawfulSourceTest(unittest.TestCase):
         for url in ('https://libgen.rs/book','https://annas-archive.org/book','https://dokumen.pub/book','https://x.z-lib.org/book','http://example.org/book'):
             self.assertFalse(kit.lawful_url(url),url)
 
+class LanguageSearchTest(unittest.TestCase):
+    def test_whole_language_requires_complete_search_and_independent_review(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir()
+            world={'fragments':{'works':{'work':{'original':'de','witnesses':{'de':{}}}},'places':{'work':{'p':{}}}}}
+            record={'maker':'maker','reason':'The documented searches did not find an eligible translation.','tried':[{'site':site,'url':'https://example.org/'+site,'outcome':'The catalogue was searched and no matching edition was found.'} for site in sorted(kit.LOCATOR_SEARCHES)]}
+            source=Path(tmp)/'search.json';source.write_text(json.dumps(record))
+            with patch.object(kit,'world',return_value=world):
+                kit.cmd_language_search(argparse.Namespace(packet=str(path),language='es',file=str(source)))
+                file=path/'language-searches/es.json';data=json.loads(file.read_text())
+                self.assertEqual(kit.language_search_problems(str(path),'es',data),[])
+                self.assertTrue(kit.language_search_problems(str(path),'es',data,second=True))
+                with self.assertRaises(SystemExit):kit.cmd_language_search_review(argparse.Namespace(packet=str(path),language='es',reader='maker',model='model',assessment='I checked every recorded search independently and found the same result.'))
+                kit.cmd_language_search_review(argparse.Namespace(packet=str(path),language='es',reader='second',model='model',assessment='I checked every recorded search independently and found the same result.'))
+                kit.cmd_language_search_accept(argparse.Namespace(packet=str(path),language='es'))
+                data=json.loads(file.read_text());self.assertEqual(kit.language_search_problems(str(path),'es',data,second=True),[])
+                data['search']['reason']='A different unreviewed search conclusion appears here.'
+                self.assertTrue(kit.language_search_problems(str(path),'es',data,second=True))
+                world['fragments']['places']['work']['new']={}
+                self.assertTrue(any('every current original place' in p for p in kit.language_search_problems(str(path),'es',data)))
+
 class ExtensionPlantingTest(unittest.TestCase):
     def test_extension_planting_is_reversible_and_idempotent(self):
         import copy
@@ -500,6 +523,21 @@ class ExtensionPlantingTest(unittest.TestCase):
             self.assertNotIn('Test p999',projected['places'][work])
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
             import hashlib
+            search_dir=parent/'language-searches';search_dir.mkdir()
+            search={'language':'es','search':{'places':sorted(base['places']),'reason':'The documented searches found no suitable text.','tried':[]},'review':{}}
+            search_raw=json.dumps(search).encode();search_file=search_dir/'es.json';search_file.write_bytes(search_raw)
+            (search_dir/'es.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(search_raw).hexdigest()}))
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertTrue(any(item['language']=='es' for item in projected['works'][work]['absent']))
+            self.assertNotIn('es',projected['works'][work]['witnesses'])
+            subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+            search_file.write_bytes(search_raw+b' ')
+            self.assertIn('search changed since review',subprocess.run(command,capture_output=True,text=True).stderr)
+            (search_dir/'es.json.accepted').unlink()
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertFalse(any(item['language']=='es' and item.get('reason')==search['search']['reason'] for item in projected['works'][work].get('absent',[])))
             witness_dir=parent/'witnesses';witness_dir.mkdir()
             loc=next(iter(base['places']))
             rights={country:{'basis':'public-domain','law':'Public domain according to the applicable law.'} for country in kit.JURISDICTIONS}

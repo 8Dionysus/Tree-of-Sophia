@@ -46,8 +46,18 @@ const fragments=existsSync(join(home,'fragments.json'))?json(join(home,'fragment
  *  reads one more packet as if it were accepted, so that a reader can try the planting before anyone accepts it. */
 const packetsDir=join(here,'planting','packets'),tried=process.argv.includes('--packet')?process.argv[process.argv.indexOf('--packet')+1]:null;
 const packets=(existsSync(packetsDir)?readdirSync(packetsDir,{withFileTypes:true}).filter(entry=>entry.isDirectory()).map(entry=>entry.name).sort():[])
-  .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried||(fragments.works[name]&&!(fragments.provenance.packets??[]).includes(name)&&(()=>{const dir=join(packetsDir,name,'witnesses');return existsSync(dir)&&readdirSync(dir).some(file=>file.endsWith('.json.accepted'));})()));
+  .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried||(fragments.works[name]&&!(fragments.provenance.packets??[]).includes(name)&&['witnesses','language-searches'].some(part=>{const dir=join(packetsDir,name,part);return existsSync(dir)&&readdirSync(dir).some(file=>file.endsWith('.json.accepted'));})));
 const seconds=[],whole=[];
+// Withdraw the previous search projection before reconstructing accepted searches.
+for(const [name,languages] of Object.entries(fragments.provenance.language_search_packets??{})){
+  const work=fragments.works[name];if(!work)continue;
+  for(const [lang,previous] of Object.entries(languages)){
+    work.absent=(work.absent??[]).filter(item=>item.language!==lang);
+    if(previous.absent)work.absent.push(previous.absent);
+    if(previous.unsearched){work.unsearched??=[];if(!work.unsearched.some(item=>item.language===lang))work.unsearched.push(previous.unsearched);}
+  }
+}
+const searchPackets={};
 // Remove the previous translation projection before rebuilding it from reviewed packets.
 for(const [name,languages] of Object.entries(fragments.provenance.translation_packets??{})){
   const work=fragments.works[name];if(!work)continue;
@@ -166,9 +176,24 @@ for(const name of packets){
       if(translated.justification){place.quotation_justification??={};place.quotation_justification[lang]=translated.justification;}
     }
   }
+  const searchDir=join(at,'language-searches');
+  for(const file of existsSync(searchDir)?readdirSync(searchDir).filter(file=>file.endsWith('.json')).sort():[]){
+    const full=join(searchDir,file),accept=`${full}.accepted`;if(!existsSync(accept))continue;
+    const raw=readFileSync(full),record=JSON.parse(raw),lang=file.slice(0,-5);
+    if(json(accept).sha256!==createHash('sha256').update(raw).digest('hex')||record.language!==lang)fail(`packet ${name}: ${lang} language search changed since review`);
+    if(lang===fragments.works[name].original)fail(`packet ${name}: cannot search for the original as missing`);
+    if(fragments.works[name].witnesses?.[lang])continue;
+    if(!isDeepStrictEqual(record.search?.places,Object.keys(fragments.places[name]??{}).sort()))fail(`packet ${name}: ${lang} language search scope changed`);
+    const work=fragments.works[name],absent=(work.absent??[]).find(item=>item.language===lang)??null,unsearched=(work.unsearched??[]).find(item=>item.language===lang)??null;
+    (searchPackets[name]??={})[lang]={record:`${path}/language-searches/${file}`,absent,unsearched};
+    work.absent=(work.absent??[]).filter(item=>item.language!==lang);
+    work.absent.push({language:lang,reason:record.search.reason,tried:record.search.tried});
+    if(work.unsearched)work.unsearched=work.unsearched.filter(item=>item.language!==lang);
+  }
 }
 if(whole.length||fragments.provenance.packets)fragments.provenance.packets=whole;
 if(Object.keys(translationPackets).length)fragments.provenance.translation_packets=translationPackets;else delete fragments.provenance.translation_packets;
+if(Object.keys(searchPackets).length)fragments.provenance.language_search_packets=searchPackets;else delete fragments.provenance.language_search_packets;
 if(Object.keys(extensionPlaces).length)fragments.provenance.extension_places=extensionPlaces;else delete fragments.provenance.extension_places;
 if(extensionCorrections.length)fragments.provenance.extension_corrections=extensionCorrections;else delete fragments.provenance.extension_corrections;
 if(Object.keys(extensionChecked).length)fragments.provenance.extension_checked=extensionChecked;else delete fragments.provenance.extension_checked;

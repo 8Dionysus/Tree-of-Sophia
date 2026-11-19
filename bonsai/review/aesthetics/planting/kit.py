@@ -1015,6 +1015,12 @@ def language_coverage(path,entry,original,legacy_work=False,held=False,second=Fa
     for lang in ('ru','en','es','de','zh-Hans'):
         if lang==original or (held and lang in (entry.get('witnesses') or {})):continue
         file=witness_file(path,lang)
+        search=language_search_file(path,lang)
+        if not os.path.isfile(file) and os.path.isfile(search) and (not legacy_work or os.path.isfile(search+'.accepted')):
+            raw=Path(search).read_bytes()
+            if os.path.isfile(search+'.accepted') and load(search+'.accepted').get('sha256')!=hashlib.sha256(raw).hexdigest():problems.append(f'{lang}: search changed since acceptance');continue
+            problems.extend(f'{lang}: {issue}' for issue in language_search_problems(path,lang,json.loads(raw),second=second))
+            continue
         if os.path.isfile(file):
             marker=file+'.accepted'
             if legacy_work and not os.path.isfile(marker):continue
@@ -1485,6 +1491,60 @@ def witness_data(path,lang):
     file=witness_file(path,lang)
     if not os.path.isfile(file):die(f'no witness {lang}: run witness-open')
     return load(file)
+
+def language_search_file(path,lang):
+    witness_file(path,lang)  # apply the same language validation
+    return os.path.join(path,'language-searches',lang+'.json')
+
+def language_search_scope(path):
+    return sorted(set(((world()['fragments'].get('places') or {}).get(work_of(path)) or {})) | set(((part(path,'places.json') or {}).get('places') or {})))
+
+def language_search_problems(path,lang,data,second=False):
+    problems=[];proof=data.get('search') or {};review=data.get('review') or {}
+    if data.get('language')!=lang:problems.append('language differs from filename')
+    work=((world()['fragments'].get('works') or {}).get(work_of(path)) or {})
+    if not work or lang==work.get('original') or lang in (work.get('witnesses') or {}):problems.append('the language must still be missing from an existing work')
+    if not proof.get('maker'):problems.append('the maker must be identified')
+    if proof.get('places')!=language_search_scope(path) or not proof.get('places'):problems.append('search must identify every current original place')
+    missing=missing_search_sites(proof.get('tried') or [])
+    if missing:problems.append('search outcomes missing for '+', '.join(sorted(missing)))
+    if len(str(proof.get('reason','')).strip())<30:problems.append('a detailed account of the search outcome is required')
+    if second and (not review.get('reader') or review.get('reader')==proof.get('maker') or not review.get('model') or not review.get('date') or review.get('sha256')!=page_number_digest(proof) or len(str(review.get('assessment','')).strip())<40):problems.append('a distinct second reader must assess this exact search')
+    return problems
+
+def cmd_language_search(args):
+    path=packet(args.packet);file=language_search_file(path,args.language)
+    if os.path.exists(file+'.accepted'):die('the accepted search must be withdrawn before replacing it')
+    if args.language not in ('ru','en','es','de','zh-Hans'):die('choose an interface language')
+    fragments=world()['fragments'];work=(fragments.get('works') or {}).get(work_of(path)) or {}
+    if not work or args.language==work.get('original') or args.language in (work.get('witnesses') or {}):die('search is for a missing language of an existing work')
+    record=load(args.file)
+    if not isinstance(record,dict) or set(record)!={'maker','reason','tried'}:die('search input needs maker, reason and tried')
+    data={'language':args.language,'search':{**record,'places':language_search_scope(path)},'review':{}}
+    issues=language_search_problems(path,args.language,data)
+    if issues:die('search is incomplete: '+'; '.join(issues))
+    os.makedirs(os.path.dirname(file),exist_ok=True);save(file,data);print('search recorded; independent review is required')
+
+def cmd_language_search_review(args):
+    path=packet(args.packet);file=language_search_file(path,args.language)
+    if os.path.exists(file+'.accepted'):die('the accepted search cannot be changed')
+    data=part(os.path.dirname(file),os.path.basename(file)) or die('record the language search first')
+    data['review']={'reader':args.reader,'model':args.model,'date':today(),'sha256':page_number_digest(data['search']),'assessment':args.assessment}
+    issues=language_search_problems(path,args.language,data,second=True)
+    if issues:die('search review is incomplete: '+'; '.join(issues))
+    save(file,data);print('independent search assessment recorded')
+
+def cmd_language_search_accept(args):
+    path=packet(args.packet);file=language_search_file(path,args.language)
+    if os.path.exists(file+'.accepted'):die('search is already accepted')
+    raw=Path(file).read_bytes();issues=language_search_problems(path,args.language,json.loads(raw),second=True)
+    if issues:die('search is not ready: '+'; '.join(issues))
+    save(file+'.accepted',{'sha256':hashlib.sha256(raw).hexdigest(),'date':today()});print('language search accepted')
+
+def cmd_language_search_withdraw(args):
+    path=packet(args.packet);file=language_search_file(path,args.language)+'.accepted'
+    if not os.path.isfile(file):die('there is no accepted language search')
+    os.unlink(file);print('language search withdrawn; the evidence file remains')
 
 def cmd_extension_open(args):
     parent=packet(args.packet);work=work_of(parent)
@@ -2033,6 +2093,10 @@ def main():
     sub('extension-open',cmd_extension_open,P,(('name',),{}),(('--keys',),{'required':True}));
     sub('import',cmd_import,P,(('part',),{'choices':['places','reading','review','blocked']}),(('file',),{}));sub('unblock',cmd_unblock,P)
     sub('witness-parent',cmd_witness_parent,(('work',),{}));
+    sub('language-search',cmd_language_search,P,(('language',),{}),(('file',),{}))
+    sub('language-search-review',cmd_language_search_review,P,(('language',),{}),(('--reader',),{'required':True}),(('--model',),{'required':True}),(('--assessment',),{'required':True}))
+    sub('language-search-accept',cmd_language_search_accept,P,(('language',),{}))
+    sub('language-search-withdraw',cmd_language_search_withdraw,P,(('language',),{}))
     sub('witness-open',cmd_witness_open,P,(('language',),{}),(('metadata',),{}))
     sub('witness-info',cmd_witness_info,P,(('language',),{}),(('file',),{}));
     sub('witness-rights',cmd_witness_rights,P,(('language',),{}),(('jurisdiction',),{'choices':JURISDICTIONS}),(('basis',),{'choices':sorted(BASES)}),(('law',),{}));

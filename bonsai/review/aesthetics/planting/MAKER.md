@@ -334,6 +334,25 @@ both readings and the separate assessment remain bound to the acceptance.
 
 ## Continue an accepted reading
 
+If every required source has actually been searched and no translation of any
+current place was found, record the language search without inventing a
+translation witness or book locator. The input JSON has `maker`, a detailed
+`reason`, and `tried` entries with `site`, `url`, and `outcome` for each
+required source. The command records the current original-place scope.
+
+```sh
+K language-search . es search.json
+K language-search-review . es --reader SECOND --model MODEL --assessment 'What the second reader checked and concluded.'
+K language-search-accept . es
+node ../../../plant.mjs
+```
+
+The second reader must differ from the maker; acceptance binds their decision
+to the exact search. Adding an original place requires renewed search and
+review. `K language-search-withdraw . es` removes the acceptance while keeping
+the evidence, so the search can be replaced. A subsequently accepted witness
+takes precedence over the search in the projection.
+
 Leave the accepted packet and its review intact. To work on specific waiting
 register keys, make an independent extension:
 
