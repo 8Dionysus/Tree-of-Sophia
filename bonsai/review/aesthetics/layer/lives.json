@@ -8623,15 +8623,18 @@
   }
  },
  "judith-butler": {
-  "item": null,
+  "item": "Q219368",
   "label": {
    "ru": "Джудит Батлер",
    "en": "Judith Butler"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1956-02-24T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -8649,6 +8652,14 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "work": "Q55879479",
+   "work_url": "https://www.wikidata.org/wiki/Q55879479",
+   "source": "https://www.wikidata.org/wiki/Q55879479#P50",
+   "person_url": "https://www.wikidata.org/wiki/Q219368",
+   "basis": "The exact queued essay names Q219368 as author in Wikidata P50."
   }
  },
  "juergen-habermas": {
