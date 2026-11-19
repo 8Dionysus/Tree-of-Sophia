@@ -3413,6 +3413,10 @@
         {
           "url": "https://doi.org/10.1215/9780822388883-011",
           "observation": "Crossref identifies a Duke University Press edited-volume chapter, 2008, pp. 181–224; publisher PDF direct request returned HTTP 403. Do not assume its pagination, wording, or translation is identical to the 2000 SAGE article; compare editions and translator."
+        },
+        {
+          "url": "https://doi.org/10.1215/9781478059356-012",
+          "observation": "Crossref identifies a distinct 2024 Duke University Press book chapter with this title, pp. 256–302. Its text, translator and relationship to the registered pp. 533–550 have not been verified; do not equate page numbers or assume reuse rights."
         }
       ],
       "searches": [
@@ -3494,6 +3498,12 @@
           "query": "Coloniality of Power, Eurocentrism, and Latin America",
           "url": "https://api.core.ac.uk/v3/search/works?q=Coloniality+of+Power%2C+Eurocentrism%2C+and+Latin+America&limit=3",
           "result": "HTTP 200; top 3 metadata hits only, potentially unrelated; title, author, source, edition, rights and requested pages require verification"
+        },
+        {
+          "service": "Registered decolonialtranslation.com reading link",
+          "query": "D:B-I074 and D:B-I075, registered English PDF",
+          "url": "https://ww.decolonialtranslation.com/english/quijano-coloniality-of-power.pdf",
+          "result": "On 19 November 2026 TLS verification failed because the certificate was expired; no access or rights conclusion was made. Publisher authorization, edition and translator remain to be established."
         }
       ]
     },
