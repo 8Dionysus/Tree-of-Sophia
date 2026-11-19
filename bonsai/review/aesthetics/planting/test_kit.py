@@ -152,6 +152,11 @@ class SentenceBoundaryTest(unittest.TestCase):
             self.assertEqual(found['share'],1)
             self.assertEqual(found['differences'][0]['ocr'],printed)
 
+    def test_cjk_correction_without_ocr_support_requires_enlarged_review(self):
+        places={'work':'w','corrections':[{'place':'w p1','from':'天地元黄宇宙洪荒','to':'天地玄黄宇宙洪荒'}]}
+        ev={'scan':{'item':'s'},'places':{'p1':{'method':'ocr','differences':[{'transcription':'玄','ocr':'天'}]}}}
+        self.assertEqual([loc for loc,_ in kit.by_eye(places,ev)], ['p1'])
+
     def test_quotation_counts_danda_sentences(self):
         proof={'source':'https://example.org/page','page':'1','lines':'1–4','sha256':'a'*64}
         ev={'images':[{'sha256':'a'*64,'by':'maker'}]}

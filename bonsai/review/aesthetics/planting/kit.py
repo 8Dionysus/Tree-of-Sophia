@@ -345,7 +345,7 @@ QUOTES=str.maketrans({'“':'"','”':'"','„':'"','«':'"','»':'"','‟':'"',
 _LETTER=r'(?:(?![\u3400-\u9fff\u3040-\u30ff])[^\W\d_]|[\u0900-\u0903\u093a-\u094f\u0951-\u0957\u0962-\u0963])'
 TOKEN=re.compile(r"[\u3400-\u9fff\u3040-\u30ff]|"+_LETTER+r"+(?:'"+_LETTER+r"+)*|\d+|[^\s\w]|_")
 WORD=re.compile(r'[\u3400-\u9fff\u3040-\u30ff]+|'+_LETTER+r'+')
-PART=re.compile(r'[\u3400-\u9fff\u3040-\u30ff]+|'+_LETTER+r'+|\d+')
+PART=re.compile(r'[\u3400-\u9fff\u3040-\u30ff]|'+_LETTER+r'+|\d+')
 
 # IAST is a search key only; the printed and transcribed words stay in the evidence.
 _VOWELS=dict(zip('अआइईउऊऋॠऌॡएऐओऔ',('a','ā','i','ī','u','ū','ṛ','ṝ','ḷ','ḹ','e','ai','o','au')))
