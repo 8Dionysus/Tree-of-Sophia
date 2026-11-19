@@ -9748,10 +9748,17 @@ fn append_text_metadata(
     expected_semantic_valid: Option<bool>,
     limits: ItemLimits,
 ) -> Result<(), ItemRefusal> {
-    let metadata_limits = crate::text_metadata_rules::TextMetadataLimits {
-        max_packet_bytes: limits.max_member_bytes,
-        max_state_bytes: limits.max_state_bytes,
-        max_issues: limits.max_issues.saturating_sub(state.issues.len()),
+    use crate::text_metadata_rules::TextMetadataLimits;
+    let metadata_limits = TextMetadataLimits {
+        max_packet_bytes: limits.max_member_bytes.min(TextMetadataLimits::MAX_PACKET_BYTES),
+        max_state_bytes: limits
+            .max_state_bytes
+            .saturating_sub(state.retained_bytes)
+            .min(TextMetadataLimits::MAX_STATE_BYTES),
+        max_issues: limits
+            .max_issues
+            .saturating_sub(state.issues.len())
+            .min(TextMetadataLimits::MAX_ISSUES),
         deadline: limits.deadline,
     };
     let report = match profile {

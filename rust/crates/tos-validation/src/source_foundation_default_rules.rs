@@ -1435,7 +1435,8 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
         labs_limits,
         current_paths,
         physical,
-    )?;
+    )
+    .map_err(|error| default_owner_refusal("default labs", error))?;
     let mut direct_owner_issue_count = records_issue_count
         .checked_add(labs.ordered_issues.len())
         .ok_or(ItemRefusal::Budget)?;
@@ -1475,7 +1476,8 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
         physical,
         require_local_payloads,
         gold_limits,
-    )?;
+    )
+    .map_err(|error| default_owner_refusal("default goldsets", error))?;
     direct_owner_issue_count = direct_owner_issue_count
         .checked_add(goldsets.ordered_issues.len())
         .ok_or(ItemRefusal::Budget)?;
@@ -1514,7 +1516,7 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
                     record_report,
                     proofs,
                     require_local_payloads,
-                )?,
+                ),
                 None => inspect_with_cut_and_artifact_replays_and_records(
                     &mut aggregate_source,
                     current_paths,
@@ -1526,7 +1528,7 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
                     artifact_replays,
                     record_report,
                     require_local_payloads,
-                )?,
+                ),
             }
         }
         SourceFoundationRecordKernelOutcome::Refused { .. } => {
@@ -1545,9 +1547,10 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
                 native_histories,
                 artifact_replays,
                 require_local_payloads,
-            )?
+            )
         }
-    };
+    }
+    .map_err(|error| default_owner_refusal("default discovery", error))?;
     direct_owner_issue_count = direct_owner_issue_count
         .checked_add(discovery_report.issues.len())
         .ok_or(ItemRefusal::Budget)?;
@@ -1591,7 +1594,8 @@ fn inspect_source_foundation_default_rules_internal<S: LayerFamilySource + ?Size
         &records.used_declared_profile_kinds,
         bibliographic_claims,
         closure_limits,
-    )?;
+    )
+    .map_err(|error| default_owner_refusal("default closure", error))?;
     direct_owner_issue_count = direct_owner_issue_count
         .checked_add(closure.issues.len())
         .ok_or(ItemRefusal::Budget)?;

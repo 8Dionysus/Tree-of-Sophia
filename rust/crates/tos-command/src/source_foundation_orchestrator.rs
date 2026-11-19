@@ -218,7 +218,16 @@ impl FoundationOrchestratorError {
             FoundationDefaultReadError::Owner(ItemRefusal::BudgetCheck { check, used, limit }),
         ) = self
         {
-            if matches!(*check, "record_issue_sink" | "biblio_sink") {
+            if matches!(
+                *check,
+                "record_issue_sink"
+                    | "biblio_sink"
+                    | "default labs"
+                    | "default goldsets"
+                    | "default discovery"
+                    | "default closure"
+                    | "foundation current member bytes"
+            ) {
                 let stage = match stage {
                     FoundationDefaultStage::CapturedCurrentPaths => {
                         "source-foundation default captured current paths"

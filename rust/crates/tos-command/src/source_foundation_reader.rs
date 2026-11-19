@@ -754,7 +754,11 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
                         return Ok(None);
                     };
                     if metadata.size_bytes > cap as u64 {
-                        return Err(ItemRefusal::Budget);
+                        return Err(ItemRefusal::BudgetCheck {
+                            check: "foundation current member bytes",
+                            used: Some(metadata.size_bytes),
+                            limit: Some(cap as u64),
+                        });
                     }
                     cut.read_member(
                         cut.current().revision(),
