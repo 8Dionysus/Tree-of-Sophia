@@ -22,3 +22,7 @@ An obsolete `block_checked` in the driver also makes `line --retake` skip a form
 ## Distinguish unfinished translation research from original OCR
 
 The maker for `vladimir-solovyov.obshchiy-smysl-iskusstva` reports that `missing_language_problems` requires a known edition and locator even when research has not established any Chinese edition, while a `sources` block is rejected whenever the *Russian original* has OCR. Original OCR does not resolve untranslated interface languages. Please provide a truthful way to record incomplete language research and allow the corresponding block without presenting an unknown edition as `absent`; see that packet's `blocked.json` and `03-maker.md`. Do not weaken source, rights or second-reader gates.
+
+## Mexico rights for translated witnesses
+
+The owner's common brief requires assessment for Mexico (LFDA art. 148 I) as well as Russia, the EU and the USA. In the merged kit `witness-rights --help` accepts only `russia`, `usa`, `eu`; the Dürkheim Russian short-quotation witness currently has no Mexico assessment even though its offline gate opens. Please provide a supported source-bound Mexico assessment and check appropriate to the quotation; an open gate alone is not proof of territorial rights. The witness remains unaccepted pending that assessment and lawful-copy evidence.
