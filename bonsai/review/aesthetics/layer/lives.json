@@ -57,6 +57,7 @@
    {
     "time": "+0950-01-01T00:00:00Z",
     "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q5727902"
     ],
@@ -67,13 +68,14 @@
    {
     "time": "+1020-01-01T00:00:00Z",
     "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q5727902"
     ],
     "approximate": true
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_reference": {
    "work": "Q4667440",
    "work_url": "https://www.wikidata.org/wiki/Q4667440",
@@ -122,6 +124,7 @@
    {
     "time": "+0870-00-00T00:00:00Z",
     "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q5727902"
     ],
@@ -138,7 +141,7 @@
     "approximate": true
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -346,7 +349,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-7832-4863",
    "doi": "10.1037/emo0000450",
@@ -466,7 +469,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1125903"
  },
  "alberto-voltolini": {
@@ -525,7 +528,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "identity_reference": {
    "source": "https://www.audubon.org/magazine/archives-aldo-leopolds-conservation-esthetic",
    "person_url": "https://en.wikipedia.org/wiki/Aldo_Leopold",
@@ -653,7 +656,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "alexander-nehamas": {
   "item": "Q2642734",
@@ -668,7 +671,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -711,16 +714,18 @@
   "born": [
    {
     "time": "+1688-05-21T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
    {
     "time": "+1744-05-30T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q7168340"
  },
  "alison-hills": {
@@ -762,34 +767,24 @@
   }
  },
  "allen-carlson": {
-  "item": null,
+  "item": "Q2837880",
   "label": {
-   "ru": "Аллен Карлсон",
-   "en": "Allen Carlson"
+   "en": "Allen Arvid Carlson",
+   "ru": "Аллен Карлсон"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Allen Carlson"
-   },
-   {
-    "kind": "work",
-    "query": "Functional Beauty"
-   },
-   {
-    "kind": "work",
-    "query": "Appreciation and the Natural Environment"
-   },
-   {
-    "kind": "work",
-    "query": "The Link Between Aesthetic Appreciation and the Preservation Imperative"
+    "time": "+1943-03-03T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [
+   {
+    "time": "+2025-01-28T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -825,6 +820,31 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Allen Carlson"
+   },
+   {
+    "kind": "work",
+    "query": "Functional Beauty"
+   },
+   {
+    "kind": "work",
+    "query": "Appreciation and the Natural Environment"
+   },
+   {
+    "kind": "work",
+    "query": "The Link Between Aesthetic Appreciation and the Preservation Imperative"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Functional Beauty",
+   "source": "https://iucat.iu.edu/iuc/8018803",
+   "person_url": "https://sites.ualberta.ca/~brigandt/Annual_lecture_Carlson.pdf",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "alois-riegl": {
@@ -845,7 +865,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1858,
    "died": 1905
@@ -859,7 +879,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-5809-0940",
    "doi": "10.31234/osf.io/sr7e9",
@@ -893,7 +913,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL102871A",
    "author_url": "https://openlibrary.org/authors/OL102871A",
@@ -933,7 +953,7 @@
     "precision": 9
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -985,7 +1005,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1027,7 +1047,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-8109-9185",
    "doi": "10.1007/s00426-023-01856-2",
@@ -1147,7 +1167,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-7301-0240",
    "doi": "10.1037/emo0000450",
@@ -1171,7 +1191,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-6365-1044",
    "doi": "10.1037/emo0000450",
@@ -1301,16 +1321,20 @@
   "born": [
    {
     "time": "-0384-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "-0322-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "arnold-berleant": {
   "item": "Q4794966",
@@ -1325,7 +1349,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1377,7 +1401,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1924,
    "died": 2013
@@ -1401,7 +1425,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "asmir-gracanin": {
   "item": null,
@@ -1459,7 +1483,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q85542398"
  },
  "aurel-kolnai": {
@@ -1528,7 +1552,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "beate-seibt": {
   "item": "Q57832758",
@@ -1543,7 +1567,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-0148-0961",
    "doi": "10.1037/emo0000450",
@@ -1671,7 +1695,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1866,
    "died": 1952
@@ -1854,7 +1878,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-1840-3153",
    "doi": "10.1037/emo0000450",
@@ -1931,7 +1955,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1987,7 +2011,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "c-thi-nguyen": {
   "item": null,
@@ -2064,7 +2088,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-2557-7909",
    "doi": "10.1007/s00426-023-01856-2",
@@ -2093,7 +2117,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -2213,16 +2237,19 @@
   }
  },
  "catherine-z-elgin": {
-  "item": null,
+  "item": "Q5052654",
   "label": {
-   "ru": "Кэтрин Элгин",
-   "en": "Catherine Z. Elgin"
+   "en": "Catherine Z. Elgin",
+   "ru": "Кэтрин Элгин"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1948-02-20T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -2256,6 +2283,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Art in the Advancement of Understanding",
+   "source": "https://dash.harvard.edu/entities/publication/bb5cdd6a-9f29-4e51-9139-189b6658631f",
+   "person_url": "https://www.gse.harvard.edu/directory/faculty/catherine-elgin",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "charles-baudelaire": {
@@ -2276,7 +2310,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "charles-darwin": {
   "item": "Q1035",
@@ -2296,7 +2330,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1192325"
  },
  "charles-sanders-peirce": {
@@ -2317,7 +2351,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1839,
    "died": 1914
@@ -2487,7 +2521,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-7503-5131",
    "doi": "10.1037/emo0000450",
@@ -2726,7 +2760,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q952540"
  },
  "clifford-geertz": {
@@ -2780,7 +2814,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1881,
    "died": 1964
@@ -2799,7 +2833,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -2851,7 +2885,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1935,
    "died": 2001
@@ -2867,6 +2901,7 @@
    {
     "time": "-0551-00-00T00:00:00Z",
     "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q5727902"
     ],
@@ -2877,13 +2912,14 @@
    {
     "time": "-0479-00-00T00:00:00Z",
     "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q5727902"
     ],
     "approximate": true
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL40315A",
    "author_url": "https://openlibrary.org/authors/OL40315A",
@@ -2924,7 +2960,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3046,12 +3082,12 @@
   },
   "born": [
    {
-    "time": "+1958-01-01T00:00:00Z",
-    "precision": 9
+    "time": "+1958-06-20T00:00:00Z",
+    "precision": 11
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL403214A",
    "work": "/works/OL2748244W",
@@ -3181,7 +3217,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3322,7 +3358,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-8459-6037",
    "doi": "10.31234/osf.io/sr7e9",
@@ -3356,7 +3392,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3429,7 +3465,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-0678-1728",
    "doi": "10.1037/xge0000395",
@@ -3455,6 +3491,7 @@
    {
     "time": "+1711-04-26T00:00:00Z",
     "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q38173183",
      "Q26877143"
@@ -3470,19 +3507,27 @@
     ]
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "david-lewis": {
-  "item": null,
+  "item": "Q384522",
   "label": {
-   "ru": "Дэвид Льюис",
-   "en": "David Lewis"
+   "en": "David Lewis",
+   "ru": "Дейвид Льюис"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1941-09-28T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2001-10-14T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3508,6 +3553,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Truth in Fiction",
+   "source": "https://academic.oup.com/book/36015/chapter-abstract/313264949",
+   "person_url": "https://en.wikipedia.org/wiki/David_Lewis_(philosopher)",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "david-mcneill": {
@@ -3523,7 +3575,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3603,7 +3655,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-4000-4941",
    "doi": "10.1037/pspa0000064",
@@ -3704,7 +3756,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1938,
    "died": 1998
@@ -3813,7 +3865,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q111719385",
   "relation_search": {
    "complete": true,
@@ -3843,7 +3895,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1917,
    "died": 2003
@@ -4041,7 +4093,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "identity_work": "Q4797164",
   "relation_search": {
    "complete": true,
@@ -4144,7 +4196,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "edmund-burke": {
   "item": "Q165792",
@@ -4164,7 +4216,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "edmund-husserl": {
   "item": "Q58586",
@@ -4184,7 +4236,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1859,
    "died": 1938
@@ -4208,7 +4260,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "edward-bullough": {
   "item": "Q5342062",
@@ -4228,7 +4280,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "edward-l-bernays": {
   "item": "Q434839",
@@ -4248,7 +4300,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL410747A",
    "author_url": "https://openlibrary.org/authors/OL410747A",
@@ -4288,7 +4340,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "edward-w-said": {
   "item": "Q201538",
@@ -4312,7 +4364,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL26322A",
    "author_url": "https://openlibrary.org/authors/OL26322A",
@@ -4347,7 +4399,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -4699,7 +4751,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "emily-brady": {
   "item": null,
@@ -4757,7 +4809,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -4830,16 +4882,19 @@
   }
  },
  "erika-fischer-lichte": {
-  "item": null,
+  "item": "Q1354364",
   "label": {
-   "ru": "Эрика Фишер-Лихте",
-   "en": "Erika Fischer-Lichte"
+   "en": "Erika Fischer-Lichte",
+   "ru": "Эрика Фишер-Лихте"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1943-06-25T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -4865,6 +4920,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Transformative Power of Performance: A New Aesthetics",
+   "source": "https://www.routledge.com/link/link/p/book/9780415458566",
+   "person_url": "https://www.geisteswissenschaften.fu-berlin.de/we07/theater-tanz/mitarbeiter-innen/prof/fischerlichte/index.html",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "ernst-jentsch": {
@@ -4885,7 +4947,7 @@
     "precision": 9
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "erwin-panofsky": {
   "item": "Q57656",
@@ -4905,7 +4967,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1892,
    "died": 1968
@@ -5043,7 +5105,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q101084576"
  },
  "eugene-thacker": {
@@ -5059,7 +5121,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q131577098"
  },
  "frances-s-connelly": {
@@ -5128,7 +5190,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "frank-sibley": {
   "item": "Q5489565",
@@ -5148,7 +5210,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1923,
    "died": 1996
@@ -5172,7 +5234,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q107484564"
  },
  "fred-kroon": {
@@ -5231,7 +5293,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1934,
    "died": 2024
@@ -5255,7 +5317,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "friedrich-schiller": {
   "item": "Q22670",
@@ -5275,7 +5337,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "friedrich-schlegel": {
   "item": "Q157271",
@@ -5299,7 +5361,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "frits-staal": {
   "item": null,
@@ -5348,7 +5410,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q619599",
   "relation_search": {
    "complete": true,
@@ -5370,6 +5432,7 @@
    {
     "time": "+0020-00-00T00:00:00Z",
     "precision": 8,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "bounds": {
      "earliest": [
       {
@@ -5390,10 +5453,12 @@
   "died": [
    {
     "time": "+0079-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "identity_work": "Q442",
   "relation_search": {
    "complete": true,
@@ -5468,7 +5533,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q30448147"
  },
  "gary-kemp": {
@@ -5527,7 +5592,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1884,
    "died": 1962
@@ -5584,7 +5649,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q135953548"
  },
  "georg-simmel": {
@@ -5605,7 +5670,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "georg-wilhelm-friedrich-hegel": {
   "item": "Q9235",
@@ -5625,7 +5690,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "george-berkeley": {
   "item": "Q82049",
@@ -5645,7 +5710,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL108000A",
    "author_url": "https://openlibrary.org/authors/OL108000A",
@@ -5685,7 +5750,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1926,
    "died": 2020
@@ -5747,7 +5812,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q7763293"
  },
  "georges-bataille": {
@@ -5768,7 +5833,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1897,
    "died": 1962
@@ -5830,7 +5895,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1937,
    "died": 2022
@@ -5854,7 +5919,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1932,
    "died": 1999
@@ -5878,7 +5943,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1925,
    "died": 1995
@@ -6016,7 +6081,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "gustav-theodor-fechner": {
   "item": "Q76881",
@@ -6036,7 +6101,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "guy-sircello": {
   "item": "Q5622598",
@@ -6056,7 +6121,7 @@
     "precision": 9
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -6246,7 +6311,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q122088102"
  },
  "hans-ulrich-gumbrecht": {
@@ -6262,7 +6327,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q130330304"
  },
  "harold-bloom": {
@@ -6283,7 +6348,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL29809A",
    "author_url": "https://openlibrary.org/authors/OL29809A",
@@ -6399,7 +6464,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1936,
    "died": 1998
@@ -6423,7 +6488,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q107421844"
  },
  "helmut-leder": {
@@ -6473,7 +6538,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "henri-poincare": {
   "item": "Q81082",
@@ -6493,7 +6558,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "hermann-schmitz": {
   "item": "Q112038",
@@ -6513,7 +6578,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1928,
    "died": 2021
@@ -6604,7 +6669,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q21133958"
  },
  "holmes-rolston-iii": {
@@ -6663,7 +6728,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1124816",
   "relation_search": {
    "complete": true,
@@ -6717,7 +6782,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-8778-2740",
    "doi": "10.1037/emo0000450",
@@ -6741,7 +6806,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-3121-5728",
    "doi": "10.1037/emo0000450",
@@ -6775,7 +6840,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "ingvild-gilhus": {
   "item": null,
@@ -6957,7 +7022,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q330722"
  },
  "jack-reynolds": {
@@ -7087,7 +7152,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL3292788A",
    "author_url": "https://openlibrary.org/authors/OL3292788A",
@@ -7491,7 +7556,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q130306012",
   "relation_search": {
    "complete": true,
@@ -7511,7 +7576,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-7660-2719",
    "doi": "10.1037/emo0000450",
@@ -7545,7 +7610,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1929,
    "died": 2007
@@ -7569,7 +7634,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL3908475A",
    "author_url": "https://openlibrary.org/authors/OL3908475A",
@@ -7609,7 +7674,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q658288"
  },
  "jennifer-l-barnes": {
@@ -7790,7 +7855,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-9710-3297",
    "doi": "10.1037/pspa0000064",
@@ -7824,7 +7889,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1872,
    "died": 1945
@@ -7848,7 +7913,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q3454752"
  },
  "johann-wolfgang-goethe": {
@@ -7869,7 +7934,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "johanna-k-blomster": {
   "item": "Q57832752",
@@ -7879,7 +7944,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-3157-5443",
    "doi": "10.1037/emo0000450",
@@ -7913,7 +7978,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q2690629"
  },
  "john-macdonald": {
@@ -8132,7 +8197,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "identity_work": "Q7766650",
   "relation_search": {
    "complete": true,
@@ -8212,7 +8277,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q30448147"
  },
  "jonathan-yorke-bean": {
@@ -8252,7 +8317,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-0049-4373",
    "doi": "10.1037/emo0000450",
@@ -8276,7 +8341,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-9883-8765",
    "doi": "10.1037/emo0000450",
@@ -8310,7 +8375,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "joseph-kosuth": {
   "item": null,
@@ -8492,7 +8557,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q142068631"
  },
  "jukka-mikkonen": {
@@ -8503,7 +8568,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-0436-8526",
    "doi": "10.1177/09632719251326132",
@@ -8851,7 +8916,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL468951A",
    "work": "/works/OL15310419W",
@@ -8961,7 +9026,8 @@
   "born": [
    {
     "time": "+1879-02-11T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    },
    {
     "time": "+1879-02-23T00:00:00Z",
@@ -8974,23 +9040,26 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1879,
    "died": 1935
   }
  },
  "kendall-l-walton": {
-  "item": null,
+  "item": "Q6388945",
   "label": {
-   "ru": "Кендалл Уолтон",
-   "en": "Kendall L. Walton"
+   "en": "Kendall Walton",
+   "ru": "Кендалл Уолтон"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1939-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -9020,6 +9089,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Categories of Art",
+   "source": "https://lsa.umich.edu/philosophy/people/emeritus-faculty/klwalton/Categories-of-Art.html",
+   "person_url": "https://en.wikipedia.org/wiki/Kendall_Walton",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "kenneth-vail": {
@@ -9211,7 +9287,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q24606770"
  },
  "kurt-woelfel": {
@@ -9434,6 +9510,7 @@
    {
     "time": "+1828-08-28T00:00:00Z",
     "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q26877143",
      "Q27055388"
@@ -9444,12 +9521,13 @@
    {
     "time": "+1910-11-07T00:00:00Z",
     "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q27055388"
     ]
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q4517325"
  },
  "leon-battista-alberti": {
@@ -9461,16 +9539,18 @@
   "born": [
    {
     "time": "+1404-02-14T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
    {
     "time": "+1472-04-25T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "leonard-b-meyer": {
   "item": "Q6525088",
@@ -9490,7 +9570,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1918,
    "died": 2007
@@ -9556,7 +9636,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "linda-hutcheon": {
   "item": "Q4558366",
@@ -9624,7 +9704,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q17016608"
  },
  "ljiljana-b-lazarevic": {
@@ -9980,7 +10060,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-7775-2265",
    "doi": "10.1037/emo0000450",
@@ -10168,13 +10248,14 @@
    {
     "time": "-0015-00-00T00:00:00Z",
     "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q5727902"
     ],
     "approximate": true
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "identity_work": "Q1232238",
   "relation_search": {
    "complete": true,
@@ -10249,7 +10330,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-2648-2541",
    "doi": "10.1037/pspa0000064",
@@ -10273,7 +10354,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q33955242"
  },
  "martin-esslin": {
@@ -10294,7 +10375,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL4324514A",
    "work": "/works/OL20953688W",
@@ -10327,7 +10408,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1197760"
  },
  "mary-devereaux": {
@@ -10396,7 +10477,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -10438,7 +10519,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q33955242"
  },
  "mate-aller": {
@@ -10573,7 +10654,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-7617-4689",
    "doi": "10.1016/j.jmathb.2025.101284",
@@ -10637,7 +10718,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q2714332"
  },
  "max-black": {
@@ -10658,7 +10739,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1909,
    "died": 1988
@@ -10768,7 +10849,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-8314-5402",
    "doi": "10.1037/emo0000450",
@@ -10892,7 +10973,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1904,
    "died": 1996
@@ -11040,7 +11121,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL4346031A",
    "author_url": "https://openlibrary.org/authors/OL4346031A",
@@ -11157,7 +11238,8 @@
   "born": [
    {
     "time": "+1895-11-05T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -11166,7 +11248,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q3819637"
  },
  "milena-ivanova": {
@@ -11296,7 +11378,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1915,
    "died": 1985
@@ -11349,7 +11431,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "nanda-jarosz": {
   "item": null,
@@ -11483,7 +11565,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1701144"
  },
  "nick-zangwill": {
@@ -11741,7 +11823,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL391774A",
    "author_url": "https://openlibrary.org/authors/OL391774A",
@@ -11773,7 +11855,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q24606770"
  },
  "o-r-aragon": {
@@ -11851,7 +11933,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -11903,7 +11985,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "otto-rank": {
   "item": "Q84172",
@@ -11923,7 +12005,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "panos-paris": {
   "item": "Q64589643",
@@ -11933,7 +12015,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-2549-1075",
    "doi": "10.1093/aesthj/ayy043",
@@ -11967,7 +12049,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q119170": {
   "item": "Q119170",
@@ -11991,7 +12073,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q125249": {
   "item": "Q125249",
@@ -12011,7 +12093,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q1336319": {
   "item": "Q1336319",
@@ -12031,7 +12113,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q157271": {
   "item": "Q157271",
@@ -12055,7 +12137,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q15948": {
   "item": "Q15948",
@@ -12075,7 +12157,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q182046": {
   "item": "Q182046",
@@ -12086,16 +12168,18 @@
   "born": [
    {
     "time": "+1404-02-14T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
    {
     "time": "+1472-04-25T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q182589": {
   "item": "Q182589",
@@ -12115,7 +12199,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q206384": {
   "item": "Q206384",
@@ -12135,7 +12219,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q22670": {
   "item": "Q22670",
@@ -12155,7 +12239,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q229264": {
   "item": "Q229264",
@@ -12179,7 +12263,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q2401379": {
   "item": "Q2401379",
@@ -12199,7 +12283,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q2558995": {
   "item": "Q2558995",
@@ -12219,7 +12303,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q30875": {
   "item": "Q30875",
@@ -12239,7 +12323,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q309759": {
   "item": "Q309759",
@@ -12259,7 +12343,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q315509": {
   "item": "Q315509",
@@ -12270,7 +12354,8 @@
   "born": [
    {
     "time": "+1554-11-30T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -12279,7 +12364,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q316367": {
   "item": "Q316367",
@@ -12299,7 +12384,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q335112": {
   "item": "Q335112",
@@ -12319,7 +12404,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q34628": {
   "item": "Q34628",
@@ -12339,7 +12424,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q35802": {
   "item": "Q35802",
@@ -12359,7 +12444,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q37160": {
   "item": "Q37160",
@@ -12371,6 +12456,7 @@
    {
     "time": "+1711-04-26T00:00:00Z",
     "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q38173183",
      "Q26877143"
@@ -12386,7 +12472,7 @@
     ]
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q38082": {
   "item": "Q38082",
@@ -12406,7 +12492,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q38193": {
   "item": "Q38193",
@@ -12426,7 +12512,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q4006821": {
   "item": "Q4006821",
@@ -12450,7 +12536,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q42156": {
   "item": "Q42156",
@@ -12470,7 +12556,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q467962": {
   "item": "Q467962",
@@ -12490,7 +12576,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q501": {
   "item": "Q501",
@@ -12510,7 +12596,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q5342062": {
   "item": "Q5342062",
@@ -12530,7 +12616,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q535": {
   "item": "Q535",
@@ -12550,7 +12636,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q5395053": {
   "item": "Q5395053",
@@ -12570,7 +12656,7 @@
     "precision": 9
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q5828092": {
   "item": "Q5828092",
@@ -12590,7 +12676,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q5879": {
   "item": "Q5879",
@@ -12610,7 +12696,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q61970": {
   "item": "Q61970",
@@ -12630,7 +12716,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q6221660": {
   "item": "Q6221660",
@@ -12650,7 +12736,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q68710": {
   "item": "Q68710",
@@ -12670,7 +12756,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q72950": {
   "item": "Q72950",
@@ -12690,7 +12776,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76517": {
   "item": "Q76517",
@@ -12710,7 +12796,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76748": {
   "item": "Q76748",
@@ -12730,7 +12816,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76749": {
   "item": "Q76749",
@@ -12750,7 +12836,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76849": {
   "item": "Q76849",
@@ -12770,7 +12856,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76881": {
   "item": "Q76881",
@@ -12790,7 +12876,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76997": {
   "item": "Q76997",
@@ -12810,7 +12896,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q77045": {
   "item": "Q77045",
@@ -12830,7 +12916,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q81082": {
   "item": "Q81082",
@@ -12850,7 +12936,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q82409": {
   "item": "Q82409",
@@ -12870,7 +12956,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q84172": {
   "item": "Q84172",
@@ -12890,7 +12976,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q84246": {
   "item": "Q84246",
@@ -12910,7 +12996,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q91163": {
   "item": "Q91163",
@@ -12930,7 +13016,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q91617": {
   "item": "Q91617",
@@ -12950,7 +13036,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q9215": {
   "item": "Q9215",
@@ -12970,7 +13056,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q9235": {
   "item": "Q9235",
@@ -12990,7 +13076,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q9358": {
   "item": "Q9358",
@@ -13010,7 +13096,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q9438": {
   "item": "Q9438",
@@ -13027,10 +13113,11 @@
   "died": [
    {
     "time": "+1274-03-07T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "patricia-arriaga": {
   "item": "Q63953046",
@@ -13040,7 +13127,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-5766-0489",
    "doi": "10.1037/emo0000450",
@@ -13057,30 +13144,19 @@
   }
  },
  "paul-guyer": {
-  "item": null,
+  "item": "Q7151044",
   "label": {
-   "ru": "Пол Гайер",
-   "en": "Paul Guyer"
+   "en": "Paul Guyer",
+   "ru": "Пол Гайер"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Paul Guyer"
-   },
-   {
-    "kind": "work",
-    "query": "Values of Beauty: Historical Essays in Aesthetics"
-   },
-   {
-    "kind": "work",
-    "query": "18th Century German Aesthetics"
+    "time": "+1948-01-13T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -13110,6 +13186,27 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Paul Guyer"
+   },
+   {
+    "kind": "work",
+    "query": "Values of Beauty: Historical Essays in Aesthetics"
+   },
+   {
+    "kind": "work",
+    "query": "18th Century German Aesthetics"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Values of Beauty: Historical Essays in Aesthetics",
+   "source": "https://www.cambridge.org/core/books/values-of-beauty/0FC264C2A70D9A1169DC1468B9846755",
+   "person_url": "https://philosophy.brown.edu/people/paul-guyer",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "paul-j-silvia": {
@@ -13378,7 +13475,8 @@
   "born": [
    {
     "time": "+1554-11-30T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -13387,7 +13485,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "philip-thomson": {
   "item": null,
@@ -13493,7 +13591,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1930,
    "died": 2002
@@ -13612,7 +13710,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-3940-9028",
    "doi": "10.31234/osf.io/sr7e9",
@@ -13676,6 +13774,7 @@
    {
     "time": "-0428-00-00T00:00:00Z",
     "precision": 8,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "bounds": {
      "earliest": [
       {
@@ -13697,6 +13796,7 @@
    {
     "time": "-0348-00-00T00:00:00Z",
     "precision": 8,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "bounds": {
      "earliest": [
       {
@@ -13714,7 +13814,7 @@
     "approximate": true
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "plotinus": {
   "item": "Q134189",
@@ -13725,16 +13825,20 @@
   "born": [
    {
     "time": "+0205-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "+0270-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "pseudo-longinus": {
   "item": "Q744540",
@@ -13746,6 +13850,7 @@
    {
     "time": "+0100-00-00T00:00:00Z",
     "precision": 7,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q30230067"
     ],
@@ -13756,13 +13861,14 @@
    {
     "time": "+0100-00-00T00:00:00Z",
     "precision": 7,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q56644435"
     ],
     "approximate": true
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q6245111"
  },
  "r-c-buckley": {
@@ -13821,7 +13927,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1889,
    "died": 1943
@@ -13883,7 +13989,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL43581A",
    "author_url": "https://openlibrary.org/authors/OL43581A",
@@ -13951,7 +14057,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-7331-548X",
    "doi": "10.1037/emo0000450",
@@ -14052,7 +14158,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-2724-4297",
    "doi": "10.1037/emo0000450",
@@ -14076,7 +14182,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q34021901"
  },
  "renee-timmers": {
@@ -14092,7 +14198,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-1981-0834",
    "doi": "10.1007/s00426-023-01856-2",
@@ -14164,7 +14270,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL114620A",
    "work": "/works/OL38441859W",
@@ -14192,7 +14298,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "identity_reference": {
    "source": "https://api.crossref.org/works/10.1017/9780511791888",
    "person_url": "https://en.wikipedia.org/wiki/Richard_Shusterman",
@@ -14251,7 +14357,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1923,
    "died": 2003
@@ -14361,7 +14467,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL23478A",
    "author_url": "https://openlibrary.org/authors/OL23478A",
@@ -14401,7 +14507,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1915,
    "died": 1980
@@ -14454,7 +14560,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q112116840"
  },
  "ronald-aronson": {
@@ -14699,7 +14805,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "rune-graulund": {
   "item": null,
@@ -14853,7 +14959,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q101095440"
  },
  "samuel-taylor-coleridge": {
@@ -14874,7 +14980,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "sari-mentser": {
   "item": "Q89060270",
@@ -14884,7 +14990,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-1520-8253",
    "doi": "10.31234/osf.io/sr7e9",
@@ -14913,7 +15019,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-5160-8767",
    "doi": "10.1371/journal.pone.0193174",
@@ -14947,7 +15053,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "sharon-kinsella": {
   "item": null,
@@ -15333,7 +15439,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "silvan-s-tomkins": {
   "item": "Q571698",
@@ -15353,7 +15459,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL173002A",
    "author_url": "https://openlibrary.org/authors/OL173002A",
@@ -15388,7 +15494,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q114007349"
  },
  "simon-lacey": {
@@ -15516,6 +15622,7 @@
    {
     "time": "-0496-00-00T00:00:00Z",
     "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q5727902"
     ],
@@ -15526,13 +15633,14 @@
    {
     "time": "-0406-00-00T00:00:00Z",
     "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q5727902"
     ],
     "approximate": true
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q24705006"
  },
  "soren-kierkegaard": {
@@ -15553,7 +15661,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL20509A",
    "author_url": "https://openlibrary.org/authors/OL20509A",
@@ -15593,7 +15701,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL231759A",
    "author_url": "https://openlibrary.org/authors/OL231759A",
@@ -15628,7 +15736,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q30572306"
  },
  "stephen-houlgate": {
@@ -15881,7 +15989,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q58955445"
  },
  "susanne-k-langer": {
@@ -15902,7 +16010,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1895,
    "died": 1985
@@ -15955,7 +16063,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1959,
    "died": 2015
@@ -15979,7 +16087,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q12250082"
  },
  "tachibana-no-toshitsuna": {
@@ -16155,7 +16263,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-3892-0852",
    "doi": "10.1037/pspa0000064",
@@ -16189,7 +16297,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "theodor-w-adorno": {
   "item": "Q152388",
@@ -16209,7 +16317,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q4688582"
  },
  "theodore-gracyk": {
@@ -16332,10 +16440,11 @@
   "died": [
    {
     "time": "+1274-03-07T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "thomas-hobbes": {
   "item": "Q37621",
@@ -16355,7 +16464,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q113015919"
  },
  "thomas-j-palmeri": {
@@ -16366,7 +16475,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q34021901"
  },
  "thomas-jacobsen": {
@@ -16375,9 +16484,14 @@
    "en": "Thomas Jacobsen",
    "ru": null
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1967-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q30572306"
  },
  "thomas-leddy": {
@@ -16493,7 +16607,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-3797-4568",
    "doi": "10.31234/osf.io/sr7e9",
@@ -16565,7 +16679,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-6499-5487",
    "doi": "10.1037/emo0000136",
@@ -16621,26 +16735,24 @@
   }
  },
  "tobin-siebers": {
-  "item": null,
+  "item": "Q55949921",
   "label": {
-   "ru": "Тобин Сиберс",
-   "en": "Tobin Siebers"
+   "en": "Tobin Siebers",
+   "ru": "Тобин Сиберс"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Tobin Siebers"
-   },
-   {
-    "kind": "work",
-    "query": "Disability Aesthetics"
+    "time": "+1953-01-01T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [
+   {
+    "time": "+2015-01-29T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16666,6 +16778,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Tobin Siebers"
+   },
+   {
+    "kind": "work",
+    "query": "Disability Aesthetics"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Disability Aesthetics",
+   "source": "https://press.umich.edu/Books/D/Disability-Aesthetics",
+   "person_url": "https://en.wikipedia.org/wiki/Tobin_Siebers",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "tonino-griffero": {
@@ -16753,7 +16882,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q2425412"
  },
  "u-s-national-library-of-medicine": {
@@ -16812,7 +16941,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q48963408"
  },
  "uta-noppeney": {
@@ -16875,7 +17004,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "valentin-wagner": {
   "item": null,
@@ -16941,7 +17070,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-3268-6110",
    "doi": "10.1037/emo0000450",
@@ -17013,7 +17142,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "victor-papanek": {
   "item": "Q89542",
@@ -17033,7 +17162,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -17108,7 +17237,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-0661-0275",
    "doi": "10.1037/emo0000450",
@@ -17133,7 +17262,8 @@
   "born": [
    {
     "time": "+1893-01-12T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -17142,7 +17272,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1893,
    "died": 1984
@@ -17246,7 +17376,8 @@
   "born": [
    {
     "time": "+1899-04-10T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -17255,7 +17386,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q113164996",
   "relation_search": {
    "complete": true,
@@ -17276,16 +17407,18 @@
   "born": [
    {
     "time": "+1853-01-16T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
    {
     "time": "+1900-07-31T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q4239790"
  },
  "w-e-b-du-bois": {
@@ -17335,7 +17468,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1169425"
  },
  "walter-d-mignolo": {
@@ -17385,7 +17518,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1883,
    "died": 1969
@@ -17400,7 +17533,8 @@
   "born": [
    {
     "time": "+1866-11-22T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -17409,7 +17543,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q51584128"
  },
  "wendy-steiner": {
@@ -17558,7 +17692,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q7457494"
  },
  "william-gilpin": {
@@ -17579,7 +17713,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "william-hazlitt": {
   "item": "Q126596",
@@ -17599,7 +17733,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL220326A",
    "author_url": "https://openlibrary.org/authors/OL220326A",
@@ -17643,7 +17777,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "william-ian-miller": {
   "item": "Q16430429",
@@ -17658,7 +17792,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL539381A",
    "author_url": "https://openlibrary.org/authors/OL539381A",
@@ -17698,7 +17832,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "william-k-wimsatt": {
   "item": "Q8014127",
@@ -17718,7 +17852,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1907,
    "died": 1975
@@ -17773,7 +17907,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "william-whetsell-jr": {
   "item": null,
@@ -17826,7 +17960,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q30572306"
  },
  "wing-yee-cheung": {
@@ -17868,16 +18002,24 @@
   }
  },
  "wolfgang-iser": {
-  "item": null,
+  "item": "Q60486",
   "label": {
-   "ru": "Вольфганг Изер",
-   "en": "Wolfgang Iser"
+   "en": "Wolfgang Iser",
+   "ru": "Вольфганг Изер"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1926-07-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2007-01-24T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -17903,6 +18045,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Reading Process: A Phenomenological Approach",
+   "source": "https://www.lib.uci.edu/sites/all/docs/wellek/iser/A14_articles.html",
+   "person_url": "https://en.wikipedia.org/wiki/Wolfgang_Iser",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "wolfgang-kayser": {
@@ -17923,7 +18072,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL145569A",
    "work": "/works/OL1410199W",
@@ -18093,7 +18242,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-1315-7440",
    "doi": "10.1037/emo0000450",
@@ -18118,16 +18267,20 @@
   "born": [
    {
     "time": "+1283-01-01T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "+1350-01-01T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1350535"
  },
  "yuriko-saito": {
@@ -18275,6 +18428,7 @@
    {
     "time": "-0369-00-00T00:00:00Z",
     "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q5727902"
     ],
@@ -18285,13 +18439,14 @@
    {
     "time": "-0288-00-00T00:00:00Z",
     "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
     "qualifiers": [
      "Q5727902"
     ],
     "approximate": true
    }
   ],
-  "fetched": "2026-11-12",
+  "fetched": "2026-11-19",
   "identity_work": "Q1074987",
   "relation_search": {
    "complete": true,

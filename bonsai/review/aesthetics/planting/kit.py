@@ -604,7 +604,9 @@ def entity_year(entity,property_):
             # A Julian year can cross the Gregorian boundary. Other calendars
             # need an explicit conversion before they establish a legal year.
             date=value.get('time','')
-            if model!='http://www.wikidata.org/entity/Q1985786' or value.get('precision',0)<11 or not re.match(r'^\+1[89]\d\d-',date) or re.search(r'-12-(?:1[89]|2\d|3[01])T',date):return None
+            middle=re.match(r'^\+(?:0\d{3}|1\d{3})-(?:0[2-9]|1[01])-\d{2}T',date) and int(date[1:5])>0
+            recent=re.match(r'^\+1[89]\d\d-',date) and not re.search(r'-12-(?:1[89]|2\d|3[01])T',date)
+            if model!='http://www.wikidata.org/entity/Q1985786' or value.get('precision',0)<11 or not (middle or recent):return None
         all_qualifiers=claim.get('qualifiers') or {}
         if any(all_qualifiers.get(prop) for prop in ('P1319','P1326')):return None
         qualifiers=all_qualifiers.get('P1480') or []

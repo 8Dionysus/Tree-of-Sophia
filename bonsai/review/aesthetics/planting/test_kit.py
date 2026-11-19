@@ -676,6 +676,8 @@ class WikidataDatePrecisionTest(unittest.TestCase):
         self.assertIsNone(kit.entity_year({'claims':{'P570':[julian]}},'P570'))
         julian['mainsnak']['datavalue']['value']['time']='+1910-07-01T00:00:00Z'
         self.assertEqual(kit.entity_year({'claims':{'P570':[julian]}},'P570'),1910)
+        julian['mainsnak']['datavalue']['value']['time']='+1711-04-26T00:00:00Z'
+        self.assertEqual(kit.entity_year({'claims':{'P570':[julian]}},'P570'),1711)
         julian['mainsnak']['datavalue']['value']['calendarmodel']='http://www.wikidata.org/entity/Q1985787'
         self.assertIsNone(kit.entity_year({'claims':{'P570':[julian]}},'P570'))
         self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951)]}},'P570'))
