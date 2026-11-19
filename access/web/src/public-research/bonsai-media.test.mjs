@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {describe,expect,it} from 'vitest';
+import {fieldSubjects} from '../../../../bonsai/lib/field.mjs';
 import {OPEN_FLAGS,addMedia,mediaFilePath,mediaFromObservation,mediaIssues,mediaNamesIssues,readMedia,workWords} from '../../../../bonsai/lib/media.mjs';
 import {MEDIA_HOSTS} from '../../../../bonsai/lib/media-hosts.mjs';
 import {captionLines,captionLinks,fittedImage,fittedSize,imageSources,layerAddress,linkGroups,workName} from './media-view.mjs';
@@ -304,6 +305,37 @@ describe('the Antiquity media',()=>{
   });
 });
 
+describe('the Aesthetics media',()=>{
+  const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/aesthetics/${path}`,import.meta.url),'utf8'));
+  const media=read('media.json'),names=read('media-names.json'),identities=read('identities.json'),layers=read('layers.json'),field=read('field.json'),library=read('library.json');
+  it('holds its contract, its field subjects, its graft map, its names and its layer store',()=>{
+    expect(mediaIssues(media,{subjects:fieldSubjects(field,library),identities,digest,layers})).toEqual([]);
+    expect(mediaNamesIssues(names,media)).toEqual([]);
+  });
+  it('shows a portrait for 27 of its 47 authors, motifs for its areas and art for its works, from open images',()=>{
+    const portraits=media.uses.filter(use=>use.role==='author-portrait').map(use=>use.subject);
+    expect(portraits).toHaveLength(27);
+    for(const subject of portraits)expect(library.agents[subject],subject).toBeDefined();
+    const areas=new Set(field.areas.map(area=>area.id));
+    expect(media.uses.filter(use=>use.role==='motif'&&areas.has(use.subject)).map(use=>use.subject).sort()).toEqual([
+      'area-base','area-beautiful','area-comic','area-grotesque','area-picturesque','area-sublime','area-tragic','area-ugly','area-uncanny-and-the-horrible']);
+    for(const use of media.uses.filter(use=>use.role!=='author-portrait'&&!areas.has(use.subject)))expect(library.works[use.subject],use.subject).toBeDefined();
+    expect(media.uses.length).toBe(43);
+    for(const image of Object.values(media.images)){
+      const work=media.works[image.work];
+      if(image.api==='file')expect(['met','commons']).toContain(work.provider);
+      else expect(MEDIA_HOSTS).toContain(new URL(image.service).host);
+      expect(image.rights.statement===PDM||OPEN_FLAGS.some(flag=>image.rights.field===flag.field&&image.rights.value===flag.value)).toBe(true);
+    }
+  });
+  it('keeps the copies of its file images in its layer store',()=>{
+    const files=Object.values(media.images).filter(image=>image.api==='file');
+    expect(files.length).toBeGreaterThan(0);
+    for(const image of files)for(const file of [image.file,image.preview])
+      expect(layers.entries).toContainEqual({path:mediaFilePath(file),sha256:file.sha256,bytes:file.bytes});
+  });
+});
+
 describe('the images on a link\'s card',()=>{
   const item=(id)=>({role:'comparison',image:{id},work:{id:id.split('/')[0]}});
   it('are the link\'s own where the bonsai binds images to the link',()=>{
@@ -388,7 +420,7 @@ describe('a medium on a card',()=>{
 describe('the images of the stands',()=>{
   const stand=name=>{const read=path=>JSON.parse(readFileSync(new URL(`../../../../bonsai/${name}/${path}`,import.meta.url),'utf8'));return [read('media.json'),read('media-names.json')];};
   it('speak to a Russian reader in Russian and to an English reader in English alone',()=>{
-    for(const [media,names] of [stand('zarathustra'),stand('antiquity')]){
+    for(const [media,names] of [stand('zarathustra'),stand('antiquity'),stand('aesthetics')]){
       for(const [id,work] of Object.entries(media.works)){
         const ru=workWords({id,...work},names,'ru'),en=workWords({id,...work},names,'en');
         // Every Russian line is Russian, though it may keep a title of the original beside its own.
