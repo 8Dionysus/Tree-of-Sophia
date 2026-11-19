@@ -218,6 +218,19 @@ merges sentences of the original, a monotone alignment cannot follow, and the
 counterpart shown may be the neighbouring sentence; the parallel reading of
 the whole place shows the context.
 
+When a specific original and translation unit name the same numbered place but
+their reference labels differ, a revision-bound translation scope can list
+`localReferencePairs`. Each listed pair is aligned independently using both
+complete units and the same sentence mechanism; only that original unit's
+mapping is replaced. A pair may also include the first sentence of the next
+translation unit when the current unit ends mid-sentence and the next starts
+with its continuation; the returned offsets still address the unchanged units.
+The receipt records the pair and its local alignment
+statistics separately. Shared numbers alone do not establish textual
+correspondence, and a sentence may include adjacent material: the candidate
+still needs source review. Original and translation texts and their offsets
+remain in the unchanged corpus.
+
 When a translation covers only part of a corpus work, a stand may declare its
 `translation-scopes.json` entry with the source URL, exact original and
 translation versions and text-layer revisions, and first and last original unit IDs. The mechanism checks
@@ -228,6 +241,11 @@ The same source-bound scope may cover the whole original where a translation
 joins unusually many source sentences into one. Its optional
 `maxSourceSentences` (4–6) lets the alignment mechanism consider those group
 shapes; it does not select a passage or assess the resulting correspondence.
+For a reviewed `handoverUnitIds` entry, `completePreviousUnitIds` may also
+request the beginning of a translation sentence when its continuation is
+paired separately across a reference boundary. It retains the existing
+unit IDs and offsets and applies only when the preceding unit ends mid-sentence
+and the following one begins with its continuation.
 When review finds an alignment unreliable across a witness, the stand may set
 `withheld: true` on a scope bound to both exact revisions and the entire
 original. It records the reason and leaves the witness in the corpus, but
