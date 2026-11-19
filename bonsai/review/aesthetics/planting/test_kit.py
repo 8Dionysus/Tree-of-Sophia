@@ -159,6 +159,7 @@ class SentenceBoundaryTest(unittest.TestCase):
 
     def test_greek_question_mark_is_a_sentence_boundary(self):
         self.assertEqual(kit.sentences('Τί ἐστι θεός;'), [])
+        self.assertEqual(kit.sentences('εἰ ξυμπονήσεις;'), [])
         self.assertTrue(kit.sentences('This is not a complete sentence;'))
         self.assertIsNone(kit.in_transcription('Τί ἐστι θεός;', 'Τί λέγεις; Τί ἐστι θεός;'))
         proof={'source':'https://example.org/page','page':'1','lines':'1–4','sha256':'a'*64}

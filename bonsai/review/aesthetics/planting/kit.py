@@ -542,7 +542,8 @@ def sentences(text,limit=LONGEST):
     if text!=unicodedata.normalize('NFC',text):problems.append('the text is not NFC')
     if text!=text.strip() or '  ' in text or '\t' in text:problems.append('stray whitespace')
     first=text.lstrip(OPENING)[:1]
-    if not first or not first.isalpha() or (first.lower()!=first.upper() and not first.isupper()):problems.append(f'it does not open with a capital letter or uncased sentence initial («{text[:24]}»)')
+    greek_initial=bool(first and re.fullmatch(r'[\u0370-\u03ff\u1f00-\u1fff]',first))
+    if not first or not first.isalpha() or (first.lower()!=first.upper() and not first.isupper() and not greek_initial):problems.append(f'it does not open with a capital letter or uncased sentence initial («{text[:24]}»)')
     ending=text.rstrip(CLOSING)[-1:]
     greek_question=ending==';' and re.search(r'[\u0370-\u03ff\u1f00-\u1fff]',text)
     if ending not in '.!?…。！？؟।॥' and not greek_question:problems.append(f'it does not close a sentence («{text[-24:]}»)')
