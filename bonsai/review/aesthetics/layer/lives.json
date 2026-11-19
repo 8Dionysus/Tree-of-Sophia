@@ -1683,15 +1683,18 @@
   }
  },
  "bence-nanay": {
-  "item": null,
+  "item": "Q4886908",
   "label": {
    "ru": "Бенсе Нанай",
    "en": "Bence Nanay"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1974-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "relation_search": {
    "complete": true,
@@ -1718,6 +1721,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://www.bencenanay.com/cv.pdf",
+   "person_url": "https://www.wikidata.org/wiki/Q4886908",
+   "basis": "The author CV lists the exact article Aesthetic Attention; Wikidata P856 links this same personal site."
   }
  },
  "benedetto-croce": {
@@ -7291,15 +7300,23 @@
   }
  },
  "jacques-derrida": {
-  "item": null,
+  "item": "Q130631",
   "label": {
    "ru": "Жак Деррида",
    "en": "Jacques Derrida"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
+  "born": [
+   {
+    "time": "+1930-07-15T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2004-10-09T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "checked": "2026-11-13",
   "relation_search": {
    "complete": true,
@@ -7326,6 +7343,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://juanfermejia.com/wp-content/uploads/2014/07/derrida-economimesis-en.pdf",
+   "person_url": "https://www.wikidata.org/wiki/Q130631",
+   "basis": "The journal text names Jacques Derrida as author of Economimesis and identifies the English translator R. Klein; Wikidata identifies the philosopher."
   }
  },
  "jacques-ranciere": {
@@ -7413,15 +7436,23 @@
   }
  },
  "james-baldwin": {
-  "item": null,
+  "item": "Q273210",
   "label": {
    "ru": "Джеймс Болдуин",
    "en": "James Baldwin"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
+  "born": [
+   {
+    "time": "+1924-08-02T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1987-12-01T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -7439,6 +7470,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://agitatejournal.org/the-creative-process/",
+   "person_url": "https://www.wikidata.org/wiki/Q273210",
+   "basis": "The source names James Baldwin as author of The Creative Process in Creative America (1962); the original anthology identifies him as the novelist and essayist.",
+   "supporting_source": "https://www.govinfo.gov/content/pkg/GOVPUB-OTHER-21494bf7e05969f7300a673669fe85a9/pdf/GOVPUB-OTHER-21494bf7e05969f7300a673669fe85a9.pdf"
   }
  },
  "james-beattie": {
