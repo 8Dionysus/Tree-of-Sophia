@@ -8062,16 +8062,24 @@
   }
  },
  "john-r-searle": {
-  "item": null,
+  "item": "Q295012",
   "label": {
-   "ru": "Джон Сёрл",
-   "en": "John R. Searle"
+   "en": "John Searle",
+   "ru": "Джон Роджерс Сёрль"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1932-07-31T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2025-09-17T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -8097,6 +8105,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Logical Status of Fictional Discourse",
+   "source": "https://archives.lib.virginia.edu/repositories/uva-sc/archival_objects/volume_vi_no_2_winter_1975_john_searle_-the_logica",
+   "person_url": "https://en.wikipedia.org/wiki/John_Searle",
+   "basis": "The cited institution identifies the person and exact work; the linked person article leads to this Wikidata entry."
   }
  },
  "john-ruskin": {
@@ -16408,26 +16423,19 @@
   }
  },
  "thomas-nagel": {
-  "item": null,
+  "item": "Q350239",
   "label": {
-   "ru": "Томас Нагель",
-   "en": "Thomas Nagel"
+   "en": "Thomas Nagel",
+   "ru": "Томас Нагель"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Thomas Nagel"
-   },
-   {
-    "kind": "work",
-    "query": "The Absurd"
+    "time": "+1937-07-04T00:00:00Z",
+    "precision": 11
    }
   ],
-  "checked": "2026-11-13",
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16453,6 +16461,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Thomas Nagel"
+   },
+   {
+    "kind": "work",
+    "query": "The Absurd"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Absurd",
+   "source": "https://www.cambridge.org/core/books/abs/mortal-questions/absurd/F6799C54D1AC056A0F879D8841657D45",
+   "person_url": "https://en.wikipedia.org/wiki/Thomas_Nagel",
+   "basis": "The cited institution identifies the person and exact work; the linked person article leads to this Wikidata entry."
   }
  },
  "thomas-w-schubert": {
@@ -18106,16 +18131,19 @@
   "identity_work": "Q1350535"
  },
  "yuriko-saito": {
-  "item": null,
+  "item": "Q8061670",
   "label": {
-   "ru": "Юрико Сайто",
-   "en": "Yuriko Saito"
+   "en": "Yuriko Saito",
+   "ru": "Юрико Сайто"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1953-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -18152,6 +18180,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Aesthetics of the Everyday",
+   "source": "https://plato.stanford.edu/entries/aesthetics-of-everyday/",
+   "person_url": "https://en.wikipedia.org/wiki/Yuriko_Saito",
+   "basis": "The cited institution identifies the person and exact work; the linked person article leads to this Wikidata entry."
   }
  },
  "yve-alain-bois": {
