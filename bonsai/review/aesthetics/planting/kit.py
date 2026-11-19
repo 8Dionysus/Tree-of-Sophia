@@ -729,7 +729,7 @@ def compare(path,ev,places,original):
         for correction in entry.get('page_number_corrections',[]):
             if correction.get('leaf') in got['leaves']:
                 index=got['leaves'].index(correction['leaf'])
-                if printed[index] in (correction.get('from'),correction.get('to')):printed[index]=correction['to']
+                if str(printed[index]) in (correction.get('from'),correction.get('to')):printed[index]=correction['to']
         entry.update({'method':'ocr','share':got['share'],'leaves':got['leaves'],'printed':printed,'differences':got['differences']});out[loc]=entry
     return out
 
@@ -1702,9 +1702,9 @@ def cmd_witness_add_page(args):
     except (OSError,KeyError):die('the additional page image is missing')
     if hashlib.sha256(raw).hexdigest()!=image.get('sha256') or not valid_page_image(raw):die('the additional page image changed or is invalid')
     if not args.page.strip():die('give the printed page of the additional image')
-    if not args.span.strip() or place.get('text','').count(args.span)!=1:die('the words on the added page must occur exactly once in the place')
+    if not args.span.strip() or args.span not in place.get('text',''):die('the words on the added page must occur in the place')
     first=args.first_span or place.get('page_span')
-    if not first or place.get('text','').count(first)!=1:die('give the unique words on the first page with --first-span')
+    if not first or not place.get('text','').startswith(first):die('give the opening words on the first page with --first-span')
     if image['sha256']==place.get('image_sha256'):die('the primary image is already recorded')
     page={'page':args.page,'url':image['url'],'image_sha256':image['sha256'],'span':args.span}
     place['page_span']=first;extra=place.setdefault('extra_pages',[])
@@ -1888,7 +1888,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
         if page_range and int(page_range.group(2))>=int(page_range.group(1)) and len(pages)<int(page_range.group(2))-int(page_range.group(1))+1:add(f'{loc}: a page range needs an image for every printed page')
         if len({p.get('image_sha256') for p in pages})!=len(pages):add(f'{loc}: duplicate page image')
         for page in extra:
-            if not page.get('page') or not lawful_url(page.get('url','')) or not page.get('span') or text.count(page['span'])!=1:add(f'{loc}: additional page needs its address and unique words from that page')
+            if not page.get('page') or not lawful_url(page.get('url','')) or not page.get('span') or page['span'] not in text:add(f'{loc}: additional page needs its address and words from that page')
         if extra and (not place.get('page_span') or re.sub(r'\s+','',str(place.get('page_span') or '')+''.join(str(page.get('span') or '') for page in extra))!=re.sub(r'\s+','',text)):add(f'{loc}: page spans must cover the complete place in order')
         images=[next((item for item in data.get('images') or [] if item.get('by')=='maker' and item.get('sha256')==page.get('image_sha256') and item.get('url')==page.get('url')),None) for page in pages]
         if any(image is None for image in images):add(f'{loc}: maker page image is missing')

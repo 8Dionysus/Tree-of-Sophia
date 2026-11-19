@@ -268,7 +268,7 @@ source files and images stay in the kit cache outside Git. A partial witness
 leaves the other places without a translation.
 
 For a place that runs across printed pages, fetch each additional page as
-maker and bind its unique words to the place. Open every image and read the
+maker and bind its words to the place. Open every image and read the
 complete passage; the second reader independently fetches and opens the same
 images before recording one review of the whole place:
 
