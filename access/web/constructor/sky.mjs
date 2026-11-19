@@ -155,7 +155,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // a chosen star's orbit) and the names and buttons stand where they were laid until something changes: `kick` asks
   // for the next full frame. A resting sky moves so slowly that a frame a vsync or three apart shows the same motion,
   // so it is drawn less often; a moving view is drawn as often as the device keeps up with, up to the display's rate.
-  let domDirty=true,domActive=true,motionCost=10;
+  let domDirty=true,domActive=true,motionCost=10,namesWanted=true,namesHeld=false;
   // The resting middle of the scene, kept from the last full frame (`layered`), and what turns in it with the sky's time:
   // a chosen star's orbit, a waiting star's broken halo and a chosen link's spark, drawn over it each frame.
   let layered=null,keptRun=null,turningStars=[],spark=null;
@@ -591,7 +591,26 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   const APPEAR_MS=110,GLIDE='opacity .25s,color .25s,left .24s cubic-bezier(.2,.7,.2,1),top .24s cubic-bezier(.2,.7,.2,1)';
   // A group's name that yields stands over at most this many stars.
   const GROUP_CROWD=3;
-  let labelsSettling=false;
+  // A group's name stands at one of five places above and below its stars.
+  const GROUP_SLOTS=[-101,-76,106,-136,140];
+  const groupPlace=(c,slot,width,height)=>{const offset=GROUP_SLOTS[slot],p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20;return Object.assign(box(p.x-width/2,top,width,height),{slot});};
+  const groupSize=c=>[c.labelWidth??110,c.labelHeight??(c.subtitle.textContent?40:25)];
+  // A group that recedes is quieter further back in a space read in depth, as its stars are: its letters fade, and
+  // the ground under them stays whole, so the lines behind never cut through a far name.
+  const groupDepth=c=>{if(depthCue&&!measured&&c.recede)setVar(c.el,'--depth-alpha',(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2));else if(put(c.el,'--depth-alpha',null))c.el.style.removeProperty('--depth-alpha');};
+  // A name moving to another of its places slides there; its group's name stands where it is this frame.
+  const groupStand=(c,at,fade,width,dt)=>{
+    if(c.slide){const k=Math.exp(-dt*12);c.slide.x*=k;c.slide.y*=k;if(Math.abs(c.slide.x)+Math.abs(c.slide.y)<.6)c.slide=null;else labelsSettling=true;}
+    setHidden(c.el,!fade||!at);
+    if(at&&fade){setStyle(c.el,'width',width+'px');setStyle(c.el,'transform',`translate3d(${(at.left+(c.slide?.x??0)).toFixed(2)}px,${(at.top+(c.slide?.y??0)).toFixed(2)}px,0)`);setStyle(c.el,'filter',fade<1?`opacity(${fade.toFixed(3)})`:'');}
+  };
+  // A link's name keeps its place along the link: the place's middle, measured along the link from its start and across
+  // it, and its size. The frames that only follow the names lay it there again on the link as it now lies.
+  const edgeAnchor=(chosen,[a,b],clip)=>{
+    const dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy)||1,cx=(chosen.left+chosen.right)/2-a.x,cy=(chosen.top+chosen.bottom)/2-a.y;
+    return {u:(cx*dx+cy*dy)/(length*length),v:(cy*dx-cx*dy)/length,w:chosen.right-chosen.left,h:chosen.bottom-chosen.top,clip};
+  };
+  let labelsSettling=false,chosenSettling=false;
   function presence(item,want,now,dt,instant){
     if(want){if(item.wantSince==null)item.wantSince=now;if(instant||item.fade==null||item.present||now-item.wantSince>=APPEAR_MS)item.present=true;}
     else{item.wantSince=null;item.present=false;}
@@ -601,7 +620,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(item.fade!==target||(want&&!item.present))labelsSettling=true;
     return item.fade;
   }
-  function labelsForScene(near,focusEdges,kept=new Set(),keptEdges=new Set(),now=performance.now(),dt=1/36,instant=false){
+  function labelsForScene(near,focusEdges,kept=new Set(),keptEdges=new Set(),now=performance.now(),dt=1/36,instant=false,choose=true){
     measure();const occupied=[...uiObstacles];labelsSettling=false;
     // Cluster names orient the atlas before the smaller labels compete for room.
     // A scale stays readable at any zoom: its eras, ticks and the chosen move's span keep to rows of a strip
@@ -681,14 +700,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(fade){setStyle(c.el,'width',(area.right-area.left).toFixed(1)+'px');setStyle(c.el,'transform',`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`);setStyle(c.el,'filter',fade<1?`opacity(${fade.toFixed(3)})`:'');}
       if(shown){scaleLabels.push(area);occupied.push(area);}
     }
+    if(!choose)return followNames(occupied,now,dt,instant);
     // A star the view has stepped back lies under the names in front of it, and so does one a chosen star or link has
     // sent back.
     const nodeObstacles=starCells(nodes.filter(n=>!n.el.hidden&&!n.dimmed&&!n.outside).map(n=>{const left=n.screen.x-9,top=n.screen.y-9;return {id:n.id,left,top,right:left+18,bottom:top+18};}));
     // The names of groups nearer the eye take their places first, as nearer stars do.
     const groups=clusters.filter(c=>!c.variant).map(c=>({c,d:project(c.p).d})).sort((a,b)=>b.d-a.d).map(item=>item.c);
     for(const c of groups){
-      const width=c.labelWidth??110,height=c.labelHeight??(c.subtitle.textContent?40:25);
-      const places=[-101,-76,106,-136,140].map((offset,slot)=>{const p=project([c.p[0],c.p[1]+offset,c.p[2]]),top=offset===-101?Math.max(targetViewport.top+4,p.y-20):p.y-20;return Object.assign(box(p.x-width/2,top,width,height),{slot});});
+      const [width,height]=groupSize(c),places=GROUP_SLOTS.map((_,slot)=>groupPlace(c,slot,width,height));
       const sticky=c.present?c.slot:null,candidates=places.filter(inView).sort((a,b)=>(b.slot===sticky)-(a.slot===sticky));
       // A group's name keeps the place it stands in while that stays clear; else it takes the first place clear of the
       // stars, and never one over another name. With no place clear of stars it takes the one over the fewest; a name
@@ -697,17 +716,13 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const covered=candidate=>countStars(nodeObstacles,candidate,0);
       const least=clear?null:candidates.filter(candidate=>!occupied.some(o=>overlaps(candidate,o))).map(candidate=>({candidate,under:covered(candidate)})).sort((a,b)=>a.under-b.under)[0]??null;
       const area=clear??(least&&(!c.yields||least.under<=(c.present?GROUP_CROWD+2:GROUP_CROWD))?least.candidate:null);
-      setFlag(c.el,'crowded',!!(area&&!clear));
-      // A group that recedes is quieter further back in a space read in depth, as its stars are: its letters fade, and
-      // the ground under them stays whole, so the lines behind never cut through a far name.
-      if(depthCue&&!measured&&c.recede)setVar(c.el,'--depth-alpha',(.38+.62*clamp((project(c.p).d-.86)/.3,0,1)).toFixed(2));else if(put(c.el,'--depth-alpha',null))c.el.style.removeProperty('--depth-alpha');
+      setFlag(c.el,'crowded',!!(area&&!clear));c.chosen=!!area;
+      groupDepth(c);
       const fade=presence(c,!!area,now,dt,instant);
       if(area&&c.at&&c.slot!==area.slot&&fade>0&&!instant)c.slide={x:c.at.left+(c.slide?.x??0)-area.left,y:c.at.top+(c.slide?.y??0)-area.top};
       if(area){c.slot=area.slot;occupied.push(area);}
       const at=area??places[c.slot]??null;c.at=at;
-      if(c.slide){const k=Math.exp(-dt*12);c.slide.x*=k;c.slide.y*=k;if(Math.abs(c.slide.x)+Math.abs(c.slide.y)<.6)c.slide=null;else labelsSettling=true;}
-      setHidden(c.el,!fade||!at);
-      if(at&&fade){setStyle(c.el,'width',width+'px');setStyle(c.el,'transform',`translate3d(${(at.left+(c.slide?.x??0)).toFixed(2)}px,${(at.top+(c.slide?.y??0)).toFixed(2)}px,0)`);setStyle(c.el,'filter',fade<1?`opacity(${fade.toFixed(3)})`:'');}
+      groupStand(c,at,fade,width,dt);
     }
     // The chosen star, the stars it links to and the links between them are always named. They take their places
     // first, their links' names next, and only then do the other names look for the room that is left.
@@ -716,7 +731,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const {x,y}=n.screen;setData(n.el,'short',String(short));const visible=!!chosen&&!n.el.hidden;
       // A whole name wraps over up to three lines; another keeps its own clamp.
       if(full!==n.fullShown){n.fullShown=full;const target=n.subtitle&&n.titleEl?n.titleEl:n.label;Object.assign(target.style,full?{whiteSpace:'normal',display:'-webkit-box',webkitBoxOrient:'vertical',webkitLineClamp:'3',overflow:'hidden'}:{...n.clampStyle,overflow:'',...(n.subtitle&&n.titleEl?{display:n.labelLines>1?'-webkit-box':'block',overflow:'hidden'}:{})});}
-      n.labelBox=visible?chosen:null;setData(n.el,'quiet',String(!visible));setStyle(n.label,'opacity',visible?'1':'0');setStyle(n.label,'pointerEvents',visible?'auto':'none');
+      n.labelBox=visible?chosen:null;n.boxAt=visible?{x,y}:null;setData(n.el,'quiet',String(!visible));setStyle(n.label,'opacity',visible?'1':'0');setStyle(n.label,'pointerEvents',visible?'auto':'none');
       // A name already standing slides to its new side; a name coming into view takes its place before it shows.
       if(chosen){const glide=!!n.labelShown&&visible&&!instant;if(glide!==n.labelGlide){n.labelGlide=glide;setStyle(n.label,'transition',glide?GLIDE:'');}}
       if(n.labelShown&&!visible)n.labelGone=now;n.labelShown=visible;n.labelSeen=true;if(visible){n.labelSideNow=chosen.side??null;n.wantSince=null;}
@@ -735,7 +750,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       return [below,above,right,left,...narrowRight,...narrowLeft];
     };
     const visibleEdges=new Set();
-    const showEdge=(e,chosen,compact,hot)=>{visibleEdges.add(e.id);setData(e.el,'active',String(hot));setData(e.el,'kind',e.kind);setData(e.el,'compact',String(compact));setVar(e.el,'--edge-color',e.color);setStyle(e.el,'color',e.color);setStyle(e.el,'width',(compact?e.compactWidth:e.labelWidth)+'px');setStyle(e.el,'transform',`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`);if(nativeTitles){const title=e.el.getAttribute('aria-label');if(e.el.title!==title)e.el.title=title;}occupied.push(chosen);};
+    const showEdge=(e,chosen,compact,hot,on,clip)=>{visibleEdges.add(e.id);e.anchor=edgeAnchor(chosen,on,clip);setData(e.el,'active',String(hot));setData(e.el,'kind',e.kind);setData(e.el,'compact',String(compact));setVar(e.el,'--edge-color',e.color);setStyle(e.el,'color',e.color);setStyle(e.el,'width',(compact?e.compactWidth:e.labelWidth)+'px');setStyle(e.el,'transform',`translate3d(${chosen.left.toFixed(2)}px,${chosen.top.toFixed(2)}px,0)`);if(nativeTitles){const title=e.el.getAttribute('aria-label');if(e.el.title!==title)e.el.title=title;}occupied.push(chosen);};
     // Within its rank a name already standing goes first, so that it keeps its room.
     // Among equals the nearer star names itself first.
     // Each star's rank is worked out once for the sort, which orders the stars as comparing their ranks over and over did.
@@ -784,16 +799,16 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(rowOnly){
         // In its row a name stands whole, or as its kind alone; a taken row waits for the second pass.
         const whole=placeAlways(pinned(e.labelWidth,e.labelHeight),occupied,nodeObstacles,null,guarded);
-        if(whole?.clear){showEdge(e,whole.area,false,hot);return;}
+        if(whole?.clear){showEdge(e,whole.area,false,hot,cut,true);return;}
         const brief=e.tag&&e.compactWidth?placeAlways(pinned(e.compactWidth,e.compactHeight),occupied,nodeObstacles,null,guarded):null;
-        if(brief?.clear){showEdge(e,brief.area,true,hot);return;}
+        if(brief?.clear){showEdge(e,brief.area,true,hot,cut,true);return;}
         deferred.add(e.id);return;
       }
       let spot=placeAlways([...pinned(e.labelWidth,e.labelHeight),...along(e.labelWidth,e.labelHeight)],occupied,nodeObstacles,null,guarded),compact=false;
       // With no free place for either, the smaller kind-only label covers the least.
       if(spot&&!spot.clear&&e.tag&&e.compactWidth){const brief=placeAlways([...pinned(e.compactWidth,e.compactHeight),...along(e.compactWidth,e.compactHeight)],occupied,nodeObstacles,null,guarded);if(brief){spot=brief;compact=true;}}
       if(!spot||(roomOnly&&!spot.clear))return false;
-      showEdge(e,spot.area,compact,hot);return true;
+      showEdge(e,spot.area,compact,hot,cut,true);return true;
     };
     for(const e of edges)if(keptEdges.has(e.id)&&!e.muted&&e.labelAt)placeKept(e,true);
     // Round the chosen star each name its links carry stands once, the first four of them where they cover least; every
@@ -855,9 +870,34 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(!chosen)continue;
       // A hovered link's name may cover another name, never a kept one.
       if(hot)for(const n of nodes)if(n.labelBox&&!kept.has(n.id)&&overlaps(chosen,n.labelBox)){n.labelBox=null;if(n.labelShown)n.labelGone=now;n.labelShown=false;setData(n.el,'quiet','true');setStyle(n.label,'opacity','0');setStyle(n.label,'pointerEvents','none');}
-      showEdge(e,chosen,compact,hot);shown++;
+      showEdge(e,chosen,compact,hot,[a,b],false);shown++;
     }
     for(const e of edges)setHidden(e.el,!visibleEdges.has(e.id));
+    chosenSettling=labelsSettling;
+    return occupied;
+  }
+  // Between the frames that choose the names' places, while the view moves, each name keeps the place it chose: a
+  // group's name its slot over its stars, a link's name its place along the link and a star's name its side of the
+  // star, which its button carries. Their fades, slides and depth run on every frame.
+  function followNames(occupied,now,dt,instant){
+    for(const c of clusters){
+      if(c.variant)continue;
+      const [width,height]=groupSize(c);
+      groupDepth(c);
+      const fade=presence(c,!!c.chosen,now,dt,instant),at=c.slot!=null?groupPlace(c,c.slot,width,height):null;c.at=at;
+      if(c.chosen&&at)occupied.push(at);
+      groupStand(c,at,fade,width,dt);
+    }
+    for(const e of edges){
+      if(!e.anchor||e.el.hidden)continue;
+      const hit=edgeHits.find(item=>item.id===e.id),on=hit&&(e.anchor.clip?clipSegment(hit.a,hit.b):[hit.a,hit.b]);if(!on)continue;
+      const [a,b]=on,dx=b.x-a.x,dy=b.y-a.y,length=Math.hypot(dx,dy)||1,{u,v,w,h}=e.anchor;
+      const area=box(a.x+dx*u-dy/length*v-w/2,a.y+dy*u+dx/length*v-h/2,w,h);
+      setStyle(e.el,'transform',`translate3d(${area.left.toFixed(2)}px,${area.top.toFixed(2)}px,0)`);occupied.push(area);
+    }
+    // A plane's name looks for room among the names as they stand this frame.
+    if(planes.length)for(const n of nodes)if(n.labelBox&&n.boxAt&&!n.el.hidden){const b=n.labelBox,dx=n.screen.x-n.boxAt.x,dy=n.screen.y-n.boxAt.y;occupied.push(box(b.left+dx,b.top+dy,b.right-b.left,b.bottom-b.top));}
+    if(chosenSettling)labelsSettling=true;
     return occupied;
   }
 
@@ -1094,7 +1134,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // The nearer star lies over the farther, so that the pointer reaches the star it is over, and the chosen one over all.
       n.place={color,x:(p.x-22).toFixed(2),y:(p.y-22).toFixed(2),layer:String(hot?3000:100+Math.round(clamp(p.d,0,2.4)*400)),opacity:dim?'.35':fade<1?(.62+.38*near01).toFixed(2):'1'};
     });
-    const taken=domFrame?labelsForScene(near,focusEdges,kept,keptEdges,now,dt,still||reduced.matches):null;if(domFrame&&labelsSettling)layoutMoving=true;
+    // While the view moves, the names choose their places every other frame and keep them between; a change to the
+    // scene itself (a star chosen or pointed at, a new state, names to measure) has them choose at once.
+    let choose=true;
+    if(domFrame){choose=still||reduced.matches||namesWanted||measureLabels||namesHeld||!(drag||velocity||!resting||now<introUntil);namesHeld=!choose;if(choose)namesWanted=false;}
+    const taken=domFrame?labelsForScene(near,focusEdges,kept,keptEdges,now,dt,still||reduced.matches,choose):null;if(domFrame&&labelsSettling)layoutMoving=true;
     if(domFrame)placeStars(now,false);
     // A plane's name keeps to one of its corners or edges where no other name stands.
     if(domFrame)for(const plane of planes){
@@ -1126,7 +1170,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0||litGlow!==(lit?1:0)))schedule();else last=0;
   }
   // `kick` is anything that changes what the frame shows; `schedule` only keeps the sky going.
-  function kick(){domDirty=true;schedule();}
+  function kick(){domDirty=true;namesWanted=true;schedule();}
+  // A gesture that only moves the view leaves the names to choose their places on their own rhythm.
+  function viewKick(){domDirty=true;schedule();}
   function schedule(){if(disposed||document.hidden||covered)return;if(!raf)raf=requestAnimationFrame(draw)}
   // The part of a segment inside the free area, and whether its end is the segment's own.
   function clipSegment(a,b){
@@ -1269,7 +1315,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // A framing may come nearer than the reader's own zoom goes (`max`); from there the reader's zoom only moves back.
   // How near the reader may come; a space laid out whole (the tree) lets the reader come much nearer than a map.
   let zoomCeiling=4;
-  const zoomTo=(value,max=zoomCeiling)=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.5,Math.max(max,Math.min(tzoom,16)));kick();};
+  const zoomTo=(value,max=zoomCeiling)=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.5,Math.max(max,Math.min(tzoom,16)));viewKick();};
   const wheel=e=>{
     e.preventDefault();const before=tzoom;zoomTo(tzoom*Math.exp(-e.deltaY*.0012));
     // On a measured scale the moment under the pointer stays under it.
@@ -1281,14 +1327,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // One drag from where it began: a measured layout and Shift (or the pan button) move the view, the rest turns it.
   function dragBy(state,dx,dy){
     introUntil=0;
-    if(measured||state.forcePan||(rotate?state.shift:!state.shift)){tpan={x:state.pan.x+dx,y:measured?.axes==='x'?0:state.pan.y+dy};kick();return;}
+    if(measured||state.forcePan||(rotate?state.shift:!state.shift)){tpan={x:state.pan.x+dx,y:measured?.axes==='x'?0:state.pan.y+dy};viewKick();return;}
     const nextYaw=state.yaw+dx*.0025,nextPitch=clamp(state.pitch+dy*.0025,...PITCH);
     if(inertia&&!reduced.matches){
       const now=performance.now();
       if(lastTurn&&now>lastTurn.t){const dt=(now-lastTurn.t)/1000,vy=(nextYaw-lastTurn.yaw)/dt,vp=(nextPitch-lastTurn.pitch)/dt,limit=v=>clamp(v,-3,3);velocity={yaw:limit(velocity?velocity.yaw*.35+vy*.65:vy),pitch:limit(velocity?velocity.pitch*.35+vp*.65:vp),t:now};}
       lastTurn={t:now,yaw:nextYaw,pitch:nextPitch};
     }
-    tyaw=nextYaw;tpitch=nextPitch;kick();
+    tyaw=nextYaw;tpitch=nextPitch;viewKick();
   }
   // A turn let go while still moving coasts; one that had already stopped stays.
   function letGo(){if(!(inertia&&velocity&&performance.now()-velocity.t<90))velocity=null;lastTurn=null;}
@@ -1305,7 +1351,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const pair=touchPair(),before=gesture.zoom;zoomTo(before*pair.distance/gesture.distance);
     const ratio=tzoom/before,r=gesture.rect,cx=(targetViewport.left+targetViewport.right)/2,cy=(targetViewport.top+targetViewport.bottom)/2;
     const from={x:gesture.mid.x-r.left-cx,y:gesture.mid.y-r.top-cy},to={x:pair.mid.x-r.left-cx,y:pair.mid.y-r.top-cy};
-    tpan={x:to.x-(from.x-gesture.pan.x)*ratio,y:measured?.axes==='x'?0:to.y-(from.y-gesture.pan.y)*ratio};kick();
+    tpan={x:to.x-(from.x-gesture.pan.x)*ratio,y:measured?.axes==='x'?0:to.y-(from.y-gesture.pan.y)*ratio};viewKick();
   };
   if(touch){
     root.addEventListener('pointerdown',e=>{
