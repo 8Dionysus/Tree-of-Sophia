@@ -1729,6 +1729,12 @@ def cmd_witness_correct(args):
     try:raw=Path(witness_cache(path,args.language,image['file'])).read_bytes()
     except (OSError,KeyError):die('the maker page image is missing')
     if hashlib.sha256(raw).hexdigest()!=selected['image_sha256']:die('the maker page image has changed')
+    if place.get('extra_pages'):
+        span=place.get('page_span') if selected is pages[0] else selected.get('span')
+        if not isinstance(span,str) or span.count(old)!=1:die('the correction must lie wholly within the selected page span')
+        updated=span.replace(old,args.to,1)
+        if selected is pages[0]:place['page_span']=updated
+        else:selected['span']=updated
     offset=place['text'].index(old)
     place['text']=place['text'][:offset]+args.to+place['text'][offset+len(old):]
     place.setdefault('corrections',[]).append({'from':old,'to':args.to,'offset':offset,'reason':args.reason,'url':selected['url'],'page':selected['page'],'image_sha256':selected['image_sha256']})

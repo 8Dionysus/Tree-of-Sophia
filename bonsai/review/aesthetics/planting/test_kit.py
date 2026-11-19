@@ -207,6 +207,14 @@ class TranslationWitnessTest(unittest.TestCase):
                 self.assertTrue(any('review every page' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
                 data['review']['places']['p']['pages']=[{'page':'pp. 1–2','url':'https://example.org/page','image_sha256':digest},{'page':'p. 2','url':'https://example.org/page2','image_sha256':digest2}]
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                import argparse, copy
+                before=copy.deepcopy(data);(path/'witnesses').mkdir();file=path/'witnesses/en.json';file.write_text(json.dumps(data))
+                correction=argparse.Namespace(packet=str(path),language='en',loc='p',to='statement.',reason='The second page reads statement rather than sentence.',image='page2.jpg',**{'from':'sentence.'})
+                kit.cmd_witness_correct(correction)
+                kit.cmd_witness_review(argparse.Namespace(packet=str(path),language='en',loc='p',reader='reader',model='gpt-6.1-terra',alignment='Both pages match the full original sentence.'))
+                corrected=json.loads(file.read_text());self.assertEqual(corrected['places']['p']['extra_pages'][0]['span'],'statement.')
+                self.assertEqual(kit.witness_problems(str(path),'en',corrected,second=True),[])
+                data=before
                 data['places']['p']['page_span']='A'
                 self.assertTrue(any('spans must cover' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
                 data['places']['p']['page_span']='A whole'
@@ -650,6 +658,8 @@ class TranslationCorrectionTest(unittest.TestCase):
             correction=argparse.Namespace(packet=str(path),language='en',loc='p',to='there.',reason='The second page reads there rather than here.',image='page2.jpg',**{'from':'here.'})
             with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_witness_correct(correction)
             changed=json.loads(file.read_text());self.assertEqual(changed['places']['p']['corrections'][0]['page'],'38');self.assertEqual(changed['review'],{})
+            self.assertEqual(changed['places']['p']['extra_pages'][0]['span'],'continues there.')
+            self.assertEqual(changed['places']['p']['text'],'The sentence continues there.')
 
     def test_page_transcription_records_image_and_invalidates_review(self):
         import argparse, base64, hashlib, json, tempfile

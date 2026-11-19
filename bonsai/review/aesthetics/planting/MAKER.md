@@ -282,7 +282,7 @@ K witness-review . en 'I p39a' --reader another-reader --alignment 'Both pages r
 The spans cover the whole place in order; each records the words read on that
 page. The review binds the URL, printed page and digest of every image. A page
 range needs an image for every page. For a correction on an additional page, pass
-`--image page38.jpg` to `witness-correct`; update that page's span if needed.
+`--image page38.jpg` to `witness-correct`; the selected page span is updated.
 The citation and packet provenance preserve the additional page references.
 
 When no usable transcription contains the passage, open and read the maker's
