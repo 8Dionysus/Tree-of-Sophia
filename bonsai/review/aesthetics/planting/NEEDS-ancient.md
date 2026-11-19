@@ -42,3 +42,14 @@ The line needs a provenance-preserving way to bind extracted text and the
 independently inspected page to the original PDF bytes, or an exact-edition
 machine-readable transcription with its own truthful source. Such extraction
 must not itself establish fidelity, translation alignment or quotation rights.
+
+## Anonymous ancient author
+
+The author of *On the Sublime* is unknown, according to the Cambridge
+manuscript catalogue linked in the Longinus packet's `blocked.json`; the
+1907 editor's death date is recorded separately. An author entity without an
+integer death year cannot pass the current public-domain-by-dates route. This
+needs an explicit, sourced and jurisdiction-specific route for an anonymous
+ancient work where a reliable historical witness establishes an appropriate
+upper bound. It must retain the author's anonymity, account for later textual
+contributors and avoid inventing a year or presuming all editions are free.
