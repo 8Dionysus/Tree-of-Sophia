@@ -6,7 +6,8 @@ import {publicCorpusWorkCount} from './corpus-work-count.mjs';
 it('counts the Aesthetics subset through the Antiquity reader fallback',()=>{
   expect(manifest.profiles.aesthetics).toBeUndefined();
   expect(manifest.profiles.antiquity.documentIds).toHaveLength(51);
-  expect(publicCorpusWorkCount('aesthetics',manifest,aestheticsIdentities.works)).toBe(3);
+  const fixture={profiles:{antiquity:{documentIds:['work-a','work-b','work-c']}}};
+  expect(publicCorpusWorkCount('aesthetics',fixture,{first:{tree:'work-a'},second:{tree:'work-c'},outside:{tree:'work-d'}})).toBe(2);
 });
 
 it('prefers the stand profile when a matching public snapshot is available',()=>{
