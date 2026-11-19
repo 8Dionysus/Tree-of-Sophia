@@ -2032,7 +2032,20 @@
    "william-gilpin.three-essays",
    "william-james.the-principles-of-psychology",
    "william-morris.the-decorative-arts"
-  ]
+  ],
+  "translation_packets": {
+   "friedrich-schiller.ueber-die-tragische-kunst": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No translation is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-die-tragische-kunst/witnesses/en.json",
+     "corrections": []
+    }
+   }
+  }
  },
  "works": {
   "immanuel-kant.kritik-der-urteilskraft": {
@@ -3029,16 +3042,109 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy",
+     "year": 1845,
+     "url": "https://archive.org/details/stheticletterses01schi",
+     "licence": "Public-domain historical text and 1845 translation. Internet Archive machine OCR of this Duke University Libraries copy was checked against its page image; source provenance is separate from the underlying book and no separate OCR licence is asserted.",
+     "attribution": "Friedrich Schiller, Upon the Tragic Art, translated by John Weiss, in The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller (Boston, 1845), p. 333; Internet Archive OCR checked against the scanned page, with whitespace normalized.",
+     "maker": "codex-2026-11-19-tragic-art-weiss-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Weiss, John",
+        "ru": "Джон Вейсс"
+       },
+       "born": 1818,
+       "died": 1879,
+       "source": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-d9a438f7e4b8e240.html",
+        "sha256": "aa58f28f3b4f9a7564a41ee24c47faafe581fdafd975d8ff42a5c39c10499e66",
+        "url": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: Шиллер умер в 1805, переводчик Вейсс в 1879, сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Translation published in the United States in 1845, before 1931, and public domain in the United States."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: author died 1805 and translator died 1879; the ordinary 70-year post-mortem terms expired."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Weiss, John",
+        "ru": "Джон Вейсс"
+       },
+       "source": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10",
+       "born": [
+        {
+         "year": 1818
+        }
+       ],
+       "died": [
+        {
+         "year": 1879
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
    "unsearched": [
     {
      "language": "ru",
-     "reason": "No translation is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
      "reason": "No translation is taken in this pass: the line plants the original first."
     }
    ]
@@ -9359,15 +9465,21 @@
      "en": "p. 164"
     },
     "texts": {
-     "de": "Aber die Tragödie hat einen poetischen Zweck, d. i. sie stellt eine Handlung dar, um zu rühren und durch Rührung zu ergötzen."
+     "de": "Aber die Tragödie hat einen poetischen Zweck, d. i. sie stellt eine Handlung dar, um zu rühren und durch Rührung zu ergötzen.",
+     "en": "But Tragedy has a poetic design, that is, it represents an action in order to move, and to delight by the emotion."
     },
     "links": {
-     "de": "https://archive.org/details/schillerswerke15schiuoft/page/n167/mode/1up"
+     "de": "https://archive.org/details/schillerswerke15schiuoft/page/n167/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n374.jpg"
     },
     "refs": [
      [
       "de",
       "Schillers Werke, vol. 15 (Berlin 1879), p. 164"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, p. 333"
      ]
     ]
    }
