@@ -27,3 +27,22 @@ p. 748](https://books.google.com/books?id=nOwBEsoNiUMC&pg=PA748): the 1875
 This supports neither an identity for each essay nor non-disclosure throughout
 the relevant term. The relation to the 1902 Dole printing and the applicable
 territorial rights still require source-specific investigation.
+
+## Langs: source fidelity findings, 19 November
+
+On the 1541 Alberti page n289, line visually reads `autoritatem`; the
+accepted passage has `auctoritatem`. Its witness says ECHO regularises
+orthography and compares a different edition with the 1541 print, but does
+not identify this substitution as an intentional normalisation. The original
+acceptance says the whole passage agrees with the print. Do not silently
+change the accepted packet or assert that this specific difference was
+reviewed: the page needs a fresh independent reading and a recorded,
+page-bound correction or an explicit reviewed normalisation.
+
+The 1902 Schiller page 56 visibly uses italics to distinguish the two
+clauses. The current `squeeze` removes emphasis markers and the fragments
+interface renders plain text; it cannot faithfully display that contrast.
+Keep this place as a research candidate until a source-faithful way to
+preserve and display the marks is reviewed, or a separately checked lawful
+witness expresses the distinction in words. Do not add markup that the
+current renderer displays literally, nor claim the plain text preserves it.
