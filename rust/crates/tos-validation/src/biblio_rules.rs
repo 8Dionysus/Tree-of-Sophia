@@ -1008,6 +1008,33 @@ fn claim_stream(path: &str) -> bool {
     owned(path) && path.ends_with("-claims.jsonl")
 }
 
+// These retained journals belong to the textual alignment and structural
+// markup owners. Their event IDs cannot support bibliographic Claims.
+const ALIGNMENT_PROVENANCE: &str = concat!(
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/",
+    "alignments/translation/dta-first-editions-to-antonovsky-1911-paragraph-v1/provenance.jsonl"
+);
+const STRUCTURAL_MARKUP_PROVENANCE: &str = concat!(
+    "ToS/source-witnesses/works/friedrich-nietzsche/also-sprach-zarathustra/",
+    "technical-markup/antonovsky-1911-structural-paragraph-v2/provenance.jsonl"
+);
+
+fn bibliography_event_id<'a>(path: &str, value: &'a Value) -> Option<&'a str> {
+    if matches!(
+        (path, s(value, "schema_version")),
+        (
+            ALIGNMENT_PROVENANCE,
+            Some("tos_zarathustra_de_ru_paragraph_alignment_provenance_v1")
+        ) | (
+            STRUCTURAL_MARKUP_PROVENANCE,
+            Some("tos_antonovsky_1911_provenance_event_v2")
+        )
+    ) {
+        return None;
+    }
+    s(value, "event_id")
+}
+
 /// Requires record-family output from the same exact current cut. EOF is
 /// checked again for this family's Claim/event/Item-manifest traversal.
 pub fn inspect_bibliography_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRange>(
@@ -1211,7 +1238,7 @@ fn inspect_bibliography_on_cut(
                     raw_sha256: Digest256::of_bytes(&member.raw).to_hex(),
                     native: path.ends_with("/source-claims.jsonl"),
                 });
-            } else if let Some(id) = s(&value, "event_id") {
+            } else if let Some(id) = bibliography_event_id(path, &value) {
                 let contract = match s(&value, "schema_version") {
                     Some("tos_provenance_event_v1") => "ToS/contracts/provenance-event.schema.json",
                     Some("tos_provenance_event_v2") => {
@@ -2121,7 +2148,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                         rules.state -= claim_meta_state + value_state;
                         continue;
                     }
-                    if let Some(id) = s(&value, "event_id") {
+                    if let Some(id) = bibliography_event_id(path, &value) {
                         let contract = match s(&value, "schema_version") {
                             Some("tos_provenance_event_v1") => {
                                 "ToS/contracts/provenance-event.schema.json"
@@ -4333,6 +4360,31 @@ fn inspect_closure_stored<C: SourceFoundationDefaultClaims + ?Sized>(
 mod tests {
     use super::*;
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn routes_retained_text_provenance_out_of_bibliography() {
+        let row = |schema| json!({"schema_version": schema, "event_id": "test-event"});
+        let alignment = row("tos_zarathustra_de_ru_paragraph_alignment_provenance_v1");
+        let markup = row("tos_antonovsky_1911_provenance_event_v2");
+        let bibliography = row("tos_provenance_event_v2");
+        assert_eq!(
+            bibliography_event_id(ALIGNMENT_PROVENANCE, &alignment),
+            None
+        );
+        assert_eq!(
+            bibliography_event_id(STRUCTURAL_MARKUP_PROVENANCE, &markup),
+            None
+        );
+        assert_eq!(
+            bibliography_event_id(ALIGNMENT_PROVENANCE, &bibliography),
+            Some("test-event")
+        );
+        assert_eq!(
+            bibliography_event_id(STRUCTURAL_MARKUP_PROVENANCE, &alignment),
+            Some("test-event")
+        );
+    }
+
     fn rules(cancelled: &AtomicBool) -> Rules<'_> {
         Rules {
             limits: ItemLimits {
