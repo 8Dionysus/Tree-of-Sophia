@@ -137,6 +137,8 @@ class SentenceBoundaryTest(unittest.TestCase):
         self.assertEqual(kit.sentences('नाट्यशास्त्रम्॥'), [])
         self.assertIsNone(kit.in_transcription('नाट्यशास्त्रम्।', 'प्रथमम्। नाट्यशास्त्रम्।'))
         self.assertEqual([x[0] for x in kit.tokens('一二三。')], ['一','二','三','。'])
+        self.assertEqual([x[0] for x in kit.tokens('かな漢字。')], ['か','な','漢','字','。'])
+        self.assertEqual(kit.changed('學', '学'), [('學', '学')])
         self.assertEqual(kit.letters('ςϲσ'), kit.letters('σσσ'))
 
     def test_lookup_folds_preserve_printed_differences_for_review(self):
@@ -154,6 +156,14 @@ class SentenceBoundaryTest(unittest.TestCase):
         proof={'source':'https://example.org/page','page':'1','lines':'1–4','sha256':'a'*64}
         ev={'images':[{'sha256':'a'*64,'by':'maker'}]}
         self.assertTrue(any('exceeds' in p for p in kit.quotation_problems('p','एकम्। द्वे। त्रीणि। चत्वारि।',proof,ev)))
+
+    def test_greek_question_mark_is_a_sentence_boundary(self):
+        self.assertEqual(kit.sentences('Τί ἐστι θεός;'), [])
+        self.assertTrue(kit.sentences('This is not a complete sentence;'))
+        self.assertIsNone(kit.in_transcription('Τί ἐστι θεός;', 'Τί λέγεις; Τί ἐστι θεός;'))
+        proof={'source':'https://example.org/page','page':'1','lines':'1–4','sha256':'a'*64}
+        ev={'images':[{'sha256':'a'*64,'by':'maker'}]}
+        self.assertTrue(any('exceeds' in p for p in kit.quotation_problems('p','Τί; Πῶς; Ποῦ; Πότε;',proof,ev)))
 
 class RussianExtensionTest(unittest.TestCase):
     def test_extension_normalizes_without_editing_parent(self):

@@ -342,10 +342,10 @@ def cmd_ia(args):
 # ---- words ---------------------------------------------------------------------------------------------------------
 
 QUOTES=str.maketrans({'“':'"','”':'"','„':'"','«':'"','»':'"','‟':'"','‘':"'",'’':"'",'‚':"'",'‛':"'",'—':'-','–':'-','‒':'-','‐':'-','‑':'-','⸗':'-','…':'.'})
-_LETTER=r'(?:[^\W\d_]|[\u0900-\u0903\u093a-\u094f\u0951-\u0957\u0962-\u0963])'
-TOKEN=re.compile(r"[\u3400-\u9fff]|"+_LETTER+r"+(?:'"+_LETTER+r"+)*|\d+|[^\s\w]|_")
-WORD=re.compile(_LETTER+r'+')
-PART=re.compile(_LETTER+r'+|\d+')
+_LETTER=r'(?:(?![\u3400-\u9fff\u3040-\u30ff])[^\W\d_]|[\u0900-\u0903\u093a-\u094f\u0951-\u0957\u0962-\u0963])'
+TOKEN=re.compile(r"[\u3400-\u9fff\u3040-\u30ff]|"+_LETTER+r"+(?:'"+_LETTER+r"+)*|\d+|[^\s\w]|_")
+WORD=re.compile(r'[\u3400-\u9fff\u3040-\u30ff]+|'+_LETTER+r'+')
+PART=re.compile(r'[\u3400-\u9fff\u3040-\u30ff]+|'+_LETTER+r'+|\d+')
 
 # IAST is a search key only; the printed and transcribed words stay in the evidence.
 _VOWELS=dict(zip('अआइईउऊऋॠऌॡएऐओऔ',('a','ā','i','ī','u','ū','ṛ','ṝ','ḷ','ḹ','e','ai','o','au')))
@@ -399,8 +399,8 @@ def locate(needle,hay,index):
     votes={}
     for offset,word in enumerate(needle[:40]):
         places=index.get(word,())
-        han=len(word)==1 and '\u3400'<=word<='\u9fff'
-        if (len(word)<4 and not han) or not places or len(places)>60:continue
+        cjk=len(word)==1 and ('\u3400'<=word<='\u9fff' or '\u3040'<=word<='\u30ff')
+        if (len(word)<4 and not cjk) or not places or len(places)>60:continue
         for place in places:votes[place-offset]=votes.get(place-offset,0)+1
     if not votes:
         for offset,word in enumerate(needle[:12]):
@@ -465,7 +465,7 @@ def in_transcription(text,source,dropped=None):
     opened=bool(re.search(r'\n\s*\n[\s"“„«‘\'(\[_*]*$',before)) or not before.strip()
     before=re.sub(r'(\[[^\]]{0,12}\]|\(\d+\)|[\d*†‡§]+)\s*$','',re.sub(r'[\s"“„«‘\'(\[_*]+$','',before))
     before=re.sub(r'[\s"”»’\')\]_*]+$','',re.sub(r'[\s—–-]+$','',re.sub(r'[\s"”»’\')\]_*]+$','',before)))   # «… kommen. — Eben jene …»: the dash after a full stop opens a sentence
-    if not opened and before and before[-1] not in '.!?:…。！？؟।॥':return f'it opens inside a sentence of the transcription (after «…{before[-40:]}»)'
+    if not opened and before and before[-1] not in '.!?:…。！？؟।॥' and not (before[-1]==';' and re.search(r'[\u0370-\u03ff\u1f00-\u1fff]',text)):return f'it opens inside a sentence of the transcription (after «…{before[-40:]}»)'
     blocks=[block for block in match.get_matching_blocks() if block.size];a=words[start+blocks[0].b][1];last=words[start+blocks[-1].b+blocks[-1].size-1];z=last[1]+len(last[0])
     def written(end,begin=a):
         run=source[begin:end]
@@ -543,7 +543,9 @@ def sentences(text,limit=LONGEST):
     if text!=text.strip() or '  ' in text or '\t' in text:problems.append('stray whitespace')
     first=text.lstrip(OPENING)[:1]
     if not first or not first.isalpha() or (first.lower()!=first.upper() and not first.isupper()):problems.append(f'it does not open with a capital letter or uncased sentence initial («{text[:24]}»)')
-    if text.rstrip(CLOSING)[-1:] not in '.!?…。！？؟।॥':problems.append(f'it does not close a sentence («{text[-24:]}»)')
+    ending=text.rstrip(CLOSING)[-1:]
+    greek_question=ending==';' and re.search(r'[\u0370-\u03ff\u1f00-\u1fff]',text)
+    if ending not in '.!?…。！？؟।॥' and not greek_question:problems.append(f'it does not close a sentence («{text[-24:]}»)')
     if limit is not None and len(text)>limit:problems.append(f'{len(text)} characters: a place is the sentences that say the thing, at most {limit} characters')
     return problems
 
@@ -939,6 +941,7 @@ def quotation_problems(loc,text,proof,ev,second=False,path=None,offline=False):
                 except (OSError,KeyError):problems.append(f'place {loc}: {by} image is missing locally')
     # Sentence endings are an upper-bound aid. The printed page still decides the boundaries.
     count=len(re.findall(r'(?:[.!?…]+(?:[”»’」』\"\')\]]+)?(?=\s|$)|[。！？؟।॥]+[”»’」』\"\')\]]*)',text))
+    if re.search(r'[\u0370-\u03ff\u1f00-\u1fff]',text):count+=text.count(';')
     if (len(text)>900 or count>3) and len(str(proof.get('justification',''))) < 30:problems.append(f'place {loc}: quotation exceeds 900 characters or three sentences and needs a justification')
     return problems
 
@@ -1736,6 +1739,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
         if quote:
             if not place.get('lines'):add(f'{loc}: quotation lines are missing')
             count=len(re.findall(r'(?:[.!?…]+(?:[”»’」』\"\')\]]+)?(?=\s|$)|[。！？؟।॥]+[”»’」』\"\')\]]*)',text))
+            if re.search(r'[\u0370-\u03ff\u1f00-\u1fff]',text):count+=text.count(';')
             if (len(text)>900 or count>3) and len(str(place.get('justification','')))<30:add(f'{loc}: quotation exceeds the default and needs a justification')
         if second:
             review=data.get('review') or {};answer=(review.get('places') or {}).get(loc) or {}
