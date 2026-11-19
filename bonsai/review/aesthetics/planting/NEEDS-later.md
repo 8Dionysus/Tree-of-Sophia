@@ -93,3 +93,12 @@ author, licence, source sentence, source image and independent linguistic
 review. Such a translation must not be represented as a historical edition;
 its use does not turn an incomplete search for existing editions into an
 absence finding.
+
+The accepted but unplanted `de-witt-henry-parker.the-principles-of-aesthetics`
+packet records 124 language search outcomes generated from site-restricted web
+searches. A read-only audit found these do not establish internal catalogue or
+full-text searches, and its Russian, Spanish and German `book_url` fields
+point to the English original rather than editions in those languages. The
+Chinese 1965 Zhang Jin translation is catalogued but its target pages have not
+been obtained. The gate returns `open`; the direction is withholding the
+packet until the owner's required search and locator evidence is met.
