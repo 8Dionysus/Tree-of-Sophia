@@ -6,10 +6,14 @@ It does not admit a source, translation, interpretation or canon claim. The
 new curated records live with `ToS/source-witnesses/`; journey questions live
 with `ToS/research-packets/public-prototypes-20261026/`.
 
-Both profiles select the same 51 works: *Zarathustra*, the 49 books in the
-retained Antiquity collection, and Xenophon’s *Memorabilia*. The selection
-contains 137 reading versions, including 17 captured Russian Karpov translations
-of Plato from Wikisource and the complete English Dakyns *Memorabilia*. The
+Both profiles select the same 52 works: *Zarathustra*, the 49 books in the
+retained Antiquity collection, Xenophon’s *Memorabilia*, and Seneca’s letters.
+The selection contains 138 reading versions, including 17 captured Russian Karpov translations
+of Plato from Wikisource, the English Dakyns *Memorabilia*, and the 1614 Lodge
+translation of Seneca's 124 letters from EEBO-TCP. The latter transcription
+explicitly marks illegible and omitted foreign text; it has not been independently
+collated with the scan. TCP labels letter 69 as 79; navigation identifies it as
+69 from its position and text, and retains the original label in source metadata. The
 39-chapter reading retains editorial footnotes; the source prints chapter XII
 twice in Book III, and the second is numbered 13 for navigation only. Distinct reading representations of the same edition
 are not additional historical editions.
