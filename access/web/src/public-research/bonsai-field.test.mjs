@@ -112,8 +112,10 @@ describe('the Aesthetics field',()=>{
       let text=fragments.places[work][place.slice(work.length+1)].texts[lang];
       // Later reviewed edits can refine an earlier correction; inspect the earlier state.
       for(const later of corrections.slice(index+1).reverse())if(later.place===place&&later.lang===lang&&later.review){
-        expect(text,place).toContain(later.to);
-        text=text.replace(later.to,later.from);
+        expect(Number.isInteger(later.offset),place).toBe(true);
+        const chars=Array.from(text),end=later.offset+Array.from(later.to).length;
+        expect(chars.slice(later.offset,end).join(''),place).toBe(later.to);
+        text=[...chars.slice(0,later.offset),...Array.from(later.from),...chars.slice(end)].join('');
       }
       expect(text,place).toContain(to);expect(text,place).not.toContain(from);
     }

@@ -779,12 +779,36 @@ def cmd_accepted_text_correct(args):
     raw=Path(args.file).read_bytes() if args.file else get(args.url)
     if not valid_page_image(raw):die('the page source did not yield a readable image')
     digest=hashlib.sha256(raw).hexdigest();filename=f'text-correction-{digest}.img';Path(cache(path,filename)).write_bytes(raw)
+    places=part(path,'places.json');original=original_of(places);text=places['places'][args.loc]['texts'][original]
+    old=getattr(args,'from')
+    if not old or text.count(old)!=1:die('the original run must occur exactly once')
+    offset=text.index(old)
     cmd_correct(argparse.Namespace(packet=args.packet,loc=args.loc,to=args.to,evidence=args.assessment,**{'from':getattr(args,'from')}))
     places=part(path,'places.json');correction=places['corrections'][-1]
+    correction['offset']=offset
     correction['review']={'url':args.url,'image_sha256':digest,'file':filename,'by':args.by,'second':args.second,'second_model':args.second_model,'assessment':args.assessment,'date':today()}
     accepted.setdefault('text_correction_reviews',[]).append({'loc':args.loc,'sha256':page_number_digest(correction)})
     save(os.path.join(path,'places.json'),places);save(os.path.join(path,'accepted.json'),accepted)
     print('original acceptance retained; the correction and independent assessment are bound to it')
+
+def reverse_reviewed_correction(text,correction):
+    offset=correction.get('offset');new=correction.get('to');old=correction.get('from')
+    if type(offset) is not int or offset<0 or not isinstance(new,str) or not new or not isinstance(old,str) or text[offset:offset+len(new)]!=new:return None
+    return text[:offset]+old+text[offset+len(new):]
+
+def cmd_accepted_text_index(args):
+    """Bind the unique position of a previously reviewed correction to its receipt."""
+    path=packet(args.packet);places=part(path,'places.json');accepted=part(path,'accepted.json') or die('an accepted packet is required')
+    original=original_of(places);place=(places.get('places') or {}).get(args.loc) or die('no such place');text=place['texts'][original]
+    selected=[c for c in places.get('corrections') or [] if c.get('place')==f"{places['work']} {args.loc}" and c.get('review') and c.get('to')==args.to]
+    if len(selected)!=1 or 'offset' in selected[0] or text.count(args.to)!=1:die('the reviewed target must be unique and not yet indexed')
+    if any(c.get('review') and c.get('place')==selected[0]['place'] for c in places['corrections'][places['corrections'].index(selected[0])+1:]):die('the correction must be the latest reviewed change to this place')
+    correction=selected[0];previous=page_number_digest(correction)
+    receipts=[r for r in accepted.get('text_correction_reviews') or [] if r.get('loc')==args.loc and r.get('sha256')==previous]
+    if len(receipts)!=1:die('the prior accepted review must match this correction')
+    correction['offset']=text.index(args.to);receipts[0]['previous_sha256']=previous;receipts[0]['sha256']=page_number_digest(correction)
+    save(os.path.join(path,'places.json'),places);save(os.path.join(path,'accepted.json'),accepted)
+    print('unique correction position recorded; prior review digest retained')
 
 # ---- the gate ------------------------------------------------------------------------------------------------------
 
@@ -1123,8 +1147,9 @@ def gate(path,second=False,offline=False):
     for correction in reversed(corrections):
         loc=str(correction.get('place','')).removeprefix(work+' ')
         if correction.get('review') and loc in predecessors:
-            if correction.get('to') and correction['to'] in predecessors[loc]:predecessors[loc]=predecessors[loc].replace(correction['to'],correction.get('from',''),1)
-            else:add(f'{loc}: reviewed correction does not match the current text')
+            before=reverse_reviewed_correction(predecessors[loc],correction)
+            if before is not None:predecessors[loc]=before
+            else:add(f'{loc}: reviewed correction offset does not match the current text')
     previous_texts=dict(predecessors)
     for correction in reversed(corrections):
         loc=str(correction.get('place','')).removeprefix(work+' ')
@@ -1136,6 +1161,8 @@ def gate(path,second=False,offline=False):
         if review:
             receipt=(part(path,'accepted.json') or {}).get('text_correction_reviews') or []
             if not any(item.get('loc')==loc and item.get('sha256')==page_number_digest(correction) for item in receipt):add(f'{loc}: text correction is not bound to the accepted packet review')
+            for item in receipt:
+                if item.get('loc')==loc and item.get('sha256')==page_number_digest(correction) and item.get('previous_sha256') and item['previous_sha256']!=page_number_digest({k:v for k,v in correction.items() if k!='offset'}):add(f'{loc}: prior correction review digest does not match')
             if not review.get('by') or not review.get('second') or review.get('by')==review.get('second') or not review.get('second_model') or len(str(review.get('assessment','')).strip())<30:add(f'{loc}: text correction needs a distinct second reader and assessment')
             scan=scan_of(ev,(ev.get('places') or {}).get(loc));images=(ev.get('places') or {}).get(loc,{}).get('images') or []
             if not any(review.get('url')==f"https://archive.org/download/{scan.get('item')}/page/n{n}.jpg" for n in images) or not re.fullmatch(r'[a-f0-9]{64}',str(review.get('image_sha256',''))) or review.get('file')!=f"text-correction-{review.get('image_sha256')}.img":add(f'{loc}: text correction needs its exact scan page and digest')
@@ -2027,6 +2054,7 @@ def main():
     sub('witness-review',cmd_witness_review,P,(('language',),{}),(('loc',),{}),(('--reader',),{'required':True}),(('--alignment',),{'required':True}),(('--model',),{'default':'gpt-6.1-terra'}))
     sub('page-number-correct',cmd_page_number_correct,P,(('--loc',),{'action':'append','required':True}),(('--leaf',),{'type':int,'required':True}),(('--old',),{'required':True}),(('--new',),{'required':True}),(('--url',),{'required':True}),(('--by',),{'required':True}),(('--second',),{'required':True}),(('--second-model',),{'required':True}),(('--assessment',),{'required':True}),(('--file',),{}))
     sub('accepted-text-correct',cmd_accepted_text_correct,P,(('loc',),{}),(('from',),{}),(('to',),{}),(('--n',),{'type':int,'required':True}),(('--url',),{'required':True}),(('--by',),{'required':True}),(('--second',),{'required':True}),(('--second-model',),{'required':True}),(('--assessment',),{'required':True}),(('--file',),{}))
+    sub('accepted-text-index',cmd_accepted_text_index,P,(('loc',),{}),(('to',),{}))
     sub('witness-gate',cmd_witness_gate,P,(('language',),{}),(('--second',),{'action':'store_true'}),(('--offline',),{'action':'store_true'}),(('--accept',),{'action':'store_true'}))
     sub('queue',cmd_queue);sub('open',cmd_open,(('work',),{}));sub('task',cmd_task,P);sub('status',cmd_status);sub('ready',cmd_ready)
     sub('fetch',cmd_fetch,P,(('role',),{'choices':['transcription','other']}),(('url',),{}),(('--name',),{}),(('--file',),{'help':'take the bytes from a local file already fetched from URL'}))

@@ -703,6 +703,12 @@ class TranslationCorrectionTest(unittest.TestCase):
             self.assertEqual(result['review'],{})
 
 class AcceptedPageNumberTest(unittest.TestCase):
+    def test_reviewed_correction_reverses_the_selected_repeated_text(self):
+        text='😀 A sentence. Another sentence.'
+        correction={'from':';','to':'.','offset':len(text)-1}
+        self.assertEqual(kit.reverse_reviewed_correction(text,correction),'😀 A sentence. Another sentence;')
+        self.assertIsNone(kit.reverse_reviewed_correction(text,{**correction,'offset':2}))
+
     def test_accepted_correction_gate_rejects_changed_review(self):
         import json, shutil, tempfile
         from pathlib import Path
@@ -728,7 +734,7 @@ class AcceptedPageNumberTest(unittest.TestCase):
             with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_accepted_text_correct(args)
             places=json.loads((path/'places.json').read_text());accepted=json.loads((path/'accepted.json').read_text());correction=places['corrections'][0]
             self.assertEqual(places['places']['loc']['texts']['la'],'gratiam autoritatem vendicat')
-            self.assertEqual(correction['from'],'auctoritatem');self.assertEqual(accepted['basis'],'original acceptance')
+            self.assertEqual(correction['from'],'auctoritatem');self.assertEqual(correction['offset'],len('gratiam '));self.assertEqual(accepted['basis'],'original acceptance')
             self.assertEqual(accepted['text_correction_reviews'][0]['sha256'],kit.page_number_digest(correction))
 
     def test_corrected_number_keeps_predecessor_and_review(self):
