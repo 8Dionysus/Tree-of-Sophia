@@ -2032,7 +2032,81 @@
    "william-gilpin.three-essays",
    "william-james.the-principles-of-psychology",
    "william-morris.the-decorative-arts"
-  ]
+  ],
+  "translation_packets": {
+   "friedrich-schiller.ueber-das-pathetische": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-pathetische/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "III p312",
+       "from": "representa- tion",
+       "to": "representation",
+       "offset": 24,
+       "reason": "Printed p. 202: line-wrap hyphen removed, restoring the printed word.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n243.jpg",
+       "page": "202",
+       "image_sha256": "87630ffc9e6b59fc0c51b4b3fa002854a0d27e1572243a51de84fd2e927d309c"
+      },
+      {
+       "loc": "III p312",
+       "from": "nature :",
+       "to": "nature:",
+       "offset": 114,
+       "reason": "Printed p. 202 has a colon immediately following nature; OCR whitespace normalized.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n243.jpg",
+       "page": "202",
+       "image_sha256": "87630ffc9e6b59fc0c51b4b3fa002854a0d27e1572243a51de84fd2e927d309c"
+      },
+      {
+       "loc": "III p345",
+       "from": "emo- tions",
+       "to": "emotions",
+       "offset": 4,
+       "reason": "Printed p. 220: line-wrap hyphen removed, restoring the printed word.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n261.jpg",
+       "page": "220",
+       "image_sha256": "1b64bf159d715a46827ee0e1470a5f5d8d513bb38253d6574fe79800debb33ae"
+      },
+      {
+       "loc": "III p345",
+       "from": "aesthetic",
+       "to": "æsthetic",
+       "offset": 22,
+       "reason": "Printed p. 220 uses the æ ligature.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n261.jpg",
+       "page": "220",
+       "image_sha256": "1b64bf159d715a46827ee0e1470a5f5d8d513bb38253d6574fe79800debb33ae"
+      },
+      {
+       "loc": "III p345",
+       "from": "sym- pathy",
+       "to": "sympathy",
+       "offset": 54,
+       "reason": "Printed p. 220: line-wrap hyphen removed, restoring the printed word.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n261.jpg",
+       "page": "220",
+       "image_sha256": "1b64bf159d715a46827ee0e1470a5f5d8d513bb38253d6574fe79800debb33ae"
+      },
+      {
+       "loc": "III p345",
+       "from": "ferentem Cornpiunt.",
+       "to": "ferentem\nCorripiunt.",
+       "offset": 152,
+       "reason": "Printed p. 220 has ferentem at the end of the first Latin line and Corripiunt. on the second; OCR misreads Corripiunt and squeezing obscures the verse line break.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n261.jpg",
+       "page": "220",
+       "image_sha256": "1b64bf159d715a46827ee0e1470a5f5d8d513bb38253d6574fe79800debb33ae"
+      }
+     ]
+    }
+   }
+  }
  },
  "works": {
   "immanuel-kant.kritik-der-urteilskraft": {
@@ -3540,6 +3614,106 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy",
+     "year": 1845,
+     "url": "https://archive.org/details/stheticletterses01schi",
+     "licence": "Public-domain historical text and 1845 translation. Internet Archive machine OCR of this Duke University Libraries copy was checked against its page image; source provenance is separate from the underlying book and no separate OCR licence is asserted.",
+     "attribution": "Friedrich Schiller, Upon the Pathetic, translated by John Weiss, in The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller (Boston, 1845), pp. 202, 220. The untranslated Latin quotation on p. 220 is from Virgil, Aeneid II.216–217 (excerpt); it is quoted by Schiller, not co-authorship of his essay. Internet Archive OCR checked against the page images.",
+     "maker": "codex-2026-11-19-pathetic-weiss-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q6263392",
+       "name": {
+        "en": "John Weiss",
+        "ru": "Джон Уайсс"
+       },
+       "born": 1818,
+       "died": 1879,
+       "source": "https://www.wikidata.org/wiki/Q6263392",
+       "evidence": {
+        "file": "wikidata-Q6263392.json",
+        "sha256": "a0bd8ec47bc32753a296951c8154c2d461dc8eb5fb6abbde1a2326f0d13118be",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q6263392.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: Шиллер умер в 1805, переводчик Вейсс в 1879, сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Translation published in the United States in 1845, before 1931, and public domain in the United States."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: author died 1805 and translator died 1879; the ordinary 70-year post-mortem terms expired."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "John Weiss",
+        "ru": "Джон Уайсс"
+       },
+       "qid": "Q6263392",
+       "source": "https://www.wikidata.org/wiki/Q6263392",
+       "born": [
+        {
+         "time": "+1818-06-28T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1879-03-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -3547,10 +3721,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -9931,15 +10101,21 @@
      "en": "On the Pathetic, p. 312"
     },
     "texts": {
-     "de": "Man gelangt also zur Darstellung der moralischen Freyheit nur durch die lebendigste Darstellung der leidenden Natur; und der tragische Held muß sich erst als empfindendes Wesen bey uns legitimirt haben, ehe wir ihm als Vernunftwesen huldigen, und an seine Seelenstärke glauben."
+     "de": "Man gelangt also zur Darstellung der moralischen Freyheit nur durch die lebendigste Darstellung der leidenden Natur; und der tragische Held muß sich erst als empfindendes Wesen bey uns legitimirt haben, ehe wir ihm als Vernunftwesen huldigen, und an seine Seelenstärke glauben.",
+     "en": "One attains, then, to a representation of moral freedom, only through the most lively representation of suffering nature: and the tragic hero must legitimate himself in our opinion as a susceptible being, before we can do homage to him as a rational being, and believe in his strength of spirit."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n321/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n321/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n243.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, part III (1801), p. 312"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, 202"
      ]
     ]
    },
@@ -9949,15 +10125,21 @@
      "en": "On the Pathetic, p. 345"
     },
     "texts": {
-     "de": "Alle Affekte sind ästhetischer aus der zweyten Hand und keine Sympathie ist stärker als die wir mit der Sympathie empfinden,\n\nPost ipsum, auxilio subeuntem ac tela ferentem corripiunt."
+     "de": "Alle Affekte sind ästhetischer aus der zweyten Hand und keine Sympathie ist stärker als die wir mit der Sympathie empfinden,\n\nPost ipsum, auxilio subeuntem ac tela ferentem corripiunt.",
+     "en": "All emotions are more æsthetic at second hand, and no sympathy is stronger than that which we feel with sympathy.\n\nPost ipsum auxilio subeuntem ac tela ferentem\nCorripiunt."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n354/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n354/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n261.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, part III (1801), p. 345"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, 220"
      ]
     ]
    },
