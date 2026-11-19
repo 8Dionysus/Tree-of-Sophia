@@ -7955,34 +7955,19 @@
   }
  },
  "john-morreall": {
-  "item": null,
+  "item": "Q927369",
   "label": {
-   "ru": "Джон Морреалл",
-   "en": "John Morreall"
+   "en": "John Morreall",
+   "ru": "Джон Морреалл"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "John Morreall"
-   },
-   {
-    "kind": "work",
-    "query": "Philosophy of Humor"
-   },
-   {
-    "kind": "work",
-    "query": "Taking Laughter Seriously"
-   },
-   {
-    "kind": "work",
-    "query": "Comic Relief: A Comprehensive Philosophy of Humor"
+    "time": "+1947-02-01T00:00:00Z",
+    "precision": 11
    }
   ],
-  "checked": "2026-11-13",
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -8018,7 +8003,32 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "Philosophy of Humor",
+   "source": "https://plato.stanford.edu/entries/humor/",
+   "person_url": "https://en.wikipedia.org/wiki/John_Morreall",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "John Morreall"
+   },
+   {
+    "kind": "work",
+    "query": "Philosophy of Humor"
+   },
+   {
+    "kind": "work",
+    "query": "Taking Laughter Seriously"
+   },
+   {
+    "kind": "work",
+    "query": "Comic Relief: A Comprehensive Philosophy of Humor"
+   }
+  ],
+  "checked": "2026-11-13"
  },
  "john-of-damascus": {
   "item": null,
@@ -8495,26 +8505,19 @@
   }
  },
  "julia-kristeva": {
-  "item": null,
+  "item": "Q159876",
   "label": {
-   "ru": "Юлия Кристева",
-   "en": "Julia Kristeva"
+   "en": "Julia Kristeva",
+   "ru": "Юлия Кристева"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Julia Kristeva"
-   },
-   {
-    "kind": "work",
-    "query": "Pouvoirs de l’horreur. Essai sur l’abjection"
+    "time": "+1941-06-24T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -8540,7 +8543,24 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "Pouvoirs de l’horreur. Essai sur l’abjection",
+   "source": "https://catalogue.bnf.fr/ark:/12148/cb34635381f",
+   "person_url": "https://en.wikipedia.org/wiki/Julia_Kristeva",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Julia Kristeva"
+   },
+   {
+    "kind": "work",
+    "query": "Pouvoirs de l’horreur. Essai sur l’abjection"
+   }
+  ],
+  "checked": "2026-11-13"
  },
  "julia-leyda": {
   "item": null,
@@ -9524,16 +9544,19 @@
   "fetched": "2026-11-13"
  },
  "linda-hutcheon": {
-  "item": null,
+  "item": "Q4558366",
   "label": {
-   "ru": "Линда Хатчен",
-   "en": "Linda Hutcheon"
+   "en": "Linda Hutcheon",
+   "ru": "Линда Хатчен"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1947-08-24T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -9559,7 +9582,14 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "A Theory of Parody: The Teachings of Twentieth-Century Art Forms",
+   "source": "https://www.press.uillinois.edu/books/?id=p069383",
+   "person_url": "https://en.wikipedia.org/wiki/Linda_Hutcheon",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "checked": "2026-11-13"
  },
  "linda-nochlin": {
   "item": "Q434478",
@@ -11442,30 +11472,19 @@
   "identity_work": "Q1701144"
  },
  "nick-zangwill": {
-  "item": null,
+  "item": "Q59815573",
   "label": {
-   "ru": "Ник Зангвилл",
-   "en": "Nick Zangwill"
+   "en": "Nick Zangwill",
+   "ru": "Ник Зангвилл"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Nick Zangwill"
-   },
-   {
-    "kind": "work",
-    "query": "The Metaphysics of Beauty"
-   },
-   {
-    "kind": "work",
-    "query": "Aesthetic Judgment"
+    "time": "+1957-10-27T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -11495,7 +11514,28 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "The Metaphysics of Beauty",
+   "source": "https://www.jstor.org/stable/10.7591/j.ctv1nhmzk",
+   "person_url": "https://en.wikipedia.org/wiki/Nick_Zangwill",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Nick Zangwill"
+   },
+   {
+    "kind": "work",
+    "query": "The Metaphysics of Beauty"
+   },
+   {
+    "kind": "work",
+    "query": "Aesthetic Judgment"
+   }
+  ],
+  "checked": "2026-11-13"
  },
  "nicolas-j-bullot": {
   "item": null,
@@ -13213,16 +13253,19 @@
   }
  },
  "peter-lamarque": {
-  "item": null,
+  "item": "Q7175337",
   "label": {
-   "ru": "Питер Ламарк",
-   "en": "Peter Lamarque"
+   "en": "Peter Lamarque",
+   "ru": "Питер Ламарк"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1948-05-21T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -13248,7 +13291,14 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "How Can We Fear and Pity Fictions?",
+   "source": "https://pure.york.ac.uk/portal/en/publications/how-can-we-fear-and-pity-fictions",
+   "person_url": "https://en.wikipedia.org/wiki/Peter_Lamarque",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "checked": "2026-11-13"
  },
  "philip-pettit": {
   "item": null,
@@ -15001,16 +15051,19 @@
   }
  },
  "sherrie-levine": {
-  "item": null,
+  "item": "Q319569",
   "label": {
-   "ru": "Шерри Левин",
-   "en": "Sherrie Levine"
+   "en": "Sherrie Levine",
+   "ru": "Шерри Левин"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1947-04-17T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -15036,7 +15089,14 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "After Walker Evans: 4",
+   "source": "https://whitney.org/collection/works/10247",
+   "person_url": "https://en.wikipedia.org/wiki/Sherrie_Levine",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "checked": "2026-11-13"
  },
  "shiri-lieber-milo": {
   "item": null,
@@ -15151,34 +15211,19 @@
   }
  },
  "sianne-ngai": {
-  "item": null,
+  "item": "Q28006987",
   "label": {
-   "ru": "Сиан Нгай",
-   "en": "Sianne Ngai"
+   "en": "Sianne Ngai",
+   "ru": "Сиан Нгай"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Sianne Ngai"
-   },
-   {
-    "kind": "work",
-    "query": "Our Aesthetic Categories: Zany, Cute, Interesting"
-   },
-   {
-    "kind": "work",
-    "query": "Merely Interesting"
-   },
-   {
-    "kind": "work",
-    "query": "Ugly Feelings"
+    "time": "+1971-10-03T00:00:00Z",
+    "precision": 11
    }
   ],
-  "checked": "2026-11-13",
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -15212,7 +15257,32 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "Our Aesthetic Categories: Zany, Cute, Interesting",
+   "source": "https://english.uchicago.edu/people/sianne-ngai",
+   "person_url": "https://en.wikipedia.org/wiki/Sianne_Ngai",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Sianne Ngai"
+   },
+   {
+    "kind": "work",
+    "query": "Our Aesthetic Categories: Zany, Cute, Interesting"
+   },
+   {
+    "kind": "work",
+    "query": "Merely Interesting"
+   },
+   {
+    "kind": "work",
+    "query": "Ugly Feelings"
+   }
+  ],
+  "checked": "2026-11-13"
  },
  "sigmund-freud": {
   "item": "Q9215",
@@ -16399,16 +16469,19 @@
   }
  },
  "thorsten-botz-bornstein": {
-  "item": null,
+  "item": "Q2374247",
   "label": {
-   "ru": "Торстен Ботц-Борнштайн",
-   "en": "Thorsten Botz-Bornstein"
+   "en": "Thorsten Botz-Bornstein",
+   "ru": "Торстен Ботц-Борнштайн"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1964-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16434,7 +16507,14 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "The Cool-Kawaii: Afro-Japanese Aesthetics and New World Modernity",
+   "source": "https://www.bloomsbury.com/us/coolkawaii-9780739148457/",
+   "person_url": "https://en.wikipedia.org/wiki/Thorsten_Botz-Bornstein",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "checked": "2026-11-13"
  },
  "tim-wildschut": {
   "item": "Q47598261",
