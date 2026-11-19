@@ -30,17 +30,24 @@
       "verification": "maker compared scan page; independent review, rights and kit gate pending"
     },
     "XVI p153b": {
-      "text": "Objects which exist side by side, or whose parts so exist, are called bodies. Consequently bodies with their visible properties are the peculiar subjects of painting. Objects which succeed each other, or whose parts succeed each other in time, are actions. Consequently actions are the peculiar subjects of poetry.",
+      "text": "Objects which exist side by side, or whose parts so exist, are called bodies. Consequently bodies with their visible properties are the peculiar subjects of painting.\n\nObjects which succeed each other, or whose parts succeed each other in time, are actions. Consequently actions are the peculiar subjects of poetry.",
       "printed_pages": "91",
       "scan_images": [
         "https://archive.org/download/laocoon01less/page/n108/mode/1up"
       ],
-      "verification": "maker compared scan page; independent review, rights and kit gate pending"
+      "verification": "maker compared scan page; independent review, rights and kit gate pending",
+      "note": "1890 IA OCR retains a paragraph boundary between painting and actions, now preserved; the scan must decide. Its Conse- quently line wrap and punctuation around dashes need explicit source-to-print corrections, not silent claims of verbatim OCR."
     }
   },
   "research_update": "On 19 November a separate research reader visually checked both complete places against German 1766 pp. 153–154 and Frothingham 1890 p. 91. Translation adds in time and does not separately render überhaupt; independent alignment review remains. Preface credits W. T. Brigham for classical quotations; the selected places contain none, and his identity and contribution to these places are not established. Gutenberg returned 503, so current TXT digest was not reverified. This is not kit second-reader review.",
   "original_scan_evidence": [
     "https://archive.org/download/laokoonoderueber00less/page/n164.jpg",
     "https://archive.org/download/laokoonoderueber00less/page/n165.jpg"
-  ]
+  ],
+  "alternative_transcription": {
+    "url": "https://archive.org/download/laocoon01less/laocoon01less_djvu.txt",
+    "sha256": "5833f0e605bccc7d52ec29514abe046390d6af2bc8aab1e255e6006044e9c098",
+    "retrieved": "2026-11-19",
+    "note": "IA OCR from the same 1890 scan contains the two places and is available while Gutenberg returns 503; spacing, line-end splitting and typographic punctuation need explicit normalization and page-image corrections. Paragraph separation in p153b preserved; check against scan with formal reader."
+  }
 }
