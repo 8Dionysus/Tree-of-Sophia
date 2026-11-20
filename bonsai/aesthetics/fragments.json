@@ -2032,7 +2032,31 @@
    "william-gilpin.three-essays",
    "william-james.the-principles-of-psychology",
    "william-morris.the-decorative-arts"
-  ]
+  ],
+  "translation_packets": {
+   "buffon.discours-sur-le-style": {
+    "ru": {
+     "absent": {
+      "language": "ru",
+      "reason": "No Russian text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/buffon.discours-sur-le-style/witnesses/ru.json",
+     "corrections": [
+      {
+       "loc": "Discours p5b",
+       "from": "и от того родятся",
+       "to": "и оттого родятся",
+       "offset": 392,
+       "reason": "На с. 42 НЭБ напечатано «и отъ того родятся»; слитное «оттого» — современная орфографическая нормализация причинного наречия, а не исправление печати. Возникновение мыслей следует из обозначения промежутков; французское «c’est en se rappelant ... qu’on déterminera ... et qu’il naîtra» связывает их с этим действием. Правила: https://orthographia.ru/orfografia.php?sid=73 (наречия от местоименных слов).",
+       "url": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-42.jpg",
+       "page": "с. 42–43",
+       "image_sha256": "cab21336d3ffe3d1dc6365250ed7960fabb0b670238b4a65f0358ab6c0ae42c4"
+      }
+     ]
+    }
+   }
+  }
  },
  "works": {
   "immanuel-kant.kritik-der-urteilskraft": {
@@ -3875,14 +3899,117 @@
        ]
       }
      ]
+    },
+    "ru": {
+     "edition": "Бюффон. Речь, говоренная в Академии французской графом Бюффоном 1753 года августа 25 дня, перевод Н. Я. Озерецковского // Новые ежемесячные сочинения. 1786. Ч. 5, ноябрь, с. 39–59; прочитаны печатные с. 42–43 экземпляра НЭБ «Книжные памятники».",
+     "year": 1786,
+     "url": "https://kp.rusneb.ru/item/material/634e7868d1d7d70035079209",
+     "licence": "Текст издания 1786 года — общественное достояние по сроку авторского права; статус и условия использования цифровых изображений НЭБ оцениваются отдельно.",
+     "attribution": "Бюффон, перевод Н. Я. Озерецковского, «Новые ежемесячные сочинения», 1786, ч. 5, с. 42–43. Текст изготовлен maker по изображениям НЭБ; это собственная транскрипция со страниц, а не предоставленный НЭБ текстовый файл. Источник локального файла при регистрации в kit — URL изображения с. 42; текст по обеим страницам составлен локально.",
+     "maker": "codex-2026-11-19-buffon-ru-maker",
+     "normalization": "Собственная транскрипция со страниц НЭБ в современной орфографии: ѣ→е, і→и, конечный ъ опущен, дореформенные окончания и приставки приведены к современным, типографские переносы соединены; кустода на с. 42 не повторяется. Печатное «отъ того» в причинном значении нормализовано как «оттого» по правилам слитного написания наречий (https://orthographia.ru/orfografia.php?sid=73); исходное раздельное написание сохранено в транскрипции и записи исправления. Лексика и пунктуация издания сохранены; ё в печати отдельно не устанавливалась.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q229264",
+       "name": {
+        "en": "Georges-Louis Leclerc, Comte de Buffon",
+        "ru": "Жорж-Луи Леклерк де Бюффон"
+       },
+       "born": 1707,
+       "died": 1788,
+       "source": "https://www.wikidata.org/wiki/Q229264",
+       "evidence": {
+        "file": "wikidata-Q229264.json",
+        "sha256": "27d6e9c11c13c4f3903d16acabaf7a7efdd862f1834655885d7210725518183e",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q229264.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q3655975",
+       "name": {
+        "en": "Nikolay Ozeretskovsky",
+        "ru": "Николай Яковлевич Озерецковский"
+       },
+       "born": 1750,
+       "died": 1827,
+       "source": "https://www.wikidata.org/wiki/Q3655975",
+       "evidence": {
+        "file": "wikidata-Q3655975.json",
+        "sha256": "8afaeacb8c0fa9c00afb73d9adf612ecff312d0d3c8e80c133dab67dbe098fc5",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q3655975.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и Федеральный закон № 231-ФЗ, ст. 6: сроки для автора 1788 и переводчика 1827 истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "17 U.S.C. § 304: издание опубликовано в 1786 году, срок охраны в США истёк."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Директива 2006/116/EC, статья 1: более 70 лет после смерти автора и переводчика."
+      },
+      "mexico": {
+       "basis": "public-domain",
+       "law": "Ley Federal del Derecho de Autor, artículo 29 I: жизнь автора и 100 лет после смерти; Бюффон умер в 1788, Озерецковский в 1827, оба срока истекли. https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf"
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Georges-Louis Leclerc, Comte de Buffon",
+        "ru": "Жорж-Луи Леклерк де Бюффон"
+       },
+       "qid": "Q229264",
+       "source": "https://www.wikidata.org/wiki/Q229264",
+       "born": [
+        {
+         "time": "+1707-09-07T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1788-04-15T00:00:00Z",
+         "precision": 11
+        },
+        {
+         "time": "+1788-04-16T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Nikolay Ozeretskovsky",
+        "ru": "Николай Яковлевич Озерецковский"
+       },
+       "qid": "Q3655975",
+       "source": "https://www.wikidata.org/wiki/Q3655975",
+       "born": [
+        {
+         "year": 1750
+        }
+       ],
+       "died": [
+        {
+         "year": 1827
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
    "unsearched": [
-    {
-     "language": "ru",
-     "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
     {
      "language": "en",
      "reason": "No English text is taken in this pass: the line plants the original first."
@@ -10191,15 +10318,21 @@
      "en": "Discourse, p. 5"
     },
     "texts": {
-     "fr": "Le style n’est que l’ordre et le mouvement qu’on met dans ses pensées."
+     "fr": "Le style n’est que l’ordre et le mouvement qu’on met dans ses pensées.",
+     "ru": "Слог ничто иное есть как порядок и движение, которым располагаются мысли."
     },
     "links": {
-     "fr": "https://archive.org/details/oeuvrescomplte01buff/page/n84/mode/1up"
+     "fr": "https://archive.org/details/oeuvrescomplte01buff/page/n84/mode/1up",
+     "ru": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-42.jpg"
     },
     "refs": [
      [
       "fr",
       "Œuvres complètes de Buffon, vol. 1 (Paris, 1829), p. 5"
+     ],
+     [
+      "ru",
+      "Бюффон. Речь, говоренная в Академии французской графом Бюффоном 1753 года августа 25 дня, перевод Н. Я. Озерецковского // Новые ежемесячные сочинения. 1786. Ч. 5, ноябрь, с. 39–59; прочитаны печатные с. 42–43 экземпляра НЭБ «Книжные памятники»., с. 42"
      ]
     ]
    },
@@ -10209,15 +10342,21 @@
      "en": "Discourse, p. 5"
     },
     "texts": {
-     "fr": "Mais, avant de chercher l’ordre dans lequel on présentera ses pensées, il faut s’en être fait un autre plus général et plus fixe, où ne doivent entrer que les premières vues et les principales idées : c’est en marquant leur place sur ce premier plan qu’un sujet sera circonscrit, et que l’on en connoîtra l’étendue ; c’est en se rappelant sans cesse ces premiers linéaments qu’on déterminera les justes intervalles qui séparent les idées principales, et qu’il naîtra des idées accessoires et moyennes, qui serviront à les remplir."
+     "fr": "Mais, avant de chercher l’ordre dans lequel on présentera ses pensées, il faut s’en être fait un autre plus général et plus fixe, où ne doivent entrer que les premières vues et les principales idées : c’est en marquant leur place sur ce premier plan qu’un sujet sera circonscrit, et que l’on en connoîtra l’étendue ; c’est en se rappelant sans cesse ces premiers linéaments qu’on déterminera les justes intervalles qui séparent les idées principales, et qu’il naîtra des idées accessoires et moyennes, qui serviront à les remplir.",
+     "ru": "Но не искав еще порядка предлагать свои мысли, сперва надобно сделать себе самое главное расположение, куда должны входить одни только первые рассуждения и начальные мысли: определяя им место в оном расположении, определишь пределы предложению и узнаешь его пространство; приводя же беспрестанно на память сии первые начертания, означишь надлежащие расстояния между начальными размышлениями, и оттого родятся мысли прибавочные и средние, которые послужат к наполнению оных промежутков."
     },
     "links": {
-     "fr": "https://archive.org/details/oeuvrescomplte01buff/page/n84/mode/1up"
+     "fr": "https://archive.org/details/oeuvrescomplte01buff/page/n84/mode/1up",
+     "ru": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-42.jpg"
     },
     "refs": [
      [
       "fr",
       "Œuvres complètes de Buffon, vol. 1 (Paris, 1829), p. 5"
+     ],
+     [
+      "ru",
+      "Бюффон. Речь, говоренная в Академии французской графом Бюффоном 1753 года августа 25 дня, перевод Н. Я. Озерецковского // Новые ежемесячные сочинения. 1786. Ч. 5, ноябрь, с. 39–59; прочитаны печатные с. 42–43 экземпляра НЭБ «Книжные памятники»., с. 42–43"
      ]
     ]
    },

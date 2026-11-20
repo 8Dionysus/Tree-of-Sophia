@@ -1,0 +1,144 @@
+{
+ "language": "ru",
+ "witness": {
+  "edition": "Бюффон. Речь, говоренная в Академии французской графом Бюффоном 1753 года августа 25 дня, перевод Н. Я. Озерецковского // Новые ежемесячные сочинения. 1786. Ч. 5, ноябрь, с. 39–59; прочитаны печатные с. 42–43 экземпляра НЭБ «Книжные памятники».",
+  "year": 1786,
+  "url": "https://kp.rusneb.ru/item/material/634e7868d1d7d70035079209",
+  "licence": "Текст издания 1786 года — общественное достояние по сроку авторского права; статус и условия использования цифровых изображений НЭБ оцениваются отдельно.",
+  "attribution": "Бюффон, перевод Н. Я. Озерецковского, «Новые ежемесячные сочинения», 1786, ч. 5, с. 42–43. Текст изготовлен maker по изображениям НЭБ; это собственная транскрипция со страниц, а не предоставленный НЭБ текстовый файл. Источник локального файла при регистрации в kit — URL изображения с. 42; текст по обеим страницам составлен локально.",
+  "maker": "codex-2026-11-19-buffon-ru-maker",
+  "normalization": "Собственная транскрипция со страниц НЭБ в современной орфографии: ѣ→е, і→и, конечный ъ опущен, дореформенные окончания и приставки приведены к современным, типографские переносы соединены; кустода на с. 42 не повторяется. Печатное «отъ того» в причинном значении нормализовано как «оттого» по правилам слитного написания наречий (https://orthographia.ru/orfografia.php?sid=73); исходное раздельное написание сохранено в транскрипции и записи исправления. Лексика и пунктуация издания сохранены; ё в печати отдельно не устанавливалась.",
+  "persons": [
+   {
+    "role": "author",
+    "qid": "Q229264",
+    "name": {
+     "en": "Georges-Louis Leclerc, Comte de Buffon",
+     "ru": "Жорж-Луи Леклерк де Бюффон"
+    },
+    "born": 1707,
+    "died": 1788,
+    "source": "https://www.wikidata.org/wiki/Q229264",
+    "evidence": {
+     "file": "wikidata-Q229264.json",
+     "sha256": "27d6e9c11c13c4f3903d16acabaf7a7efdd862f1834655885d7210725518183e",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q229264.json"
+    }
+   },
+   {
+    "role": "translator",
+    "qid": "Q3655975",
+    "name": {
+     "en": "Nikolay Ozeretskovsky",
+     "ru": "Николай Яковлевич Озерецковский"
+    },
+    "born": 1750,
+    "died": 1827,
+    "source": "https://www.wikidata.org/wiki/Q3655975",
+    "evidence": {
+     "file": "wikidata-Q3655975.json",
+     "sha256": "8afaeacb8c0fa9c00afb73d9adf612ecff312d0d3c8e80c133dab67dbe098fc5",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q3655975.json"
+    }
+   }
+  ],
+  "rights": {
+   "russia": {
+    "basis": "public-domain",
+    "law": "ГК РФ ст. 1281 и Федеральный закон № 231-ФЗ, ст. 6: сроки для автора 1788 и переводчика 1827 истекли до 1993 года."
+   },
+   "usa": {
+    "basis": "public-domain",
+    "law": "17 U.S.C. § 304: издание опубликовано в 1786 году, срок охраны в США истёк."
+   },
+   "eu": {
+    "basis": "public-domain",
+    "law": "Директива 2006/116/EC, статья 1: более 70 лет после смерти автора и переводчика."
+   },
+   "mexico": {
+    "basis": "public-domain",
+    "law": "Ley Federal del Derecho de Autor, artículo 29 I: жизнь автора и 100 лет после смерти; Бюффон умер в 1788, Озерецковский в 1827, оба срока истекли. https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf"
+   }
+  }
+ },
+ "sources": [
+  {
+   "file": "buffon-1786-neb-42-43-transcription.txt",
+   "url": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-42.jpg",
+   "sha256": "e7e9b7451015b270af80440e4cbc861171564f9b9a0a1e801b18976552c25bdf",
+   "fetched": "2026-11-19"
+  }
+ ],
+ "images": [
+  {
+   "file": "page-42.jpg",
+   "url": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-42.jpg",
+   "sha256": "cab21336d3ffe3d1dc6365250ed7960fabb0b670238b4a65f0358ab6c0ae42c4",
+   "by": "maker"
+  },
+  {
+   "file": "page-43.jpg",
+   "url": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-43.jpg",
+   "sha256": "30d3c1b6eb7e16062cd5448e279afbd4aea1979430aea149a19d282b85692f85",
+   "by": "maker"
+  },
+  {
+   "file": "page-42-second.jpg",
+   "url": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-42.jpg",
+   "sha256": "cab21336d3ffe3d1dc6365250ed7960fabb0b670238b4a65f0358ab6c0ae42c4",
+   "by": "second"
+  },
+  {
+   "file": "page-43-second.jpg",
+   "url": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-43.jpg",
+   "sha256": "30d3c1b6eb7e16062cd5448e279afbd4aea1979430aea149a19d282b85692f85",
+   "by": "second"
+  }
+ ],
+ "places": {
+  "Discours p5a": {
+   "text": "Слог ничто иное есть как порядок и движение, которым располагаются мысли.",
+   "source": "buffon-1786-neb-42-43-transcription.txt",
+   "page": "с. 42",
+   "url": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-42.jpg",
+   "image_sha256": "cab21336d3ffe3d1dc6365250ed7960fabb0b670238b4a65f0358ab6c0ae42c4",
+   "alignment": "Одно полное русское предложение соответствует французскому: стиль есть порядок и движение мыслей."
+  },
+  "Discours p5b": {
+   "text": "Но не искав еще порядка предлагать свои мысли, сперва надобно сделать себе самое главное расположение, куда должны входить одни только первые рассуждения и начальные мысли: определяя им место в оном расположении, определишь пределы предложению и узнаешь его пространство; приводя же беспрестанно на память сии первые начертания, означишь надлежащие расстояния между начальными размышлениями, и оттого родятся мысли прибавочные и средние, которые послужат к наполнению оных промежутков.",
+   "source": "buffon-1786-neb-42-43-transcription.txt",
+   "page": "с. 42–43",
+   "url": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-42.jpg",
+   "image_sha256": "cab21336d3ffe3d1dc6365250ed7960fabb0b670238b4a65f0358ab6c0ae42c4",
+   "alignment": "Полное русское предложение соответствует французскому от Mais до remplir: первоначальный план, границы предмета и промежуточные мысли; конец на с. 43, изображение page-43.jpg приложено отдельно; кустода с. 42 не дублируется.",
+   "corrections": [
+    {
+     "from": "и от того родятся",
+     "to": "и оттого родятся",
+     "offset": 392,
+     "reason": "На с. 42 НЭБ напечатано «и отъ того родятся»; слитное «оттого» — современная орфографическая нормализация причинного наречия, а не исправление печати. Возникновение мыслей следует из обозначения промежутков; французское «c’est en se rappelant ... qu’on déterminera ... et qu’il naîtra» связывает их с этим действием. Правила: https://orthographia.ru/orfografia.php?sid=73 (наречия от местоименных слов).",
+     "url": "https://kp.rusneb.ru/attachments_new/attachment/634e7868d1d7d70035079209/middle-page-42.jpg",
+     "page": "с. 42–43",
+     "image_sha256": "cab21336d3ffe3d1dc6365250ed7960fabb0b670238b4a65f0358ab6c0ae42c4"
+    }
+   ]
+  }
+ },
+ "review": {
+  "reader": "ru-buffon-independent-20261119",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-19",
+  "places": {
+   "Discours p5a": {
+    "reads": "as the packet",
+    "alignment": "Повторно лично сверена с. 42: слова и пунктуация совпадают при заявленной нормализации; полное русское предложение соответствует французскому Le style … pensées.",
+    "image_sha256": "cab21336d3ffe3d1dc6365250ed7960fabb0b670238b4a65f0358ab6c0ae42c4"
+   },
+   "Discours p5b": {
+    "reads": "as the packet",
+    "alignment": "Повторно лично прочитаны с. 42 и 43; текст и знаки совпадают при заявленной нормализации, кустода не дублируется. Печатное отъ того обоснованно нормализовано как причинное оттого: возникновение мыслей следует из предыдущего действия; оригинал и запись изменения сохранены. Границы соответствуют французскому Mais … remplir. Kit привязывает review к хешу с. 42, с. 43 отдельно зарегистрирована second и также прочитана.",
+    "image_sha256": "cab21336d3ffe3d1dc6365250ed7960fabb0b670238b4a65f0358ab6c0ae42c4"
+   }
+  }
+ }
+}
