@@ -76,13 +76,15 @@ export function fragmentMayShow(witness){
   return bases.length>0&&!bases.includes('locator-only')&&(!bases.includes('licensed')||licensedEvidence(witness));
 }
 // Sentence boundaries are shared by the original-place builder and its tests.
-export function wholeExternalSentence(text){
+export function wholeExternalSentence(text,language){
   const start=String(text??'').trim().replace(/^[\s"“„«‚‘「『'([—–-]+/u,'');
   const first=Array.from(start)[0]??'';
   // Editions of Greek verse can start a speaker's sentence in lower case.
   // The source and page review still determine the actual sentence boundary.
   const greek=/^\p{Script=Greek}$/u.test(first);
-  const sentenceInitial=/^\p{L}$/u.test(first)&&(greek||first.toLowerCase()===first.toUpperCase()||first===first.toUpperCase());
+  // A Latin edition opens a sentence in lower case after a printed full stop; the kit checks the boundary in the source.
+  const latin=language==='la'&&/^\p{Script=Latin}$/u.test(first);
+  const sentenceInitial=/^\p{L}$/u.test(first)&&(greek||latin||first.toLowerCase()===first.toUpperCase()||first===first.toUpperCase());
   const end=String(text??'').trimEnd();
   return sentenceInitial&&(/[.!?…。！？؟।॥][”»’」』"')\]]*$/u.test(end)||(greek&&/;[”»’」』"')\]]*$/u.test(end)));
 }

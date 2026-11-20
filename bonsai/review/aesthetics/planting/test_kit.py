@@ -1294,3 +1294,87 @@ class NewWorkLanguageIntegrationTest(unittest.TestCase):
             (directory/'ru.json').unlink()
             kit.OWES.clear();problems,_=kit.gate(str(path),offline=True)
             self.assertTrue(any(item.startswith('ru: no search record') for item in problems))
+
+
+class AncientBoundTest(unittest.TestCase):
+    def claim(self, time, precision, circa=False, latest=None):
+        qualifiers = {}
+        if circa:
+            qualifiers['P1480'] = [{'datavalue': {'value': {'id': 'Q5727902'}}}]
+        if latest:
+            qualifiers['P1326'] = [{'datavalue': {'value': {'time': latest, 'precision': 9}}}]
+        return {'rank': 'normal', 'mainsnak': {'datavalue': {'value': {'time': time, 'precision': precision}}}, 'qualifiers': qualifiers}
+
+    def test_circa_death_gives_a_bound_and_no_year(self):
+        entity = {'claims': {'P570': [self.claim('-0015-00-00T00:00:00Z', 9, circa=True)]}}
+        self.assertIsNone(kit.entity_year(entity, 'P570'))
+        bound = kit.death_bound(entity)
+        self.assertEqual(bound['year'], 35)
+        person = {'died': None, 'died_before': bound['year'], 'death_bound': bound}
+        dates = kit.public_domain_by_dates([person, {'died': 1916}], 1899, year=2026)
+        self.assertEqual(dates, {'russia': True, 'usa': True, 'eu': True})
+
+    def test_floruit_and_latest_date_bound_the_death(self):
+        floruit = {'claims': {'P1317': [self.claim('+1000-00-00T00:00:00Z', 7)]}}
+        self.assertEqual(kit.death_bound(floruit)['year'], 1100)
+        latest = {'claims': {'P570': [self.claim('+1050-00-00T00:00:00Z', 7, latest='+1070-00-00T00:00:00Z')]}}
+        self.assertEqual(kit.death_bound(latest)['year'], 1070)
+
+    def test_no_bound_for_modern_or_unclaimed_hands(self):
+        self.assertIsNone(kit.death_bound({'claims': {}}))
+        self.assertIsNone(kit.death_bound({'claims': {'P570': [self.claim('+1900-00-00T00:00:00Z', 7)]}}))
+        self.assertIsNone(kit.death_year({'died': None, 'died_before': 35}))
+        self.assertIsNone(kit.death_year({'died': None, 'died_before': 1850, 'death_bound': {'from': 'wikidata'}}))
+        self.assertFalse(kit.public_domain_by_dates([{'died': None}], 1899, year=2026)['eu'])
+
+
+class SourceBoundaryTest(unittest.TestCase):
+    def test_latin_sentence_may_open_in_lower_case(self):
+        self.assertEqual(kit.sentences('illud autem nobile est.', language='la'), [])
+        self.assertTrue(kit.sentences('illud autem nobile est.'))
+        self.assertTrue(kit.sentences('lowercase english sentence.', language='en'))
+
+    def test_note_marker_after_a_full_stop_closes_the_sentence(self):
+        source = 'Das ist der erste Satz. 220) Der nächste Satz folgt hier.'
+        self.assertIsNone(kit.in_transcription('Der nächste Satz folgt hier.', source))
+        numbered = 'Vom vorigen Abschnitt. 2) Kunst wird von der Wissenschaft unterschieden.'
+        self.assertIsNone(kit.in_transcription('Kunst wird von der Wissenschaft unterschieden.', numbered))
+        inside = 'Im Abschnitt 3) folgt die Kunst, die man unterscheidet.'
+        self.assertIsNotNone(kit.in_transcription('folgt die Kunst, die man unterscheidet.', inside))
+
+    def test_declared_encoding_is_read_and_bytes_are_kept(self):
+        arabic = 'كتاب الشعر'
+        raw = ('<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1256"></head><body><p>' + arabic + '</p></body></html>').encode('cp1256')
+        self.assertIn(arabic, kit.plain(raw, 'page.html'))
+        self.assertEqual(kit.declared_charset(raw), 'windows-1256')
+        self.assertIn('Kitab', kit.plain('<html><body><p>Kitab</p></body></html>'.encode(), 'page.html'))
+
+
+class PdfAndDriverTest(unittest.TestCase):
+    def test_pdf_licence_is_read_from_its_text_layer(self):
+        import shutil, subprocess as sp, tempfile, os
+        if not shutil.which('pdftotext'):
+            self.skipTest('pdftotext is absent')
+        pdf = (b'%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n'
+               b'3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 144]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj\n'
+               b'4 0 obj<</Length 66>>stream\nBT /F1 12 Tf 20 100 Td (Licensed under CC BY-NC 4.0. A whole sentence.) Tj ET\nendstream endobj\n'
+               b'5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n')
+        self.assertTrue(kit.source_names_licence(pdf, 'https://creativecommons.org/licenses/by-nc/4.0/'))
+        self.assertFalse(kit.source_names_licence(pdf, 'https://creativecommons.org/licenses/by/4.0/'))
+
+    def test_open_gate_with_owes_goes_to_the_maker_first(self):
+        import drive
+        calls = []
+        def fake_kit(*args):
+            calls.append(args)
+            if args[0] == 'gate':
+                return 0, 'gate: open, owes 2\n- owes rights.mexico\n- owes ru search'
+            return 0, ''
+        with patch.object(drive, 'kit', side_effect=fake_kit), patch.object(drive, 'have', side_effect=lambda work, name: name in ('places.json', 'reading.json')), \
+             patch.object(drive, 'state', return_value={}), patch.object(drive, 'until_open', return_value=(None, 'maker-stuck')) as until:
+            result = drive.run('work-x')
+        self.assertEqual(result, 'maker-stuck')
+        first = until.call_args_list[0]
+        self.assertEqual(first.args[1], 'maker')
+        self.assertIn('owes rights.mexico', first.args[2])
+        self.assertTrue(first.kwargs.get('clear_owes'))

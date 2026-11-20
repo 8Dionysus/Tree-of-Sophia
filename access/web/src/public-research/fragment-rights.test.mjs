@@ -19,6 +19,8 @@ describe('territorial fragment rights',()=>{
     expect(wholeExternalSentence('नाट्यशास्त्रम्।')).toBe(true);
     expect(wholeExternalSentence('Not a complete sentence;')).toBe(false);
     expect(wholeExternalSentence('lowercase fragment.')).toBe(false);
+    expect(wholeExternalSentence('illud autem nobile est.','la')).toBe(true);
+    expect(wholeExternalSentence('illud autem nobile est.')).toBe(false);
     expect(wholeExternalSentence('没有终点')).toBe(false);
   });
   it('requires a complete permission and withholds text if any jurisdiction has only a locator',()=>{

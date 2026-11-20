@@ -14,7 +14,7 @@ Every session is `codex exec`, never plan mode and never an app-server turn.
 
 Environment: CODEX (binary), TOS_PLANTING_MODEL, TOS_PLANTING_EFFORT, TOS_PLANTING_OUT (logs and state).
 """
-import argparse,concurrent.futures,datetime,json,os,subprocess,sys,threading,time
+import argparse,concurrent.futures,datetime,json,os,re,subprocess,sys,threading,time
 
 HERE=os.path.dirname(os.path.abspath(__file__));KIT=os.path.join(HERE,'kit.py');PACKETS=os.path.join(HERE,'packets');ROOT=os.path.abspath(os.path.join(HERE,'..','..','..','..'))
 CODEX=os.environ.get('CODEX') or os.path.expanduser('~/.local/bin/codex')
@@ -75,6 +75,9 @@ BLOCK="""You are a maker in the planting line of the Aesthetics bonsai; your wor
 
 Read ../../AGENTS.md and ../../MAKER.md, then test that block yourself: look for what it says is missing or failing. If the block does not hold, delete blocked.json and make the packet by MAKER.md to its end (`python3 ../../kit.py gate .` prints `gate: open`). If it holds, leave blocked.json and add under `tried` what you looked at."""
 RETAKE="""This packet has been through the line before. Under `left` in reading.json, an entry marked `disputed` holds a conception or a link that a second reader did not confirm, with the reader's note. Take each of them up again: read the note and the place in the original; where the work bears the reading in a narrower thesis, a longer cut or two conceptions, grow it again by MAKER.md and take the entry out of `left`; where it does not, leave the entry as it is. Leave what is already in the reading as it is unless the gate asks otherwise."""
+OWES="""The gate of this packet is open but owes these lines. An `owes` is a debt of the newer line, not readiness: settle each one through kit.py commands (rights for each jurisdiction, recorded searches and witnesses for every reader language, edition locators) before the second reader takes the packet, then run `python3 ../../kit.py gate .` again until it opens without owes or the packet is blocked.
+
+{gate}"""
 SECOND="""You are the second reader of the packet for the work {work} in the planting line of the Aesthetics bonsai. You did not make this packet. Your working directory is the packet. Read ../../AGENTS.md and ../../SECOND-READER.md now and follow SECOND-READER.md to its end, independently reviewing every prepared language witness. Stop only when `python3 ../../kit.py gate . --second` prints `gate: open`."""
 SECOND_ON="""You are the second reader of the packet in this directory (../../AGENTS.md, ../../SECOND-READER.md). The gate is still shut. These are its lines:
 
@@ -85,7 +88,7 @@ Settle each line as ../../SECOND-READER.md says, then run `python3 ../../kit.py 
 def have(work,name):return os.path.exists(os.path.join(PACKETS,work,name))
 OUTSIDE=('limit','line-broken')          # ends that say nothing about the packet: it goes on from where it stands
 
-def until_open(work,role,first,again,turns,second=False,thread=None):
+def until_open(work,role,first,again,turns,second=False,thread=None,clear_owes=False):
     """Turns of one reader until the gate opens, a blocked.json appears, the turns run out or the usage limit ends them."""
     prompt=first
     for turn in range(turns):
@@ -95,7 +98,7 @@ def until_open(work,role,first,again,turns,second=False,thread=None):
         if code==3:BROKEN.set();return thread,'line-broken'       # the checkout fails, not the packet: no reader can mend it
         if not second and have(work,'blocked.json'):
             if code==0:return thread,'blocked'                    # a block the gate does not accept goes back like any shut gate
-        elif code==0:kit('stamp',os.path.join(PACKETS,work),'second' if second else 'maker',MODEL,EFFORT);return thread,'open'
+        elif code==0 and not(clear_owes and re.search(r'gate: open, owes [1-9]',text)):kit('stamp',os.path.join(PACKETS,work),'second' if second else 'maker',MODEL,EFFORT);return thread,'open'
         prompt=again.format(gate='\n'.join(text.splitlines()[:60]))
     return thread,'stuck'
 
@@ -104,6 +107,7 @@ def disputed(work):
 
 def run(work,retake=False):
     if retake:
+        state(work,block_checked=False)                              # a block checked under an older line is looked at again
         for name in('accepted.json',):
             if have(work,name):os.remove(os.path.join(PACKETS,work,name))
     if have(work,'accepted.json'):return 'accepted'
@@ -119,10 +123,12 @@ def run(work,retake=False):
         state(work,block_checked=True);maker,got=until_open(work,'maker',BLOCK.format(work=work,reason=block.get('reason')),MAKER_ON,MAKER_TURNS)
         if got!='open':return end(got if got in OUTSIDE or got=='blocked' else 'maker-stuck')
     else:
-        shut=kit('gate',os.path.join(PACKETS,work))[0]
+        shut,gate_text=kit('gate',os.path.join(PACKETS,work))
         if shut==3:BROKEN.set();return end('line-broken')
-        if (retake and disputed(work)) or shut:                  # a packet whose gate is already open goes straight to its second reader
-            maker,got=until_open(work,'maker',MAKER.format(work=work)+('\n\n'+RETAKE if retake and disputed(work) else ''),MAKER_ON,MAKER_TURNS)
+        owes=not shut and bool(re.search(r'gate: open, owes [1-9]',gate_text))
+        if (retake and disputed(work)) or shut or owes:          # an open gate without owes goes straight to its second reader
+            first=MAKER.format(work=work)+('\n\n'+RETAKE if retake and disputed(work) else '')+('\n\n'+OWES.format(gate='\n'.join(gate_text.splitlines()[:60])) if owes else '')
+            maker,got=until_open(work,'maker',first,MAKER_ON,MAKER_TURNS,clear_owes=owes)
             if got=='blocked':return run(work)                   # the block gets its second look
             if got!='open':return end(got if got in OUTSIDE else 'maker-stuck')
     for round_ in range(1,RETURNS+2):

@@ -104,6 +104,11 @@ step 4 reads it whole on the image of every page it runs over, mends each slip
 of the OCR with `K correct`, and the second reader reads it on the page again.
 Take this road only for a passage no transcription holds.
 
+A place opens with a whole sentence. A Latin sentence may open in lower case,
+as the editions print it. A note mark that ends the run before the opening
+(`Satz. 220)`, `2)`, `[3]`, a superscript) is the boundary of the place; the
+same mark inside a sentence still breaks it.
+
 `--drop 'REGEX'` leaves out what the transcriber added inside the run (a
 figure mark, a page mark). A place is understood alone: where its first
 sentence has a pronoun or a «this» whose referent stands in the sentence
@@ -401,7 +406,20 @@ normalization. `witness-rights . ru russia short-quotation 'legal basis …'`
 sets one jurisdiction at a time. For a person without a usable Wikidata item,
 `witness-person-source . ru translator 'Name' https://… --born YEAR --died YEAR`
 fetches a trusted reference and records its digest. A missing death year stays
-unknown and cannot establish public domain by dates. Every metadata change
+unknown and cannot establish public domain by dates.
+
+An ancient or medieval hand whose death is known within bounds is entered with
+`K person . author QID --bounded` (and `witness-person . LANG translator QID
+--bounded` for a witness). The kit reads the Wikidata date of death with its
+precision (year, decade, century, millennium), a `circa` qualifier or a latest
+date, and in their absence the floruit or working period; it records
+`died_before` with the claims it rests on. A bound before 1800 establishes the
+public domain by dates in every jurisdiction. For a hand without a usable
+Wikidata item, `K person . author --died-before YEAR --name 'Name' --source
+https://… --bound-note 'What the reference says that bounds the death.'`
+fetches the trusted reference, checks that the name stands in it and records
+its digest; `--anonymous` marks the unnamed hand of a text (a scholiast, a
+compiler) whose dating the reference gives. Every metadata change
 requires a fresh independent reading before acceptance.
 For an unaccepted witness, `witness-person-remove . ru author Q123 --reason
 'Reason for removing this mistaken identity.'` preserves the removed record

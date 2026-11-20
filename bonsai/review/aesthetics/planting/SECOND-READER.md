@@ -103,3 +103,10 @@ and packet second gates must open. The acceptance binds the exact reviewed
 language files; a changed text, source, person, page or rights record requires a
 new review. Search records for missing languages are evidence to inspect, not
 proof of a translation that was never looked for.
+
+## Bounded deaths
+
+A person with `died_before` carries the claims or the reference the bound
+rests on. Open the Wikidata item or the fetched reference and confirm that it
+bounds the death before the recorded year; a bound you cannot confirm is a
+`no` on the rights.
