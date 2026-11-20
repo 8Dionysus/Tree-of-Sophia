@@ -10,7 +10,8 @@ function mulberry32(seed){
 
 const ROLES=['reader','philologist','link-finder','opponent','quote-checker','guide'];
 const MODELS=['model-a','model-b','model-c','local-small'];
-const WORDS=[['дитя','ребёнок'],['святое слово утверждения','священное «да»'],['сверхчеловек','сверх-человек'],['мгновенье','мгновение']];
+// [old word, the Tree's word, term]: changes of one term to one word form one review group.
+const WORDS=[['дитя','ребёнок','child'],['святое слово утверждения','слово утверждения','saying-yes'],['сверх-человек','сверхчеловек','overman'],['мгновенье','мгновение','moment']];
 const DEFAULT_TARGETS=Array.from({length:400},(_,n)=>`sim:link:${n}`).concat(Array.from({length:81},(_,n)=>`sim:chapter:${n}`));
 
 /**
@@ -67,7 +68,7 @@ export function simulateArmy({agents=50,squads=Math.max(1,Math.ceil(agents/25)),
       const repeat=random()<duplicates;
       const words=repeat?ticket.words:pick(WORDS);
       const record=add({kind:'proposal',author:agent,targets:[repeat?ticket.target:pick(targets)],grounds:[`sim:place:${Math.floor(random()*775)}`],parents:[ticket.id],
-        intent:`«${words[0]}» → «${words[1]}»`,body:{category:'translation',variant:'outdated',change:{field:'verb',from:words[0],to:words[1]}}});
+        intent:`«${words[0]}» → «${words[1]}»`,body:{category:'translation',variant:'outdated',change:{field:'verb',from:words[0],to:words[1],term:words[2],to_lemma:words[1]}}});
       proposals.push(record.id);
       continue;
     }

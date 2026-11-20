@@ -10,6 +10,7 @@ import {mountCognitiveSession} from './cognitive-session.mjs';
 import {mountKnowing} from './knowing-map.mjs';
 import {connectResearchPage} from './page-agent.mjs';
 import {mountActionLayer} from './action-layer.mjs';
+import {mountActDesk} from './act-desk.mjs';
 import {createActJournal} from '../act-journal/journal.mjs';
 import {openActStore} from '../act-journal/store.mjs';
 import {mirrorWorkspace} from '../act-journal/workspace-mirror.mjs';
@@ -137,6 +138,7 @@ let pageAgent;
 // background after the first view.
 let actJournal;
 let actionLayer;
+let actDesk;
 let stopWorkspaceMirror;
 let appDisposed=false;
 let saveTimer = null;
@@ -515,8 +517,9 @@ async function start() {
   cognitive=mountCognitiveSession({root:knowing?.agentRoot??experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,onHelpChange:value=>knowing?.setHelpLevel(value),getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
   actJournal=createActJournal({store:openActStore()});
   stopWorkspaceMirror=publicOwners.workspace?mirrorWorkspace(publicOwners.workspace,actJournal,{sessionId:'local'}):null;
-  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,viewState:()=>actionLayer?.context()??null,locale:()=>locale});
+  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,actTier:()=>actDesk?.tier()??'propose',viewState:()=>actionLayer?.context()??null,locale:()=>locale});
   actionLayer=mountActionLayer({shell:spaceView.root,header,space:spaceView,experience,registry:pageAgent.registry,acts:actJournal,api:window.tosPublicResearch,locale:()=>locale});
+  actDesk=mountActDesk({shell:spaceView.root,actionLayer,space:spaceView,acts:actJournal,registry:pageAgent.registry,api:window.tosPublicResearch,locale:()=>locale,profile});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && corpusInfo) {
@@ -547,6 +550,7 @@ function disposeApp() {
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
+  actDesk?.destroy();
   actionLayer?.destroy();
   pageAgent?.destroy();
   void stopWorkspaceMirror?.();

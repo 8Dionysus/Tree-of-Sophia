@@ -975,7 +975,12 @@ impl ActJournal {
             .get(category)
             .map(|known| known.group_by.clone())
             .unwrap_or_default();
-        let material = if group_by.is_empty() {
+        // A grouping field that is missing makes the change its own group, never one with every other change missing it.
+        let complete = !group_by.is_empty()
+            && group_by
+                .iter()
+                .all(|field| get(change, field).is_some_and(non_empty));
+        let material = if !complete {
             let mut sorted = targets.to_vec();
             sorted.sort();
             object(vec![
@@ -1171,6 +1176,7 @@ impl ActJournal {
             "presence" => self.presence(number("now_ms")?, number("window_ms")?, limit),
             "history" => self.history(self.act_index(text("id")?).ok_or("act_query_unknown")?),
             "kinds" => self.kinds(),
+            "decided" => self.decided(limit),
             _ => return Err("act_query_invalid:view".to_owned()),
         };
         emit(&value)
@@ -1491,6 +1497,60 @@ impl ActJournal {
             ("deferred_total", int(deferred_total as i128)),
             ("groups_total", int(groups.len() as i128)),
             ("groups", array(rows)),
+        ])
+    }
+
+    /// Proposals the person accepted, newest decision first, each with its review and
+    /// whether a live change packet already names it.
+    fn decided(&self, limit: usize) -> JsonValue {
+        let mut rows: Vec<(u64, u32, u32, u32)> = Vec::new();
+        for address in &self.group_order {
+            for proposal in &self.group_members[address] {
+                if !self.live(*proposal) {
+                    continue;
+                }
+                if let Some((review, decision)) = self.decision(*proposal) {
+                    let word = self.strings.text(decision);
+                    if word == "accept" || word == "accept-with-edit" {
+                        rows.push((self.acts[review as usize].seq, *proposal, review, decision));
+                    }
+                }
+            }
+        }
+        rows.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
+        let packed = |proposal: u32| {
+            let address = format!("act:{}", self.ids.text(proposal));
+            self.strings
+                .find(&address)
+                .and_then(|t| self.by_target.get(&t))
+                .is_some_and(|items| {
+                    items.iter().any(|i| {
+                        self.strings.text(self.acts[*i as usize].kind) == "change-packet"
+                            && self.live(*i)
+                    })
+                })
+        };
+        let total = rows.len();
+        let unpacked = rows.iter().filter(|row| !packed(row.1)).count();
+        object(vec![
+            ("total", int(total as i128)),
+            ("unpacked", int(unpacked as i128)),
+            (
+                "proposals",
+                array(
+                    rows.iter()
+                        .take(limit)
+                        .map(|(_, proposal, review, decision)| {
+                            object(vec![
+                                ("proposal", string(self.ids.text(*proposal))),
+                                ("review", string(self.ids.text(*review))),
+                                ("decision", string(self.strings.text(*decision))),
+                                ("packed", boolean(packed(*proposal))),
+                            ])
+                        })
+                        .collect(),
+                ),
+            ),
         ])
     }
 
@@ -1975,11 +2035,13 @@ mod tests {
                 &format!("p{n}"),
                 "proposal",
                 &format!(
-                    r#"{},"targets":["link-{n}"],"grounds":["tos.bonsai.p2.place-{n}"],"body":{{"category":"translation","variant":"outdated","change":{{"field":"verb","from":"дитя","to":"ребёнок"}}}},"parents":[]"#,
+                    r#"{},"targets":["link-{n}"],"grounds":["tos.bonsai.p2.place-{n}"],"body":{{"category":"translation","variant":"outdated","change":{{"field":"verb","from":"{}","to":"{}","term":"child","to_lemma":"ребёнок"}}}},"parents":[]"#,
                     agent(
                         &format!("reader-{}", n % 4),
                         if n % 2 == 0 { "model-a" } else { "model-b" }
-                    )
+                    ),
+                    ["дитя", "дитяти", "дитятей"][n % 3],
+                    ["ребёнок", "ребёнка", "ребёнком"][n % 3],
                 ),
             );
             j.append(raw.as_bytes()).unwrap();
@@ -1989,7 +2051,7 @@ mod tests {
             "q",
             "proposal",
             &format!(
-                r#"{HUMAN},"targets":["link-x"],"grounds":["g"],"body":{{"category":"translation","change":{{"from":"дитя","to":"дитятко"}}}},"parents":[]"#
+                r#"{HUMAN},"targets":["link-x"],"grounds":["g"],"body":{{"category":"translation","change":{{"from":"дитя","to":"дитятко","term":"child","to_lemma":"дитятко"}}}},"parents":[]"#
             ),
         );
         j.append(other.as_bytes()).unwrap();
@@ -2018,7 +2080,7 @@ mod tests {
             "p13",
             "proposal",
             &format!(
-                r#"{HUMAN},"targets":["link-13"],"grounds":["g"],"body":{{"category":"translation","change":{{"from":"дитя","to":"ребёнок"}}}},"parents":[]"#
+                r#"{HUMAN},"targets":["link-13"],"grounds":["g"],"body":{{"category":"translation","change":{{"from":"дитяти","to":"ребёнка","term":"child","to_lemma":"ребёнок"}}}},"parents":[]"#
             ),
         );
         j.append(late.as_bytes()).unwrap();
@@ -2044,6 +2106,30 @@ mod tests {
         )
         .unwrap();
         assert_eq!(num(&query(&j, r#"{"view":"review"}"#), "open_total"), 2);
+        // A change without the grouping fields stays in a group of its own.
+        for (id, target) in [("l1", "link-a"), ("l2", "link-b")] {
+            let lone = record(
+                id,
+                "proposal",
+                &format!(
+                    r#"{HUMAN},"targets":["{target}"],"grounds":["g"],"body":{{"category":"translation","change":{{"from":"дитя","to":"ребёнок"}}}},"parents":[]"#
+                ),
+            );
+            j.append(lone.as_bytes()).unwrap();
+        }
+        assert_eq!(num(&query(&j, r#"{"view":"review"}"#), "groups_total"), 4);
+        let decided = query(&j, r#"{"view":"decided"}"#);
+        assert_eq!(num(&decided, "total"), 13);
+        assert_eq!(num(&decided, "unpacked"), 13);
+        let packet = record(
+            "cp1",
+            "change-packet",
+            &format!(
+                r#"{HUMAN},"targets":["act:p0","act:p1"],"grounds":[],"body":{{"changes":[{{"proposal":"p0"}},{{"proposal":"p1"}}]}},"parents":["r1"]"#
+            ),
+        );
+        j.append(packet.as_bytes()).unwrap();
+        assert_eq!(num(&query(&j, r#"{"view":"decided"}"#), "unpacked"), 11);
         let history = query(&j, r#"{"view":"history","id":"p0"}"#);
         assert_eq!(
             get(get(&history, "decision").unwrap(), "decision").and_then(JsonValue::as_str),

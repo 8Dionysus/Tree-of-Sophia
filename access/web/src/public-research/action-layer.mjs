@@ -193,7 +193,10 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
   // One action per lens, named by the lens.
   const lensActions=()=>(space?.actions?.lenses?.()??[]).map(item=>({id:`lens-${item.id}`,text:`${t('lens')}: ${titleFromForm(item.title)}`,for:['any'],active:()=>space.actions.lens()===item.id,run:()=>space.actions.setLens(item.id)}));
   const titleFromForm=form=>typeof form==='string'?form:form?.[resolveLocale(locale())==='ru'?'ru':'en']??(form?.en?localeText(form.en,locale()):form?.ru)??'';
-  const actionText=action=>action.text??(action.prefix?`${t(action.prefix)}: ${t(action.label)}`:t(action.label));
+  const actionText=action=>typeof action.text==='function'?action.text():action.text??(action.prefix?`${t(action.prefix)}: ${t(action.label)}`:t(action.label));
+  // Other owners add their actions (the act desk: tickets, review, transfer); each keeps its own label.
+  const added=[];
+  function addActions(list){added.push(...list);return ()=>{for(const action of list){const at=added.indexOf(action);if(at>=0)added.splice(at,1);}};}
   const applies=(action,target)=>(action.for.includes('any')||action.for.includes(target.type))&&(!action.when||action.when(target));
 
   // ------------------------------------------------------------ palette and menu
@@ -206,7 +209,7 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
   let shown=[],cursor=0,target={type:'none'},opener=null;
   function renderList(){
     const query=input.value.trim().toLocaleLowerCase();
-    const pool=[...actions,...lensActions()].filter(action=>applies(action,target));
+    const pool=[...actions,...added,...lensActions()].filter(action=>applies(action,target));
     shown=query?pool.filter(action=>actionText(action).toLocaleLowerCase().includes(query)):pool;
     cursor=Math.min(cursor,Math.max(0,shown.length-1));
     list.replaceChildren(...(shown.length?shown.map((action,index)=>{
@@ -272,7 +275,7 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
   function capabilityRows(){
     const tools=new Set(['tos.page.context','tos.page.cancel',...pageCommandIds]);
     const rows=[];
-    for(const action of [...actions,...lensActions()]){
+    for(const action of [...actions,...added,...lensActions()]){
       const command=action.command??null;
       rows.push({interface:actionText(action),page:command&&pageCommandIds.has(command)?command:'',agent:command&&(tools.has(command)||command.startsWith('tos.act.'))?command:'',native:'',cli:''});
     }
@@ -300,7 +303,7 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
   if(layer!=='reading')shell.dispatchEvent(new view.CustomEvent('public-research-layer',{bubbles:true,detail:{layer}}));
 
   return {
-    layer:()=>layer,setLayer,openPalette,closePalette,linkTo,currentTarget,track,startTask,refreshLocale,
+    layer:()=>layer,setLayer,openPalette,closePalette,linkTo,currentTarget,track,startTask,refreshLocale,addActions,say,copy,
     /** For the page context: the presence layer, lens, route step and the reader's chosen passage. */
     context:()=>{const passage=api?.reader?.selectedSource?.();return {presence_layer:layer,lens:space?.actions?.lens?.()??null,route:space?.actions?.routeState?.()??null,
       bench_open:Boolean(space?.bench?.()?.isOpen?.()),reader_selection:passage?.reference?{reference:passage.reference,quote:String(passage.quote??'').slice(0,500)}:null};},

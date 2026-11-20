@@ -63,7 +63,7 @@ export function actJournalTools(journal,{tier=()=> 'propose'}={}){
     execute:async input=>text(await run(input??{}))});
   return [
     tool('tos.act.manifest','Read first: the kinds of act you may append, what each requires, the categories of tickets and proposals, the decisions, the limits, every addressed and pointing command and your permission tier. Acts are the person\'s local work; none of them writes the Tree.',schema({}),()=>actManifest(journal,{tier:tier()}),true),
-    tool('tos.act.query','Read one fold of the act journal: summary, act (id), target (address), board, review, leases (now_ms), presence (now_ms, window_ms), history (id) or kinds. Folds name acts by id; read whole records with tos.act.record.',
+    tool('tos.act.query','Read one fold of the act journal: summary, act (id), target (address), board, review, decided, leases (now_ms), presence (now_ms, window_ms), history (id) or kinds. Folds name acts by id; read whole records with tos.act.record.',
       schema({view:str,id:str,address:str,now_ms:{type:'integer'},window_ms:{type:'integer'},limit:{type:'integer',minimum:1,maximum:1000}},['view']),input=>journal.query(input),true),
     tool('tos.act.record','Read the whole stored act record by id.',schema({id:str},['id']),async input=>(await journal.record(input.id))??{missing:input.id},true),
     tool('tos.act.append','Append one act as an agent: author {type:"agent",id,model,role?,squad?}, at least one target address, grounds (exact places) unless the kind makes them optional, one line of intent and the kind\'s body. Take a lease before long work on a place; collisions report another author\'s live lease. Decisions, assignments and squads belong to the person.',
