@@ -5852,7 +5852,36 @@
       "areas": [
         "AE15"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "U.S. National Library of Medicine",
+          "role": "institution responsible for MeSH",
+          "evidence": [
+            "https://www.nlm.nih.gov/databases/download/mesh.html"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Medical Subject Headings, 2026 RDF release, descriptor D011434 and preferred concept M0017778",
+          "url": "https://id.nlm.nih.gov/mesh/2026/D011434.json",
+          "scope_note": "https://id.nlm.nih.gov/mesh/2026/M0017778.json",
+          "status": "NLM machine-readable release personally inspected: descriptor is Proprioception, introduced 1973, lastUpdated 2020-06-09; its linked preferred concept provides the two-sentence scope note on proprioceptive receptors, position and movement. This is a versioned digital locus, not a print page."
+        }
+      ],
+      "searches": [
+        {
+          "source": "NLM MeSH data terms",
+          "url": "https://www.nlm.nih.gov/databases/download/terms_and_conditions_mesh.html",
+          "result": "NLM states that MeSH data are freely provided, prescribes source acknowledgment and version/currentness information for redistribution, and explicitly excludes MeSH Translation files from these MeSH data terms. Review scope and obligations before use; no blanket rights conclusion for third-party translations."
+        }
+      ],
+      "requested_places": [
+        "B:A-I033: D011434 preferred concept M0017778 scope note"
+      ],
+      "remaining": "Verify provenance and reuse conditions for the 2026 scope note and find independently licensed ru, es, de, zh-Hans aligned translations; all required searches and independent review remain open."
     },
     {
       "work": "victor-turner.the-forest-of-symbols",
