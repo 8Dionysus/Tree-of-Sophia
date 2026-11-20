@@ -1520,6 +1520,27 @@ def cmd_accept(args):
     save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[])),**{key:prior[key] for key in ('page_number_reviews','text_correction_reviews') if prior.get(key)}})
     print(f'accepted: {work_of(path)}')
 
+def cmd_reopen(args):
+    """Withdraw an unplanted acceptance with its independent finding and predecessor."""
+    path=packet(args.packet);work=work_of(path);accepted=part(path,'accepted.json')
+    if not accepted:die('an accepted packet is required')
+    if packet_selector(path)!=work:die('reopening extensions requires a separately reviewed route')
+    w=world();fragments=w['fragments'];reading=part(path,'reading.json') or {};review=part(path,'review.json') or {}
+    reader=(review.get('reader') or {}).get('id');maker=(reading.get('reader') or {}).get('id')
+    if work in (fragments.get('works') or {}) or work in ((fragments.get('provenance') or {}).get('packets') or []):die('the work is already planted; do not reopen it through this route')
+    if any((record.get('reading') or {}).get('reader')==maker for kind in ('conceptions','links') for record in w['field'].get(kind,[])):die('the packet reading is already planted')
+    witnesses=Path(path)/'witnesses'
+    if witnesses.is_dir() and any(witnesses.glob('*.json.accepted')):die('an accepted witness is attached; preserve it and use a reviewed correction')
+    if not reader or reader==maker or args.reader!=reader or len(args.finding.strip())<40:die('the existing independent reader must record a specific finding of at least 40 characters')
+    snapshots={name:part(path,name) for name in ('accepted.json','reading.json','review.json','places.json','evidence.json')}
+    history=part(path,'reopen-history.json',[])
+    if not isinstance(history,list):die('reopen history is invalid')
+    history.append({'date':today(),'reader':reader,'finding':args.finding,'predecessor':snapshots})
+    save(os.path.join(path,'reopen-history.json'),history)
+    os.unlink(os.path.join(path,'accepted.json'))
+    save(os.path.join(path,'review.json'),{})
+    print('acceptance withdrawn with history; correct the reading and obtain a fresh independent review')
+
 def cmd_status(args):
     rows=[]
     for name in sorted(os.listdir(PACKETS)) if os.path.isdir(PACKETS) else []:
@@ -2288,7 +2309,7 @@ def main():
     sub('compare',cmd_compare,P);sub('judge',cmd_judge,P,(('loc',),{}),(('which',),{}),(('stands',),{'choices':['transcription','print']}),(('note',),{'nargs':'?'}))
     sub('correct',cmd_correct,P,(('loc',),{}),(('from',),{}),(('to',),{}),(('evidence',),{}))
     sub('gate',cmd_gate,P,(('--second',),{'action':'store_true'}),(('--offline',),{'action':'store_true'}))
-    sub('settle',cmd_settle,P);sub('accept',cmd_accept,P,(('--by',),{'required':True}),(('--basis',),{}),(('--offline',),{'action':'store_true'}))
+    sub('settle',cmd_settle,P);sub('accept',cmd_accept,P,(('--by',),{'required':True}),(('--basis',),{}),(('--offline',),{'action':'store_true'}));sub('reopen',cmd_reopen,P,(('--reader',),{'required':True}),(('--finding',),{'required':True}))
     args=p.parse_args();args.fn(args)
 
 if __name__=='__main__':main()

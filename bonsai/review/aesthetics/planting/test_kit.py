@@ -972,6 +972,25 @@ class HtmlTranscriptionTest(unittest.TestCase):
         self.assertNotIn('Contents',text)
         self.assertNotIn('Footer',text)
 
+class ReopenUnplantedTest(unittest.TestCase):
+    def test_reopen_keeps_predecessor_and_requires_new_review(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir()
+            original={'accepted.json':{'by':'operator'},'reading.json':{'reader':{'id':'maker'}},'review.json':{'reader':{'id':'second'},'accept':True},'places.json':{'places':{}},'evidence.json':{'sources':[]}}
+            for name,value in original.items():(path/name).write_text(json.dumps(value))
+            args=argparse.Namespace(packet=str(path),reader='second',finding='The page says only when, which the reading omits.')
+            world={'fragments':{'works':{},'provenance':{}},'field':{'conceptions':[],'links':[]}}
+            with patch.object(kit,'world',return_value=world):kit.cmd_reopen(args)
+            self.assertFalse((path/'accepted.json').exists())
+            self.assertEqual(json.loads((path/'review.json').read_text()),{})
+            self.assertEqual(json.loads((path/'reopen-history.json').read_text())[0]['predecessor'],original)
+            (path/'accepted.json').write_text(json.dumps(original['accepted.json']))
+            world['fragments']['works']['work']={}
+            with patch.object(kit,'world',return_value=world),self.assertRaises(SystemExit):kit.cmd_reopen(args)
+            self.assertTrue((path/'accepted.json').exists())
+
 class UnknownParticipantTest(unittest.TestCase):
     def test_source_backed_unknown_death_does_not_establish_personal_term(self):
         import argparse, json, tempfile

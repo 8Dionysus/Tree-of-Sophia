@@ -407,6 +407,13 @@ For an unaccepted witness, `witness-person-remove . ru author Q123 --reason
 'Reason for removing this mistaken identity.'` preserves the removed record
 and clears the second reading; verify the replacement before reviewing again.
 
+If a second reader finds an error after acceptance but before the work was
+planted, `K reopen . --reader ID --finding 'The specific error seen on the
+page …'` withdraws the acceptance, retains the complete predecessor and
+clears the second reading. Correct the reading through the kit and obtain a
+new independent review. This route refuses already planted works and packets
+with accepted translation witnesses.
+
 For a work already in `fragments.json` that predates the line and has no
 packet, run `K witness-parent WORK` first. It creates a witness-only parent;
 it does not manufacture a reading or an acceptance. Open and review the
