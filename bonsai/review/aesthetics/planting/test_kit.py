@@ -1340,6 +1340,8 @@ class AncientBoundTest(unittest.TestCase):
         julian = {'claims': {'P570': [self.claim('+1700-12-25T00:00:00Z', 11)]}}
         julian['claims']['P570'][0]['mainsnak']['datavalue']['value']['calendarmodel'] = 'http://www.wikidata.org/entity/Q1985786'
         self.assertEqual(kit.death_bound(julian)['year'], 1701)                        # 25 December 1700 (Julian) is 5 January 1701
+        julian['claims']['P570'][0]['mainsnak']['datavalue']['value'].update({'time': '+1700-00-00T00:00:00Z', 'precision': 9})
+        self.assertEqual(kit.death_bound(julian)['year'], 1701)                        # the Julian year 1700 reaches into Gregorian 1701
         latest = {'claims': {'P570': [self.claim('+1050-00-00T00:00:00Z', 7, latest='+1070-00-00T00:00:00Z')]}}
         self.assertEqual(kit.death_bound(latest)['year'], 1070)
 
