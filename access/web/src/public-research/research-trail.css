@@ -1,0 +1,24 @@
+/* The trail of the stand's work: frontier, history of a subject, what grew (research-trail.mjs). */
+.rt-tabs{gap:4px 14px}
+.rt-list,.rt-stages,.rt-acts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.rt-entry{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid var(--ps-line);border-radius:8px;background:#070f1b}
+.rt-entry-head{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.rt-place{font:12.5px ui-monospace,monospace;color:var(--ps-muted)}
+.rt-title{flex:1 1 280px;font:500 15.5px/1.35 var(--ps-serif);color:var(--ps-ink);overflow-wrap:anywhere}
+.rt-mark{padding:1px 8px;border:1px solid #dcc69066;border-radius:999px;font-size:12px;color:var(--ps-gold)}
+.rt-reason{font-size:13.5px;line-height:1.45}
+.rt-stages{position:relative;gap:10px;padding-left:16px;border-left:1px solid var(--ps-line-strong)}
+.rt-stage{display:flex;flex-direction:column;gap:3px;font-size:14.5px;line-height:1.45;color:var(--ps-text)}
+.rt-stage strong{font-weight:500;color:var(--ps-ink)}
+.rt-stage::before{content:"";position:absolute;left:-4px;width:7px;height:7px;margin-top:6px;border-radius:50%;background:var(--ps-gold)}
+.rt-stage[data-kind=before]::before{background:var(--ps-muted)}
+.rt-counter{padding-left:10px;border-left:2px solid #ef8c6288}
+.rt-acts li{display:flex;flex-wrap:wrap;gap:8px;font-size:14px}
+.rt-compare,.rt-growth{display:flex;flex-direction:column;gap:10px}
+.rt-diff{display:flex;flex-direction:column;gap:2px;font-size:14px}
+.rt-diff strong{font-weight:500;color:var(--ps-ink)}
+.rt-then{margin:0;color:var(--ps-muted)}
+.rt-now{margin:0;color:var(--ps-text)}
+.rt-touched{margin:0;color:var(--ps-gold);font-size:14px}
+.rt-collection{display:flex;flex-direction:column;gap:6px}
+.rt-version{max-width:420px}

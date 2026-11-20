@@ -679,6 +679,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // Within its rank a name already standing goes first, so that it keeps its room.
     // Among equals the nearer star names itself first.
     const rank=n=>priority(n)+(n.labelShown?4:0),ordered=[...nodes].sort((a,b)=>rank(b)-rank(a)||(b.screen?.d??1)-(a.screen?.d??1));
+    const chosenLink=edges.find(e=>e.id===selectedEdgeId),always=new Set([selectedId,chosenLink?.from,chosenLink?.to].filter(Boolean));
     for(const n of ordered){
       if(!kept.has(n.id)||n.el.hidden)continue;
       // A kept name keeps its source line where there is free room for it, else its name alone where that is free;
@@ -687,6 +688,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const whole=placeAlways([...around(n,height,19,width),...around(n,height,40,width)],occupied,nodeObstacles,n.id);
       let chosen=whole?.area??null,short=false;
       if(whole&&!whole.clear&&n.subtitle&&titleHeight){const brief=placeAlways([...around(n,titleHeight,19,width),...around(n,titleHeight,40,width)],occupied,nodeObstacles,n.id);if(brief?.clear){chosen=brief.area;short=true;}}
+      // A crowded neighbourhood stays legible: a linked star's name that finds no room free of other names is not laid
+      // over them; it stands once the star is pointed at or reached by the keyboard, and the chosen star's card lists
+      // every link. The chosen star's own name, and both ends of a chosen link, always stand.
+      if(chosen&&!always.has(n.id)&&n.id!==hover&&occupied.some(o=>overlaps(chosen,o,0)))chosen=null;
       showLabel(n,chosen,short,true);
     }
     // An aspect's names take their own rows first; a name whose row is taken, and every other kept name, looks along its link after.

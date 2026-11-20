@@ -4,7 +4,8 @@
 export const CONTROL_PREFS_KEY='tos.public-research.controls.v1';
 
 // Keys are physical keys (KeyboardEvent.code), so a key keeps its place in any keyboard layout.
-export const DEFAULT_KEYS=Object.freeze({palette:'KeyK',layer:'KeyL',search:'Slash',frame:'KeyO',bench:'KeyB',expand:'KeyF'});
+// The keyboard walks the sky too: G brings the focus to its stars, ] and [ walk the links of the chosen star.
+export const DEFAULT_KEYS=Object.freeze({palette:'KeyK',layer:'KeyL',search:'Slash',frame:'KeyO',bench:'KeyB',expand:'KeyF',stars:'KeyG',nextLink:'BracketRight',previousLink:'BracketLeft'});
 export const PRESETS=Object.freeze({
   mouse:Object.freeze({turnSpeed:1,zoomSpeed:1,inertia:true}),
   trackpad:Object.freeze({turnSpeed:.7,zoomSpeed:.45,inertia:true}),

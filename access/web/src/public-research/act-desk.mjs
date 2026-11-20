@@ -129,7 +129,8 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
   function addressOf(target){
     if(target.id)return target.id;
     if(target.passage?.reference){try{return referenceKey(target.passage.reference);}catch{return null;}}
-    if(target.stand){const s=target.stand;return `place:${profile}:${s.language}:${s.chapter}:${s.unitId}:${s.start}-${s.end}`;}
+    // A whole chapter is addressed without a unit; a passage names its unit and span.
+    if(target.stand){const s=target.stand;return s.unitId?`place:${profile}:${s.language}:${s.chapter}:${s.unitId}:${s.start}-${s.end}`:`place:${profile}:${s.language}:${s.chapter}`;}
     return null;
   }
   function groundsOf(target){
@@ -143,7 +144,8 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
   const nameOfAddress=address=>titleOf(index()?.get?.(address))??address;
 
   // ------------------------------------------------------------ ticket (B2) with checks (B3)
-  async function openTicket(target){
+  /** `preset` may choose the category and begin the observation, as the frontier does for its places. */
+  async function openTicket(target,preset={}){
     const {dialog,body}=sheet(t('ticket'));
     const kinds=await acts.query({view:'kinds'});
     const subject=el('p','ad-subject',target.label||addressOf(target)||'');
@@ -237,6 +239,8 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
     });
     const voiceRow=el('div','ad-row');voiceRow.append(dictate);
     body.append(subject,field(t('category'),category),field(t('variant'),variant),field(t('observation'),observation),voiceRow,proposeRow,changeBox,el('h3','ad-minor',t('checks')),checks,save);
+    if(preset.category&&kinds.categories.some(item=>item.name===preset.category))category.value=preset.category;
+    if(preset.observation)observation.value=preset.observation;
     paintVariants();paintChange();paintChecks();observation.focus();
   }
 

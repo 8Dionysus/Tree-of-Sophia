@@ -30,6 +30,8 @@ const labels={
   openCard:['Открыть карточку','Open the card'],
   openArticle:['Статья в справочнике','Article in the reference'],
   compare:['Сравнить','Compare'],
+  connect:['Связать с другой мыслью','Link with another thought'],
+  ownSky:['Моё небо — открытое в познании','My sky — what learning opened'],
   bench:['На верстак','To the workbench'],
   copyLink:['Копировать ссылку','Copy link'],
   copyViewLink:['Копировать ссылку на этот вид','Copy a link to this view'],
@@ -76,6 +78,9 @@ const labels={
   'key-frame':['Вписать всё','Fit everything'],
   'key-bench':['На верстак','To the workbench'],
   'key-expand':['Развернуть карточку','Expand the card'],
+  'key-stars':['К звёздам неба','To the stars of the sky'],
+  'key-nextLink':['Следующая связь звезды','Next link of the star'],
+  'key-previousLink':['Предыдущая связь звезды','Previous link of the star'],
   textScale:['Размер текста для чтения','Reading text size'],
   contrast:['Контраст знаков','Contrast of signs'],
   'contrast-normal':['Обычный','Normal'],
@@ -202,6 +207,8 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
   const actions=[
     {id:'open-card',label:'openCard',for:['star','link'],command:'tos.page.select',run:target=>registry?registry.invoke('tos.page.select',{item_id:target.id}):experience?.open?.(target.id)},
     {id:'open-article',label:'openArticle',for:['star','link'],command:'tos.page.open-view',run:target=>registry?registry.invoke('tos.page.open-view',{view_id:'reference',focus_id:target.id}):(experience?.open?.(target.id),experience?.setMode?.('reference'))},
+    {id:'own-sky',label:'ownSky',for:['any'],when:()=>Boolean(space?.actions?.ownSky?.().available),active:()=>Boolean(space?.actions?.ownSky?.().on),run:()=>space.actions.toggleOwnSky()},
+    {id:'connect',label:'connect',for:['star'],when:()=>Boolean(space?.actions?.connectFrom),run:target=>space.actions.connectFrom(target.id)},
     {id:'compare',label:'compare',for:['star'],command:'tos.page.compare',run:target=>registry?registry.invoke('tos.page.compare',{item_id:target.id}):space?.compare?.(target.id)},
     {id:'bench',label:'bench',for:['star','link'],command:'tos.page.lay-on-bench',when:()=>space?.actions?.canLayOnBench?.(),run:()=>registry?registry.invoke('tos.page.lay-on-bench',{}):space?.actions?.layOnBench?.()},
     {id:'copy-link',label:'copyLink',for:['star','link','passage'],when:target=>target.type!=='passage'||Boolean(target.passage),run:target=>copy(linkTo(target))},
@@ -300,6 +307,9 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
     if(event.target.closest?.('input,textarea,select,[contenteditable="true"],dialog[open]'))return;
     if(event.code===keys().layer){event.preventDefault();setLayer(LAYERS[(LAYERS.indexOf(layer)+1)%LAYERS.length]);}
   },{capture:true});
+
+  // The stand asks for the menu when the keyboard calls it on a star or a link (the menu key, Shift+F10).
+  on(shell,'public-research-menu',event=>openPalette(event.detail?.anchor?{anchor:event.detail.anchor}:{}));
 
   // ------------------------------------------------------------ what agents can do (D5)
   const capabilities=el('dialog','al-capabilities');shell.append(capabilities);

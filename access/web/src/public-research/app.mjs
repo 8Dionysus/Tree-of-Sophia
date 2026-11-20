@@ -11,6 +11,8 @@ import {mountKnowing} from './knowing-map.mjs';
 import {connectResearchPage} from './page-agent.mjs';
 import {mountActionLayer} from './action-layer.mjs';
 import {mountActDesk} from './act-desk.mjs';
+import {mountResearchTrail} from './research-trail.mjs';
+import {loadResearchVersion,retainedResearchVersions} from './research-history.mjs';
 import {createControlPrefs} from './control-prefs.mjs';
 // How this device steers the stand: one set of preferences for the space, its keys and the reading size.
 const controlPrefs=createControlPrefs();
@@ -142,6 +144,7 @@ let pageAgent;
 let actJournal;
 let actionLayer;
 let actDesk;
+let researchTrail;
 let stopWorkspaceMirror;
 let appDisposed=false;
 let saveTimer = null;
@@ -515,7 +518,8 @@ async function start() {
     onCognitive:detail=>{if(cognitive)void cognitive.record(detail.action,detail).catch(error=>console.error('Research event',error));}});
   // The agent session lives in the sky's journal.
   knowing=learning?mountKnowing({root:experience.cognitiveRoot,index:publicSpace.index,locale:()=>locale,notebook:entry.notebook,profile,fragments:spaceView.fragments,getSession:()=>cognitive,
-    onOpenReference:id=>{experience.open(id);experience.setMode('reference');},onOpenSpace:id=>{experience.open(id);experience.setMode('original');}}):null;
+    onOpenReference:id=>{experience.open(id);experience.setMode('reference');},onOpenSpace:id=>{experience.open(id);experience.setMode('original');},
+    onChange:value=>spaceView?.actions?.setOwnSkyState?.(value)}):null;
   if(knowing)spaceView.markTerms?.(experience.cognitiveRoot);
   cognitive=mountCognitiveSession({root:knowing?.agentRoot??experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,onHelpChange:value=>knowing?.setHelpLevel(value),getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
   actJournal=createActJournal({store:openActStore()});
@@ -523,6 +527,8 @@ async function start() {
   pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,actTier:()=>actDesk?.tier()??'propose',viewState:()=>actionLayer?.context()??null,viewControl:()=>actionLayer,locale:()=>locale});
   actionLayer=mountActionLayer({shell:spaceView.root,header,space:spaceView,experience,registry:pageAgent.registry,acts:actJournal,api:window.tosPublicResearch,locale:()=>locale,controls:controlPrefs});
   actDesk=mountActDesk({shell:spaceView.root,actionLayer,space:spaceView,acts:actJournal,registry:pageAgent.registry,api:window.tosPublicResearch,locale:()=>locale,profile});
+  researchTrail=mountResearchTrail({shell:spaceView.root,actionLayer,space:spaceView,acts:actJournal,actDesk,experience,registry:pageAgent.registry,locale:()=>locale,profile,
+    versions:profile==='zarathustra'?{list:retainedResearchVersions,load:loadResearchVersion}:null});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && corpusInfo) {
@@ -553,6 +559,7 @@ function disposeApp() {
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
+  researchTrail?.destroy();
   actDesk?.destroy();
   actionLayer?.destroy();
   pageAgent?.destroy();

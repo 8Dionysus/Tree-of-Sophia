@@ -69,15 +69,16 @@ function shownText(element){
 
 /**
  * Mount the hint on `root`. `selector` names what can give a hint;
- * `describe(element)` may return a card ({eyebrow,title,lines,note}) or words
- * ({text,keys,note}) for an element, and otherwise its data attributes speak.
+ * `describe(element, via)` may return a card ({eyebrow,title,lines,actions,note}) or words
+ * ({text,keys,note}) for an element, and otherwise its data attributes speak. `via` says how the thing was
+ * reached ('pointer' or 'keyboard'), so a card can name the keys or the clicks that act on it.
  */
 export function mountHints(root,{selector='[data-hint]',describe=null,delay=380,side=()=> 'top',moving=()=>false}={}){
   const tip=make('div','ps-hint');tip.id=`ps-hint-${++mounted}`;tip.setAttribute('role','tooltip');tip.hidden=true;root.append(tip);
   let target=null,pending=null,timer=0,warmUntil=0,follow=0,disposed=false;
   const find=node=>node instanceof Element?node.closest(selector):null;
-  const words=element=>{
-    const described=describe?.(element);if(described!==undefined)return described;
+  const words=(element,via)=>{
+    const described=describe?.(element,via);if(described!==undefined)return described;
     return hintWords({hint:element.dataset.hint,keys:element.dataset.hintKeys,note:element.dataset.hintNote,shown:shownText(element)});
   };
   function render(content){
@@ -87,6 +88,12 @@ export function mountHints(root,{selector='[data-hint]',describe=null,delay=380,
       if(content.eyebrow){const line=make('span','ps-hint-eyebrow',content.eyebrow);if(content.glyph)line.prepend(content.glyph);tip.append(line);}
       if(content.title)tip.append(make('strong','ps-hint-title',content.title));
       for(const line of content.lines??[])if(line)tip.append(make('span','ps-hint-line',line));
+      // What can be done with the thing, each with its keys: the way into its actions.
+      if(content.actions?.length){
+        const actions=make('span','ps-hint-actions');
+        for(const action of content.actions){const item=make('span','ps-hint-action');for(const key of action.keys??[])item.append(make('kbd','',key));item.append(make('span','',action.text));actions.append(item);}
+        tip.append(actions);
+      }
     }else{
       tip.dataset.form='words';
       const row=make('span','ps-hint-row');row.append(make('span','ps-hint-text',content.text));
@@ -112,15 +119,15 @@ export function mountHints(root,{selector='[data-hint]',describe=null,delay=380,
   }
   // Things that move with the space keep their hint beside them.
   function track(){cancelAnimationFrame(follow);follow=0;if(!target||!moving(target))return;const step=()=>{if(!target)return;position();follow=requestAnimationFrame(step);};follow=requestAnimationFrame(step);}
-  function show(element){
+  function show(element,via='pointer'){
     clearTimeout(timer);pending=null;
-    const content=element.isConnected?words(element):null;
+    const content=element.isConnected?words(element,via):null;
     if(!content){hide();return;}
     if(target&&target!==element)target.removeAttribute('aria-describedby');
     target=element;render(content);tip.hidden=false;position();track();
     element.setAttribute('aria-describedby',tip.id);
   }
-  function schedule(element,wait){clearTimeout(timer);pending=element;timer=setTimeout(()=>{if(pending===element)show(element);},Math.max(0,wait));}
+  function schedule(element,wait,via='pointer'){clearTimeout(timer);pending=element;timer=setTimeout(()=>{if(pending===element)show(element,via);},Math.max(0,wait));}
   function hide(){
     clearTimeout(timer);pending=null;cancelAnimationFrame(follow);follow=0;
     if(target){target.removeAttribute('aria-describedby');warmUntil=performance.now()+700;}
@@ -138,7 +145,7 @@ export function mountHints(root,{selector='[data-hint]',describe=null,delay=380,
     hide();
   };
   // The keyboard gets the hint as soon as it arrives; a click's focus does not.
-  const focusIn=event=>{const element=find(event.target);if(element&&event.target.matches?.(':focus-visible'))schedule(element,120);};
+  const focusIn=event=>{const element=find(event.target);if(element&&event.target.matches?.(':focus-visible'))schedule(element,120,'keyboard');};
   // A hint the keyboard has already left neither stays nor arrives late.
   const focusOut=event=>{
     const into=event.relatedTarget instanceof Node?event.relatedTarget:null;
@@ -159,7 +166,7 @@ export function mountHints(root,{selector='[data-hint]',describe=null,delay=380,
   document.addEventListener('keydown',key,{capture:true});window.addEventListener('scroll',press,{capture:true,passive:true});
   return {
     /** Give the hint of an element now, as if the pointer had rested on it (a link's line, a scripted focus). */
-    showFor(element,{wait=delay}={}){if(disposed||!element)return;if(element===target)return;schedule(element,target||performance.now()<warmUntil?60:wait);},
+    showFor(element,{wait=delay,via='pointer'}={}){if(disposed||!element)return;if(element===target)return;schedule(element,target||performance.now()<warmUntil?60:wait,via);},
     /** Close the hint if it belongs to `element`, or whichever is open. */
     hide(element=null){if(!element||element===target||element===pending)hide();},
     get element(){return tip;},
