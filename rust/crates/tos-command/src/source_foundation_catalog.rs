@@ -102,25 +102,33 @@ impl ColdStageOwner for CapturedStageOwner<'_, '_> {
         // A failed pass can have consumed raw bytes without returning cost.
         // Poison before entering it so recovery cannot restore that allowance.
         self.source_recheck_failed.set(true);
+        let mut sources = self.sources.borrow_mut();
         let read = if self.capture.cost().candidate_copy_read_bytes.is_some() {
             self.capture
                 .recheck_candidate_transport_with_control_budget(
-                    &mut self.sources.borrow_mut(),
+                    &mut sources,
                     remaining,
                     self.limits.deadline,
                     self.cancelled,
                 )
         } else {
             self.capture.recheck_with_control_budget(
-                &mut self.sources.borrow_mut(),
+                &mut sources,
                 self.read_limits,
                 remaining,
                 self.limits.deadline,
                 self.cancelled,
             )
         }
-        .map_err(|_| {
-            Error::Invalid("foundation stage sealed source changed or read budget refused")
+        .map_err(|error| {
+            Error::Io(std::io::Error::other(
+                crate::source_command::SourceCommandError::DeniedWithReason(format!(
+                    "foundation stage sealed source recheck ({} of {} route operations): {}",
+                    sources.operation_count(),
+                    sources.operation_limit(),
+                    error.public_reason()
+                )),
+            ))
         })?;
         self.source_recheck_read_bytes.set(
             prior
