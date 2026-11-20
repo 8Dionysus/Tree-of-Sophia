@@ -22,12 +22,17 @@ import {mountAgentField} from './agent-field.mjs';
 import {mountSkyWindow} from './sky-window.mjs';
 import {mountHeld} from './held-view.mjs';
 import {mountHighlight} from './highlight-categories.mjs';
+import {mountSkyAgents} from './sky-agents.mjs';
+import {mountReturnGateway} from './return-gateway.mjs';
+import {mountTalk} from './talk-at-place.mjs';
+import {mountResearchBranches} from './research-branch.mjs';
 import {loadResearchVersion,retainedResearchVersions} from './research-history.mjs';
 import {createControlPrefs} from './control-prefs.mjs';
 // How this device steers the stand: one set of preferences for the space, its keys and the reading size.
 const controlPrefs=createControlPrefs();
 import {createActJournal} from '../act-journal/journal.mjs';
 import {openActStore} from '../act-journal/store.mjs';
+import {openActJournal} from '../act-journal/bridge.mjs';
 import {mirrorWorkspace} from '../act-journal/workspace-mirror.mjs';
 import {mountPublicAgentBridge} from './agent-bridge.mjs';
 import {createPublicResearchOwners, mountPublicWorkspaceView} from './workspace-view.mjs';
@@ -165,6 +170,10 @@ let agentField;
 let skyWindow;
 let heldView;
 let highlight;
+let skyAgents;
+let returnGateway;
+let talk;
+let branches;
 let stopWorkspaceMirror;
 let appDisposed=false;
 let saveTimer = null;
@@ -542,7 +551,8 @@ async function start() {
     onChange:value=>spaceView?.actions?.setOwnSkyState?.(value)}):null;
   if(knowing)spaceView.markTerms?.(experience.cognitiveRoot);
   cognitive=mountCognitiveSession({root:knowing?.agentRoot??experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,onHelpChange:value=>knowing?.setHelpLevel(value),getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
-  actJournal=createActJournal({store:openActStore()});
+  // The person's bridge serves this page from their own machine and keeps the journal; otherwise the browser does.
+  actJournal=openActJournal({browser:()=>createActJournal({store:openActStore()})});
   stopWorkspaceMirror=publicOwners.workspace?mirrorWorkspace(publicOwners.workspace,actJournal,{sessionId:'local'}):null;
   pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,actTier:()=>actDesk?.tier()??'propose',viewState:()=>actionLayer?.context()??null,viewControl:()=>actionLayer,locale:()=>locale});
   actionLayer=mountActionLayer({shell:spaceView.root,header,space:spaceView,experience,registry:pageAgent.registry,acts:actJournal,api:window.tosPublicResearch,locale:()=>locale,controls:controlPrefs});
@@ -553,12 +563,17 @@ async function start() {
   workplaces=mountWorkplaces({shell:spaceView.root,actionLayer,space:spaceView,experience,registry:pageAgent.registry,locale:()=>locale,profile});
   deviceHandoff=mountDeviceHandoff({shell:spaceView.root,actionLayer,acts:actJournal,exportWork:()=>workspaceView?.exportAll?.(),locale:()=>locale});
   collector=mountCollect({shell:spaceView.root,actionLayer,acts:actJournal,actDesk,space:spaceView,locale:()=>locale,profile});
-  agentsBoard=mountAgentsBoard({shell:spaceView.root,actionLayer,acts:actJournal,space:spaceView,locale:()=>locale});
+  agentsBoard=mountAgentsBoard({shell:spaceView.root,actionLayer,acts:actJournal,actDesk,space:spaceView,locale:()=>locale});
   offline=mountOffline({shell:spaceView.root,actionLayer,locale:()=>locale,profile});
   agentField=mountAgentField({shell:spaceView.root,actionLayer,acts:actJournal,actDesk,space:spaceView,registry:pageAgent.registry,locale:()=>locale});
   skyWindow=mountSkyWindow({shell:spaceView.root,actionLayer,space:spaceView,locale:()=>locale});
   heldView=mountHeld({shell:spaceView.root,actionLayer,space:spaceView,locale:()=>locale,profile});
   highlight=mountHighlight({actionLayer,acts:actJournal,space:spaceView,locale:()=>locale});
+  skyAgents=mountSkyAgents({actionLayer,acts:actJournal,space:spaceView,locale:()=>locale});
+  returnGateway=mountReturnGateway({shell:spaceView.root,actionLayer,acts:actJournal,space:spaceView,experience,locale:()=>locale});
+  talk=mountTalk({shell:spaceView.root,actionLayer,acts:actJournal,space:spaceView,locale:()=>locale});
+  branches=mountResearchBranches({shell:spaceView.root,actionLayer,acts:actJournal,api:window.tosPublicResearch,space:spaceView,locale:()=>locale,
+    getSession:()=>{try{return cognitive?.context?.()?.session_id??null;}catch{return null;}}});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && corpusInfo) {
@@ -589,6 +604,10 @@ function disposeApp() {
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
+  branches?.destroy();
+  talk?.destroy();
+  returnGateway?.destroy();
+  skyAgents?.destroy();
   highlight?.destroy();
   heldView?.destroy();
   skyWindow?.destroy();

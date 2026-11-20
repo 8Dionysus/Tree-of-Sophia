@@ -7,8 +7,8 @@ import fieldShapes from '../../../contracts/field-shapes.v1.json' with {type:'js
 import {draftAct} from './drafts.mjs';
 
 export const MAX_AGENT_BATCH=100;
-// Decisions, assignments, squads, change packets and mirrored workspace events belong to the person.
-const PERSON_ONLY=new Set(['review','assignment','squad','change-packet','workspace-event']);
+// Decisions, assignments, squads, change packets, mirrored workspace events and research branches belong to the person.
+const PERSON_ONLY=new Set(['review','assignment','squad','change-packet','workspace-event','branch']);
 const PROPOSING=new Set(['ticket','proposal']);
 export const AGENT_TIERS=Object.freeze(['read','draft','propose']);
 
@@ -74,8 +74,13 @@ export function actJournalTools(journal,{tier=()=> 'propose'}={}){
     tool('tos.act.append-batch',`Append up to ${MAX_AGENT_BATCH} acts in order, each as for tos.act.append. Stops at the first refusal and reports it with the acts already appended.`,
       schema({acts:{type:'array',maxItems:MAX_AGENT_BATCH,items:act}},['acts']),async input=>{
         const items=input.acts??[];if(items.length>MAX_AGENT_BATCH)throw new AgentActRefused('act_batch',`At most ${MAX_AGENT_BATCH} acts at once.`);
-        const drafts=[];for(const item of items)drafts.push(await agentDraft(journal,item,{tier:tier()}));
-        try{return {appended:(await journal.appendMany(drafts)).map(summary),failure:null};}
+        // The acts before the first refusal are appended, as at the bridge; the refusal names its index.
+        const drafts=[];let refused=null;
+        for(const [index,item] of items.entries()){
+          try{drafts.push(await agentDraft(journal,item,{tier:tier()}));}catch(error){refused={index,error:error.code??String(error.message)};break;}
+        }
+        if(!drafts.length&&refused)return {appended:[],failure:refused};
+        try{return {appended:(await journal.appendMany(drafts)).map(summary),failure:refused};}
         catch(error){return {appended:(error.appended??[]).map(summary),failure:{index:error.index??0,error:error.code??String(error.message)}};}
       }),
   ];

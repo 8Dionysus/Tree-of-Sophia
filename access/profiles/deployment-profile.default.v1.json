@@ -60,5 +60,15 @@
       "max_state_bytes": null,
       "max_json_visits": null
     }
+  },
+  "bridge": {
+    "max_connections": 256,
+    "max_event_streams": 16,
+    "max_body_bytes": 4194304,
+    "max_window_records": 1000,
+    "review_queue_soft": 200,
+    "review_queue_max": 2000,
+    "pace_step_ms": 50,
+    "pace_max_ms": 60000
   }
 }

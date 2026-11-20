@@ -103,8 +103,8 @@ Object.assign(extraTranslations.en,{kind_era:'Era',kind_branch:'Branch',kind_pat
 Object.assign(extraTranslations.ru,{'media_author-portrait':'Портрет автора','media_book-response':'Отклик на книгу',media_motif:'Совпадение мотива',mediaPublicDomain:'Общественное достояние',mediaCommonsPublicDomain:'Общественное достояние · Wikimedia Commons',mediaOpenAccess:'Открытый доступ','media_era-material':'Материал эпохи','media_object-of-analysis':'Предмет анализа',media_comparison:'Для сравнения',mediaOpen:'Открыть изображение во всех подробностях',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм',mediaMissing:'Изображение не загрузилось с сервиса держателя.',mediaZoomIn:'Приблизить',mediaZoomOut:'Отдалить',mediaWhole:'Показать целиком'});
 // The keyboard's way through the sky (F2) and the actions a star's hint names (A6).
 // Listening to the original in the chapter window (H2).
-Object.assign(extraTranslations.ru,{agentRoute:'Маршрут предложен агентом',trialLens:'Пробная линза агента',trialLensOff:'Снять',nearReading:'Чтение вблизи',nearSentence:'место, на котором стоит звезда',nearPlaces:'её места',voiceListen:'Слушать оригинал',voicePause:'Пауза',voiceResume:'Продолжить чтение',voiceRate:'Скорость чтения',voiceSentence:'Предложение {0} из {1}',voiceSilent:'немецкого голоса в этом браузере нет: свет идёт в темпе чтения'});
-Object.assign(extraTranslations.en,{agentRoute:'A route an agent proposed',trialLens:'An agent\'s trial lens',trialLensOff:'Take off',nearReading:'Reading up close',nearSentence:'the place the star rests on',nearPlaces:'its places',voiceListen:'Listen to the original',voicePause:'Pause',voiceResume:'Resume reading',voiceRate:'Pace of reading',voiceSentence:'Sentence {0} of {1}',voiceSilent:'this browser has no German voice: the light moves at the pace of reading'});
+Object.assign(extraTranslations.ru,{agentReplay:'Проигрывается работа',agentsHere:'Сейчас здесь работают агенты',agentsBoard:'Доска «Агенты»',agentRoute:'Маршрут предложен агентом',trialLens:'Пробная линза агента',trialLensOff:'Снять',nearReading:'Чтение вблизи',nearSentence:'место, на котором стоит звезда',nearPlaces:'её места',voiceListen:'Слушать оригинал',voicePause:'Пауза',voiceResume:'Продолжить чтение',voiceRate:'Скорость чтения',voiceSentence:'Предложение {0} из {1}',voiceSilent:'немецкого голоса в этом браузере нет: свет идёт в темпе чтения'});
+Object.assign(extraTranslations.en,{agentReplay:'Replaying the work of',agentsHere:'Agents at work here now',agentsBoard:'The board “Agents”',agentRoute:'A route an agent proposed',trialLens:'An agent\'s trial lens',trialLensOff:'Take off',nearReading:'Reading up close',nearSentence:'the place the star rests on',nearPlaces:'its places',voiceListen:'Listen to the original',voicePause:'Pause',voiceResume:'Resume reading',voiceRate:'Pace of reading',voiceSentence:'Sentence {0} of {1}',voiceSilent:'this browser has no German voice: the light moves at the pace of reading'});
 Object.assign(extraTranslations.ru,{ownSkyOn:'Моё небо: открытое в познании выделено',ownSkyOff:'Моё небо скрыто',compareWith:'Сравнить с другой звездой',connectWith:'Связать с другой мыслью',hintCard:'карточка',hintActions:'все действия',hintLinks:'связи звезды',hintClick:'Щелчок',noLinksHere:'У этой звезды на карте нет связей',walkLink:'Связь {0} из {1}'});
 Object.assign(extraTranslations.en,{ownSkyOn:'My sky: what learning opened stands out',ownSkyOff:'My sky is hidden',compareWith:'Compare with another star',connectWith:'Link with another thought',hintCard:'card',hintActions:'every action',hintLinks:'links of the star',hintClick:'Click',noLinksHere:'This star has no links on the map',walkLink:'Link {0} of {1}'});
 Object.assign(extraTranslations.en,{'media_author-portrait':'Portrait of the author','media_book-response':'A response to the book',media_motif:'A shared motif',mediaPublicDomain:'Public domain',mediaCommonsPublicDomain:'Public domain · Wikimedia Commons',mediaOpenAccess:'Open access','media_era-material':'Material of the era','media_object-of-analysis':'Object of analysis',media_comparison:'For comparison',mediaOpen:'Open the image in full detail',mediaInscribed:'Inscribed on the object',mediaSeries:'Series',mediaSize:'{0} × {1} mm',mediaMissing:'The image did not load from the holder’s service.',mediaZoomIn:'Zoom in',mediaZoomOut:'Zoom out',mediaWhole:'Show whole'});
@@ -286,6 +286,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const relationChips=el('div','relation-chips'),statusLegend=el('div','ps-status-legend');relationBar.append(relationToggle,relationChips,statusLegend);
   // The research layer's highlight categories name their channel here (highlight-categories.mjs, TOS-D-0082).
   const highlightLegend=el('div','ps-highlight-legend');highlightLegend.hidden=true;relationBar.append(highlightLegend);
+  // The agents' sky (C7, sky-agents.mjs) names its marks here.
+  const agentsLegend=el('div','ps-highlight-legend ps-agents-legend');agentsLegend.hidden=true;relationBar.append(agentsLegend);
   const footer=el('footer','footer ps-footer');
   const footerTools=el('div','footer-tools');
   // The footer speaks only when something happened: a saved change, an error.
@@ -1223,10 +1225,12 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     refreshSky();return Boolean(trialLens);
   }
   // An agent's routes (L4) join the stand's own and are walked by the same walker; each is the agent's proposal.
-  function setAgentRoutes(list){
-    for(let i=routes.length-1;i>=0;i--)if(routes[i].agent)routes.splice(i,1);
-    for(const item of list??[])routes.push({...item,source:'atlas',agent:true,steps:(item.steps??[]).map(step=>({...step,nodeId:coreMaterial(step.nodeId)??step.nodeId}))});
-    if(browsingRoutes||route)renderRoutes();return routes.filter(item=>item.agent).length;
+  // Routes from agents' work: the field's routes (L4) and replays of an agent's or a squad's work (C9), each group
+  // replaced on its own.
+  function setAgentRoutes(list,group='field'){
+    for(let i=routes.length-1;i>=0;i--)if(routes[i].agent===group)routes.splice(i,1);
+    for(const item of list??[])routes.push({...item,source:'atlas',agent:group,steps:(item.steps??[]).map(step=>({...step,nodeId:coreMaterial(step.nodeId)??step.nodeId}))});
+    if(browsingRoutes||route)renderRoutes();return routes.filter(item=>item.agent===group).length;
   }
   // One highlight category at a time (A2): its links take brightness and line weight, the stars at their ends and its own
   // stars stand out, the rest steps back. The legend names what the channel shows.
@@ -1238,6 +1242,28 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const own=node=>ends.has(node.id)||highlight.nodes.has(node.materialId)||highlight.nodes.has(String(node.id).replace(/^material:/,''))||highlight.nodes.has(node.coreId);
     return {...view,edges,nodes:view.nodes.map(node=>own(node)?{...node,prominent:true,dim:false}:{...node,dim:true,prominent:false})};
   }
+  // Agents at work by star (C7): {address: {count, roles}}, read from the journal's presence fold.
+  let agentPresence=null;
+  const agentsAtNode=node=>agentPresence&&node?agentPresence.get(node.coreId)??agentPresence.get(node.materialId)??agentPresence.get(String(node.id).replace(/^material:/,''))??agentPresence.get(node.id)??null:null;
+  function withAgents(view){
+    if(!agentPresence||!view)return view;
+    return {...view,nodes:view.nodes.map(node=>{const agents=agentsAtNode(node);return agents?{...node,agents}:node;})};
+  }
+  // The same agents in the star's card (C3): who works here now, the way to the board that shows them all.
+  function paintAgentsHere(id){
+    const agents=agentsAtNode(graphState().nodes.find(node=>node.id===id));
+    if(!agents)return;
+    const line=el('p','ps-card-voices ps-agents-here');line.dataset.agents=String(agents.count);
+    line.append(el('span','',`${t('agentsHere')}: ${agents.count}${agents.roles.length?` · ${agents.roles.slice(0,4).join(', ')}`:''}`));
+    const board=button(t('agentsBoard'),'text-button');board.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-agents-board',{bubbles:true})));line.append(board);
+    panelContent.prepend(line);
+  }
+  function setAgentPresence(value){
+    agentPresence=value&&value.size?new Map([...value].flatMap(([id,row])=>[[id,row],[coreMaterial(id),row]].filter(([key])=>key))):null;refreshSky();
+    const here=panelContent.querySelector('.ps-agents-here');
+    here?.remove();if(columnMode()==='node'&&selected)paintAgentsHere(selected);
+    return Boolean(agentPresence);
+  }
   function setHighlight(value){
     highlight=value?{edges:new Set(value.edges??[]),nodes:new Set([...(value.nodes??[])].flatMap(id=>[id,coreMaterial(id)].filter(Boolean)))}:null;
     refreshSky();return Boolean(highlight);
@@ -1245,13 +1271,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function setOwnSky(on){ownSkyOn=Boolean(on);try{localStorage.setItem(OWN_SKY_KEY,ownSkyOn?'on':'off');}catch{}shell.dataset.ownSky=String(ownSkyOn);notify(t(ownSkyOn?'ownSkyOn':'ownSkyOff'));refreshSky();}
   function refreshSky(){
     sky?.setCloseIn?.(treeView()||gatherView());sky?.setZoomCeiling?.(treeView()||gatherView()?14:4);
-    if(!sky)return;shownView=withHighlight(withTrialLens(withOwnSky(visibleState())));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
+    if(!sky)return;shownView=withAgents(withHighlight(withTrialLens(withOwnSky(visibleState()))));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
     // An aspect is framed whole once, when its choice is made: the chosen star or link and the rows beside it.
     const key=aspect?`${aspect.kind}:${aspect.focus.join('|')}`:'';
     if(key!==aspectKey){const was=aspectKey;aspectKey=key;aspectOpen={};
       // An aspect is read straight on; letting it go returns the space to its resting turn.
       if(aspect)sky.faceFront();else if(was)sky.turnToRest();
-      if(aspect){shownView=withHighlight(withTrialLens(withOwnSky(visibleState())));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
+      if(aspect){shownView=withAgents(withHighlight(withTrialLens(withOwnSky(visibleState()))));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
     sky.refresh();
   }
   function reflect(){
@@ -2117,7 +2143,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const trays=bench&&!subjectChanged?benchTrays():null;
     delete panelContent.dataset.termWorks;delete panelContent.dataset.termNode;
     renderRoutes();renderLensControls(mode);
-    if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node')renderNode(selected);else if(mode==='edge')renderEdge(selectedEdge);else if(mode==='measure')renderMeasure();
+    if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node'){renderNode(selected);paintAgentsHere(selected);}else if(mode==='edge')renderEdge(selectedEdge);else if(mode==='measure')renderMeasure();
     if(bench)openBench(mode,trays);
     // The scale of time shows the chosen move's author's life, so a new choice redraws its strip.
     if(measuredLens(lens)&&scaleChoice!==selected)refreshSky();
@@ -2263,7 +2289,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const head=el('div','ps-walk-head');head.append(el('span','ps-card-kicker',`${routeWord(item)} · ${routeSize(item,steps.length)}`),el('h2','ps-route-title',tr(current?.title,locale())));
     if(current?.question)head.append(el('p','ps-route-question',tr(current.question,locale())));
     // An agent's route says whose proposal it is (agent-field.mjs).
-    if(current?.byAgent)head.append(el('p','ps-card-voices',`${t('agentRoute')}: ${current.byAgent}`));
+    if(current?.byAgent)head.append(el('p','ps-card-voices',`${t(current.agent==='replay'?'agentReplay':'agentRoute')}: ${current.byAgent}`));
     const voices=routeVoicesFor(item);if(voices.length)head.append(el('p','ps-card-voices',voices.join(' · ')));
     deck.append(head);
     const list=el('ol','ps-steps');
@@ -2700,7 +2726,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     routes:()=>[...routes,...journeyList].map(item=>({id:item.id,source:item.source??'atlas',title:item.title,steps:item.steps?.length??0})),
     // A device's turn (sky-window.mjs) turns the space as the arrows do.
     turnBy:(dx,dy)=>sky?.turnBy?.(dx,dy),
-    setTrialLens:spec=>setTrialLens(spec),setHighlight:value=>setHighlight(value),highlightLegend:()=>highlightLegend,trialLens:()=>trialLens?{title:trialLens.title,members:trialLens.members.size}:null,setAgentRoutes:list=>setAgentRoutes(list),
+    setTrialLens:spec=>setTrialLens(spec),setHighlight:value=>setHighlight(value),highlightLegend:()=>highlightLegend,setAgentPresence:value=>setAgentPresence(value),agentsLegend:()=>agentsLegend,trialLens:()=>trialLens?{title:trialLens.title,members:trialLens.members.size}:null,setAgentRoutes:(list,group)=>setAgentRoutes(list,group),
     setOwnSkyState:value=>{ownSky=value?{known:new Set(value.known??[]),found:new Set(value.found??[])}:null;if(ownSkyOn)refreshSky();},
     ownSky:()=>({available:Boolean(ownSky?.known.size),on:ownSkyOn,opened:ownSky?.known.size??0}),toggleOwnSky:force=>setOwnSky(force??!ownSkyOn),
     connectFrom:id=>{beginConnect(graphIdForMaterial(index?.get(id)?.materialId??id));return true;},

@@ -14,6 +14,7 @@ transport behavior. Access reads explicitly selected published data and returns
 | Select an offline prepared knowledge reader | [Explicit prepared local reader](#explicit-prepared-local-reader) |
 | Understand read packets and compatibility | [Contracts](contracts/README.md) and the [native semantics guide](shared/NATIVE_SEMANTICS.md) |
 | Use the browser and WebMCP | [Web client](web/README.md) |
+| Work with agents from your own machine: the stands, your act journal, MCP | [The person's bridge](#the-persons-bridge) |
 | Build or operate the public Cloudflare route | [Worker deployment guide](deploy/cloudflare-worker/README.md) |
 | Operate private source navigation or restore captures | [source-owner operations](#source-owner-operations) and [ToS source witnesses](../ToS/source-witnesses/README.md) |
 | Validate this product | Root [validation routes](../VALIDATION.md); the `standalone_access` lane owns command order |
@@ -38,6 +39,28 @@ it does not install software or build data.
 
 `doctor` and `verify` inspect the selected source-backed profile. Compilation
 and serving use separate commands.
+
+## The person's bridge
+
+`tos bridge` ([TOS-D-0083](../docs/decisions/TOS-D-0083-the-bridge-as-a-mode-of-tos.md))
+serves a built public-research site from a loopback address and keeps the
+person's act journal in a directory the person names:
+
+```sh
+npm run build --prefix access/web
+tos bridge 127.0.0.1:8742 --site access/web/dist --store ~/tos-acts
+```
+
+Open `http://127.0.0.1:8742/zarathustra/`. A page the bridge serves keeps its
+act journal there instead of in the browser. Agents reach the same journal over
+MCP at `http://127.0.0.1:8742/mcp` (Streamable HTTP with JSON answers) or over
+stdio with `tos bridge mcp --connect 127.0.0.1:8742`, under the tier the person
+chose; the board «Agents» shows the army, its squads and the pause that stops
+every agent act. Every record is checked and folded by the browser's own rules
+(`tos-web-rules`). The bridge writes nothing into ToS sources or a stand; its
+posture is `local_only`. The deployment profile's `bridge` fields bound its
+connections, event streams, request bodies, store windows and the review queue
+by which it paces agents' tickets and proposals.
 Prepared-reader flags belong to the explicit prepared route below and are
 refused by source-backed diagnostics. The installed product is the native
 software archive and its `bin/tos` entrypoint; there is no maintained Python

@@ -13,6 +13,9 @@ use tos_foundation::{
     emit_value_preserved_json, jcs_bytes_v1, parse_json,
 };
 
+mod army;
+pub use army::{AGENT_TIERS, PERSON_ONLY_KINDS, PROPOSING_KINDS, utc_iso};
+
 pub const ACT_SCHEMA: &str = "tos.act.v1";
 pub const ACT_KINDS_SCHEMA: &str = "tos.act.kinds.v1";
 const MAX_RECORD_BYTES: usize = 65_536;
@@ -397,12 +400,30 @@ impl AuthorType {
 #[derive(Clone, Debug)]
 enum Extra {
     None,
-    Ticket { category: u32 },
-    Proposal { category: u32, group: u32 },
-    Review { decision: u32 },
-    Lease { until_ms: i64 },
-    Assignment { assignee: u32 },
-    Withdrawal { depth: u8 },
+    Ticket {
+        category: u32,
+    },
+    Proposal {
+        category: u32,
+        group: u32,
+    },
+    Review {
+        decision: u32,
+    },
+    Lease {
+        until_ms: i64,
+    },
+    Assignment {
+        assignee: u32,
+    },
+    Withdrawal {
+        depth: u8,
+    },
+    Squad {
+        name: u32,
+        role: u32,
+        budget: Option<u64>,
+    },
 }
 
 struct Act {
@@ -442,7 +463,18 @@ pub struct ActJournal {
     assignments: HashMap<u32, Vec<u32>>,
     tickets: Vec<u32>,
     leases: Vec<u32>,
+    squads: Vec<u32>,
+    lease_tracks: HashMap<u32, Vec<LeaseTrack>>,
     unknown_kinds: HashMap<u32, u64>,
+}
+
+/// One author's leases and releases on one target, in append order.
+struct LeaseTrack {
+    author: u32,
+    leases: Vec<u32>,
+    releases: Vec<u32>,
+    /// The latest end of any of these leases: a track that ended before now holds nothing.
+    until_ms: i64,
 }
 
 /// Digest of the record's canonical bytes without its digest field. The field is
@@ -469,11 +501,47 @@ fn digest_of(record: &mut JsonValue) -> Result<Digest256, String> {
     Ok(Digest256::of_bytes(&bytes))
 }
 
+/// A stored record's stated digest against its canonical bytes.
+fn check_digest(record: &mut JsonValue) -> Result<(), String> {
+    let stated = get(record, "digest")
+        .and_then(JsonValue::as_str)
+        .and_then(|text| Digest256::from_prefixed(text).ok())
+        .ok_or_else(|| invalid("digest"))?;
+    if stated != digest_of(record)? {
+        return Err("act_digest_mismatch".to_owned());
+    }
+    Ok(())
+}
+
+/// A record read back from a host's store, parsed and its digest checked. This
+/// work does not depend on the journal's state, so a host may do it for many
+/// records at once on many threads before folding them in order
+/// (`ActJournal::restore_checked`).
+pub struct CheckedRecord(JsonValue);
+
+pub fn check_stored_record(raw: &[u8]) -> Result<CheckedRecord, String> {
+    let mut record = parse(raw, MAX_RECORD_BYTES)?;
+    if get(&record, "digest").is_none() {
+        return Err(invalid("digest"));
+    }
+    check_digest(&mut record)?;
+    Ok(CheckedRecord(record))
+}
+
 /// The digest an act record carries: SHA-256 of its canonical bytes without
 /// the digest field. A trace marker, never a signature.
 pub fn act_digest_v1(raw: &[u8]) -> Result<String, String> {
     let mut record = parse(raw, MAX_RECORD_BYTES)?;
     Ok(digest_of(&mut record)?.to_prefixed())
+}
+
+/// One appended record, in parts (see `ActJournal::append_record`).
+#[derive(Debug)]
+pub struct Appended {
+    pub seq: u64,
+    pub id: String,
+    pub record: Vec<u8>,
+    pub collisions: Vec<String>,
 }
 
 const TOP_LEVEL: &[&str] = &[
@@ -506,6 +574,8 @@ impl ActJournal {
             assignments: HashMap::new(),
             tickets: Vec::new(),
             leases: Vec::new(),
+            squads: Vec::new(),
+            lease_tracks: HashMap::new(),
             unknown_kinds: HashMap::new(),
         })
     }
@@ -549,6 +619,46 @@ impl ActJournal {
         ]))
     }
 
+    /// Append one record and keep its parts apart for a host that stores records
+    /// itself: the sequence number, the ID, the stored record's bytes and the
+    /// targets on which another author holds a lease.
+    pub fn append_record(&mut self, raw: &[u8]) -> Result<Appended, String> {
+        let record = parse(raw, MAX_RECORD_BYTES)?;
+        let (stored, seq, collisions) = self.append_value(record)?;
+        Ok(Appended {
+            seq,
+            id: get(&stored, "id")
+                .and_then(JsonValue::as_str)
+                .unwrap_or_default()
+                .to_owned(),
+            record: emit(&stored)?,
+            collisions,
+        })
+    }
+
+    /// Fold a record checked by `check_stored_record` and return its ID.
+    pub fn restore_checked(&mut self, record: CheckedRecord) -> Result<String, String> {
+        let (stored, _, _) = self.append_checked(record.0, true)?;
+        Ok(get(&stored, "id")
+            .and_then(JsonValue::as_str)
+            .unwrap_or_default()
+            .to_owned())
+    }
+
+    /// Fold a record restored from the host's store (its digest must match) and
+    /// return its ID, without writing the record back out.
+    pub fn restore(&mut self, raw: &[u8]) -> Result<String, String> {
+        let record = parse(raw, MAX_RECORD_BYTES)?;
+        if get(&record, "digest").is_none() {
+            return Err(invalid("digest"));
+        }
+        let (stored, _, _) = self.append_value(record)?;
+        Ok(get(&stored, "id")
+            .and_then(JsonValue::as_str)
+            .unwrap_or_default()
+            .to_owned())
+    }
+
     /// Append records in order; stops at the first refused record and reports
     /// how many were appended before it.
     pub fn append_batch(&mut self, raw: &[u8]) -> Result<Vec<u8>, String> {
@@ -590,9 +700,15 @@ impl ActJournal {
         ]))
     }
 
-    fn append_value(
+    fn append_value(&mut self, record: JsonValue) -> Result<(JsonValue, u64, Vec<String>), String> {
+        self.append_checked(record, false)
+    }
+
+    /// Append a record; `verified` says its stated digest was already checked against its bytes.
+    fn append_checked(
         &mut self,
         mut record: JsonValue,
+        verified: bool,
     ) -> Result<(JsonValue, u64, Vec<String>), String> {
         let JsonValue::Object(fields) = &record else {
             return Err(invalid("record"));
@@ -806,13 +922,32 @@ impl ActJournal {
                 };
             }
             "kind-declaration" => self.check_declaration(body, &targets)?,
+            "squad" => {
+                // A squad names itself by its `squad:` target; its role and act budget feed the army's folds.
+                if let Some(name) = targets.iter().find_map(|t| t.strip_prefix("squad:")) {
+                    let role = get(body, "role")
+                        .and_then(JsonValue::as_str)
+                        .filter(|text| bounded(text, 128))
+                        .ok_or_else(|| invalid("body.role"))?;
+                    let budget = get(body, "budget")
+                        .and_then(|budget| get(budget, "acts"))
+                        .and_then(integer)
+                        .and_then(|acts| u64::try_from(acts).ok());
+                    extra = Extra::Squad {
+                        name: self.strings.intern(name),
+                        role: self.strings.intern(role),
+                        budget,
+                    };
+                }
+            }
             _ => {}
         }
 
         // digest
-        let digest = digest_of(&mut record)?;
         match get(&record, "digest") {
+            Some(_) if verified => {}
             None => {
+                let digest = digest_of(&mut record)?;
                 if let JsonValue::Object(fields) = &mut record {
                     fields.push((
                         JsonString::from_utf8("digest"),
@@ -820,20 +955,14 @@ impl ActJournal {
                     ));
                 }
             }
-            Some(value) => {
-                let stated = value
-                    .as_str()
-                    .and_then(|text| Digest256::from_prefixed(text).ok())
-                    .ok_or_else(|| invalid("digest"))?;
-                if stated != digest {
-                    return Err("act_digest_mismatch".to_owned());
-                }
-            }
+            Some(_) => check_digest(&mut record)?,
         }
 
-        // Advisory collisions: a live lease of another author on a target.
+        // Advisory collisions: a live lease of another author on a target. A record
+        // restored from a store reported its collisions when it was first appended.
         let collisions: Vec<String> = targets
             .iter()
+            .filter(|_| !verified)
             .filter(|target| {
                 self.strings.find(target).is_some_and(|t| {
                     self.live_lease_holders(t, at_ms)
@@ -869,6 +998,33 @@ impl ActJournal {
         for target in &target_indices {
             self.by_target.entry(*target).or_default().push(index);
         }
+        let release = kind == "release";
+        if release || matches!(extra, Extra::Lease { .. }) {
+            let author = act.author;
+            for target in &target_indices {
+                let tracks = self.lease_tracks.entry(*target).or_default();
+                let at = match tracks.iter().position(|track| track.author == author) {
+                    Some(at) => at,
+                    None => {
+                        tracks.push(LeaseTrack {
+                            author,
+                            leases: Vec::new(),
+                            releases: Vec::new(),
+                            until_ms: i64::MIN,
+                        });
+                        tracks.len() - 1
+                    }
+                };
+                if release {
+                    tracks[at].releases.push(index);
+                } else {
+                    tracks[at].leases.push(index);
+                    if let Extra::Lease { until_ms } = extra {
+                        tracks[at].until_ms = tracks[at].until_ms.max(until_ms);
+                    }
+                }
+            }
+        }
         for parent in &parents {
             self.children.entry(*parent).or_default().push(index);
         }
@@ -902,6 +1058,7 @@ impl ActJournal {
                 }
             }
             Extra::Lease { .. } => self.leases.push(index),
+            Extra::Squad { .. } => self.squads.push(index),
             Extra::Assignment { .. } => {
                 for target in &targets {
                     if let Some(assigned) = self.act_address(target) {
@@ -1047,32 +1204,39 @@ impl ActJournal {
         !self.withdrawn(index) && !self.replaced(index)
     }
 
+    /// The authors holding a live lease on a target, in the order their live leases
+    /// were taken: a lease counts until it ends, unless withdrawn or followed by a
+    /// live release of the same author on that target. The leases and releases
+    /// are kept by target and author, so the cost follows the target's holders,
+    /// not the journal's length.
     fn live_lease_holders(&self, target: u32, now_ms: i64) -> Vec<String> {
-        let Some(items) = self.by_target.get(&target) else {
+        let Some(tracks) = self.lease_tracks.get(&target) else {
             return Vec::new();
         };
-        let mut holders: Vec<String> = Vec::new();
-        for index in items {
-            let act = &self.acts[*index as usize];
-            let Extra::Lease { until_ms } = act.extra else {
-                continue;
+        let mut holders: Vec<(u64, u32)> = Vec::new();
+        for track in tracks.iter().filter(|track| track.until_ms > now_ms) {
+            let released_after = |seq: u64| {
+                track.releases.iter().any(|release| {
+                    self.acts[*release as usize].seq > seq && !self.withdrawn(*release)
+                })
             };
-            if until_ms <= now_ms || self.withdrawn(*index) {
-                continue;
-            }
-            let released = items.iter().any(|other| {
-                let later = &self.acts[*other as usize];
-                later.seq > act.seq
-                    && later.author == act.author
-                    && self.strings.text(later.kind) == "release"
-                    && !self.withdrawn(*other)
+            let first_live = track.leases.iter().find_map(|lease| {
+                let act = &self.acts[*lease as usize];
+                let Extra::Lease { until_ms } = act.extra else {
+                    return None;
+                };
+                (until_ms > now_ms && !self.withdrawn(*lease) && !released_after(act.seq))
+                    .then_some(act.seq)
             });
-            let holder = self.strings.text(act.author).to_owned();
-            if !released && !holders.contains(&holder) {
-                holders.push(holder);
+            if let Some(seq) = first_live {
+                holders.push((seq, track.author));
             }
         }
+        holders.sort_unstable();
         holders
+            .into_iter()
+            .map(|(_, author)| self.strings.text(author).to_owned())
+            .collect()
     }
 
     /// The effective decision on a proposal: the latest live review that
@@ -1177,6 +1341,7 @@ impl ActJournal {
             "history" => self.history(self.act_index(text("id")?).ok_or("act_query_unknown")?),
             "kinds" => self.kinds(),
             "decided" => self.decided(limit),
+            "squads" => self.squads_view(number("now_ms")?, number("window_ms")?, limit),
             _ => return Err("act_query_invalid:view".to_owned()),
         };
         emit(&value)
@@ -1841,6 +2006,23 @@ pub mod browser {
         pub fn len(&self) -> u32 {
             self.journal.len() as u32
         }
+        /// An agent's act checked under its tier and filled as a draft (see `ActJournal::agent_draft`).
+        #[wasm_bindgen(js_name = agentDraft)]
+        pub fn agent_draft(
+            &self,
+            input: &[u8],
+            tier: &str,
+            at_ms: f64,
+            fresh_id: &str,
+        ) -> Result<Vec<u8>, JsValue> {
+            self.journal
+                .agent_draft(input, tier, at_ms as i64, fresh_id)
+                .map_err(|error| JsValue::from_str(&error))
+        }
+        #[wasm_bindgen(js_name = openProposals)]
+        pub fn open_proposals(&self) -> u32 {
+            self.journal.open_proposals() as u32
+        }
     }
 
     #[wasm_bindgen]
@@ -2326,5 +2508,119 @@ mod tests {
         assert_eq!(get(&out, "appended").unwrap().as_array().unwrap().len(), 1);
         assert_eq!(num(get(&out, "failure").unwrap(), "index"), 1);
         assert_eq!(j.len(), 1);
+    }
+
+    #[test]
+    fn utc_iso_writes_what_javascript_writes() {
+        for text in [
+            "1970-01-01T00:00:00.000Z",
+            "2026-11-20T10:00:00.000Z",
+            "2024-02-29T00:00:00.001Z",
+            "1969-12-31T23:59:59.999Z",
+            "0000-03-01T12:34:56.789Z",
+            "9999-12-31T23:59:59.999Z",
+        ] {
+            assert_eq!(utc_iso(utc_ms(text).unwrap()).as_deref(), Some(text));
+        }
+        assert_eq!(
+            utc_iso(utc_ms("+010000-01-01T00:00:00.000Z").unwrap()),
+            None
+        );
+    }
+
+    fn draft(j: &ActJournal, input: &str, tier: &str) -> Result<JsonValue, String> {
+        j.agent_draft(input.as_bytes(), tier, 1_795_168_800_000, "fresh-1")
+            .map(|bytes| value(&bytes))
+    }
+
+    #[test]
+    fn an_agent_appends_only_under_its_tier_and_in_its_own_name() {
+        let mut j = journal();
+        let note = r#"{"kind":"note","author":{"type":"agent","id":"a1","model":"m"},"targets":["x","x","y"],"intent":"  read   the\nplace ","body":{"text":"seen"}}"#;
+        let out = draft(&j, note, "draft").unwrap();
+        assert_eq!(get(&out, "id").and_then(JsonValue::as_str), Some("fresh-1"));
+        assert_eq!(
+            get(&out, "intent").and_then(JsonValue::as_str),
+            Some("read the place")
+        );
+        assert_eq!(get(&out, "targets").unwrap().as_array().unwrap().len(), 2);
+        assert_eq!(
+            get(&out, "at").and_then(JsonValue::as_str),
+            Some("2026-11-20T10:00:00.000Z")
+        );
+        j.append(&emit(&out).unwrap()).unwrap();
+
+        assert_eq!(draft(&j, note, "read").unwrap_err(), "act_tier");
+        let human = note.replace(r#""type":"agent""#, r#""type":"human""#);
+        assert_eq!(draft(&j, &human, "propose").unwrap_err(), "act_author");
+        let review = r#"{"kind":"review","author":{"type":"agent","id":"a1"},"targets":["act:fresh-1"],"intent":"x","body":{"decision":"accept","reason":"r"}}"#;
+        assert_eq!(draft(&j, review, "propose").unwrap_err(), "act_person_only");
+        let ticket = r#"{"kind":"ticket","author":{"type":"agent","id":"a1"},"targets":["x"],"intent":"x","body":{"category":"translation","observation":"o"}}"#;
+        assert_eq!(draft(&j, ticket, "draft").unwrap_err(), "act_tier");
+        assert!(draft(&j, ticket, "propose").is_ok());
+        let withdraw = |author: &str| {
+            format!(
+                r#"{{"kind":"withdrawal","author":{{"type":"agent","id":"{author}"}},"targets":["act:fresh-1"],"intent":"x"}}"#
+            )
+        };
+        assert_eq!(
+            draft(&j, &withdraw("a2"), "draft").unwrap_err(),
+            "act_not_own"
+        );
+        assert!(draft(&j, &withdraw("a1"), "draft").is_ok());
+        let long = format!(
+            r#"{{"kind":"note","author":{{"type":"agent","id":"a1"}},"targets":["x"],"intent":"{}","body":{{"text":"t"}}}}"#,
+            "я".repeat(400)
+        );
+        let intent = get(&draft(&j, &long, "draft").unwrap(), "intent")
+            .and_then(JsonValue::as_str)
+            .unwrap()
+            .to_owned();
+        assert_eq!(intent.chars().count(), 280);
+        assert!(intent.ends_with('…'));
+    }
+
+    #[test]
+    fn squads_fold_the_army_by_role_budget_and_decisions() {
+        let mut j = journal();
+        j.append(record("s0", "squad", &format!(r#"{HUMAN},"targets":["squad:translators"],"grounds":[],"body":{{"role":"philologist","area":["x"],"budget":{{"acts":3}},"stop":"no open ticket"}},"parents":[]"#)).as_bytes()).unwrap();
+        let member = |id: &str| {
+            format!(r#""author":{{"type":"agent","id":"{id}","model":"m1","squad":"translators"}}"#)
+        };
+        for (n, author) in ["a1", "a2", "a1"].iter().enumerate() {
+            j.append(record(&format!("p{n}"), "proposal", &format!(r#"{},"targets":["affirmation:link:{n}"],"grounds":["place:{n}"],"body":{{"category":"translation","change":{{"from":"дитя","to":"ребёнок"}}}},"parents":[]"#, member(author))).as_bytes()).unwrap();
+        }
+        j.append(record("r0", "review", &format!(r#"{HUMAN},"targets":["act:p0"],"grounds":[],"body":{{"decision":"accept","reason":"ok"}},"parents":[]"#)).as_bytes()).unwrap();
+        j.append(record("r1", "review", &format!(r#"{HUMAN},"targets":["act:p1"],"grounds":[],"body":{{"decision":"reject","reason":"no"}},"parents":[]"#)).as_bytes()).unwrap();
+        j.append(record("l0", "lease", &format!(r#""author":{{"type":"agent","id":"a3","model":"m2","squad":"translators"}},"targets":["x"],"grounds":[],"body":{{"ttl_ms":1000}},"parents":[]"#)).as_bytes()).unwrap();
+        j.append(record("as", "assignment", &format!(r#"{HUMAN},"targets":["x"],"grounds":[],"body":{{"assignee":"squad:translators"}},"parents":[]"#)).as_bytes()).unwrap();
+        assert_eq!(j.open_proposals(), 1);
+        let now = utc_ms("2026-11-20T10:00:10.000Z").unwrap();
+        let army = query(
+            &j,
+            &format!(r#"{{"view":"squads","now_ms":{now},"window_ms":60000}}"#),
+        );
+        assert_eq!(num(&army, "agents"), 3);
+        assert_eq!(num(&army, "stalled"), 1);
+        assert_eq!(num(&army, "open_proposals"), 1);
+        let row = &get(&army, "squads").unwrap().as_array().unwrap()[0];
+        assert_eq!(
+            get(row, "role").and_then(JsonValue::as_str),
+            Some("philologist")
+        );
+        assert_eq!(num(row, "acts"), 4);
+        assert_eq!(get(row, "over_budget"), Some(&JsonValue::Bool(true)));
+        let proposals = get(row, "proposals").unwrap();
+        assert_eq!(
+            (
+                num(proposals, "open"),
+                num(proposals, "accepted"),
+                num(proposals, "rejected")
+            ),
+            (1, 1, 1)
+        );
+        assert_eq!(num(row, "assigned"), 1);
+        assert_eq!(num(row, "stalled"), 1);
+        assert_eq!(get(row, "models").unwrap().as_array().unwrap().len(), 2);
     }
 }

@@ -93,6 +93,8 @@ export function createActJournal({store,registry=ACT_KINDS,name='tos-act-journal
     query:async request=>{await ready;try{return parse(machine.query(bytes(request)));}catch(error){throw failure(error);}},
     /** The whole stored record of an act. */
     record:async id=>{await ready;return (await store.getById(id))?.record??null;},
+    /** Whole records by ID, in the order asked; a missing one is null. */
+    records:async ids=>{await ready;return Promise.all(ids.map(async id=>(await store.getById(id))?.record??null));},
     /** Stored records, newest first, before a sequence number. */
     recent:async({before=Number.MAX_SAFE_INTEGER,limit=100}={})=>{await ready;return (await store.readBefore(before,limit)).map(row=>({seq:row.seq,record:row.record}));},
     get size(){return known;},

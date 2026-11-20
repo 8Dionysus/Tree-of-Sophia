@@ -35,3 +35,25 @@ test('the board shows the agents, the places they work on, the places held and w
   expect(root.textContent).toContain(`groups: ${result.review.groups.length}`);
   board.destroy();
 });
+
+test('an agent\'s or a squad\'s work becomes a route over the stand\'s stars, oldest first',async()=>{
+  const {replayRoute}=await import('./agents-board.mjs');
+  const at=s=>new Date(Date.UTC(2026,10,20,10,0,s)).toISOString();
+  const agent=(id,squad)=>({type:'agent',id,model:'m',squad});
+  const rows=[
+    {kind:'note',author:agent('a1','s1'),targets:['III.13'],intent:'second',at:at(20)},
+    {kind:'lease',author:agent('a1','s1'),targets:['III.02'],intent:'first',at:at(10)},
+    {kind:'note',author:agent('a1','s1'),targets:['III.02'],intent:'again',at:at(15)},
+    {kind:'note',author:agent('a2','s1'),targets:['sim:link:1','III.20'],intent:'other',at:at(30)},
+    {kind:'review',author:{type:'human',id:'local-person'},targets:['III.02'],intent:'mine',at:at(40)},
+  ];
+  const isStar=id=>id.startsWith('III.');
+  const one=replayRoute(rows,{agent:'a1',isStar,nameOf:id=>`star ${id}`});
+  expect(one.id).toBe('replay:agent:a1');
+  expect(one.steps.map(step=>step.nodeId)).toEqual(['III.02','III.13']);
+  expect(one.steps[0].body.en).toBe('lease: first\nnote: again');
+  expect(one.steps[0].title.en).toBe('star III.02');
+  const squad=replayRoute(rows,{squad:'s1',isStar});
+  expect(squad.steps.map(step=>step.nodeId)).toEqual(['III.02','III.13','III.20']);
+  expect(squad.steps[2].body.en).toBe('note: other (a2)');
+});

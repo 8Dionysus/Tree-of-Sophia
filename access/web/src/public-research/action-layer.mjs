@@ -58,6 +58,7 @@ const labels={
   manifest:['Скопировать манифест для агента','Copy the manifest for an agent'],
   journal:['Журнал действий','Act journal'],
   journalLoaded:['записей прочитано','records read'],
+  journalAtBridge:['записей у моста','records at the bridge'],
   settings:['Настройки управления','Control settings'],
   preset:['Набор','Preset'],
   'preset-mouse':['Мышь','Mouse'],
@@ -161,7 +162,7 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
   if(acts){
     // Reading a long journal happens in the background; the tray shows it only while it lasts.
     const task=startTask(t('journal'));
-    acts.ready.then(status=>status.damaged?task.fail(`${status.damaged.error} · ${status.damaged.seq}`):task.done(`${status.loaded} ${t('journalLoaded')}`),error=>task.fail(error));
+    acts.ready.then(status=>status.damaged?task.fail(`${status.damaged.error} · ${status.damaged.seq}`):task.done(`${status.loaded} ${t(status.tier==='bridge'?'journalAtBridge':'journalLoaded')}`),error=>task.fail(error));
   }
 
   // ------------------------------------------------------------ targets and links (D4)

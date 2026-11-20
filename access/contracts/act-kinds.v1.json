@@ -154,6 +154,18 @@
       "body_required": [
         "action"
       ]
+    },
+    {
+      "name": "branch",
+      "description": "A research branch: a question and what the person gathers under it (tickets, thoughts, a layout, a session); a later branch act replaces it.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "question"
+      ],
+      "target_prefix": [
+        "branch:"
+      ]
     }
   ],
   "decisions": [

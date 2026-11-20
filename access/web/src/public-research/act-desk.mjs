@@ -51,6 +51,8 @@ const labels={
   'status-returned':['Вернулся','Returned'],
   'status-reviewed':['Рассмотрен','Reviewed'],
   replies:['ответов','replies'],
+  exceptions:['Исключения: группы одной модели или одного автора','Exceptions: groups of one model or one author'],
+  agreeing:['Независимые авторы согласны','Independent authors agree'],
   proposals:['предложений','proposals'],
   places:['мест','places'],
   independent:['независимых','independent'],
@@ -282,16 +284,34 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
   }
 
   // ------------------------------------------------------------ review (B8) and the change packet
+  /** Up to `count` items spread over a list: its first, its last and evenly between. */
+  function spread(items,count){
+    if(items.length<=count)return [...items];
+    return Array.from({length:count},(_,i)=>items[Math.round(i*(items.length-1)/(count-1))]);
+  }
+  /** Groups only one model or one author made come first: they are the exceptions a person reads one by one. */
+  function reviewOrder(groups){
+    const exceptions=groups.filter(group=>group.independent_count<2);
+    return {exceptions,agreeing:groups.filter(group=>group.independent_count>=2)};
+  }
   async function openReview(){
     const {body}=sheet(t('review'));
     async function render(){
-      const review=await acts.query({view:'review',limit:50});
-      const decided=await acts.query({view:'decided',limit:1000});
+      const [review,decided]=await Promise.all([acts.query({view:'review',limit:50}),acts.query({view:'decided',limit:1000})]);
       const list=el('div','ad-groups');
       if(!review.groups.length)list.append(el('p','ad-muted',t('nothingOpen')));
-      for(const group of review.groups){
-        const box=el('article','ad-group');
-        const sample=(await Promise.all(group.open.slice(0,6).map(id=>acts.record(id)))).filter(Boolean);
+      // At scale (K4): the exceptions first, groups that only one model or one author made, then the groups where
+      // independent authors agree. Each group shows a sample spread over it, all samples read in one go.
+      const {exceptions,agreeing}=reviewOrder(review.groups);
+      const ids=review.groups.flatMap(group=>spread(group.open,6));
+      const found=await (acts.records?acts.records(ids):Promise.all(ids.map(id=>acts.record(id))));
+      const records=new Map(ids.map((id,index)=>[id,found[index]]));
+      const heading=(key,count)=>{if(count)list.append(el('h3','ad-minor ad-review-part',`${t(key)} · ${count}`));};
+      heading('exceptions',exceptions.length);
+      for(const [index,group] of [...exceptions,...agreeing].entries()){
+        if(index===exceptions.length)heading('agreeing',agreeing.length);
+        const box=el('article','ad-group');if(index<exceptions.length)box.dataset.exception='true';
+        const sample=spread(group.open,6).map(id=>records.get(id)).filter(Boolean);
         const change=sample[0]?.body?.change??{};
         const termName=(space?.actions?.terms?.()??[]).find(term=>term.id===change.term)?.original?.lemma??change.term??'';
         box.append(el('h3','',`${categoryLabels[group.category]?pick(categoryLabels[group.category]):group.category}${change.to_lemma?` · ${termName} → ${change.to_lemma}`:''}`),
@@ -397,12 +417,19 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
   // ------------------------------------------------------------ connect an agent (C1) and its tier (C8)
   const readTier=()=>{try{const value=storage?.getItem(AGENT_TIER_KEY);return TIERS.includes(value)?value:'propose';}catch{return 'propose';}};
   let tier=readTier();
+  /** The tier agents act under: kept in this browser, and at the person's bridge for the agents connected there. */
+  function setTier(value){
+    if(!TIERS.includes(value))return tier;
+    tier=value;try{storage?.setItem(AGENT_TIER_KEY,value);}catch{}
+    if(acts?.tier==='bridge')void acts.control?.({agent_tier:value}).catch(()=>{});
+    return tier;
+  }
   function openConnect(){
     const {body}=sheet(t('connect'));
     const group=el('div','ad-tiers');group.setAttribute('role','radiogroup');group.setAttribute('aria-label',t('tier'));
     for(const value of TIERS){
       const input=el('input');input.type='radio';input.name='ad-tier';input.value=value;input.id=`ad-tier-${value}`;input.checked=tier===value;
-      input.addEventListener('change',()=>{tier=value;try{storage?.setItem(AGENT_TIER_KEY,value);}catch{}paint();});
+      input.addEventListener('change',()=>{setTier(value);paint();});
       const label=el('label','ad-check-row');label.append(input,el('span','',t(`tier-${value}`)));group.append(label);
     }
     const pre=el('pre','ad-pre'),copy=button(t('copy'),'primary');
@@ -417,7 +444,9 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
       `Page: ${page}`,
       `Tier: ${tier}.`,
       'On the page, use its WebMCP tools: read tos.act.manifest first, then tos.page.context and tos.bonsai.view-state; read places with tos.bonsai.read-source; append with tos.act.append.',
-      'Without the page, use the native server: tos mcp, prompt tos-tree-agent.',
+      ...(acts?.tier==='bridge'
+        ?[`At the person's bridge, without the page: MCP at ${view.location.origin}/mcp (streamable HTTP), or over stdio: tos bridge mcp --connect ${view.location.host}. Tickets and proposals are paced by the person's review queue: wait retry_after_ms when refused.`]
+        :['Without the page, use the native server: tos mcp, prompt tos-tree-agent.']),
       '','Rules:',...roles.rules.map(rule=>`- ${rule}`),
       '','Roles:',...roles.roles.map(role=>`- ${role.name.en} (${role.id}): ${role.does} Appends: ${role.appends.join(', ')}.`),
     ].join('\n');
@@ -432,6 +461,6 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
     {id:'connect',text:()=>t('connect'),for:['any'],run:()=>openConnect()},
   ]);
 
-  return {openTicket,openBoard,openReview,openTransfer,openConnect,tier:()=>tier,instruction,
+  return {openTicket,openBoard,openReview,openTransfer,openConnect,tier:()=>tier,setTier,instruction,
     destroy(){remove?.();for(const dialog of dialogs.splice(0)){if(dialog.open)dialog.close();dialog.remove();}}};
 }

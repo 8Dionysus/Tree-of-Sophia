@@ -211,3 +211,17 @@ instead of importing FastMCP. `verify` requires that check; `doctor` retains
 its optional posture. The only runtime profile is owned by standalone ToS.
 Diagnostics do not inspect neighboring repositories or require an ecosystem
 integration to be present or activated.
+
+`tos bridge [LOOPBACK:PORT] --site DIR --store DIR` (`src/bridge.rs`,
+TOS-D-0083) is the person's own bridge: it serves a built public-research site
+at the Worker's paths with the Worker's security headers, keeps the act journal
+as `acts.jsonl` in the named store (one checked record a line; a torn last line
+is cut at start), folds it with `tos-web-rules` and offers it to the page
+(`/__bridge/v1/…`, with an event stream) and to agents over MCP (`/mcp`, or
+stdio through `tos bridge mcp --connect`). It answers only its own loopback
+host names and origin; the page's writes carry a cookie only the bridge's own
+pages receive. Agents append under the tier the person chose, never in the
+person's name, and their tickets and proposals are paced by the open review
+queue within the deployment profile's `bridge` limits. The bridge's MCP tools
+are the act commands of `access/contracts/act-commands.v1.json`, not the
+knowledge operations of `operations.v1.json`.

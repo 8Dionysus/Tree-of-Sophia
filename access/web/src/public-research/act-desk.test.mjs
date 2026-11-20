@@ -64,3 +64,25 @@ test('the agent tier is the person\'s choice and the instruction carries the rul
   expect(desk.instruction()).toContain('Tier: draft.');
   expect(desk.instruction()).toContain('Philologist of the word (philologist)');
 });
+
+test('5,000 results of an army are reviewed as groups, the exceptions first, with spread samples read in one go',async()=>{
+  const {simulateArmy}=await import('../../fixtures/army-simulator.mjs');
+  const {document,acts,desk}=setup();
+  const army=simulateArmy({agents:500,acts:17000,seed:21,start:Date.now()-3600000,stepMs:20});
+  await acts.appendMany(army.acts);
+  // One agent alone proposes a change nobody else makes: an exception.
+  await acts.act({kind:'proposal',author:{type:'agent',id:'lone',model:'only-model'},targets:['sim:link:7'],grounds:['sim:place:1'],intent:'alone',
+    body:{category:'translation',change:{field:'verb',from:'x',to:'y',term:'z',to_lemma:'y'}}});
+  const proposals=(await acts.query({view:'summary'})).by_kind.find(row=>row.kind==='proposal').count;
+  expect(proposals).toBeGreaterThanOrEqual(5000);
+  let reads=0;const records=acts.records;acts.records=async ids=>{reads++;return records(ids);};
+  const started=performance.now();
+  await desk.openReview();
+  const took=performance.now()-started;
+  const groups=[...document.querySelectorAll('.ad-group')];
+  expect(groups.length).toBeGreaterThan(1);
+  expect(groups[0].dataset.exception).toBe('true');
+  expect(document.querySelector('.ad-review-part').textContent).toContain('Exceptions');
+  expect(reads).toBe(1);
+  expect(took).toBeLessThan(2000);
+});
