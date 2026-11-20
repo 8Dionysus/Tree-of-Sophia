@@ -178,3 +178,8 @@ versions and IDs are retained separately. DWDSmor candidates are reused only
 for exactly equal forms, unranked and without a contextual correctness claim.
 The bonsai's automatic sentence alignment is displayed as unreviewed and
 only after target text agrees exactly with the selected reader version.
+
+The Platonova 1894 reading of Aristotle's *Rhetoric* supplies Book I,
+chapter 1, printed pp. 1–7. The independent transcription retains historical
+spelling and editorial brackets. The introduction, footnotes and other
+chapters are outside the selected reading layer.
