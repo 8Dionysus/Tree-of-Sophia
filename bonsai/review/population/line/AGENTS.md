@@ -53,6 +53,7 @@ Packets accepted by the line change `decisions.jsonl`; after each round the
 operator runs `resolve.mjs` and `plant.mjs` again and commits the decisions,
 the keys, the ledger and the planted modules together. The next `packets`
 retires a packet whose questions or evidence that run changed and cuts its
-open questions anew. `held` decisions (the
+open questions anew. A `decision-conflict` (one decision joins what another
+separates) is not cut into packets: the operator withdraws one of the two. `held` decisions (the
 readers disagree, or both found it undecidable) wait for an operator or a third
 reader; `kit.mjs status` counts them.

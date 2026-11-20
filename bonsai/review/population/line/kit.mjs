@@ -296,7 +296,11 @@ function status(){
     else if(existsSync(packetFile(packet,'reader-1.jsonl'))&&existsSync(packetFile(packet,'reader-2.jsonl')))counts.answered++;
     else counts.open++;
   }
-  counts.decisions=readJsonl(join(REVIEW,'decisions.jsonl')).length;
+  const decisions=readJsonl(join(REVIEW,'decisions.jsonl'));
+  counts.decisions=decisions.length;
+  counts.held=decisions.filter(decision=>decision.type==='held').length;
+  // A decision-conflict is two decisions that contradict each other; only the operator can withdraw one.
+  counts.conflicts=readJsonl(join(REVIEW,'queue','identity.jsonl')).filter(entry=>entry.reason==='decision-conflict').length;
   console.log(JSON.stringify(counts));
 }
 
