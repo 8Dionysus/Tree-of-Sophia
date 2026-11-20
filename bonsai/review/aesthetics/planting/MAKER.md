@@ -403,6 +403,9 @@ sets one jurisdiction at a time. For a person without a usable Wikidata item,
 fetches a trusted reference and records its digest. A missing death year stays
 unknown and cannot establish public domain by dates. Every metadata change
 requires a fresh independent reading before acceptance.
+For an unaccepted witness, `witness-person-remove . ru author Q123 --reason
+'Reason for removing this mistaken identity.'` preserves the removed record
+and clears the second reading; verify the replacement before reviewing again.
 
 For a work already in `fragments.json` that predates the line and has no
 packet, run `K witness-parent WORK` first. It creates a witness-only parent;

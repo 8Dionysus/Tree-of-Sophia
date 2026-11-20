@@ -978,6 +978,24 @@ class UnknownParticipantTest(unittest.TestCase):
                 self.assertFalse(kit.public_domain_by_dates([person],2025)['eu'])
                 self.assertFalse(kit.public_domain_by_dates([person],2025)['russia'])
 
+    def test_remove_wrong_witness_identity_keeps_history_and_clears_review(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp);(path/'witnesses').mkdir()
+            file=path/'witnesses/ru.json'
+            wrong={'role':'author','qid':'Q358'};right={'role':'author','qid':'Q35802'}
+            file.write_text(json.dumps({'witness':{'persons':[wrong,right]},'review':{'reader':'second'}}))
+            args=argparse.Namespace(packet=tmp,language='ru',role='author',qid='Q358',reason='This identifier refers to an unrelated heritage site.')
+            kit.cmd_witness_person_remove(args)
+            result=json.loads(file.read_text())
+            self.assertEqual(result['witness']['persons'],[right])
+            self.assertEqual(result['person_corrections'][0]['removed'],wrong)
+            self.assertEqual(result['review'],{})
+            (path/'witnesses/ru.json.accepted').write_text('{}')
+            args.qid='Q35802'
+            with self.assertRaises(SystemExit):kit.cmd_witness_person_remove(args)
+
 class InterfaceCoverageGateTest(unittest.TestCase):
     def test_new_work_requires_evidence_and_old_work_records_debt(self):
         import tempfile

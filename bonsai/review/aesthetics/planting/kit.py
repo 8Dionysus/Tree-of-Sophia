@@ -1833,6 +1833,18 @@ def cmd_witness_person(args):
     data['review']={};save(witness_file(path,args.language),data)
     print(f"{name['en']} ({args.role}): {person['born']}–{died}, {args.qid}")
 
+def cmd_witness_person_remove(args):
+    path=packet(args.packet);file=witness_file(path,args.language)
+    if os.path.isfile(file+'.accepted'):die('an accepted witness cannot be changed; retain its acceptance and seek a reviewed correction')
+    data=witness_data(path,args.language);people=data['witness'].get('persons') or []
+    removed=[p for p in people if p.get('role')==args.role and p.get('qid')==args.qid]
+    if len(removed)!=1:die('exactly one person with that role and QID must be present')
+    if len(args.reason.strip())<30:die('give the reason in a full sentence')
+    data['witness']['persons']=[p for p in people if p is not removed[0]]
+    data.setdefault('person_corrections',[]).append({'removed':removed[0],'reason':args.reason,'date':today()})
+    data['review']={};save(file,data)
+    print('person removed with history; independent review must be renewed')
+
 def cmd_witness_person_source(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     if not trusted(args.url):die('person reference must be on a trusted catalogue or reference site')
@@ -2231,7 +2243,7 @@ def main():
     sub('witness-anonymous-clear',cmd_witness_anonymous_clear,P,(('language',),{}));
     sub('witness-candidate',cmd_witness_candidate,P,(('language',),{}),(('file',),{}));
     sub('witness-person',cmd_witness_person,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}));
-    sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));
+    sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));sub('witness-person-remove',cmd_witness_person_remove,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}),(('--reason',),{'required':True}))
     sub('witness-fetch',cmd_witness_fetch,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}))
     sub('witness-image',cmd_witness_image,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}),(('--by',),{'choices':['maker','second'],'default':'maker'}))
     sub('witness-cut',cmd_witness_cut,P,(('language',),{}),(('source',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
