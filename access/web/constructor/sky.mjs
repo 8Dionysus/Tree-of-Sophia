@@ -1029,7 +1029,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     frameCount++;drawSum+=performance.now()-started;frameSum+=elapsed*1000;
     if(frameCount%90===0){root.dataset.drawMs=(drawSum/90).toFixed(2);root.dataset.frameMs=(frameSum/90).toFixed(2);root.dataset.frames=String(frameCount);drawSum=frameSum=0;}
     root.dataset.camera=[yaw,pitch,zoom,pan.x,pan.y].map(x=>x.toFixed(3)).join(',');
-    if(onPose){const heard=`${yaw.toFixed(3)},${pitch.toFixed(3)},${!!measured}`;if(heard!==heardPose){heardPose=heard;onPose({yaw,pitch,restYaw,restPitch,measured:!!measured});}}
+    // The pose names the zoom too, so a stand can show more of a chosen star the nearer the reader comes.
+    if(onPose){const heard=`${yaw.toFixed(3)},${pitch.toFixed(3)},${zoom.toFixed(2)},${!!measured}`;if(heard!==heardPose){heardPose=heard;onPose({yaw,pitch,zoom,restYaw,restPitch,measured:!!measured});}}
     const unsettled=Math.abs(yaw-tyaw)+Math.abs(pitch-tpitch)+Math.abs(zoom-tzoom)+Math.abs(pan.x-tpan.x)+Math.abs(pan.y-tpan.y)>.005;
     if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0||litGlow!==(lit?1:0)))kick();else last=0;
   }

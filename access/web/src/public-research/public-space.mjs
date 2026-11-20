@@ -32,6 +32,7 @@ import zarathustraWitnesses from '../../../../bonsai/zarathustra/witnesses.json'
 import {proximityCriteria,proximityLayout} from './space-proximity.mjs';
 import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mjs';
 import {keyLabel} from './control-prefs.mjs';
+import {nearCount,nearLevel} from './near-reading.mjs';
 import {depthLayout} from './space-depth.mjs';
 import {aspectLayout} from './space-aspect.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
@@ -102,8 +103,8 @@ Object.assign(extraTranslations.en,{kind_era:'Era',kind_branch:'Branch',kind_pat
 Object.assign(extraTranslations.ru,{'media_author-portrait':'Портрет автора','media_book-response':'Отклик на книгу',media_motif:'Совпадение мотива',mediaPublicDomain:'Общественное достояние',mediaCommonsPublicDomain:'Общественное достояние · Wikimedia Commons',mediaOpenAccess:'Открытый доступ','media_era-material':'Материал эпохи','media_object-of-analysis':'Предмет анализа',media_comparison:'Для сравнения',mediaOpen:'Открыть изображение во всех подробностях',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм',mediaMissing:'Изображение не загрузилось с сервиса держателя.',mediaZoomIn:'Приблизить',mediaZoomOut:'Отдалить',mediaWhole:'Показать целиком'});
 // The keyboard's way through the sky (F2) and the actions a star's hint names (A6).
 // Listening to the original in the chapter window (H2).
-Object.assign(extraTranslations.ru,{voiceListen:'Слушать оригинал',voicePause:'Пауза',voiceResume:'Продолжить чтение',voiceRate:'Скорость чтения',voiceSentence:'Предложение {0} из {1}',voiceSilent:'немецкого голоса в этом браузере нет: свет идёт в темпе чтения'});
-Object.assign(extraTranslations.en,{voiceListen:'Listen to the original',voicePause:'Pause',voiceResume:'Resume reading',voiceRate:'Pace of reading',voiceSentence:'Sentence {0} of {1}',voiceSilent:'this browser has no German voice: the light moves at the pace of reading'});
+Object.assign(extraTranslations.ru,{nearReading:'Чтение вблизи',nearSentence:'место, на котором стоит звезда',nearPlaces:'её места',voiceListen:'Слушать оригинал',voicePause:'Пауза',voiceResume:'Продолжить чтение',voiceRate:'Скорость чтения',voiceSentence:'Предложение {0} из {1}',voiceSilent:'немецкого голоса в этом браузере нет: свет идёт в темпе чтения'});
+Object.assign(extraTranslations.en,{nearReading:'Reading up close',nearSentence:'the place the star rests on',nearPlaces:'its places',voiceListen:'Listen to the original',voicePause:'Pause',voiceResume:'Resume reading',voiceRate:'Pace of reading',voiceSentence:'Sentence {0} of {1}',voiceSilent:'this browser has no German voice: the light moves at the pace of reading'});
 Object.assign(extraTranslations.ru,{ownSkyOn:'Моё небо: открытое в познании выделено',ownSkyOff:'Моё небо скрыто',compareWith:'Сравнить с другой звездой',connectWith:'Связать с другой мыслью',hintCard:'карточка',hintActions:'все действия',hintLinks:'связи звезды',hintClick:'Щелчок',noLinksHere:'У этой звезды на карте нет связей',walkLink:'Связь {0} из {1}'});
 Object.assign(extraTranslations.en,{ownSkyOn:'My sky: what learning opened stands out',ownSkyOff:'My sky is hidden',compareWith:'Compare with another star',connectWith:'Link with another thought',hintCard:'card',hintActions:'every action',hintLinks:'links of the star',hintClick:'Click',noLinksHere:'This star has no links on the map',walkLink:'Link {0} of {1}'});
 Object.assign(extraTranslations.en,{'media_author-portrait':'Portrait of the author','media_book-response':'A response to the book',media_motif:'A shared motif',mediaPublicDomain:'Public domain',mediaCommonsPublicDomain:'Public domain · Wikimedia Commons',mediaOpenAccess:'Open access','media_era-material':'Material of the era','media_object-of-analysis':'Object of analysis',media_comparison:'For comparison',mediaOpen:'Open the image in full detail',mediaInscribed:'Inscribed on the object',mediaSeries:'Series',mediaSize:'{0} × {1} mm',mediaMissing:'The image did not load from the holder’s service.',mediaZoomIn:'Zoom in',mediaZoomOut:'Zoom out',mediaWhole:'Show whole'});
@@ -369,6 +370,31 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     return svg;
   }
   // The globe shows the space's turn: its meridian and equator open as the space turns, its dot is the space's front.
+  // Reading up close (J1): the nearer the reader comes to a chosen star, the more of its text stands beside it in the
+  // sky: first the sentence it rests on, then its places, each with the original and the translation. Moving away
+  // lets them go; the card and the reader stay where they were.
+  const nearReading=el('aside','ps-near');nearReading.hidden=true;nearReading.setAttribute('aria-label',t('nearReading'));
+  let nearKey='';
+  function nearCites(id){
+    const material=previewMaterials.get(String(id).replace(/^material:/,''))??null,record=material?.coreId?index?.get(material.coreId)?.record:material;
+    return citedPlaces(record).filter(cite=>cite?.w&&(cite.u?.length||cite.loc||Number.isInteger(cite.s)));
+  }
+  function paintNear(pose=lastPose){
+    if(!nearReading.isConnected)shell.append(nearReading);
+    const level=nearLevel({zoom:pose?.zoom??1,selected,route:Boolean(route),measured:measuredLens(lens),bench});
+    const star=level?shell.querySelector(`.tree-star[data-node="${CSS.escape(selected)}"]`):null;
+    const cites=star?nearCites(selected).slice(0,nearCount(level)):[];
+    if(!cites.length){nearReading.hidden=true;nearKey='';return;}
+    const key=`${selected}|${level}|${locale()}`;
+    if(key!==nearKey){nearKey=key;nearReading.replaceChildren(el('p','ps-near-title',`${label(matForNode(graphState().nodes.find(node=>node.id===selected)))} · ${t(level===1?'nearSentence':'nearPlaces')}`),...cites.map(cite=>fragments.fragment(cite)));}
+    nearReading.hidden=false;nearReading.dataset.level=String(level);
+    // Beside the star, inside the free part of the map, on the side with more room.
+    const box=star.getBoundingClientRect(),own=shell.getBoundingClientRect(),area=freeArea({width:shell.clientWidth,height:shell.clientHeight})??{left:8,right:shell.clientWidth-8,top:8,bottom:shell.clientHeight-8};
+    const x=box.left+box.width/2-own.left,y=box.top+box.height/2-own.top,width=Math.min(420,Math.max(240,(area.right-area.left)*.42));
+    const right=area.right-x>x-area.left,left=right?Math.min(area.right-width,x+28):Math.max(area.left,x-28-width);
+    nearReading.style.width=`${Math.round(width)}px`;nearReading.style.left=`${Math.round(Math.max(area.left,left))}px`;
+    nearReading.style.top=`${Math.round(Math.min(Math.max(area.top,y-60),Math.max(area.top,area.bottom-nearReading.offsetHeight)))}px`;
+  }
   function paintTurn(pose){
     lastPose=pose;if(!turnGlobe||!pose)return;
     const yaw=pose.yaw,pitch=pose.pitch;
@@ -1193,6 +1219,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function reflect(){
     if(destroyed)return;state=model.getState();
+    requestAnimationFrame(()=>{if(!destroyed)paintNear();});
     if(promptHost?.isConnected&&promptId)readingPrompt(promptHost,promptId);
     // The scale of time rearranges the map's frame: its tools join the heading and its strips take their room.
     const kind=layoutKind();if(kind)shell.dataset.scale=kind;else delete shell.dataset.scale;
@@ -2516,7 +2543,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // The space turns under a drag and rests a little turned, so its depth shows; Shift, the right button or two fingers move it,
   // a pinch or the wheel zooms, and a star held still is picked up. A measuring lens lays its scale flat and only moves.
-  sky=mountConstructorSky(shell,{controls:()=>controlPrefs?.get?.()??null,obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!treeView()&&!gatherView()&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge,
+  sky=mountConstructorSky(shell,{controls:()=>controlPrefs?.get?.()??null,obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>{paintTurn(pose);paintNear(pose);},dragNodes:()=>!measuredLens(lens)&&!treeView()&&!gatherView()&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge,
     // A click on the empty sky lets a chosen star of the tree go.
     onBackground:()=>{if(selected&&(treeView()||gatherView())&&!route)closePanel();}});
   inkTheme();
