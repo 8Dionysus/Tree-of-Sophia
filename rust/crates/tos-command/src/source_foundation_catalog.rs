@@ -1586,8 +1586,8 @@ fn compare_kernel<'candidate>(
                 expected_revision: capture.revision(),
                 expected_membership: capture.membership(),
                 stage_source_cut: binding.source_cut(),
-                max_read_files: max_version_files,
-                max_read_bytes: max_version_bytes,
+                max_read_files: max_version_files.min(BibliographicSourceCut::MAX_READ_FILES),
+                max_read_bytes: max_version_bytes.min(BibliographicSourceCut::MAX_READ_BYTES),
             };
             prepare_cold_bibliographic_graph_from_cut(
                 stage,
