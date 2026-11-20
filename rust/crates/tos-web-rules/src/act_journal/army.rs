@@ -176,12 +176,65 @@ impl ActJournal {
     }
 
     /// Proposals no decision has reached yet: the review queue the bridge paces agents by.
+    /// The count follows each append; a withdrawal or a replacement makes it count again.
     pub fn open_proposals(&self) -> usize {
-        self.group_order
+        if let Some(open) = self.open_count.get() {
+            return open;
+        }
+        let open = self
+            .group_order
             .iter()
             .flat_map(|group| self.group_members[group].iter())
             .filter(|index| self.live(**index) && self.decision(**index).is_none())
-            .count()
+            .count();
+        self.open_count.set(Some(open));
+        open
+    }
+
+    /// The live proposals the review at `review` decides that no earlier live
+    /// review had decided: they leave the open queue. Counted before the review
+    /// enters the indexes.
+    pub(super) fn newly_decided(&self, review: u32) -> usize {
+        let act = &self.acts[review as usize];
+        let earlier = |proposal: u32| {
+            let at = &self.acts[proposal as usize];
+            let Extra::Proposal { group, .. } = at.extra else {
+                return true;
+            };
+            self.direct_reviews
+                .get(&proposal)
+                .into_iter()
+                .flatten()
+                .any(|r| !self.withdrawn(*r))
+                || self
+                    .group_reviews
+                    .get(&group)
+                    .into_iter()
+                    .flatten()
+                    .any(|r| self.acts[*r as usize].seq > at.seq && !self.withdrawn(*r))
+        };
+        let mut decided = HashSet::new();
+        for target in act.targets.iter() {
+            let text = self.strings.text(*target);
+            if let Some(proposal) = self.act_address(text) {
+                if matches!(self.acts[proposal as usize].extra, Extra::Proposal { .. })
+                    && self.live(proposal)
+                    && !earlier(proposal)
+                {
+                    decided.insert(proposal);
+                }
+            } else if text.starts_with("group:") {
+                for member in self.group_members.get(target).into_iter().flatten() {
+                    if self.acts[*member as usize].seq < act.seq
+                        && self.live(*member)
+                        && !earlier(*member)
+                    {
+                        decided.insert(*member);
+                    }
+                }
+            }
+        }
+        decided.len()
     }
 
     /// The army by squad: each squad's declaration (role, act budget), its agents and how many
@@ -193,9 +246,9 @@ impl ActJournal {
             declared: Option<(u32, Option<u64>)>,
             acts: u64,
             recent: u64,
-            agents: HashSet<u32>,
+            agents: usize,
             active: HashSet<u32>,
-            models: HashSet<u32>,
+            models: Vec<u32>,
             open: u64,
             accepted: u64,
             rejected: u64,
@@ -207,80 +260,76 @@ impl ActJournal {
         let since = now_ms - window_ms.max(0);
         let mut rows: HashMap<u32, Row> = HashMap::new();
         let mut order: Vec<u32> = Vec::new();
-        fn slot<'a>(
-            rows: &'a mut HashMap<u32, Row>,
-            order: &mut Vec<u32>,
-            name: u32,
-        ) -> &'a mut Row {
-            rows.entry(name).or_insert_with(|| {
-                order.push(name);
-                Row::default()
-            })
+        // What each squad did, kept as acts were appended: its acts, agents, models, proposals and assignments.
+        for (name, track) in &self.squad_tracks {
+            order.push(*name);
+            let mut row = Row {
+                acts: track.acts,
+                agents: track.agents.len(),
+                models: track.models.iter().copied().collect(),
+                last_ms: track.last_ms,
+                assigned: track.assignments.iter().filter(|i| self.live(**i)).count() as u64,
+                ..Row::default()
+            };
+            for proposal in &track.proposals {
+                if !self.live(*proposal) {
+                    continue;
+                }
+                match self
+                    .decision(*proposal)
+                    .map(|(_, decision)| self.strings.text(decision))
+                {
+                    None => row.open += 1,
+                    Some("defer") => row.deferred += 1,
+                    Some("reject") => row.rejected += 1,
+                    Some(_) => row.accepted += 1,
+                }
+            }
+            rows.insert(*name, row);
         }
         for index in &self.squads {
             if !self.live(*index) {
                 continue;
             }
             if let Extra::Squad { name, role, budget } = self.acts[*index as usize].extra {
-                slot(&mut rows, &mut order, name).declared = Some((role, budget));
+                rows.entry(name)
+                    .or_insert_with(|| {
+                        order.push(name);
+                        Row::default()
+                    })
+                    .declared = Some((role, budget));
             }
         }
-        let mut last: HashMap<u32, u32> = HashMap::new();
-        let mut agents = HashSet::new();
+        // The window is read from the newest acts back, as presence reads it.
         let mut active = HashSet::new();
-        for (index, act) in self.acts.iter().enumerate() {
-            if act.author_type != AuthorType::Human {
-                last.insert(act.author, index as u32);
-                agents.insert(act.author);
-                if act.at_ms >= since && act.at_ms <= now_ms {
-                    active.insert(act.author);
-                }
+        let mut scanned = 0usize;
+        for act in self.acts.iter().rev() {
+            scanned += 1;
+            if scanned > super::MAX_PRESENCE_SCAN || act.at_ms < since - window_ms.max(60_000) {
+                break;
             }
-            if let Extra::Assignment { assignee } = act.extra
-                && self.live(index as u32)
-                && let Some(name) = self.strings.text(assignee).strip_prefix("squad:")
-                && let Some(name) = self.strings.find(name)
-            {
-                slot(&mut rows, &mut order, name).assigned += 1;
+            if act.at_ms < since || act.at_ms > now_ms || act.author_type == AuthorType::Human {
+                continue;
             }
-            let Some(squad) = act.squad else { continue };
-            let entry = slot(&mut rows, &mut order, squad);
-            entry.acts += 1;
-            entry.agents.insert(act.author);
-            if let Some(model) = act.model {
-                entry.models.insert(model);
-            }
-            if act.at_ms >= since && act.at_ms <= now_ms {
+            active.insert(act.author);
+            if let Some(entry) = act.squad.and_then(|squad| rows.get_mut(&squad)) {
                 entry.recent += 1;
                 entry.active.insert(act.author);
             }
-            entry.last_ms = Some(entry.last_ms.map_or(act.at_ms, |at| at.max(act.at_ms)));
-            if matches!(act.extra, Extra::Proposal { .. }) && self.live(index as u32) {
-                match self
-                    .decision(index as u32)
-                    .map(|(_, decision)| self.strings.text(decision))
-                {
-                    None => entry.open += 1,
-                    Some("defer") => entry.deferred += 1,
-                    Some("reject") => entry.rejected += 1,
-                    Some(_) => entry.accepted += 1,
-                }
-            }
         }
         let mut stalled = 0u64;
-        for (author, index) in &last {
+        for (author, index) in &self.agent_last {
             let act = &self.acts[*index as usize];
             if let Extra::Lease { until_ms } = act.extra
                 && until_ms < now_ms
             {
                 stalled += 1;
-                if let Some(squad) = act.squad
-                    && let Some(entry) = rows.get_mut(&squad)
-                {
+                if let Some(entry) = act.squad.and_then(|squad| rows.get_mut(&squad)) {
                     entry.stalled.insert(*author);
                 }
             }
         }
+        let agents = self.agent_last.len();
         order.sort_by(|a, b| {
             let (left, right) = (&rows[a], &rows[b]);
             right
@@ -295,7 +344,7 @@ impl ActJournal {
         };
         object(vec![
             ("squads_count", int(order.len() as i128)),
-            ("agents", int(agents.len() as i128)),
+            ("agents", int(agents as i128)),
             ("active", int(active.len() as i128)),
             ("stalled", int(stalled as i128)),
             ("open_proposals", int(self.open_proposals() as i128)),
@@ -326,9 +375,9 @@ impl ActJournal {
                                     "over_budget",
                                     boolean(budget.is_some_and(|b| entry.acts >= b)),
                                 ),
-                                ("agents", int(entry.agents.len() as i128)),
+                                ("agents", int(entry.agents as i128)),
                                 ("active", int(entry.active.len() as i128)),
-                                ("models", text_list(&entry.models)),
+                                ("models", text_list(&entry.models.iter().copied().collect())),
                                 (
                                     "proposals",
                                     object(vec![

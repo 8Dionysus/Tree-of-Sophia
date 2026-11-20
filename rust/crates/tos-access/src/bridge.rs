@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 use std::{
     collections::HashMap,
     fs::{File, OpenOptions},
-    io::{BufRead, BufReader, Read, Write},
+    io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
     net::{IpAddr, SocketAddr, TcpListener, TcpStream},
     os::unix::fs::FileExt,
     path::{Path, PathBuf},
@@ -23,7 +23,7 @@ use std::{
     },
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-use tos_foundation::deployment_profile::BridgeProfile;
+use tos_foundation::{Digest256Hasher, deployment_profile::BridgeProfile};
 use tos_web_rules::{
     AGENT_TIERS, ActJournal, CheckedRecord, PERSON_ONLY_KINDS, PROPOSING_KINDS, check_stored_record,
 };
@@ -34,6 +34,9 @@ const PAGE_COMMANDS: &str = include_str!("../../../../access/contracts/page-comm
 const FIELD_SHAPES: &str = include_str!("../../../../access/contracts/field-shapes.v1.json");
 const MEDIA_HOSTS: &str = include_str!("../../../../bonsai/lib/media-hosts.mjs");
 const STORE_FILE: &str = "acts.jsonl";
+const SNAPSHOT_FILE: &str = "acts.snapshot";
+const SNAPSHOT_MAGIC: &[u8; 8] = b"TOSBSN1\0";
+const SNAPSHOT_HEADER: usize = 56;
 const CONTROL_FILE: &str = "control.json";
 const MAX_HEADER_BYTES: usize = 16_384;
 const MAX_AGENT_BATCH: usize = 100;
@@ -54,11 +57,22 @@ pub struct Store {
     lines: Vec<(u64, u32)>,
     ids: HashMap<Box<str>, u64>,
     end: u64,
+    hasher: Digest256Hasher,
+}
+
+/// How a start found the journal: records taken from a snapshot of the folds,
+/// records folded from the store's lines, and why a snapshot was not used.
+pub struct Restored {
+    pub from_snapshot: u64,
+    pub folded: u64,
+    pub note: Option<String>,
 }
 
 impl Store {
-    /// Open the store in `dir` and fold every record into `journal`.
-    pub fn open(dir: &Path, journal: &mut ActJournal) -> Result<Self, String> {
+    /// Open the store in `dir` and its journal: from the snapshot of the folds
+    /// where it matches the store's first bytes, then every later record checked
+    /// and folded in order.
+    pub fn open(dir: &Path) -> Result<(Self, ActJournal, Restored), String> {
         std::fs::create_dir_all(dir).map_err(|e| format!("bridge store: {e}"))?;
         let path = dir.join(STORE_FILE);
         let file = OpenOptions::new()
@@ -72,17 +86,105 @@ impl Store {
             lines: Vec::new(),
             ids: HashMap::new(),
             end: 0,
+            hasher: Digest256Hasher::new(),
         };
-        let mut reader = BufReader::with_capacity(
-            1 << 20,
-            File::open(&path).map_err(|e| format!("bridge store: {e}"))?,
-        );
+        let mut note = None;
+        let journal = match std::fs::read(dir.join(SNAPSHOT_FILE)) {
+            Ok(bytes) => match store.adopt(&path, &bytes) {
+                Ok(journal) => Some(journal),
+                Err(reason) => {
+                    store.lines.clear();
+                    store.ids.clear();
+                    store.end = 0;
+                    store.hasher = Digest256Hasher::new();
+                    note = Some(reason);
+                    None
+                }
+            },
+            Err(_) => None,
+        };
+        let from_snapshot = store.len();
+        let mut journal = match journal {
+            Some(journal) => journal,
+            None => ActJournal::new(REGISTRY)?,
+        };
+        store.fold_tail(&path, &mut journal)?;
+        let folded = store.len() - from_snapshot;
+        Ok((
+            store,
+            journal,
+            Restored {
+                from_snapshot,
+                folded,
+                note,
+            },
+        ))
+    }
+
+    /// Take the journal from a snapshot when the store's first bytes are the ones it was made from.
+    fn adopt(&mut self, path: &Path, snapshot: &[u8]) -> Result<ActJournal, String> {
+        let header = snapshot
+            .get(..SNAPSHOT_HEADER)
+            .filter(|header| header.starts_with(SNAPSHOT_MAGIC))
+            .ok_or("snapshot_format")?;
+        let number =
+            |at: usize| u64::from_le_bytes(header[at..at + 8].try_into().unwrap_or_default());
+        let (length, records) = (number(8), number(16));
+        let stated = &header[24..56];
+        let mut file = File::open(path).map_err(|e| format!("bridge store: {e}"))?;
+        if file
+            .metadata()
+            .map_err(|e| format!("bridge store: {e}"))?
+            .len()
+            < length
+        {
+            return Err("snapshot_store_shorter".to_owned());
+        }
+        let mut buffer = vec![0u8; 1 << 20];
+        let (mut offset, mut start) = (0u64, 0u64);
+        while offset < length {
+            let want = buffer.len().min((length - offset) as usize);
+            file.read_exact(&mut buffer[..want])
+                .map_err(|e| format!("bridge store: {e}"))?;
+            self.hasher.update(&buffer[..want]);
+            for (at, byte) in buffer[..want].iter().enumerate() {
+                if *byte == b'\n' {
+                    let end = offset + at as u64;
+                    self.lines.push((start, (end - start) as u32));
+                    start = end + 1;
+                }
+            }
+            offset += want as u64;
+        }
+        if start != length || self.len() != records {
+            return Err("snapshot_store_lines".to_owned());
+        }
+        if self.hasher.clone().finalize().as_bytes()[..] != stated[..] {
+            return Err("snapshot_store_changed".to_owned());
+        }
+        let journal = ActJournal::from_snapshot(REGISTRY, &snapshot[SNAPSHOT_HEADER..])?;
+        if journal.len() as u64 != records {
+            return Err("snapshot_records".to_owned());
+        }
+        for (index, id) in journal.act_ids().enumerate() {
+            self.ids.insert(id.into(), index as u64 + 1);
+        }
+        self.end = length;
+        Ok(journal)
+    }
+
+    /// Check and fold every record after `self.end`, cutting a torn last line.
+    fn fold_tail(&mut self, path: &Path, journal: &mut ActJournal) -> Result<(), String> {
+        let mut file = File::open(path).map_err(|e| format!("bridge store: {e}"))?;
+        file.seek(SeekFrom::Start(self.end))
+            .map_err(|e| format!("bridge store: {e}"))?;
+        let mut reader = BufReader::with_capacity(1 << 20, file);
         // Parsing and checking each record's digest needs nothing from the journal, so it runs on
         // every core a chunk at a time; folding then takes the records in order.
         let threads = std::thread::available_parallelism()
             .map_or(1, |n| n.get())
             .clamp(1, 8);
-        let mut offset = 0u64;
+        let mut offset = self.end;
         let mut torn = false;
         while !torn {
             let mut chunk: Vec<Vec<u8>> = Vec::with_capacity(RESTORE_CHUNK);
@@ -123,12 +225,14 @@ impl Store {
                     .collect()
             });
             for (line, record) in chunk.iter().zip(checked) {
-                let seq = store.lines.len() as u64 + 1;
+                let seq = self.lines.len() as u64 + 1;
                 let id = record
                     .and_then(|record| journal.restore_checked(record))
                     .map_err(|error| format!("bridge store: record {seq}: {error}"))?;
-                store.ids.insert(id.into(), seq);
-                store.lines.push((offset, line.len() as u32));
+                self.ids.insert(id.into(), seq);
+                self.lines.push((offset, line.len() as u32));
+                self.hasher.update(line);
+                self.hasher.update(b"\n");
                 offset += line.len() as u64 + 1;
             }
             if chunk.len() < RESTORE_CHUNK {
@@ -136,13 +240,25 @@ impl Store {
             }
         }
         if torn {
-            store
-                .file
+            self.file
                 .set_len(offset)
                 .map_err(|e| format!("bridge store: {e}"))?;
         }
-        store.end = offset;
-        Ok(store)
+        self.end = offset;
+        Ok(())
+    }
+
+    /// The snapshot file for the journal as it stands: the store's length, its
+    /// records and the digest of its bytes, then the folds.
+    fn snapshot(&self, journal: &ActJournal) -> Vec<u8> {
+        let folds = journal.snapshot();
+        let mut out = Vec::with_capacity(SNAPSHOT_HEADER + folds.len());
+        out.extend_from_slice(SNAPSHOT_MAGIC);
+        out.extend_from_slice(&self.end.to_le_bytes());
+        out.extend_from_slice(&self.len().to_le_bytes());
+        out.extend_from_slice(self.hasher.clone().finalize().as_bytes());
+        out.extend_from_slice(&folds);
+        out
     }
 
     pub fn len(&self) -> u64 {
@@ -157,6 +273,7 @@ impl Store {
         line.extend_from_slice(record);
         line.push(b'\n');
         self.file.write_all(&line)?;
+        self.hasher.update(&line);
         self.lines.push((self.end, record.len() as u32));
         self.end += line.len() as u64;
         let seq = self.lines.len() as u64;
@@ -200,22 +317,15 @@ struct State {
     paused: bool,
     agent_tier: String,
     last_proposing: HashMap<String, Instant>,
-    queue: Option<(usize, Instant)>,
     streams: Vec<mpsc::SyncSender<u64>>,
     ids: u64,
+    since_snapshot: u64,
 }
 
 impl State {
-    /// The open review queue, read again at most every half second.
-    fn queue(&mut self) -> usize {
-        match self.queue {
-            Some((open, at)) if at.elapsed() < Duration::from_millis(500) => open,
-            _ => {
-                let open = self.journal.open_proposals();
-                self.queue = Some((open, Instant::now()));
-                open
-            }
-        }
+    /// The open review queue, which the journal keeps in step with each append.
+    fn queue(&self) -> usize {
+        self.journal.open_proposals()
     }
 
     fn fresh_id(&mut self, kind: &str) -> String {
@@ -270,7 +380,7 @@ impl State {
             }
         }
         if !appended.is_empty() {
-            self.queue = None;
+            self.since_snapshot += appended.len() as u64;
             let seq = self.store.len();
             self.streams.retain(|stream| {
                 !matches!(
@@ -345,6 +455,8 @@ fn random_token() -> std::io::Result<String> {
 pub struct Bridge {
     state: Mutex<State>,
     syncer: Syncer,
+    restored: Restored,
+    snapshotting: Arc<std::sync::atomic::AtomicBool>,
     site: PathBuf,
     store_dir: PathBuf,
     token: String,
@@ -399,8 +511,7 @@ impl Bridge {
         address: SocketAddr,
         profile: BridgeProfile,
     ) -> Result<Self, String> {
-        let mut journal = ActJournal::new(REGISTRY)?;
-        let store = Store::open(store_dir, &mut journal)?;
+        let (store, journal, restored) = Store::open(store_dir)?;
         let syncer = Syncer {
             file: store
                 .file
@@ -425,10 +536,12 @@ impl Bridge {
                 paused,
                 agent_tier,
                 last_proposing: HashMap::new(),
-                queue: None,
                 streams: Vec::new(),
                 ids: now_ms() as u64,
+                since_snapshot: restored.folded,
             }),
+            restored,
+            snapshotting: Arc::new(std::sync::atomic::AtomicBool::new(false)),
             site: site.to_owned(),
             store_dir: store_dir.to_owned(),
             token: random_token().map_err(|e| format!("bridge token: {e}"))?,
@@ -449,6 +562,7 @@ impl Bridge {
             self.syncer
                 .written
                 .store(state.store.len(), Ordering::SeqCst);
+            self.maybe_snapshot(&mut state, false);
             result
         };
         self.settle(&result);
@@ -462,6 +576,49 @@ impl Bridge {
             .and_then(|row| row["seq"].as_u64())
         {
             self.syncer.durable(seq);
+        }
+    }
+
+    /// How the start found the journal (from a snapshot, folded from the store, and why not).
+    pub fn restored(&self) -> &Restored {
+        &self.restored
+    }
+
+    /// Write a snapshot of the folds once enough records were appended since the
+    /// last one (or now, when `force`). The folds are copied under the journal's
+    /// lock; the file is written beside the store by another thread and
+    /// replaces the earlier snapshot whole.
+    fn maybe_snapshot(&self, state: &mut State, force: bool) {
+        if !force && state.since_snapshot < self.profile.snapshot_every_records {
+            return;
+        }
+        if state.store.is_empty() || self.snapshotting.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        state.since_snapshot = 0;
+        let bytes = state.store.snapshot(&state.journal);
+        let (dir, busy) = (self.store_dir.clone(), Arc::clone(&self.snapshotting));
+        std::thread::spawn(move || {
+            let temporary = dir.join(format!("{SNAPSHOT_FILE}.tmp"));
+            if std::fs::write(&temporary, &bytes).is_ok() {
+                let _ = std::fs::rename(&temporary, dir.join(SNAPSHOT_FILE));
+            }
+            busy.store(false, Ordering::SeqCst);
+        });
+    }
+
+    /// Write a snapshot now when the start folded records from the store's lines.
+    pub fn snapshot_after_start(&self) {
+        if self.restored.folded > 0 {
+            let mut state = self.lock();
+            self.maybe_snapshot(&mut state, true);
+        }
+    }
+
+    /// Wait until no snapshot is being written (for a clean stop and for tests).
+    pub fn settle_snapshot(&self) {
+        while self.snapshotting.load(Ordering::SeqCst) {
+            std::thread::sleep(Duration::from_millis(5));
         }
     }
 
@@ -578,6 +735,7 @@ impl Bridge {
         self.syncer
             .written
             .store(state.store.len(), Ordering::SeqCst);
+        self.maybe_snapshot(&mut state, false);
         let appended = result["appended"].as_array().map_or(0, Vec::len);
         for (index, author) in &proposing {
             if *index < appended {
@@ -1423,13 +1581,22 @@ pub fn run_if_requested(
     };
     let _ = writeln!(stdout, "http://{bound}/");
     let _ = stdout.flush();
+    let restored = bridge.restored();
     let _ = writeln!(
         stderr,
-        "tos bridge: {} acts restored in {} ms from {}; MCP at http://{bound}/mcp; local only",
+        "tos bridge: {} acts restored in {} ms from {} ({} from the snapshot of the folds, {} checked and folded{}); MCP at http://{bound}/mcp; local only",
         bridge.acts(),
         started.elapsed().as_millis(),
-        store.display()
+        store.display(),
+        restored.from_snapshot,
+        restored.folded,
+        restored
+            .note
+            .as_deref()
+            .map(|note| format!("; snapshot not used: {note}"))
+            .unwrap_or_default()
     );
+    bridge.snapshot_after_start();
     match serve(listener, bridge) {
         Ok(()) => Some(0),
         Err(error) => {
@@ -1630,8 +1797,7 @@ mod tests {
     fn a_torn_last_line_is_cut_and_a_changed_record_stops_the_start() {
         let dir = std::env::temp_dir().join(format!("tos-bridge-torn-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
-        let mut journal = ActJournal::new(REGISTRY).unwrap();
-        let mut store = Store::open(&dir, &mut journal).unwrap();
+        let (mut store, mut journal, _) = Store::open(&dir).unwrap();
         let record = journal
             .append_record(br#"{"schema":"tos.act.v1","id":"n1","kind":"note","author":{"type":"human","id":"p"},"targets":["x"],"grounds":[],"intent":"a","body":{"text":"t"},"parents":[],"at":"2026-11-20T10:00:00.000Z","posture":{"local_only":true,"source":false,"reviewed_by_tree":false,"canon":false}}"#)
             .unwrap();
@@ -1640,16 +1806,14 @@ mod tests {
         let path = dir.join(STORE_FILE);
         let mut file = OpenOptions::new().append(true).open(&path).unwrap();
         file.write_all(b"{\"schema\":\"tos.act").unwrap();
-        let mut journal = ActJournal::new(REGISTRY).unwrap();
-        assert_eq!(Store::open(&dir, &mut journal).unwrap().len(), 1);
+        assert_eq!(Store::open(&dir).unwrap().0.len(), 1);
         assert!(std::fs::read_to_string(&path).unwrap().ends_with("}\n"));
         let changed = std::fs::read_to_string(&path)
             .unwrap()
             .replace("\"a\"", "\"b\"");
         std::fs::write(&path, changed).unwrap();
-        let mut journal = ActJournal::new(REGISTRY).unwrap();
         assert!(
-            Store::open(&dir, &mut journal)
+            Store::open(&dir)
                 .err()
                 .unwrap()
                 .contains("record 1: act_digest_mismatch")
@@ -1807,6 +1971,63 @@ mod tests {
             seen.push_str(std::str::from_utf8(&buffer[..read]).unwrap());
         }
         assert!(seen.contains("text/event-stream"));
+        let _ = std::fs::remove_dir_all(&f.dir);
+    }
+
+    #[test]
+    fn a_start_reads_the_snapshot_of_the_folds_and_only_the_records_after_it() {
+        let f = fixture("snapshot", None);
+        let key = cookie(f.address);
+        let note = |id: &str| json!({"schema": "tos.act.v1", "id": id, "kind": "note", "author": {"type": "human", "id": "p"}, "targets": ["x"], "grounds": [], "intent": "a", "body": {"text": "t"}, "parents": [], "at": "2026-11-20T10:00:00.000Z", "posture": {"local_only": true, "source": false, "reviewed_by_tree": false, "canon": false}});
+        let batch = json!((0..40).map(|n| note(&format!("n{n}"))).collect::<Vec<_>>()).to_string();
+        assert_eq!(post(f.address, "/__bridge/v1/acts", &key, &batch).0, 200);
+        let open = || {
+            let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+            Bridge::open(
+                &f.dir.join("site"),
+                &f.dir.join("store"),
+                listener.local_addr().unwrap(),
+                default_profile(),
+            )
+            .unwrap()
+        };
+        let first = open();
+        assert_eq!(
+            (first.restored().from_snapshot, first.restored().folded),
+            (0, 40)
+        );
+        first.snapshot_after_start();
+        first.settle_snapshot();
+        assert!(f.dir.join("store").join(SNAPSHOT_FILE).is_file());
+        let second = open();
+        assert_eq!(
+            (second.restored().from_snapshot, second.restored().folded),
+            (40, 0)
+        );
+        assert_eq!(second.lock().store.by_id("n39").unwrap()["seq"], 40);
+        // Records after the snapshot are checked and folded; the journal goes on from both.
+        assert_eq!(
+            second.append_durable(&[note("n40").to_string().into_bytes()])["appended"][0]["seq"],
+            41
+        );
+        let third = open();
+        assert_eq!(
+            (third.restored().from_snapshot, third.restored().folded),
+            (40, 1)
+        );
+        // A store whose first bytes changed is folded whole; the snapshot is not used.
+        let path = f.dir.join("store").join(STORE_FILE);
+        let text =
+            std::fs::read_to_string(&path)
+                .unwrap()
+                .replacen("{\"schema\"", "{ \"schema\"", 1);
+        std::fs::write(&path, text).unwrap();
+        let fourth = open();
+        assert_eq!(
+            (fourth.restored().from_snapshot, fourth.restored().folded),
+            (0, 41)
+        );
+        assert!(fourth.restored().note.is_some());
         let _ = std::fs::remove_dir_all(&f.dir);
     }
 

@@ -393,6 +393,13 @@
           "maximum": 18446744073709551615,
           "description": "Unit: milliseconds. Longest pause between one agent's proposing acts.",
           "default": 60000
+        },
+        "snapshot_every_records": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: records. Records appended between two snapshots of the journal's folds; a start reads the snapshot and folds only the records after it.",
+          "default": 50000
         }
       }
     }

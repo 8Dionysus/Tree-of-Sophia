@@ -14,6 +14,7 @@ use tos_foundation::{
 };
 
 mod army;
+mod snapshot;
 pub use army::{AGENT_TIERS, PERSON_ONLY_KINDS, PROPOSING_KINDS, utc_iso};
 
 pub const ACT_SCHEMA: &str = "tos.act.v1";
@@ -446,6 +447,8 @@ struct Act {
 /// is edited or removed.
 pub struct ActJournal {
     registry: Registry,
+    registry_digest: Digest256,
+    declared_sources: HashMap<String, Vec<u8>>,
     declared: HashMap<String, KindRule>,
     declared_order: Vec<String>,
     ids: Interner,
@@ -465,7 +468,22 @@ pub struct ActJournal {
     leases: Vec<u32>,
     squads: Vec<u32>,
     lease_tracks: HashMap<u32, Vec<LeaseTrack>>,
+    squad_tracks: HashMap<u32, SquadTrack>,
+    agent_last: HashMap<u32, u32>,
+    open_count: std::cell::Cell<Option<usize>>,
     unknown_kinds: HashMap<u32, u64>,
+}
+
+/// What one squad did, kept as its acts are appended: the army's console reads
+/// it without walking the whole journal.
+#[derive(Default)]
+struct SquadTrack {
+    acts: u64,
+    agents: HashSet<u32>,
+    models: HashSet<u32>,
+    proposals: Vec<u32>,
+    assignments: Vec<u32>,
+    last_ms: Option<i64>,
 }
 
 /// One author's leases and releases on one target, in append order.
@@ -557,6 +575,8 @@ impl ActJournal {
         let registry = registry_from(&parse(registry_json, MAX_REGISTRY_BYTES)?)?;
         Ok(Self {
             registry,
+            registry_digest: snapshot::registry_digest(registry_json),
+            declared_sources: HashMap::new(),
             declared: HashMap::new(),
             declared_order: Vec::new(),
             ids: Interner::default(),
@@ -576,6 +596,9 @@ impl ActJournal {
             leases: Vec::new(),
             squads: Vec::new(),
             lease_tracks: HashMap::new(),
+            squad_tracks: HashMap::new(),
+            agent_last: HashMap::new(),
+            open_count: std::cell::Cell::new(Some(0)),
             unknown_kinds: HashMap::new(),
         })
     }
@@ -990,18 +1013,80 @@ impl ActJournal {
             role: role.as_deref().map(|r| self.strings.intern(r)),
             squad: squad.as_deref().map(|s| self.strings.intern(s)),
             at_ms,
-            targets: target_indices.clone().into_boxed_slice(),
-            parents: parents.clone().into_boxed_slice(),
+            targets: target_indices.into_boxed_slice(),
+            parents: parents.into_boxed_slice(),
             replaces,
-            extra: extra.clone(),
+            extra,
         };
-        for target in &target_indices {
+        self.acts.push(act);
+        self.index_act(index);
+        if kind == "kind-declaration" {
+            let declares = get(body, "declares").ok_or_else(|| invalid("body.declares"))?;
+            let name = get(declares, "name")
+                .and_then(JsonValue::as_str)
+                .unwrap_or_default()
+                .to_owned();
+            let rule = rule_from(declares)?;
+            if !self.declared.contains_key(&name) {
+                self.declared_order.push(name.clone());
+            }
+            self.declared_sources.insert(name.clone(), emit(declares)?);
+            self.declared.insert(name, rule);
+        }
+        Ok((record, seq, collisions))
+    }
+
+    /// Enter one appended act into the folds' indexes. Appending and loading a
+    /// snapshot both index acts here, so a restored journal folds exactly as the
+    /// one that was saved.
+    fn index_act(&mut self, index: u32) {
+        let act = &self.acts[index as usize];
+        let (author, kind, known) = (act.author, act.kind, act.known);
+        let (targets, parents, replaces) = (act.targets.clone(), act.parents.clone(), act.replaces);
+        let extra = act.extra.clone();
+        let (author_type, model, squad, at_ms) = (act.author_type, act.model, act.squad, act.at_ms);
+        // The open review queue follows the append; a withdrawal or a replacement counts it again.
+        if let Some(open) = self.open_count.get() {
+            self.open_count.set(match extra {
+                _ if replaces.is_some() => None,
+                Extra::Withdrawal { .. } => None,
+                Extra::Proposal { .. } => Some(open + 1),
+                Extra::Review { .. } => Some(open.saturating_sub(self.newly_decided(index))),
+                _ => Some(open),
+            });
+        }
+        if author_type != AuthorType::Human {
+            self.agent_last.insert(author, index);
+        }
+        if let Some(squad) = squad {
+            let track = self.squad_tracks.entry(squad).or_default();
+            track.acts += 1;
+            track.agents.insert(author);
+            if let Some(model) = model {
+                track.models.insert(model);
+            }
+            track.last_ms = Some(track.last_ms.map_or(at_ms, |last| last.max(at_ms)));
+            if matches!(extra, Extra::Proposal { .. }) {
+                track.proposals.push(index);
+            }
+        }
+        if let Extra::Assignment { assignee } = extra
+            && let Some(name) = self.strings.text(assignee).strip_prefix("squad:")
+        {
+            let name = name.to_owned();
+            let squad = self.strings.intern(&name);
+            self.squad_tracks
+                .entry(squad)
+                .or_default()
+                .assignments
+                .push(index);
+        }
+        for target in targets.iter() {
             self.by_target.entry(*target).or_default().push(index);
         }
-        let release = kind == "release";
+        let release = self.strings.text(kind) == "release";
         if release || matches!(extra, Extra::Lease { .. }) {
-            let author = act.author;
-            for target in &target_indices {
+            for target in targets.iter() {
                 let tracks = self.lease_tracks.entry(*target).or_default();
                 let at = match tracks.iter().position(|track| track.author == author) {
                     Some(at) => at,
@@ -1025,12 +1110,14 @@ impl ActJournal {
                 }
             }
         }
-        for parent in &parents {
+        for parent in parents.iter() {
             self.children.entry(*parent).or_default().push(index);
         }
         if let Some(replaced) = replaces {
             self.replaced_by.entry(replaced).or_default().push(index);
         }
+        let act_of =
+            |journal: &Self, target: u32| journal.act_address(journal.strings.text(target));
         match &extra {
             Extra::Ticket { .. } => self.tickets.push(index),
             Extra::Proposal { group, .. } => {
@@ -1041,18 +1128,17 @@ impl ActJournal {
                 members.push(index);
             }
             Extra::Review { .. } => {
-                for target in &targets {
-                    if let Some(proposal) = self.act_address(target) {
+                for target in targets.iter() {
+                    if let Some(proposal) = act_of(self, *target) {
                         self.direct_reviews.entry(proposal).or_default().push(index);
-                    } else if target.starts_with("group:") {
-                        let group = self.strings.intern(target);
-                        self.group_reviews.entry(group).or_default().push(index);
+                    } else if self.strings.text(*target).starts_with("group:") {
+                        self.group_reviews.entry(*target).or_default().push(index);
                     }
                 }
             }
             Extra::Withdrawal { .. } => {
-                for target in &targets {
-                    if let Some(withdrawn) = self.act_address(target) {
+                for target in targets.iter() {
+                    if let Some(withdrawn) = act_of(self, *target) {
                         self.withdrawals.entry(withdrawn).or_default().push(index);
                     }
                 }
@@ -1060,31 +1146,17 @@ impl ActJournal {
             Extra::Lease { .. } => self.leases.push(index),
             Extra::Squad { .. } => self.squads.push(index),
             Extra::Assignment { .. } => {
-                for target in &targets {
-                    if let Some(assigned) = self.act_address(target) {
+                for target in targets.iter() {
+                    if let Some(assigned) = act_of(self, *target) {
                         self.assignments.entry(assigned).or_default().push(index);
                     }
                 }
             }
             Extra::None => {}
         }
-        if kind == "kind-declaration" {
-            let declares = get(body, "declares").ok_or_else(|| invalid("body.declares"))?;
-            let name = get(declares, "name")
-                .and_then(JsonValue::as_str)
-                .unwrap_or_default()
-                .to_owned();
-            let rule = rule_from(declares)?;
-            if !self.declared.contains_key(&name) {
-                self.declared_order.push(name.clone());
-            }
-            self.declared.insert(name, rule);
-        }
         if !known {
-            *self.unknown_kinds.entry(kind_index).or_default() += 1;
+            *self.unknown_kinds.entry(kind).or_default() += 1;
         }
-        self.acts.push(act);
-        Ok((record, seq, collisions))
     }
 
     fn category_of(&self, body: &JsonValue, change: bool) -> Result<String, String> {
@@ -2622,5 +2694,155 @@ mod tests {
         assert_eq!(num(row, "assigned"), 1);
         assert_eq!(num(row, "stalled"), 1);
         assert_eq!(get(row, "models").unwrap().as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn a_snapshot_restores_the_same_folds() {
+        let mut j = journal();
+        j.append(record("t1", "ticket", &format!(r#"{HUMAN},"targets":["link:1"],"grounds":[],"body":{{"category":"translation","observation":"o"}},"parents":[]"#)).as_bytes()).unwrap();
+        j.append(record("k1", "kind-declaration", &format!(r#"{HUMAN},"targets":["kind:x.lab.thought"],"grounds":[],"body":{{"declares":{{"name":"x.lab.thought","description":"A thought","grounds":"optional","parents":"optional","body_required":["text"]}}}},"parents":[]"#)).as_bytes()).unwrap();
+        for n in 0..6 {
+            let author = agent(&format!("a{}", n % 3), "m");
+            j.append(record(&format!("p{n}"), "proposal", &format!(r#"{author},"targets":["link:{n}"],"grounds":["place:{n}"],"body":{{"category":"translation","change":{{"from":"дитя","to":"ребёнок"}}}},"parents":["t1"]"#)).as_bytes()).unwrap();
+        }
+        j.append(record("l1", "lease", &format!(r#"{},"targets":["link:1"],"grounds":[],"body":{{"ttl_ms":60000}},"parents":[]"#, agent("a1", "m"))).as_bytes()).unwrap();
+        j.append(record("r1", "review", &format!(r#"{HUMAN},"targets":["act:p0","act:p1"],"grounds":[],"body":{{"decision":"accept","reason":"ok"}},"parents":[]"#)).as_bytes()).unwrap();
+        j.append(
+            record(
+                "w1",
+                "withdrawal",
+                &format!(r#"{HUMAN},"targets":["act:t1"],"grounds":[],"body":{{}},"parents":[]"#),
+            )
+            .as_bytes(),
+        )
+        .unwrap();
+        j.append(record("s1", "squad", &format!(r#"{HUMAN},"targets":["squad:lab"],"grounds":[],"body":{{"role":"reader","area":["x"],"budget":{{"acts":9}},"stop":"s"}},"parents":[]"#)).as_bytes()).unwrap();
+        let bytes = j.snapshot();
+        let mut restored = ActJournal::from_snapshot(REGISTRY, &bytes).unwrap();
+        let now = utc_ms("2026-11-20T10:00:10.000Z").unwrap();
+        for view in [
+            r#"{"view":"summary"}"#.to_owned(),
+            r#"{"view":"board"}"#.to_owned(),
+            r#"{"view":"review"}"#.to_owned(),
+            r#"{"view":"decided"}"#.to_owned(),
+            r#"{"view":"kinds"}"#.to_owned(),
+            r#"{"view":"history","id":"p0"}"#.to_owned(),
+            format!(r#"{{"view":"leases","now_ms":{now}}}"#),
+            format!(r#"{{"view":"squads","now_ms":{now},"window_ms":60000}}"#),
+            r#"{"view":"target","address":"link:1"}"#.to_owned(),
+        ] {
+            assert_eq!(
+                restored.query(view.as_bytes()).unwrap(),
+                j.query(view.as_bytes()).unwrap(),
+                "{view}"
+            );
+        }
+        assert_eq!(
+            restored.act_ids().collect::<Vec<_>>(),
+            j.act_ids().collect::<Vec<_>>()
+        );
+        // The restored journal goes on: the next record takes the next sequence and its declared kind.
+        let next = record(
+            "x1",
+            "x.lab.thought",
+            &format!(
+                r#"{},"targets":["link:2"],"grounds":[],"body":{{"text":"t"}},"parents":[]"#,
+                agent("a1", "m")
+            ),
+        );
+        assert_eq!(
+            num(&value(&restored.append(next.as_bytes()).unwrap()), "seq"),
+            13
+        );
+        // Another registry, a cut or another format is refused.
+        let mut other = REGISTRY.to_vec();
+        other.push(b'\n');
+        assert_eq!(
+            ActJournal::from_snapshot(&other, &bytes).err().as_deref(),
+            Some("act_snapshot_registry")
+        );
+        assert!(ActJournal::from_snapshot(REGISTRY, &bytes[..bytes.len() - 3]).is_err());
+        let mut changed = bytes.clone();
+        changed[0] = b'X';
+        assert_eq!(
+            ActJournal::from_snapshot(REGISTRY, &changed)
+                .err()
+                .as_deref(),
+            Some("act_snapshot_format")
+        );
+    }
+
+    #[test]
+    fn the_open_queue_follows_reviews_withdrawals_and_replacements() {
+        let mut j = journal();
+        let recount = |j: &ActJournal| {
+            j.group_order
+                .iter()
+                .flat_map(|group| j.group_members[group].iter())
+                .filter(|index| j.live(**index) && j.decision(**index).is_none())
+                .count()
+        };
+        let proposal = |id: &str, to: &str, extra: &str| {
+            record(
+                id,
+                "proposal",
+                &format!(
+                    r#"{},"targets":["link:{id}"],"grounds":["place:{id}"],"body":{{"category":"translation","change":{{"field":"verb","from":"дитя","to":"{to}","term":"child","to_lemma":"{to}"}}}},"parents":[]{extra}"#,
+                    agent("a1", "m")
+                ),
+            )
+        };
+        let mut step = |j: &mut ActJournal, raw: String| {
+            j.append(raw.as_bytes()).unwrap();
+            assert_eq!(j.open_proposals(), recount(j), "{raw}");
+        };
+        for n in 0..4 {
+            step(&mut j, proposal(&format!("p{n}"), "ребёнок", ""));
+        }
+        step(&mut j, proposal("q0", "чадо", ""));
+        let group = query(&j, r#"{"view":"review"}"#);
+        let address = get(
+            &get(&group, "groups").unwrap().as_array().unwrap()[0],
+            "group",
+        )
+        .and_then(JsonValue::as_str)
+        .unwrap()
+        .to_owned();
+        let review = |id: &str, targets: &str, decision: &str| {
+            record(
+                id,
+                "review",
+                &format!(
+                    r#"{HUMAN},"targets":[{targets}],"grounds":[],"body":{{"decision":"{decision}","reason":"r"}},"parents":[]"#
+                ),
+            )
+        };
+        step(&mut j, review("r0", r#""act:p0""#, "accept"));
+        step(&mut j, review("r1", r#""act:p0","act:p1""#, "reject"));
+        step(&mut j, review("r2", &format!(r#""{address}""#), "defer"));
+        step(&mut j, proposal("p9", "ребёнок", ""));
+        step(
+            &mut j,
+            record(
+                "w0",
+                "withdrawal",
+                &format!(r#"{HUMAN},"targets":["act:r2"],"grounds":[],"body":{{}},"parents":[]"#),
+            ),
+        );
+        step(&mut j, proposal("q1", "дитё", r#","replaces":"q0""#));
+        step(
+            &mut j,
+            record(
+                "w1",
+                "withdrawal",
+                &format!(
+                    r#"{},"targets":["act:p9"],"grounds":[],"body":{{}},"parents":[]"#,
+                    agent("a1", "m")
+                ),
+            ),
+        );
+        // A snapshot keeps the count in step as it indexes the acts again.
+        let restored = ActJournal::from_snapshot(REGISTRY, &j.snapshot()).unwrap();
+        assert_eq!(restored.open_proposals(), recount(&j));
     }
 }
