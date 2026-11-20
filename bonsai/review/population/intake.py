@@ -16,9 +16,10 @@ Writes, beside this file:
     registry/<batch>/agents.jsonl            every row of the workbook's `agents` sheet as the
                                              workbook holds it
     registry/<batch>/works-responsibility.jsonl
-                                             every row of its `works` sheet, two cells only:
-                                             record_id and responsibility_statements (the rest of
-                                             the sheet comes with the works ring)
+                                             every row of its `works` sheet, five cells only:
+                                             record_id, preferred_label, label_ru, work_dates and
+                                             responsibility_statements (the rest of the sheet
+                                             comes with the works ring)
     registry/authors-table/<sheet>.jsonl     the authors table's sheets «Имена» and «Произведения»
     provenance.json                          the files read: path in the mirror, bytes, SHA-256,
                                              rows
@@ -245,11 +246,11 @@ def read_agents(batch, data, name):
 
 
 WORK_ID = re.compile(r'^(?:A\d{2}|T[23]-\d{2})-[A-Z]\d{3,5}$')
-WORK_COLUMNS = ('record_id', 'responsibility_statements')
+WORK_COLUMNS = ('record_id', 'preferred_label', 'label_ru', 'work_dates', 'responsibility_statements')
 
 
 def read_works(batch, data, name):
-    """The record_id and responsibility_statements cells of every row of the `works` sheet."""
+    """The ID, labels, dates and responsibility cells of every row of the `works` sheet."""
     book = Workbook(data)
     header, rows, ids = None, [], set()
     for number, cells in book.rows('works'):
@@ -276,7 +277,7 @@ def read_works(batch, data, name):
     if header is None:
         fail(f'{name}: empty works sheet')
     head = {'sheet': 'works', 'workbook': name, 'columns': list(WORK_COLUMNS),
-            'projection': 'two cells of every row; the other columns come with the works ring'}
+            'projection': 'five cells of every row; the other columns come with the works ring'}
     return [head] + rows
 
 

@@ -34,7 +34,7 @@ life as biographical phases of the stand's chronology, its gaps, and the rows it
 grew from. Its ID comes from the row it was founded on and is kept in a ledger
 that never gives an ID twice.
 
-The registers are kept whole and public: every row of each `agents` sheet, two
+The registers are kept whole and public: every row of each `agents` sheet, five
 cells of every row of each `works` sheet and the authors table, in R2 under
 `bonsai/review/population/layers.json`, by the operator's decision. Rows join
 automatically only on a shared authority identifier, on a strong name with an

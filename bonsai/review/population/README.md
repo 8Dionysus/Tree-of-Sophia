@@ -14,7 +14,7 @@ the decisions of the readers. The bonsai itself is
 | Path | Holds | Where |
 | --- | --- | --- |
 | `registry/<batch>/agents.jsonl` | every row of the batch's `agents` sheet as the workbook holds it; the first line names the sheet and its columns | R2 |
-| `registry/<batch>/works-responsibility.jsonl` | two cells of every row of its `works` sheet: `record_id` and `responsibility_statements` | R2 |
+| `registry/<batch>/works-responsibility.jsonl` | five cells of every row of its `works` sheet: `record_id`, `preferred_label`, `label_ru`, `work_dates`, `responsibility_statements` | R2 |
 | `registry/authors-table/` | the authors table of the philosophical corpus: the sheets «Имена» (3 470 spellings) and «Произведения» (17 141 units) | R2 |
 | `layer/agents/<batch>.jsonl` | the same agent rows parsed: name forms with their scripts, kind, identifiers, life dates, gaps | R2 |
 | `provenance.json` | the workbooks read: path in the registers mirror, bytes, SHA-256; the workbooks themselves are not kept | git |
@@ -72,9 +72,12 @@ otherwise, and every transcription of a Han, kana or Hangul name is short. Rows 
 one batch, a pseudonymous author with anyone else and a collective with a person
 never join. Two years of one birth or death agree within one year from 1500 on
 and two before it when both are exact, within five and ten when either is
-approximate or uncertain (`yearTolerance`); a wider gap is a date conflict. A
-union that would put two rows of one batch, two rows a reader called different,
-or two conflicting dates into one member is refused. Every other pair of members
+approximate or uncertain (`yearTolerance`); a wider gap is a date conflict. An
+automatic union that would put two rows of one batch, two rows a reader called
+different, or two conflicting dates into one member is refused. A reader's
+`same` may join rows of one batch, since a register can list one person twice;
+only a reader's `different` or `related` refuses it, and that contradiction
+goes back to the readers as a `decision-conflict`. Every other pair of members
 that shares a key is a question in `queue/identity.jsonl`, and so is a name
 qualified by its origin beside the same name standing alone ("Hierocles of
 Alexandria" and "Hierocles", reason `contained`).
