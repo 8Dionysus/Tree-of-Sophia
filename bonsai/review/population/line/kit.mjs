@@ -25,7 +25,9 @@ const REVIEW=join(LINE,'..');
 const PACKETS=join(LINE,'packets');
 const ROOT=join(REVIEW,'..','..','..');
 export const VERDICTS=['same','different','related','undecidable'];
-export const RELATIONS=['pseudonym_of','attributed_to','conventional_for','variant_row','part_of','namesake_of'];
+export const RELATIONS=['pseudonym_of','attributed_to','conventional_for','part_of','namesake_of'];
+const AGENT_ID=/\b((?:A\d{2}|T[23]-\d{2})-A\d{3,4})\b/g;
+const WORKS_SHOWN=12;
 export const BASES=['name','dates','works','authority','teacher','place','office','text','register'];
 const FIELDS=['preferred_label','label_ru','variant_labels','life_dates','external_identifiers','disambiguation_note','responsibility_summary','notes','work_inventory_scope','source_refs','evidence_notes'];
 const AUTHORITY={
@@ -54,19 +56,33 @@ const shortId=(prefix,value)=>{const bytes=createHash('sha256').update(value).di
 function layerRows(){
   const dir=join(REVIEW,'layer','agents'),registry=join(REVIEW,'registry');
   if(!existsSync(dir)||!existsSync(registry))throw Object.assign(new Error('the layers are not fetched (node bonsai/lib/layers.mjs fetch bonsai/review/population)'),{line:true});
+  // The works of a batch whose responsibility lines name a row: their IDs and labels, so that a reader
+  // sees titles where the row's own summary gives only work IDs.
+  const works=new Map();
+  for(const batch of readdirSync(registry).filter(name=>existsSync(join(registry,name,'works-responsibility.jsonl'))).sort()){
+    for(const work of readJsonl(join(registry,batch,'works-responsibility.jsonl')).slice(1)){
+      const label=[work.record_id,work.preferred_label,work.label_ru&&work.label_ru!==work.preferred_label?`(${work.label_ru})`:null].filter(Boolean).join(' ');
+      for(const [,agent] of (work.responsibility_statements??'').matchAll(AGENT_ID)){
+        const id=`${agent.replace(/-A\d+$/,'')}:${agent}`;
+        if(!works.has(id))works.set(id,[]);
+        if(!works.get(id).includes(label))works.get(id).push(label);
+      }
+    }
+  }
   const rows=new Map();
   for(const file of readdirSync(dir).filter(name=>name.endsWith('.jsonl')).sort()){
     const batch=file.replace(/\.jsonl$/,'');
     const raw=new Map(readJsonl(join(registry,batch,'agents.jsonl')).slice(1).map(row=>[`${batch}:${row.record_id.trim()}`,row]));
-    for(const row of readJsonl(join(dir,file)))rows.set(row.row,{parsed:row,raw:raw.get(row.row)});
+    for(const row of readJsonl(join(dir,file)))rows.set(row.row,{parsed:row,raw:raw.get(row.row),works:works.get(row.row)??[]});
   }
   return rows;
 }
 
 function evidence(rows,id){
-  const {parsed,raw}=rows.get(id);
+  const {parsed,raw,works}=rows.get(id);
   const fields={};
   for(const field of FIELDS)if(raw?.[field])fields[field]=raw[field];
+  if(works.length)fields.works=works.slice(0,WORKS_SHOWN).join('; ')+(works.length>WORKS_SHOWN?`; … ${works.length-WORKS_SHOWN} more`:'');
   // The typed identifiers the resolution compared, so that a reader sees what an id-conflict is about.
   const ids=[...(parsed.ids??[]).map(({scheme,value,valid})=>valid===false?{scheme,value,valid}:{scheme,value}),
     ...(parsed.existing??[]).filter(value=>value.startsWith('tos.agent.')).map(value=>({scheme:'tos-agent',value}))];

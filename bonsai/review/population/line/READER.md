@@ -22,14 +22,18 @@ Read the questions with `node ../../kit.mjs show <packet>` (one question:
   - `kind` — a person and a traditional, attributed or anonymous identity;
   - `disputed` — a register marks a row disputed;
   - `blocked:…` — joining would put two conflicting rows into one member;
+  - `decision-conflict` — earlier decisions contradict each other: one joined
+    rows of these members, another separated them;
 - `shared` — the name keys both sides share; `hierocles …` marks a name one
   side carries only with its origin;
 - `a` and `b` — the two members, each with every register row it grew from:
   the row's ID, its parsed kind and the register's status, the typed
-  identifiers the resolution read (`ids`), and the row's own fields
+  identifiers the resolution read (`ids`), the row's own fields
   (`preferred_label`, `label_ru`, `variant_labels`, `life_dates`,
   `external_identifiers`, `disambiguation_note`, `responsibility_summary`,
-  `notes`, `work_inventory_scope`, `source_refs`, `evidence_notes`).
+  `notes`, `work_inventory_scope`, `source_refs`, `evidence_notes`) and
+  `works`: the works of the row's batch whose responsibility lines name it,
+  with their titles (twelve at most).
 
 ## How to decide
 
@@ -47,12 +51,13 @@ Read the questions with `node ../../kit.mjs show <packet>` (one question:
    suffice when nothing in the other contradicts them. Say in the note where a
    row contradicts its kind.
 5. Decide:
-   - `same` — one bearer of responsibility; needs a basis beyond the name;
+   - `same` — one bearer of responsibility, also where one batch lists the
+     same person twice; needs a basis beyond the name;
    - `different` — two;
    - `related` — two, bound by a relation: `pseudonym_of`, `attributed_to`,
-     `conventional_for`, `variant_row` (one register row repeats another),
-     `part_of` (a person in a collective), `namesake_of` (sources or registers
-     confuse the two; the line counts it as `different`);
+     `conventional_for`, `part_of` (a person in a collective), `namesake_of`
+     (sources or registers confuse the two; the line counts it as
+     `different`);
    - `undecidable` — the evidence you can reach does not settle it.
 
 ## The verdict
