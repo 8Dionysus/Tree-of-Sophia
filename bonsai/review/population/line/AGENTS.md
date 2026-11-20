@@ -16,8 +16,9 @@ decisions, which `resolve.mjs` reads on its next run.
 
 1. A reader reads the rows, not the resolution's reasoning. The question names
    why it was asked (`reason`); the reader decides from the rows' own words and,
-   where they do not settle it, from the sources the rows cite or an authority
-   file (VIAF, GND, LCCN, ISNI, ORCID, Wikidata, BnF, DILA).
+   where they do not settle it, from the sources the rows cite, an authority
+   file (VIAF, GND, LCCN, ISNI, ORCID, Wikidata, BnF, DILA) or a scholarly
+   source, each named in the verdict.
 2. A wrong join of two people is worse than two members for one person. When
    the evidence does not settle it, the verdict is `undecidable`.
 3. `same` needs evidence beyond the name: dates, works, an authority record,
@@ -25,15 +26,17 @@ decisions, which `resolve.mjs` reads on its next run.
 4. A pseudonymous author is never `same` as the one whose name he writes under:
    that is `related` with `pseudonym_of`. A traditional or conventional author
    and a historical person are `related` with `conventional_for` unless the rows
-   themselves identify them.
+   themselves identify them. The rows' words decide, not the parsed `kind`.
 5. Every verdict quotes the rows: exact words of a field of a row the question
    holds. A quote the gate cannot find in the row refuses the verdict.
 6. An authority identifier a reader gives must be valid (the gate checks the
    syntax and the check digits) and must be the one the reader actually opened.
 7. Write only your own `reader-<n>.jsonl` in your packet. Never open the other
    reader's file, never write `decisions.jsonl`, `accepted.json`, the queue or
-   any file outside your packet; never run git, never install anything.
-8. Stop when the gate names no problem of yours: `node ../../kit.mjs gate p-NNNN`.
+   any file outside your packet; never run git, never install anything. Read
+   the questions with `node ../../kit.mjs show p-NNNN`.
+8. Stop when `node ../../kit.mjs gate p-NNNN --reader <n>` names no problem.
+   Never run the gate without `--reader`: it shows the other reader's problems.
 
 ## Operator
 

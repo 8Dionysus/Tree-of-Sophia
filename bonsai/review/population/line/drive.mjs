@@ -32,9 +32,9 @@ let stopped=null;
 const kit=(...args)=>{const run=spawnSync(process.execPath,[KIT,...args],{encoding:'utf8'});return {code:run.status,text:`${run.stdout}${run.stderr}`.trim()};};
 
 function prompt(reader){
-  return `You are reader ${reader} of the Population identity line of the Tree of Sophia. Read ../../AGENTS.md and ../../READER.md first, then items.jsonl in this folder. `+
+  return `You are reader ${reader} of the Population identity line of the Tree of Sophia. Read ../../AGENTS.md and ../../READER.md first, then the questions: node ../../kit.mjs show ${'$'}(basename "$PWD"). `+
     `Answer every question in reader-${reader}.jsonl, one JSON line per question, as READER.md says. Never open reader-${reader===1?2:1}.jsonl. `+
-    `When you are done, run: node ../../kit.mjs gate ${'$'}(basename "$PWD") — and fix your file until no problem names reader-${reader}. Stop then.`;
+    `When you are done, run: node ../../kit.mjs gate ${'$'}(basename "$PWD") --reader ${reader} — and fix your file until it names no problem. Stop then.`;
 }
 
 function codex(packet,reader,text,thread=null){
@@ -66,7 +66,7 @@ async function reader(packet,number){
     const gate=kit('gate',packet);
     const mine=gate.text.split('\n').filter(line=>line.startsWith(`reader-${number}`));
     if(gate.code===3||!mine.length)break;
-    session=await codex(packet,number,`The gate refused these verdicts of yours:\n${mine.slice(0,60).join('\n')}\nFix reader-${number}.jsonl and run the gate again.`,session.thread);
+    session=await codex(packet,number,`The gate refused these verdicts of yours:\n${mine.slice(0,60).join('\n')}\nFix reader-${number}.jsonl and run the gate again with --reader ${number}.`,session.thread);
   }
   if(session.limit)stopped='the usage limit';
 }

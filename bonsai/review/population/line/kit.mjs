@@ -4,7 +4,9 @@
 //   node bonsai/review/population/line/kit.mjs queues [--check]    write queue/{kind,dates,latin,living}.jsonl and print every queue's size
 //   node bonsai/review/population/line/kit.mjs packets [--size 20] cut the identity questions no packet holds yet into new packets,
 //                                                                   the planted members' questions first
-//   node bonsai/review/population/line/kit.mjs gate <packet>       0: open · 1: problems in the readers' verdicts · 3: a fault of the line
+//   node bonsai/review/population/line/kit.mjs show <packet> [<item>]   the questions as a reader reads them
+//   node bonsai/review/population/line/kit.mjs gate <packet> [--reader N]   0: open · 1: problems in the verdicts · 3: a fault of the line;
+//                                                                   with --reader, only that reader's problems
 //   node bonsai/review/population/line/kit.mjs accept <packet> --by <who>   append the verdicts both readers agree on to decisions.jsonl
 //   node bonsai/review/population/line/kit.mjs status
 //
@@ -65,7 +67,10 @@ function evidence(rows,id){
   const {parsed,raw}=rows.get(id);
   const fields={};
   for(const field of FIELDS)if(raw?.[field])fields[field]=raw[field];
-  return {row:id,kind:parsed.kind,kind_basis:parsed.kind_basis,status:parsed.status,role:parsed.role,fields};
+  // The typed identifiers the resolution compared, so that a reader sees what an id-conflict is about.
+  const ids=[...(parsed.ids??[]).map(({scheme,value,valid})=>valid===false?{scheme,value,valid}:{scheme,value}),
+    ...(parsed.existing??[]).filter(value=>value.startsWith('tos.agent.')).map(value=>({scheme:'tos-agent',value}))];
+  return {row:id,kind:parsed.kind,kind_basis:parsed.kind_basis,status:parsed.status,role:parsed.role,ids,fields};
 }
 
 function item(rows,entry){
@@ -157,7 +162,8 @@ export function gatePacket(packet){
       for(const quote of quotes){
         const text=texts.get(`${quote.side}|${quote.row}|${quote.field}`);
         if(text===undefined)problems.push(`${at}: quotes ${quote.side} ${quote.row} ${quote.field}, which the question does not hold`);
-        else if(typeof quote.text!=='string'||quote.text.trim().length<4||!text.includes(quote.text))problems.push(`${at}: the quote from ${quote.row} ${quote.field} is not its exact words`);
+        else if(typeof quote.text!=='string'||!text.includes(quote.text))problems.push(`${at}: the quote from ${quote.row} ${quote.field} is not its exact words`);
+        else if([...quote.text.trim()].length<4)problems.push(`${at}: the quote from ${quote.row} ${quote.field} is shorter than four characters; quote more of the field or another field`);
       }
       for(const found of verdict.authority??[]){
         const valid=AUTHORITY[found.scheme];
@@ -165,6 +171,7 @@ export function gatePacket(packet){
         else if(!valid(String(found.value)))problems.push(`${at}: ${found.scheme} ${found.value} is not a valid identifier`);
         if(!['a','b'].includes(found.side))problems.push(`${at}: an authority names side a or b`);
       }
+      if(verdict.sources!=null&&(!Array.isArray(verdict.sources)||verdict.sources.some(source=>typeof source!=='string'||source.trim().length<4)))problems.push(`${at}: sources must list the URLs or citations you opened`);
       if(typeof verdict.note!=='string'||!verdict.note.trim())problems.push(`${at}: no note`);
       answers.push({reader,verdict});
     }
@@ -181,8 +188,11 @@ export function gatePacket(packet){
         for(const found of [...(one.authority??[]),...(two.authority??[])])if(found.side===side)schemes.get(found.scheme).add(String(found.value));
         for(const values of schemes.values())if(values.size>1)conflict=true;
       }
-      const same=one.verdict===two.verdict&&(one.relation??null)===(two.relation??null)&&!conflict;
-      agreed.push({item:id,agreed:same,verdict:same?one.verdict:null,relation:same?one.relation??null:null,readers:[one,two]});
+      // `different` and `related` as `namesake_of` both say two bearers; a split between them is no dispute.
+      const bearers=verdict=>verdict.verdict==='different'||(verdict.verdict==='related'&&verdict.relation==='namesake_of');
+      const exact=one.verdict===two.verdict&&(one.relation??null)===(two.relation??null);
+      const same=(exact||(bearers(one)&&bearers(two)))&&!conflict;
+      agreed.push({item:id,agreed:same,verdict:same?(exact?one.verdict:'different'):null,relation:same&&exact?one.relation??null:null,readers:[one,two]});
     }
   }
   return {problems,faults,agreed};
@@ -241,6 +251,25 @@ function queues({check=false}={}){
   console.log(JSON.stringify({identity:identity.length,kind:kind.length,dates:dates.length,latin:latin.length,living:living.length}));
 }
 
+/** The questions of a packet as a reader reads them, with the sha each verdict copies. */
+function show(packet,only){
+  const items=readJsonl(packetFile(packet,'items.jsonl'));
+  if(!items.length)throw Object.assign(new Error(`${packet}: no questions (run kit.mjs packets)`),{line:true});
+  for(const entry of items){
+    if(only&&entry.item!==only)continue;
+    const out=[`${entry.item} · ${entry.reason} · shared: ${entry.shared.join(', ')}`,`  sha ${entry.sha}`];
+    for(const side of ['a','b']){
+      out.push(`  ${side} · ${entry[side].member}`);
+      for(const row of entry[side].rows){
+        const ids=(row.ids??[]).map(found=>`${found.scheme} ${found.value}${found.valid===false?' (bad check digit)':''}`);
+        out.push(`    ${row.row} · ${row.kind} · ${row.status||'no status'}${ids.length?` · ${ids.join(', ')}`:''}`);
+        for(const [field,text] of Object.entries(row.fields))out.push(`      ${field}: ${text.replace(/\s*\n\s*/g,' ⏎ ')}`);
+      }
+    }
+    console.log(`${out.join('\n')}\n`);
+  }
+}
+
 function status(){
   const counts={packets:0,answered:0,open:0,accepted:0,retired:0,questions:0};
   for(const packet of packetIds()){
@@ -260,17 +289,21 @@ function main([command,...args]){
   try{
     if(command==='queues')queues({check:args.includes('--check')});
     else if(command==='packets')packets(Number(option('--size')??20));
+    else if(command==='show'&&args[0])show(args[0],args[1]&&!args[1].startsWith('--')?args[1]:null);
     else if(command==='gate'&&args[0]){
+      // A reader sees only its own problems and never whether the other reader agrees.
+      const reader=option('--reader');
       const {problems,faults,agreed}=gatePacket(args[0]);
       for(const fault of faults)console.log(`line: ${fault}`);
-      for(const problem of problems)console.log(problem);
       if(faults.length)process.exit(3);
-      if(problems.length)process.exit(1);
-      console.log(`gate: open · ${agreed.filter(answer=>answer.agreed).length} agreed, ${agreed.filter(answer=>!answer.agreed).length} disputed`);
+      const shown=reader?problems.filter(problem=>[`reader-${reader} `,`reader-${reader}.`,`reader-${reader}:`].some(prefix=>problem.startsWith(prefix))):problems;
+      for(const problem of shown)console.log(problem);
+      if(shown.length)process.exit(1);
+      console.log(reader?`gate: no problem of reader-${reader}`:`gate: open · both readers answered all ${agreed.length} questions`);
     }
     else if(command==='accept'&&args[0]&&option('--by'))accept(args[0],option('--by'));
     else if(command==='status')status();
-    else{console.error('usage: kit.mjs queues | packets [--size N] | gate <packet> | accept <packet> --by <who> | status');process.exit(2);}
+    else{console.error('usage: kit.mjs queues [--check] | packets [--size N] | show <packet> [<item>] | gate <packet> [--reader N] | accept <packet> --by <who> | status');process.exit(2);}
   }catch(error){console.error(`${error.line?'line: ':''}${error.message}`);process.exit(error.line?3:1);}
 }
 
