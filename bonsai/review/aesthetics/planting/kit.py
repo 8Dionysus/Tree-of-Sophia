@@ -211,14 +211,15 @@ def get(url,tries=3):
 
 class Plain(html.parser.HTMLParser):
     """The running text of an HTML transcription: page marks, footnote anchors and notes left out, blocks as paragraphs."""
-    SKIP=re.compile(r'pagenum|pageno|fnanchor|footnote|linenum|noprint|reference|mw-editsection|toc\b');BLOCK={'p','div','h1','h2','h3','h4','h5','h6','li','blockquote','tr','td','pre','table','section','hr','dd','dt'}
+    SKIP=re.compile(r'pagenum|pageno|fnanchor|footnote|linenum|noprint|reference|mw-editsection');BLOCK={'p','div','h1','h2','h3','h4','h5','h6','li','blockquote','tr','td','pre','table','section','hr','dd','dt'}
     def __init__(self):super().__init__();self.out=[];self.stack=[]
     def handle_starttag(self,tag,attrs):
         if tag in('br','img','hr','meta','link','input'):
             if tag=='br' and not any(self.stack):self.out.append('\n')
             if tag=='hr' and not any(self.stack):self.out.append('\n\n')
             return
-        skip=tag in('script','style','head','sup','title') or bool(self.SKIP.search(dict(attrs).get('class') or ''))
+        classes=dict(attrs).get('class') or ''
+        skip=tag in('script','style','head','sup','title') or bool(self.SKIP.search(classes)) or 'toc' in classes.split()
         self.stack.append((tag,skip or bool(self.stack and self.stack[-1][1])))
         if tag in self.BLOCK and not self.stack[-1][1]:self.out.append('\n\n')
     def handle_endtag(self,tag):
@@ -230,10 +231,25 @@ class Plain(html.parser.HTMLParser):
     def handle_data(self,data):
         if not(self.stack and self.stack[-1][1]):self.out.append(data)
 
+class MediaWikiPlain(Plain):
+    """Limit a MediaWiki transcription to its actual rendered content."""
+    def __init__(self):super().__init__();self.active=False;self.found=False
+    def handle_starttag(self,tag,attrs):
+        if not self.active and 'mw-parser-output' in (dict(attrs).get('class') or '').split():self.active=True;self.found=True
+        if self.active:super().handle_starttag(tag,attrs)
+    def handle_endtag(self,tag):
+        if self.active:
+            super().handle_endtag(tag)
+            if not self.stack:self.active=False
+    def handle_data(self,data):
+        if self.active:super().handle_data(data)
+
 def plain(raw,name):
     text=raw.decode('utf-8',errors='replace')
     if re.search(r'\.x?html?$',name) or re.match(r'\s*<(!doctype|html)',text[:300],re.I):
-        parser=Plain();parser.feed(text);text=''.join(parser.out)
+        parser=MediaWikiPlain();parser.feed(text)
+        if not parser.found:parser=Plain();parser.feed(text)
+        text=''.join(parser.out)
     text=unicodedata.normalize('NFC',text.replace('\r\n','\n').replace('\r','\n').replace('­','').replace('﻿',''))
     return re.sub(r'\n[ \t]*\n\s*','\n\n',re.sub(r'[ \t   ]+',' ',text))
 

@@ -963,6 +963,15 @@ class ScanRegistrationTest(unittest.TestCase):
             self.assertEqual(record['scans'],{})
             self.assertEqual(record['withdrawn_scans'][0]['scan'],scan)
 
+class HtmlTranscriptionTest(unittest.TestCase):
+    def test_mediawiki_content_is_not_hidden_by_skin_toc_class(self):
+        raw=b'<html class="vector-feature-toc-not-available"><body><nav>Navigation</nav><div class="mw-parser-output"><div class="toc">Contents</div><p>A complete sentence.</p></div><footer>Footer</footer></body></html>'
+        text=kit.plain(raw,'source.html')
+        self.assertIn('A complete sentence.',text)
+        self.assertNotIn('Navigation',text)
+        self.assertNotIn('Contents',text)
+        self.assertNotIn('Footer',text)
+
 class UnknownParticipantTest(unittest.TestCase):
     def test_source_backed_unknown_death_does_not_establish_personal_term(self):
         import argparse, json, tempfile
