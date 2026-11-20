@@ -197,6 +197,39 @@ class TranslationWitnessTest(unittest.TestCase):
                   'review':{'reader':'reader','model':'gpt-6.1-terra','date':'2026-11-12','places':{'p':{'reads':'as the packet','image_sha256':digest,'alignment':'This sentence matches the complete original.'}}}}
             with patch.object(kit,'CACHE',str(cache)), patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
                 self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                import struct, zlib
+                chunk=b'tEXtpage\x00two';image2=image[:-12]+struct.pack('>I',len(chunk)-4)+chunk+struct.pack('>I',zlib.crc32(chunk))+image[-12:];digest2=hashlib.sha256(image2).hexdigest()
+                (folder/'page2.jpg').write_bytes(image2);(folder/'second2.jpg').write_bytes(image2)
+                data['places']['p']['page']='pp. 1–2'
+                self.assertTrue(any('page range' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['places']['p']['extra_pages']=[{'page':'p. 2','url':'https://example.org/page2','image_sha256':digest2,'span':'sentence.'}]
+                data['places']['p']['page_span']='A whole'
+                data['images'].extend([{'file':'page2.jpg','url':'https://example.org/page2','sha256':digest2,'by':'maker'},{'file':'second2.jpg','url':'https://example.org/page2','sha256':digest2,'by':'second'}])
+                self.assertTrue(any('review every page' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['review']['places']['p']['pages']=[{'page':'pp. 1–2','url':'https://example.org/page','image_sha256':digest},{'page':'p. 2','url':'https://example.org/page2','image_sha256':digest2}]
+                self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                import argparse, copy
+                before=copy.deepcopy(data);(path/'witnesses').mkdir();file=path/'witnesses/en.json';file.write_text(json.dumps(data))
+                correction=argparse.Namespace(packet=str(path),language='en',loc='p',to='statement.',reason='The second page reads statement rather than sentence.',image='page2.jpg',**{'from':'sentence.'})
+                kit.cmd_witness_correct(correction)
+                kit.cmd_witness_review(argparse.Namespace(packet=str(path),language='en',loc='p',reader='reader',model='gpt-6.1-terra',alignment='Both pages match the full original sentence.'))
+                corrected=json.loads(file.read_text());self.assertEqual(corrected['places']['p']['extra_pages'][0]['span'],'statement.')
+                self.assertEqual(kit.witness_problems(str(path),'en',corrected,second=True),[])
+                data=before
+                data['places']['p']['page_span']='A'
+                self.assertTrue(any('spans must cover' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['places']['p']['page_span']='A whole'
+                data['images'].pop();self.assertTrue(any('second reader page image' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['images'].pop();data['places']['p'].pop('extra_pages');data['places']['p'].pop('page_span');data['places']['p']['page']='1';data['review']['places']['p'].pop('pages')
+                place=data['places']['p'];place.pop('source')
+                place['transcription']={'kind':'human-page','reason':'The page image has no usable machine transcription of this passage.','original_text':'A whole sentence.'}
+                self.assertEqual(kit.witness_problems(str(path),'en',data,second=True),[])
+                data['images'][1]['url']='https://example.org/other-page'
+                self.assertTrue(any('second reader page image' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                data['images'][1]['url']='https://example.org/page'
+                place['transcription']['reason']='short'
+                self.assertTrue(any('human page transcription' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
+                place.pop('transcription');place['source']='text.txt'
                 license_url='https://creativecommons.org/licenses/by/4.0/'
                 license_raw=('Publisher grants '+license_url.replace('https://','http://')).encode();(folder/'licence.html').write_bytes(license_raw)
                 source_record={'file':'licence.html','url':'https://example.org/exact-edition','sha256':hashlib.sha256(license_raw).hexdigest()}
@@ -278,6 +311,23 @@ class DuplicateWitnessAcceptanceTest(unittest.TestCase):
                 with self.assertRaises(SystemExit):kit.cmd_witness_gate(args)
             self.assertFalse(Path(str(file)+'.accepted').exists())
 
+    def test_same_edition_adds_only_new_places(self):
+        import hashlib, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp)/'work';extension=parent/'extensions'/'new';(extension/'witnesses').mkdir(parents=True)
+            (parent/'witnesses').mkdir();file=parent/'witnesses/ru.json'
+            original={'language':'ru','witness':{'edition':'Same book','url':'https://example.org','maker':'first'},'places':{'old':{'text':'Оригинал.'}}}
+            raw=json.dumps(original).encode();file.write_bytes(raw);Path(str(file)+'.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
+            data={'language':'ru','witness':{'edition':'Same book','url':'https://example.org','maker':'second'},'places':{'new':{'text':'Новое.'}}}
+            fragments={'works':{'work':{'witnesses':{'ru':original['witness']}}},'provenance':{'translation_packets':{'work':{'ru':{'record':'parent'}}}}}
+            with patch.object(kit,'world',return_value={'fragments':fragments}):
+                self.assertIsNone(kit.witness_conflict(str(extension),'ru',data))
+                data['places']['old']={'text':'Другое.'}
+                self.assertIn('already covers',kit.witness_conflict(str(extension),'ru',data))
+                data['places'].pop('old');data['witness']['edition']='Other book'
+                self.assertIn('different edition',kit.witness_conflict(str(extension),'ru',data))
+
     def test_packet_signs_no_witness_if_a_later_witness_conflicts(self):
         import argparse, json, tempfile
         from pathlib import Path
@@ -288,6 +338,124 @@ class DuplicateWitnessAcceptanceTest(unittest.TestCase):
             with patch.object(kit,'gate',return_value=([],'open')),patch.object(kit,'witness_problems',return_value=[]),patch.object(kit,'witness_conflict',side_effect=[None,'conflict']):
                 with self.assertRaises(SystemExit):kit.cmd_accept(args)
             self.assertEqual(list((path/'witnesses').glob('*.accepted')),[])
+
+class MexicoQuotationTest(unittest.TestCase):
+    def test_original_extension_keeps_its_own_reviewed_assessment(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work'/'extensions'/'extra';path.mkdir(parents=True)
+            (path/'places.json').write_text(json.dumps({'work':'work','places':{'p':{'texts':{'en':'A sentence.'}}}}))
+            (path/'evidence.json').write_text('{}');(path/'reading.json').write_text(json.dumps({'reader':{'id':'maker'}}))
+            (path/'review.json').write_text(json.dumps({'reader':{'id':'second','model':'model','date':'2026-11-19'}}))
+            original={'edition':'Same edition','rights':{'usa':{'basis':'short-quotation'}}}
+            world={'fragments':{'works':{'work':{'original':'en','witnesses':{'en':original}}}}}
+            law=Path(tmp)/'law.pdf';law.write_bytes(b'%PDF-1.4\nTest law source\n%%EOF')
+            args=argparse.Namespace(packet=str(path),language=None,law_file=str(law),non_substantial='This passage is proportionate to the scholarly purpose of the comparison.',normal_exploitation='The selected sentences do not replace the book or affect normal exploitation.',source_integrity='The cited source and author are identified and the page text is unchanged.')
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')),patch.object(kit,'world',return_value=world):
+                kit.cmd_mexico_quotation(args)
+                self.assertIn('mexico_quotation',json.loads((path/'evidence.json').read_text()))
+                self.assertNotIn('mexico_quotation',original)
+                kit.cmd_mexico_quotation_review(argparse.Namespace(packet=str(path),language=None,assessment='I independently checked the source, integrity, proportion and normal exploitation for these exact places.'))
+                _,witness,places,review,maker=kit.mexico_context(str(path),None)
+                self.assertEqual(kit.mexico_problems(witness,places,review,maker,second=True,path=str(path)),[])
+                self.assertTrue(kit.same_witness({**original,'mexico_quotation':{'scope_sha256':'one'}},{**original,'mexico_quotation':{'scope_sha256':'two'}}))
+
+    def test_quotation_review_is_scoped_to_the_exact_witness_and_text(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True);file=path/'witnesses/en.json'
+            data={'language':'en','witness':{'edition':'A named edition','maker':'maker','rights':{'usa':{'basis':'short-quotation'}}},'places':{'p':{'text':'A complete sentence.','url':'https://example.org/page','page':'7'}},'review':{'reader':'reader'}}
+            file.write_text(json.dumps(data))
+            law=Path(tmp)/'law.pdf';law.write_bytes(b'%PDF-1.4\nTest law source\n%%EOF')
+            args=argparse.Namespace(packet=str(path),language='en',law_file=str(law),non_substantial='This short passage is proportionate to the scholarly purpose of the comparison.',normal_exploitation='The selected sentences do not replace the book or affect normal exploitation.',source_integrity='The cited source and author are identified and the page text is unchanged.')
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                kit.cmd_mexico_quotation(args);data=json.loads(file.read_text())
+                self.assertTrue(kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True))
+                kit.cmd_mexico_quotation_review(argparse.Namespace(packet=str(path),language='en',assessment='I independently checked the source, integrity, proportion and normal exploitation for this exact quotation.'))
+                data=json.loads(file.read_text());self.assertEqual(kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True,path=str(path),lang='en'),[])
+                Path(kit.witness_cache(str(path),'en',data['witness']['mexico_quotation']['law_file'])).write_bytes(b'changed')
+                self.assertTrue(any('law source changed' in p for p in kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True,path=str(path),lang='en')))
+            data=json.loads(file.read_text());self.assertEqual(kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True),[])
+            data['places']['p']['text']='A different sentence.'
+            self.assertTrue(any('current exact witness and places' in p for p in kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True)))
+            data['review']['reader']='maker'
+            self.assertTrue(any('distinct second reader' in p for p in kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True)))
+
+class AnonymousTranslationTest(unittest.TestCase):
+    def test_commands_bind_sources_review_and_allow_clearing(self):
+        import argparse, hashlib, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True);cache=Path(tmp)/'cache';folder=cache/'work'/'witnesses'/'en';folder.mkdir(parents=True)
+            sources=[]
+            for name in ('edition.html','catalogue.html'):
+                raw=('Evidence '+name).encode();(folder/name).write_bytes(raw);sources.append({'file':name,'url':'https://example.org/'+name,'sha256':hashlib.sha256(raw).hexdigest()})
+            file=path/'witnesses/en.json';file.write_text(json.dumps({'language':'en','witness':{'edition':'1902 edition','year':1902,'maker':'maker'},'sources':sources,'review':{}}))
+            info={'first_publication_year':1875,'lawful_publication':'A catalogue establishes lawful publication of this exact translation.',
+                  'identity_research':'Independent catalogues and later editions were searched for disclosure of the translator.',
+                  'same_version':'The passages and bibliographic history establish the same translation in both editions.',
+                  'searches':[{'url':f'https://example.org/search/{i}','outcome':'The catalogue was searched for the translator identity.'} for i in range(3)],'sources':[x['file'] for x in sources]}
+            evidence=Path(tmp)/'evidence.json';evidence.write_text(json.dumps(info))
+            with patch.object(kit,'CACHE',str(cache)):
+                kit.cmd_witness_anonymous(argparse.Namespace(packet=str(path),language='en',file=str(evidence)))
+                data=json.loads(file.read_text());data['review']={'reader':'second'};file.write_text(json.dumps(data))
+                kit.cmd_witness_anonymous_review(argparse.Namespace(packet=str(path),language='en',assessment='I checked the edition, publication date and the identity searches independently.'))
+                data=json.loads(file.read_text());self.assertEqual(data['review']['anonymous']['sha256'],kit.anonymous_digest(data['witness']['anonymous_translation']))
+                kit.cmd_witness_anonymous_clear(argparse.Namespace(packet=str(path),language='en'))
+                data=json.loads(file.read_text());self.assertNotIn('anonymous_translation',data['witness']);self.assertEqual(data['review'],{})
+
+    def test_eu_anonymous_term_requires_version_sources_search_and_independent_review(self):
+        import datetime, hashlib, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir();cache=Path(tmp)/'cache';folder=cache/'work'/'witnesses'/'en';folder.mkdir(parents=True)
+            sources=[]
+            for name,text in [('edition.html',b'First publication and the exact edition.'),('catalogue.html',b'Translation identity research.')]:
+                (folder/name).write_bytes(text);sources.append({'file':name,'url':'https://example.org/'+name,'sha256':hashlib.sha256(text).hexdigest()})
+            author={'role':'author','qid':'Q1','name':{'en':'Author'},'died':1800,'source':'https://www.wikidata.org/wiki/Q1',
+                    'evidence':{'file':'author.json','sha256':'a'*64,'url':'https://www.wikidata.org/wiki/Special:EntityData/Q1.json'}}
+            proof={'edition':'Anonymous edition','first_publication_year':datetime.date.today().year-71,
+                   'lawful_publication':'The catalogue and edition establish the first lawful publication of this translation.',
+                   'identity_research':'The identified catalogues and subsequent editions were searched for a disclosed identity.',
+                   'same_version':'The wording and edition records establish that the first publication is the same translation.',
+                   'searches':[{'url':f'https://example.org/search/{i}','outcome':'The named catalogue was searched for the translator identity.'} for i in range(3)],
+                   'sources':sources}
+            rights={'russia':{'basis':'short-quotation','law':'Quotation for the documented scholarly purpose.'},
+                    'usa':{'basis':'short-quotation','law':'Quotation for the documented scholarly purpose.'},
+                    'eu':{'basis':'public-domain','law':'The anonymous translation term has expired.'}}
+            data={'language':'en','witness':{'maker':'maker','edition':'Anonymous edition','attribution':'Author and anonymous translator','licence':'Public domain','url':'https://example.org/edition','year':1900,'persons':[author],'rights':rights,'anonymous_translation':proof},
+                  'sources':sources+[{'file':'text.txt','url':'https://example.org/text','sha256':'b'*64}],
+                  'images':[{'file':'page.jpg','url':'https://example.org/page','sha256':'c'*64,'by':'maker'},{'file':'page2.jpg','url':'https://example.org/page','sha256':'c'*64,'by':'second'}],
+                  'places':{'p':{'text':'A whole sentence.','source':'text.txt','page':'1','url':'https://example.org/page','lines':'1–2','image_sha256':'c'*64,'alignment':'This is the corresponding complete original sentence.'}},
+                  'review':{'reader':'second','model':'gpt-6.1-terra','date':'2026-11-12','places':{'p':{'reads':'as the packet','image_sha256':'c'*64,'alignment':'This is the corresponding complete original sentence.'}}}}
+            # Use a sufficiently old edition while retaining an exact dynamic threshold.
+            data['witness']['year']=datetime.date.today().year-71
+            data['review']['anonymous']={'reader':'second','sha256':kit.anonymous_digest(proof),'assessment':'I checked the same edition, lawful publication and the identity searches independently.'}
+            mexico={'law_url':kit.MEXICO_LFDA,'law_file':'mexico-law-'+('a'*64)+'.pdf','law_sha256':'a'*64,'scope_sha256':kit.mexico_scope(data['witness'],data['places']),
+                    'non_substantial':'The selected passage is proportionate to this particular scholarly purpose.',
+                    'normal_exploitation':'The quotation does not replace the edition or affect its normal exploitation.',
+                    'source_integrity':'The source, attribution and exact page are given and the text is unchanged.'}
+            data['witness']['mexico_quotation']=mexico
+            data['review']['mexico_quotation']={'reader':'second','date':'2026-11-19','sha256':kit.page_number_digest(mexico),'assessment':'I independently checked the quotation, source, text integrity and normal exploitation.'}
+            with patch.object(kit,'CACHE',str(cache)),patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):
+                self.assertEqual(kit.witness_problems(str(path),'en',data,second=True,offline=True),[])
+                del data['witness']['mexico_quotation']
+                self.assertTrue(any('Mexico quotation assessment' in p for p in kit.witness_problems(str(path),'en',data,second=True,offline=True)))
+                data['witness']['mexico_quotation']=mexico
+                self.assertEqual(kit.anonymous_problems(str(path),'en',data,second=True),[])
+                proof['identity_research']+=' Changed.'
+                self.assertTrue(any('independent assessment' in x for x in kit.witness_problems(str(path),'en',data,second=True,offline=True)))
+                data['review']['anonymous']['sha256']=kit.anonymous_digest(proof)
+                proof['first_publication_year']=datetime.date.today().year-70;data['witness']['year']=proof['first_publication_year']
+                data['review']['anonymous']['sha256']=kit.anonymous_digest(proof)
+                self.assertTrue(any('rights.eu is not established' in x for x in kit.witness_problems(str(path),'en',data,second=True,offline=True)))
+                proof['first_publication_year']=datetime.date.today().year-71;data['witness']['year']=proof['first_publication_year'];data['review']['anonymous']['sha256']=kit.anonymous_digest(proof)
+                rights['russia']={'basis':'public-domain','law':'A claimed Russian public-domain term.'}
+                self.assertTrue(any('rights.russia is not established' in x for x in kit.witness_problems(str(path),'en',data,second=True,offline=True)))
+                (folder/'edition.html').write_bytes(b'Changed version.')
+                self.assertTrue(any('source changed' in x for x in kit.anonymous_problems(str(path),'en',data,second=True)))
 
 class LocatorEvidenceTest(unittest.TestCase):
     def test_locator_needs_a_documented_search_and_a_read_book(self):
@@ -327,6 +495,31 @@ class LawfulSourceTest(unittest.TestCase):
         self.assertTrue(kit.lawful_url('https://www.wikidata.org/wiki/Q1'))
         for url in ('https://libgen.rs/book','https://annas-archive.org/book','https://dokumen.pub/book','https://x.z-lib.org/book','http://example.org/book'):
             self.assertFalse(kit.lawful_url(url),url)
+
+class LanguageSearchTest(unittest.TestCase):
+    def test_whole_language_requires_complete_search_and_independent_review(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir()
+            world={'fragments':{'works':{'work':{'original':'de','witnesses':{'de':{}}}},'places':{'work':{'p':{}}}}}
+            record={'maker':'maker','reason':'The documented searches did not find an eligible translation.','tried':[{'site':site,'url':'https://example.org/'+site,'outcome':'The catalogue was searched and no matching edition was found.'} for site in sorted(kit.LOCATOR_SEARCHES)]}
+            source=Path(tmp)/'search.json';source.write_text(json.dumps(record))
+            with patch.object(kit,'world',return_value=world):
+                kit.cmd_language_search(argparse.Namespace(packet=str(path),language='es',file=str(source)))
+                file=path/'language-searches/es.json';data=json.loads(file.read_text())
+                self.assertEqual(kit.language_search_problems(str(path),'es',data),[])
+                self.assertTrue(kit.language_search_problems(str(path),'es',data,second=True))
+                with self.assertRaises(SystemExit):kit.cmd_language_search_review(argparse.Namespace(packet=str(path),language='es',reader='maker',model='model',assessment='I checked every recorded search independently and found the same result.'))
+                kit.cmd_language_search_review(argparse.Namespace(packet=str(path),language='es',reader='second',model='model',assessment='I checked every recorded search independently and found the same result.'))
+                kit.cmd_language_search_accept(argparse.Namespace(packet=str(path),language='es'))
+                data=json.loads(file.read_text());self.assertEqual(kit.language_search_problems(str(path),'es',data,second=True),[])
+                data['search']['reason']='A different unreviewed search conclusion appears here.'
+                self.assertTrue(kit.language_search_problems(str(path),'es',data,second=True))
+                extension=path/'extensions'/'test';extension.mkdir(parents=True)
+                self.assertTrue(any('parent packet' in p for p in kit.language_search_problems(str(extension),'es',data)))
+                world['fragments']['places']['work']['new']={}
+                self.assertTrue(any('every current original place' in p for p in kit.language_search_problems(str(path),'es',data)))
 
 class ExtensionPlantingTest(unittest.TestCase):
     def test_extension_planting_is_reversible_and_idempotent(self):
@@ -374,6 +567,13 @@ class ExtensionPlantingTest(unittest.TestCase):
             with patch.object(kit,'world',return_value=world):
                 problems,_=kit.gate(str(parent),second=True,offline=True)
                 self.assertEqual(problems,[])
+                (ext/'evidence.json').write_text('{}')
+                original=projected['works'][work]['original'];rights=projected['works'][work]['witnesses'][original]['rights'];previous=rights['usa']
+                rights['usa']={'basis':'short-quotation','law':'Quotation for a documented scholarly purpose.'}
+                (ext/'accepted.json').unlink()
+                problems,_=kit.gate(str(ext),second=True,offline=True)
+                self.assertTrue(any('Mexico quotation assessment' in problem for problem in problems))
+                rights['usa']=previous;(ext/'accepted.json').write_text('{}')
                 projected['places'][work]['Unowned p998']=copy.deepcopy(place)
                 problems,_=kit.gate(str(parent),second=True,offline=True)
                 self.assertTrue(any('drop entry from places.json' in problem for problem in problems))
@@ -385,11 +585,27 @@ class ExtensionPlantingTest(unittest.TestCase):
             self.assertNotIn('Test p999',projected['places'][work])
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
             import hashlib
+            search_dir=parent/'language-searches';search_dir.mkdir()
+            search={'language':'es','search':{'places':sorted(base['places']),'reason':'The documented searches found no suitable text.','tried':[]},'review':{}}
+            search_raw=json.dumps(search).encode();search_file=search_dir/'es.json';search_file.write_bytes(search_raw)
+            (search_dir/'es.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(search_raw).hexdigest()}))
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertTrue(any(item['language']=='es' for item in projected['works'][work]['absent']))
+            self.assertNotIn('es',projected['works'][work]['witnesses'])
+            subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
+            search_file.write_bytes(search_raw+b' ')
+            self.assertIn('search changed since review',subprocess.run(command,capture_output=True,text=True).stderr)
+            (search_dir/'es.json.accepted').unlink()
+            subprocess.run(command,check=True,capture_output=True,text=True)
+            projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
+            self.assertFalse(any(item['language']=='es' and item.get('reason')==search['search']['reason'] for item in projected['works'][work].get('absent',[])))
             witness_dir=parent/'witnesses';witness_dir.mkdir()
             loc=next(iter(base['places']))
             rights={country:{'basis':'public-domain','law':'Public domain according to the applicable law.'} for country in kit.JURISDICTIONS}
             translated={'language':'ru','witness':{'edition':'Test edition','attribution':'Test author','url':'https://example.org','rights':rights},
-                        'places':{loc:{'text':'Русское предложение.','url':'https://example.org/page','page':'1','corrections':[{'from':'Прежнее','to':'Русское','reason':'The source page reads the corrected form.'}]}}}
+                        'places':{loc:{'text':'Русское предложение.','url':'https://example.org/page','page':'1','image_sha256':'a'*64,'extra_pages':[{'page':'2','url':'https://example.org/page2','image_sha256':'b'*64,'span':'предложение.'}],'corrections':[{'from':'Прежнее','to':'Русское','reason':'The source page reads the corrected form.'}]}}}
+            translated['witness']['mexico_quotation']={'scope_sha256':'parent'}
             raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'ru.json').write_bytes(raw)
             (witness_dir/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
             (witness_dir/'ru.json').write_bytes(raw+b' ')
@@ -401,6 +617,8 @@ class ExtensionPlantingTest(unittest.TestCase):
             projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
             self.assertEqual(projected['places'][work][loc]['texts']['ru'],'Русское предложение.')
             self.assertEqual(projected['provenance']['translation_packets'][work]['ru']['corrections'][0]['loc'],loc)
+            self.assertEqual(projected['provenance']['translation_packets'][work]['ru']['page_sources'][loc][1]['image_sha256'],'b'*64)
+            self.assertTrue(any('1, 2' in ref[1] for ref in projected['places'][work][loc]['refs'] if ref[0]=='ru'))
             self.assertFalse(any(item['language']=='ru' for item in projected['works'][work].get('unsearched',[])))
             subprocess.run(command+['--check'],check=True,capture_output=True,text=True)
             # An accepted translation cannot keep the packet-owned original alive.
@@ -422,6 +640,13 @@ class ExtensionPlantingTest(unittest.TestCase):
             raw=json.dumps(translated,ensure_ascii=False).encode();(witness_dir/'ru.json').write_bytes(raw)
             (witness_dir/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
             ext_witness=ext/'witnesses';ext_witness.mkdir()
+            extension_places['places']['Test p1000']=copy.deepcopy(place)
+            (ext/'places.json').write_text(json.dumps(extension_places,ensure_ascii=False))
+            russian_extra=copy.deepcopy(translated);russian_extra['witness']['maker']='another maker'
+            russian_extra['witness']['mexico_quotation']={'scope_sha256':'extension'}
+            russian_extra['places']={'Test p1000':{'text':'Третье предложение.','url':'https://example.org/page3','page':'3'}}
+            raw_extra=json.dumps(russian_extra,ensure_ascii=False).encode();(ext_witness/'ru.json').write_bytes(raw_extra)
+            (ext_witness/'ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw_extra).hexdigest()}))
             spanish=copy.deepcopy(translated);spanish['language']='es'
             spanish['places']={'Test p999':{'text':'Una frase completa.','url':'https://example.org/es','page':'3'}}
             raw_es=json.dumps(spanish,ensure_ascii=False).encode();(ext_witness/'es.json').write_bytes(raw_es)
@@ -429,6 +654,9 @@ class ExtensionPlantingTest(unittest.TestCase):
             subprocess.run(command,check=True,capture_output=True,text=True)
             projected=json.loads((target/'bonsai/aesthetics/fragments.json').read_text())
             self.assertEqual(projected['places'][work]['Test p999']['texts']['ru'],'Второе предложение.')
+            self.assertEqual(projected['places'][work]['Test p1000']['texts']['ru'],'Третье предложение.')
+            self.assertEqual(len(projected['provenance']['translation_packets'][work]['ru']['mexico_quotations']),2)
+            self.assertEqual(len(projected['provenance']['translation_packets'][work]['ru']['records']),2)
             self.assertEqual(projected['places'][work]['Test p999']['texts']['es'],'Una frase completa.')
             self.assertIn('/extensions/test/witnesses/es.json',projected['provenance']['translation_packets'][work]['es']['record'])
             self.assertIn('complete argument',projected['places'][work]['Test p999']['quotation_justification'][base['entry']['original']])
@@ -496,8 +724,63 @@ class LivingAuthorChronologyTest(unittest.TestCase):
             self.assertEqual(life['dating']['kind'],'unknown-date')
             self.assertIn('born',life['dating']['source_wording']['text'])
             self.assertIn('no death year recorded',life['dating']['source_wording']['text'])
+            lives['immanuel-kant']['died']=[{'time':'+1804-01-01T00:00:00Z','precision':9,'approximate':True,'qualifiers':['Q5727902']}]
+            lives['immanuel-kant']['born'][0].update({'time':'+1720-01-01T00:00:00Z','precision':8})
+            lives['immanuel-kant']['born'][0]['bounds']={'earliest':[{'time':'+1723-01-01T00:00:00Z','precision':9}],'latest':[{'time':'+1725-01-01T00:00:00Z','precision':9}]}
+            lives['immanuel-kant']['born'][0]['approximate']=True
+            (layer/'lives.json').write_text(json.dumps(lives,ensure_ascii=False))
+            subprocess.run(['node',str(review/'chronology.mjs')],check=True,capture_output=True,text=True)
+            result=json.loads((home/'chronology.json').read_text());life=result['situations'][result['lives']['immanuel-kant']]
+            self.assertEqual(life['dating']['certainty'],'approximate')
+            self.assertEqual(life['dating']['interval']['start'],'1723')
+            self.assertIn('approximately',life['dating']['source_wording']['text'])
 
 class TranslationCorrectionTest(unittest.TestCase):
+    def test_added_page_binds_words_and_invalidates_review(self):
+        import argparse, base64, hashlib, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
+            folder=Path(tmp)/'cache/work/witnesses/en';folder.mkdir(parents=True)
+            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+            (folder/'page2.jpg').write_bytes(raw);digest=hashlib.sha256(raw).hexdigest()
+            data={'language':'en','images':[{'file':'page2.jpg','url':'https://example.org/page2','by':'maker','sha256':digest}],
+                  'places':{'p':{'text':'The sentence continues here.','page':'37','url':'https://example.org/page1','image_sha256':'a'*64}},'review':{'reader':'old'}}
+            file=path/'witnesses/en.json';file.write_text(json.dumps(data))
+            args=argparse.Namespace(packet=str(path),language='en',loc='p',page='38',image='page2.jpg',span='continues here.',first_span='The sentence')
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_witness_add_page(args)
+            result=json.loads(file.read_text());self.assertEqual(result['places']['p']['extra_pages'][0]['image_sha256'],digest)
+            self.assertEqual(result['review'],{})
+            result['images'].append({'file':'second1.jpg','url':'https://example.org/page1','by':'second','sha256':'a'*64})
+            file.write_text(json.dumps(result))
+            review=argparse.Namespace(packet=str(path),language='en',loc='p',reader='reader',model='model',alignment='Both pages match the original place.')
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                with self.assertRaises(SystemExit):kit.cmd_witness_review(review)
+                result['images'].append({'file':'second2.jpg','url':'https://example.org/page2','by':'second','sha256':digest});file.write_text(json.dumps(result))
+                kit.cmd_witness_review(review)
+            self.assertEqual(len(json.loads(file.read_text())['review']['places']['p']['pages']),2)
+            correction=argparse.Namespace(packet=str(path),language='en',loc='p',to='there.',reason='The second page reads there rather than here.',image='page2.jpg',**{'from':'here.'})
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_witness_correct(correction)
+            changed=json.loads(file.read_text());self.assertEqual(changed['places']['p']['corrections'][0]['page'],'38');self.assertEqual(changed['review'],{})
+            self.assertEqual(changed['places']['p']['extra_pages'][0]['span'],'continues there.')
+            self.assertEqual(changed['places']['p']['text'],'The sentence continues there.')
+
+    def test_page_transcription_records_image_and_invalidates_review(self):
+        import argparse, base64, hashlib, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
+            folder=Path(tmp)/'cache/work/witnesses/en';folder.mkdir(parents=True)
+            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+            (folder/'page.jpg').write_bytes(raw);digest=hashlib.sha256(raw).hexdigest()
+            data={'language':'en','witness':{},'images':[{'file':'page.jpg','url':'https://example.org/page','by':'maker','sha256':digest}],'places':{},'review':{'reader':'old-reader'}}
+            file=path/'witnesses/en.json';file.write_text(json.dumps(data))
+            args=argparse.Namespace(packet=str(path),language='en',loc='p',image='page.jpg',page='86',address_kind=None,address_value=None,text='A whole sentence.',reason='This image-only page has no usable transcription of the passage.',alignment='This sentence matches the original place.',lines=None,justification=None)
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')),patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):kit.cmd_witness_transcribe_page(args)
+            result=json.loads(file.read_text());place=result['places']['p']
+            self.assertEqual(place['transcription']['kind'],'human-page');self.assertNotIn('source',place)
+            self.assertEqual(place['image_sha256'],digest);self.assertEqual(result['review'],{})
+
     def test_correction_preserves_page_binding_and_invalidates_review(self):
         import argparse
         import hashlib
@@ -522,6 +805,71 @@ class TranslationCorrectionTest(unittest.TestCase):
             self.assertEqual(result['places']['p']['corrections'][0]['image_sha256'],digest)
             self.assertEqual(result['review'],{})
 
+class AcceptedPageNumberTest(unittest.TestCase):
+    def test_reviewed_correction_reverses_the_selected_repeated_text(self):
+        text='😀 A sentence. Another sentence.'
+        correction={'from':';','to':'.','offset':len(text)-1}
+        self.assertEqual(kit.reverse_reviewed_correction(text,correction),'😀 A sentence. Another sentence;')
+        self.assertIsNone(kit.reverse_reviewed_correction(text,{**correction,'offset':2}))
+
+    def test_accepted_correction_gate_rejects_changed_review(self):
+        import json, shutil, tempfile
+        from pathlib import Path
+        name='leon-battista-alberti.de-re-aedificatoria'
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/name;shutil.copytree(Path(kit.PACKETS)/name,path)
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                problems,_=kit.gate(str(path),second=True,offline=True);self.assertEqual(problems,[])
+                file=path/'accepted.json';accepted=json.loads(file.read_text());accepted['text_correction_reviews']=[];file.write_text(json.dumps(accepted))
+                problems,_=kit.gate(str(path),second=True,offline=True)
+                self.assertTrue(any('not bound to the accepted packet review' in problem for problem in problems))
+
+    def test_accepted_text_correction_keeps_review_and_predecessor(self):
+        import argparse, base64, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir()
+            (path/'places.json').write_text(json.dumps({'work':'work','entry':{'original':'la'},'places':{'loc':{'texts':{'la':'gratiam auctoritatem vendicat'}}},'corrections':[]}))
+            (path/'accepted.json').write_text(json.dumps({'basis':'original acceptance'}))
+            (path/'evidence.json').write_text(json.dumps({'scan':{'item':'book'},'places':{'loc':{'images':[3]}}}))
+            image=Path(tmp)/'page.png';image.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='))
+            args=argparse.Namespace(packet=str(path),loc='loc',to='autoritatem',n=3,url='https://archive.org/download/book/page/n3.jpg',by='maker',second='reader',second_model='model',assessment='The page reads autoritatem without the letter c.',file=str(image),**{'from':'auctoritatem'})
+            prior_places=(path/'places.json').read_bytes();prior_accept=(path/'accepted.json').read_bytes()
+            args.to=''
+            with self.assertRaises(SystemExit):kit.cmd_accepted_text_correct(args)
+            self.assertEqual((path/'places.json').read_bytes(),prior_places)
+            self.assertEqual((path/'accepted.json').read_bytes(),prior_accept)
+            args.to='autoritatem'
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_accepted_text_correct(args)
+            places=json.loads((path/'places.json').read_text());accepted=json.loads((path/'accepted.json').read_text());correction=places['corrections'][0]
+            self.assertEqual(places['places']['loc']['texts']['la'],'gratiam autoritatem vendicat')
+            self.assertEqual(correction['from'],'auctoritatem');self.assertEqual(correction['offset'],len('gratiam '));self.assertEqual(accepted['basis'],'original acceptance')
+            self.assertEqual(accepted['text_correction_reviews'][0]['sha256'],kit.page_number_digest(correction))
+
+    def test_corrected_number_keeps_predecessor_and_review(self):
+        import argparse, base64, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir();scan={'item':'book','ocr':True,'image_offset':0}
+            ev={'scan':scan,'scans':{'book':scan},'places':{'loc':{'scan':'book','method':'ocr','leaves':[218],'printed':['183'],'differences':[]}}}
+            (path/'evidence.json').write_text(json.dumps(ev));(path/'accepted.json').write_text(json.dumps({'by':'original','basis':'original acceptance'}))
+            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+            image=Path(tmp)/'page.png';image.write_bytes(raw)
+            args=argparse.Namespace(packet=str(path),loc=['loc'],leaf=218,old='183',new='184',url='https://archive.org/download/book/page/n218.jpg',by='maker',second='reader',second_model='model',assessment='Both definitions and printed page 184 are visible on this page.',file=str(image))
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                kit.cmd_page_number_correct(args);ev=json.loads((path/'evidence.json').read_text());accepted=json.loads((path/'accepted.json').read_text());entry=ev['places']['loc']
+                self.assertEqual(entry['printed'],['184']);self.assertEqual(entry['page_number_corrections'][0]['from'],'183');self.assertEqual(accepted['basis'],'original acceptance')
+                self.assertEqual(kit.page_number_problems(str(path),ev,'loc',entry),[])
+                places={'places':{'loc':{'texts':{'en':'A whole sentence.'}}}}
+                found={'share':1,'leaves':[218],'printed':['183'],'differences':[]}
+                with patch.object(kit,'ocr',return_value={'available':True}),patch.object(kit,'against_ocr',return_value=found):
+                    fresh=kit.compare(str(path),ev,places,'en');self.assertEqual(fresh['loc']['printed'],['184'])
+                    ev['places']['loc']['from_scan']=True
+                    fresh=kit.compare(str(path),ev,places,'en');self.assertEqual(fresh['loc']['method'],'image');self.assertEqual(fresh['loc']['printed'],['184'])
+                    self.assertEqual(kit.page_number_problems(str(path),ev,'loc',fresh['loc']),[])
+                accepted['page_number_reviews']=[];(path/'accepted.json').write_text(json.dumps(accepted))
+                self.assertTrue(any('accepted packet review' in p for p in kit.page_number_problems(str(path),ev,'loc',entry)))
+
 class StructuredAddressTest(unittest.TestCase):
     def test_section_identifies_a_lawful_unpaginated_source(self):
         address={'kind':'section','value':'III.2','url':'https://example.org/chapter#section-2'}
@@ -539,6 +887,22 @@ class WikidataDatePrecisionTest(unittest.TestCase):
         self.assertIsNone(kit.entity_year({'claims':{'P570':[approximate]}},'P570'))
         interval=claim(1950);interval['mainsnak']['datavalue']['value']['after']=1
         self.assertIsNone(kit.entity_year({'claims':{'P570':[interval]}},'P570'))
+        bounded=claim(1950);bounded['qualifiers']={'P1319':[{'datavalue':{'value':{'time':'+1949-01-01T00:00:00Z'}}}]}
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[bounded]}},'P570'))
+        calendar=claim(1910);calendar['qualifiers']={'P1480':[{'datavalue':{'value':{'id':'Q27055388'}}}]}
+        self.assertEqual(kit.entity_year({'claims':{'P570':[calendar]}},'P570'),1910)
+        calendar['mainsnak']['datavalue']['value']['time']='+1910-12-25T00:00:00Z'
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[calendar]}},'P570'))
+        calendar['mainsnak']['datavalue']['value'].update({'time':'+1910-01-01T00:00:00Z','precision':9})
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[calendar]}},'P570'))
+        julian=claim(1910);julian['mainsnak']['datavalue']['value'].update({'time':'+1910-12-25T00:00:00Z','calendarmodel':'http://www.wikidata.org/entity/Q1985786'})
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[julian]}},'P570'))
+        julian['mainsnak']['datavalue']['value']['time']='+1910-07-01T00:00:00Z'
+        self.assertEqual(kit.entity_year({'claims':{'P570':[julian]}},'P570'),1910)
+        julian['mainsnak']['datavalue']['value']['time']='+1711-04-26T00:00:00Z'
+        self.assertEqual(kit.entity_year({'claims':{'P570':[julian]}},'P570'),1711)
+        julian['mainsnak']['datavalue']['value']['calendarmodel']='http://www.wikidata.org/entity/Q1985787'
+        self.assertIsNone(kit.entity_year({'claims':{'P570':[julian]}},'P570'))
         self.assertIsNone(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951)]}},'P570'))
         self.assertEqual(kit.entity_year({'claims':{'P570':[claim(1950),claim(1951,11,'preferred')]}},'P570'),1951)
 
@@ -582,6 +946,95 @@ class LanguageCoverageTest(unittest.TestCase):
                 with self.assertRaises(SystemExit):kit.cmd_accept(args)
                 self.assertTrue(gate.call_args.kwargs['second'])
 
+class ScanRegistrationTest(unittest.TestCase):
+    def test_missing_archive_item_is_not_registered_and_unused_scan_can_be_withdrawn(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)
+            args=argparse.Namespace(packet=tmp,item='missing',dir=None,files=None,long_s=False)
+            with patch.object(kit,'get',return_value=b'{}'):
+                with self.assertRaises(SystemExit):kit.cmd_ia(args)
+            self.assertFalse((path/'evidence.json').exists())
+            scan={'item':'missing','ocr':False}
+            (path/'evidence.json').write_text(json.dumps({'scan':scan,'scans':{'missing':scan},'places':{},'sources':[]}))
+            kit.cmd_scan_withdraw(argparse.Namespace(packet=tmp,item='missing',reason='The Archive metadata does not identify this item.'))
+            record=json.loads((path/'evidence.json').read_text())
+            self.assertEqual(record['scans'],{})
+            self.assertEqual(record['withdrawn_scans'][0]['scan'],scan)
+
+class HtmlTranscriptionTest(unittest.TestCase):
+    def test_mediawiki_content_is_not_hidden_by_skin_toc_class(self):
+        raw=b'<html class="vector-feature-toc-not-available"><body><nav>Navigation</nav><div class="mw-parser-output"><div class="toc">Contents</div><p>A complete sentence.</p></div><footer>Footer</footer></body></html>'
+        text=kit.plain(raw,'source.html')
+        self.assertIn('A complete sentence.',text)
+        self.assertNotIn('Navigation',text)
+        self.assertNotIn('Contents',text)
+        self.assertNotIn('Footer',text)
+
+class ReopenUnplantedTest(unittest.TestCase):
+    def test_reopen_keeps_predecessor_and_requires_new_review(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir()
+            original={'accepted.json':{'by':'operator'},'reading.json':{'reader':{'id':'maker'}},'review.json':{'reader':{'id':'second'},'accept':True},'places.json':{'places':{}},'evidence.json':{'sources':[]}}
+            for name,value in original.items():(path/name).write_text(json.dumps(value))
+            args=argparse.Namespace(packet=str(path),reader='second',finding='The page says only when, which the reading omits.')
+            world={'fragments':{'works':{},'provenance':{}},'field':{'conceptions':[],'links':[]}}
+            with patch.object(kit,'world',return_value=world):kit.cmd_reopen(args)
+            self.assertFalse((path/'accepted.json').exists())
+            self.assertEqual(json.loads((path/'review.json').read_text()),{})
+            self.assertEqual(json.loads((path/'reopen-history.json').read_text())[0]['predecessor'],original)
+            (path/'accepted.json').write_text(json.dumps(original['accepted.json']))
+            (path/'review.json').write_text(json.dumps(original['review.json']))
+            (path/'accepted.json').write_text(json.dumps({'by':'operator','page_number_reviews':[{'sha256':'a'*64}]}))
+            with patch.object(kit,'world',return_value=world),self.assertRaises(SystemExit):kit.cmd_reopen(args)
+            self.assertTrue((path/'accepted.json').exists())
+            (path/'accepted.json').write_text(json.dumps(original['accepted.json']))
+            world['fragments']['works']['work']={}
+            with patch.object(kit,'world',return_value=world),self.assertRaises(SystemExit):kit.cmd_reopen(args)
+            self.assertTrue((path/'accepted.json').exists())
+
+class UnknownParticipantTest(unittest.TestCase):
+    def test_source_backed_unknown_death_does_not_establish_personal_term(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'packet';path.mkdir()
+            args=argparse.Namespace(packet=str(path),role='author',qid=None,name='Rebecca Journey',ru=None,died=None,source='https://example.org/article',remove=False,wartime=None,rehabilitated=None)
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')),patch.object(kit,'get',return_value=b'<html><body>Rebecca Journey</body></html>'):
+                kit.cmd_person(args)
+                person=json.loads((path/'evidence.json').read_text())['persons'][0]
+                self.assertIsNone(person['died'])
+                self.assertEqual(person['identity_evidence']['url'],args.source)
+                self.assertFalse(kit.public_domain_by_dates([person],2025)['eu'])
+                self.assertFalse(kit.public_domain_by_dates([person],2025)['russia'])
+                args.name='Another Author'
+                with patch.object(kit,'get',return_value=b'<html><body>Another Author</body></html>'):
+                    kit.cmd_person(args)
+                other=json.loads((path/'evidence.json').read_text())['persons'][1]
+                self.assertNotEqual(person['identity_evidence']['file'],other['identity_evidence']['file'])
+                self.assertTrue(Path(kit.cache(str(path),person['identity_evidence']['file'])).is_file())
+
+    def test_remove_wrong_witness_identity_keeps_history_and_clears_review(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp);(path/'witnesses').mkdir()
+            file=path/'witnesses/ru.json'
+            wrong={'role':'author','qid':'Q358'};right={'role':'author','qid':'Q35802'}
+            file.write_text(json.dumps({'witness':{'persons':[wrong,right]},'review':{'reader':'second'}}))
+            args=argparse.Namespace(packet=tmp,language='ru',role='author',qid='Q358',reason='This identifier refers to an unrelated heritage site.')
+            kit.cmd_witness_person_remove(args)
+            result=json.loads(file.read_text())
+            self.assertEqual(result['witness']['persons'],[right])
+            self.assertEqual(result['person_corrections'][0]['removed'],wrong)
+            self.assertEqual(result['review'],{})
+            (path/'witnesses/ru.json.accepted').write_text('{}')
+            args.qid='Q35802'
+            with self.assertRaises(SystemExit):kit.cmd_witness_person_remove(args)
+
 class InterfaceCoverageGateTest(unittest.TestCase):
     def test_new_work_requires_evidence_and_old_work_records_debt(self):
         import tempfile
@@ -594,6 +1047,15 @@ class InterfaceCoverageGateTest(unittest.TestCase):
             entry={'absent':[],'witnesses':{'ru':{}}}
             problems,debts=kit.language_coverage(path,entry,'en',legacy_work=True,held=True)
             self.assertEqual(problems,[]);self.assertFalse(any(item.startswith('ru:') for item in debts))
+            import json
+            from pathlib import Path
+            (Path(path)/'places.json').write_text(json.dumps({'places':{'old':{},'new':{}}}))
+            held={'fragments':{'places':{Path(path).name:{'old':{'texts':{'ru':'перевод'}}}}}}
+            with patch.object(kit,'world',return_value=held):
+                problems,debts=kit.language_coverage(path,entry,'en',legacy_work=True,held=True)
+            self.assertEqual(problems,[])
+            self.assertTrue(any(item.startswith('ru new:') for item in debts))
+            self.assertFalse(any(item.startswith('ru old:') for item in debts))
 
 class PartialWitnessCoverageTest(unittest.TestCase):
     def test_new_work_accounts_for_every_missing_translated_place(self):
@@ -614,8 +1076,14 @@ class PartialWitnessCoverageTest(unittest.TestCase):
                 problems,_=kit.language_coverage(str(path),entry,'en')
                 self.assertFalse(any(p.startswith('ru p2:') for p in problems))
                 witness.pop('missing_places');file.write_text(json.dumps(witness))
-                problems,_=kit.language_coverage(str(path),entry,'en',legacy_work=True)
-                self.assertFalse(any(p.startswith('ru p2:') for p in problems))
+                problems,debts=kit.language_coverage(str(path),entry,'en',legacy_work=True)
+                self.assertFalse(problems)
+                self.assertTrue(any(p.startswith('ru: witness is research') for p in debts))
+                import hashlib
+                (path/'witnesses/ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(file.read_bytes()).hexdigest()}))
+                problems,debts=kit.language_coverage(str(path),entry,'en',legacy_work=True)
+                self.assertFalse(problems)
+                self.assertIn('ru p2: no search record',debts)
 
 class CoauthorIdentityTest(unittest.TestCase):
     def test_distinct_qids_cannot_be_collapsed_by_matching_names(self):
@@ -654,7 +1122,7 @@ globalThis.fetch=async input=>{
  else if(url.pathname==='/authors/OL456A.json')data={name:'Dated Author',birth_date:'1900',death_date:'1980'};
  else if(url.pathname==='/authors/OL789A.json')data={name:'Uncertain Author',birth_date:'circa 1900',death_date:'1980'};
  else if(url.hostname==='query.wikidata.org')data={results:{bindings:[{person:{value:'http://www.wikidata.org/entity/'+(url.searchParams.get('query').includes('P214')?'Q62315':'Q77')}}]}};
- else if(url.pathname.includes('Special:EntityData/Q62315'))data={entities:{Q62315:{labels:{en:{value:'Karl Rosenkranz'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q5'}}}}],P569:[{mainsnak:{datavalue:{value:{time:'+1805-01-01T00:00:00Z',precision:9}}}}],P570:[{mainsnak:{datavalue:{value:{time:'+1879-01-01T00:00:00Z',precision:9}}}}]}}}};
+ else if(url.pathname.includes('Special:EntityData/Q62315'))data={entities:{Q62315:{labels:{en:{value:'Karl Rosenkranz'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q5'}}}}],P569:[{qualifiers:{P1480:[{datavalue:{value:{id:'Q5727902'}}}],P1319:[{datavalue:{value:{time:'+1804-01-01T00:00:00Z',precision:9}}}],P1326:[{datavalue:{value:{time:'+1806-01-01T00:00:00Z',precision:9}}}]},mainsnak:{datavalue:{value:{time:'+1805-01-01T00:00:00Z',precision:9}}}}],P570:[{mainsnak:{datavalue:{value:{time:'+1879-01-01T00:00:00Z',precision:9}}}}]}}}};
  else if(url.pathname.includes('Special:EntityData/Q77'))data={entities:{Q77:{labels:{en:{value:'Dated Author'}},claims:{P31:[{mainsnak:{datavalue:{value:{id:'Q5'}}}}],P569:[{mainsnak:{datavalue:{value:{time:'+1900-01-01T00:00:00Z',precision:9}}}}],P570:[{mainsnak:{datavalue:{value:{time:'+1980-01-01T00:00:00Z',precision:9}}}}]}}}};
  else throw new Error('unexpected URL '+url);
  return new Response(JSON.stringify(data),{status:200,headers:{'Content-Type':'application/json'}});
@@ -664,6 +1132,10 @@ await import(pathToFileURL(process.argv[3]??'%MODULE%').href);
 """.replace('%MODULE%',str(review/'chronology.mjs'))
             subprocess.run(['node','--input-type=module','-e',script],check=True,capture_output=True,text=True)
             lives=json.loads((layer/'lives.json').read_text());self.assertEqual(lives['karl']['item'],'Q62315')
+            self.assertTrue(lives['karl']['born'][0]['approximate'])
+            self.assertEqual(lives['karl']['born'][0]['qualifiers'],['Q5727902'])
+            self.assertEqual(lives['karl']['born'][0]['bounds']['earliest'][0]['time'],'+1804-01-01T00:00:00Z')
+            self.assertEqual(lives['karl']['born'][0]['bounds']['latest'][0]['time'],'+1806-01-01T00:00:00Z')
             self.assertEqual(lives['karl']['identity_catalogue']['work'],'/works/OL123W')
             self.assertEqual(lives['karl']['identity_catalogue']['authority'],['P214','12345'])
             self.assertIsNone(lives['other']['item']);self.assertEqual(lives['other']['status'],'unresolved')

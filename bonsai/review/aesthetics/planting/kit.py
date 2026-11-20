@@ -110,7 +110,7 @@ def wave(w,work):
     for agent in known['agents']:
         life=(w.get('lives') or {}).get(agent) or {};dates=life.get('died') or []
         years=[]
-        if life.get('item') and dates and all(type(item.get('precision')) is int and item['precision']>=9 for item in dates):
+        if life.get('item') and dates and all(type(item.get('precision')) is int and item['precision']>=9 and not item.get('approximate') for item in dates):
             for item in dates:
                 match=re.match(r'([+-]\d+)-',str(item.get('time','')))
                 if match:years.append(int(match.group(1)))
@@ -211,14 +211,15 @@ def get(url,tries=3):
 
 class Plain(html.parser.HTMLParser):
     """The running text of an HTML transcription: page marks, footnote anchors and notes left out, blocks as paragraphs."""
-    SKIP=re.compile(r'pagenum|pageno|fnanchor|footnote|linenum|noprint|reference|mw-editsection|toc\b');BLOCK={'p','div','h1','h2','h3','h4','h5','h6','li','blockquote','tr','td','pre','table','section','hr','dd','dt'}
+    SKIP=re.compile(r'pagenum|pageno|fnanchor|footnote|linenum|noprint|reference|mw-editsection');BLOCK={'p','div','h1','h2','h3','h4','h5','h6','li','blockquote','tr','td','pre','table','section','hr','dd','dt'}
     def __init__(self):super().__init__();self.out=[];self.stack=[]
     def handle_starttag(self,tag,attrs):
         if tag in('br','img','hr','meta','link','input'):
             if tag=='br' and not any(self.stack):self.out.append('\n')
             if tag=='hr' and not any(self.stack):self.out.append('\n\n')
             return
-        skip=tag in('script','style','head','sup','title') or bool(self.SKIP.search(dict(attrs).get('class') or ''))
+        classes=dict(attrs).get('class') or ''
+        skip=tag in('script','style','head','sup','title') or bool(self.SKIP.search(classes)) or 'toc' in classes.split()
         self.stack.append((tag,skip or bool(self.stack and self.stack[-1][1])))
         if tag in self.BLOCK and not self.stack[-1][1]:self.out.append('\n\n')
     def handle_endtag(self,tag):
@@ -230,10 +231,25 @@ class Plain(html.parser.HTMLParser):
     def handle_data(self,data):
         if not(self.stack and self.stack[-1][1]):self.out.append(data)
 
+class MediaWikiPlain(Plain):
+    """Limit a MediaWiki transcription to its actual rendered content."""
+    def __init__(self):super().__init__();self.active=False;self.found=False
+    def handle_starttag(self,tag,attrs):
+        if not self.active and 'mw-parser-output' in (dict(attrs).get('class') or '').split():self.active=True;self.found=True
+        if self.active:super().handle_starttag(tag,attrs)
+    def handle_endtag(self,tag):
+        if self.active:
+            super().handle_endtag(tag)
+            if not self.stack:self.active=False
+    def handle_data(self,data):
+        if self.active:super().handle_data(data)
+
 def plain(raw,name):
     text=raw.decode('utf-8',errors='replace')
     if re.search(r'\.x?html?$',name) or re.match(r'\s*<(!doctype|html)',text[:300],re.I):
-        parser=Plain();parser.feed(text);text=''.join(parser.out)
+        parser=MediaWikiPlain();parser.feed(text)
+        if not parser.found:parser=Plain();parser.feed(text)
+        text=''.join(parser.out)
     text=unicodedata.normalize('NFC',text.replace('\r\n','\n').replace('\r','\n').replace('­','').replace('﻿',''))
     return re.sub(r'\n[ \t]*\n\s*','\n\n',re.sub(r'[ \t   ]+',' ',text))
 
@@ -320,7 +336,9 @@ def cmd_ia(args):
     path=packet(args.packet);item=args.item;wanted={'ocr':'_hocr_searchtext.txt.gz','index':'_hocr_pageindex.json.gz','pages':'_page_numbers.json'}
     if args.dir:names={role:os.path.join(args.dir,file) for role,file in zip(wanted,args.files.split(','))}
     else:
-        files=[entry['name'] for entry in json.loads(get(f'https://archive.org/metadata/{item}')).get('files',[])]
+        metadata=json.loads(get(f'https://archive.org/metadata/{item}'))
+        if (metadata.get('metadata') or {}).get('identifier')!=item:die(f'{item}: Archive metadata does not establish this item; no scan registered')
+        files=[entry['name'] for entry in metadata.get('files',[])]
         names={role:next((name for name in files if name.endswith(tail)),None) for role,tail in wanted.items()}
     ev=evidence(path);was=scans(ev).get(item) or {}
     if not names['ocr'] or not names['index']:
@@ -336,6 +354,19 @@ def cmd_ia(args):
     save(os.path.join(path,'evidence.json'),ev);o=ocr(path,ev)
     if len(ev['scans'])>1:print(f"the packet reads {len(ev['scans'])} scans; this one is the scan the next commands work on (kit.py scan lists them and switches)")
     print(f"{item}: OCR of {len(o['starts'])} leaves, {len(o['words'])} words; printed page numbers {'given' if o['printed'] else 'not given'} by the Archive")
+
+def cmd_scan_withdraw(args):
+    path=packet(args.packet);ev=evidence(path);available=scans(ev)
+    if part(path,'accepted.json') is not None:die('an accepted packet cannot withdraw its scan')
+    if args.item not in available:die('no such scan is registered')
+    if len(args.reason.strip())<30:die('give a reason in a full sentence')
+    if any(scan_of(ev,place).get('item')==args.item for place in (ev.get('places') or {}).values()):die('the scan is already used by a place; preserve the evidence and correct that place first')
+    scan=available.pop(args.item)
+    ev.setdefault('withdrawn_scans',[]).append({'scan':scan,'reason':args.reason,'date':today()})
+    ev['scans']=available
+    if (ev.get('scan') or {}).get('item')==args.item:ev['scan']={}
+    save(os.path.join(path,'evidence.json'),ev)
+    print(f'{args.item}: withdrawn; prior record and sources preserved')
 
 # ---- words ---------------------------------------------------------------------------------------------------------
 
@@ -595,9 +626,25 @@ def entity_year(entity,property_):
     preferred=[claim for claim in claims if claim.get('rank')=='preferred']
     chosen=preferred or claims
     values=[claim['mainsnak']['datavalue']['value'] for claim in chosen]
-    # A year with an approximation qualifier or an interval is not an exact cutoff.
-    if not values or any((claim.get('qualifiers') or {}).get('P1480') for claim in chosen):return None
-    if any(value.get('precision',0)<9 or value.get('before',0) or value.get('after',0) for value in values):return None
+    # Calendar annotations are not uncertainty, except near the year boundary.
+    calendars={'Q38173183','Q26877143','Q26877139','Q27055388'}
+    if not values:return None
+    for claim,value in zip(chosen,values):
+        model=value.get('calendarmodel')
+        if model and model!='http://www.wikidata.org/entity/Q1985727':
+            # A Julian year can cross the Gregorian boundary. Other calendars
+            # need an explicit conversion before they establish a legal year.
+            date=value.get('time','')
+            middle=re.match(r'^\+(?:0\d{3}|1\d{3})-(?:0[2-9]|1[01])-\d{2}T',date) and int(date[1:5])>0
+            recent=re.match(r'^\+1[89]\d\d-',date) and not re.search(r'-12-(?:1[89]|2\d|3[01])T',date)
+            if model!='http://www.wikidata.org/entity/Q1985786' or value.get('precision',0)<11 or not (middle or recent):return None
+        all_qualifiers=claim.get('qualifiers') or {}
+        if any(all_qualifiers.get(prop) for prop in ('P1319','P1326')):return None
+        qualifiers=all_qualifiers.get('P1480') or []
+        ids=[((item.get('datavalue') or {}).get('value') or {}).get('id') for item in qualifiers]
+        if any(qid not in calendars for qid in ids):return None
+        if qualifiers and (value.get('precision',0)==9 or re.search(r'-(?:00-00|12-(?:00|1[89]|2\d|3[01]))T',value.get('time',''))):return None
+        if value.get('precision',0)<9 or value.get('before',0) or value.get('after',0):return None
     years={int(value['time'][:5]) for value in values}
     return next(iter(years)) if len(years)==1 else None
 
@@ -616,8 +663,15 @@ def cmd_person(args):
         died=year('P570');print(f"{args.qid}: {label('en')} / {label('ru')} — {(entity.get('descriptions',{}).get('en') or {}).get('value')}; born {year('P569')}, died {died}")
         person={'qid':args.qid,'name':{'en':label('en'),'ru':label('ru') or label('en')},'role':args.role,'born':year('P569'),'died':died,'source':f'https://www.wikidata.org/wiki/{args.qid}'}
     else:
-        if not(args.name and args.died is not None and trusted(args.source)):die('without an item: --name NAME --died YEAR --source URL, the URL on one of: '+', '.join(TRUSTED))
+        if not(args.name and lawful_url(args.source)):die('without an item: --name NAME --source HTTPS-URL, and --died YEAR only when supported by a trusted reference')
+        if args.died is not None and not trusted(args.source):die('a stated death year requires a trusted reference: '+', '.join(TRUSTED))
         person={'name':{'en':args.name,'ru':args.ru or args.name},'role':args.role,'died':args.died,'source':args.source}
+        if args.died is None:
+            raw=get(args.source)
+            if args.name.casefold() not in plain(raw,'person.html').casefold():die('the source does not contain the stated name')
+            filename='person-'+hashlib.sha256(raw).hexdigest()+'.html'
+            Path(cache(path,filename)).write_bytes(raw)
+            person['identity_evidence']={'file':filename,'url':args.source,'sha256':hashlib.sha256(raw).hexdigest()}
     if args.wartime is not None:
         if not trusted(args.wartime_source):die('--wartime requires --wartime-source on a trusted site')
         person['wartime']=args.wartime=='yes';person['wartime_source']=args.wartime_source
@@ -693,7 +747,7 @@ def compare(path,ev,places,original):
         if item not in read:read[item]=ocr(path,ev,every[item])
         return read[item]
     for loc,place in places['places'].items():
-        text=place.get('texts',{}).get(original);old=ev['places'].get(loc,{});entry={key_:old[key_] for key_ in('transcription','dropped','from_scan','scan','whole','images','quotation') if key_ in old}
+        text=place.get('texts',{}).get(original);old=ev['places'].get(loc,{});entry={key_:old[key_] for key_ in('transcription','dropped','from_scan','scan','whole','images','quotation','page_number_corrections') if key_ in old}
         if not text:out[loc]=entry;continue
         fixed=scan_of(ev,old).get('item') if old.get('scan') or old.get('from_scan') else None      # a place stays with its scan; a new one is looked for in each
         got=None
@@ -701,15 +755,20 @@ def compare(path,ev,places,original):
             o=reading(item) if item in every else None;found=against_ocr(text,o,modern_ru=original=='ru') if o else None
             if found and (got is None or 'leaves' in found or (found.get('share') or 0)>(got.get('share') or 0)):got=found;entry['scan']=item
             if found and 'leaves' in found:break
-        if entry.get('from_scan') and got and 'leaves' in got:               # the OCR beside itself proves nothing: the page is read instead
-            entry.update({'method':'image','leaves':got['leaves'],'printed':got['printed']});out[loc]=entry;continue
         if not got or 'leaves' not in got:
             entry.update({'method':'image','share':(got or {}).get('share')});out[loc]=entry;continue
+        printed=list(got['printed'])
+        for correction in entry.get('page_number_corrections',[]):
+            if correction.get('leaf') in got['leaves']:
+                index=got['leaves'].index(correction['leaf'])
+                if str(printed[index]) in (correction.get('from'),correction.get('to')):printed[index]=correction['to']
+        if entry.get('from_scan'):               # the OCR beside itself proves nothing: the page is read instead
+            entry.update({'method':'image','leaves':got['leaves'],'printed':printed});out[loc]=entry;continue
         judged={(d['transcription'],d['ocr'],d['leaf']):d for d in old.get('differences',[])}
         for d in got['differences']:
             was=judged.get((d['transcription'],d['ocr'],d['leaf']))
             if was:d.update({key_:was[key_] for key_ in('stands','note') if key_ in was})
-        entry.update({'method':'ocr','share':got['share'],'leaves':got['leaves'],'printed':got['printed'],'differences':got['differences']});out[loc]=entry
+        entry.update({'method':'ocr','share':got['share'],'leaves':got['leaves'],'printed':printed,'differences':got['differences']});out[loc]=entry
     return out
 
 def cmd_compare(args):
@@ -747,6 +806,48 @@ def cmd_correct(args):
     place['texts'][original]=text.replace(getattr(args,'from'),args.to)
     places['corrections'].append({'lang':original,'from':getattr(args,'from'),'to':args.to,'evidence':args.evidence,'place':f"{places['work']} {args.loc}"})
     save(os.path.join(path,'places.json'),places);print(f'{args.loc}: corrected; run kit.py compare again')
+
+def cmd_accepted_text_correct(args):
+    """Record a new, independently reviewed correction without replacing the original acceptance."""
+    path=packet(args.packet);accepted=part(path,'accepted.json') or die('an accepted packet is required')
+    if not isinstance(args.to,str) or not args.to:die('the replacement cannot be empty; include surrounding context to record a deletion')
+    ev=evidence(path);entry=(ev.get('places') or {}).get(args.loc) or die('no evidence for this place')
+    scan=scan_of(ev,entry)
+    if args.n not in (entry.get('images') or []) or args.url!=f"https://archive.org/download/{scan.get('item')}/page/n{args.n}.jpg":die('the URL must be the recorded scan page for this place')
+    if not args.by or not args.second or args.by==args.second or not args.second_model or len(args.assessment.strip())<30:die('record distinct readers and the second reader’s page assessment')
+    raw=Path(args.file).read_bytes() if args.file else get(args.url)
+    if not valid_page_image(raw):die('the page source did not yield a readable image')
+    digest=hashlib.sha256(raw).hexdigest();filename=f'text-correction-{digest}.img';Path(cache(path,filename)).write_bytes(raw)
+    places=part(path,'places.json');original=original_of(places);text=places['places'][args.loc]['texts'][original]
+    old=getattr(args,'from')
+    if not old or text.count(old)!=1:die('the original run must occur exactly once')
+    offset=text.index(old)
+    cmd_correct(argparse.Namespace(packet=args.packet,loc=args.loc,to=args.to,evidence=args.assessment,**{'from':getattr(args,'from')}))
+    places=part(path,'places.json');correction=places['corrections'][-1]
+    correction['offset']=offset
+    correction['review']={'url':args.url,'image_sha256':digest,'file':filename,'by':args.by,'second':args.second,'second_model':args.second_model,'assessment':args.assessment,'date':today()}
+    accepted.setdefault('text_correction_reviews',[]).append({'loc':args.loc,'sha256':page_number_digest(correction)})
+    save(os.path.join(path,'places.json'),places);save(os.path.join(path,'accepted.json'),accepted)
+    print('original acceptance retained; the correction and independent assessment are bound to it')
+
+def reverse_reviewed_correction(text,correction):
+    offset=correction.get('offset');new=correction.get('to');old=correction.get('from')
+    if type(offset) is not int or offset<0 or not isinstance(new,str) or not new or not isinstance(old,str) or text[offset:offset+len(new)]!=new:return None
+    return text[:offset]+old+text[offset+len(new):]
+
+def cmd_accepted_text_index(args):
+    """Bind the unique position of a previously reviewed correction to its receipt."""
+    path=packet(args.packet);places=part(path,'places.json');accepted=part(path,'accepted.json') or die('an accepted packet is required')
+    original=original_of(places);place=(places.get('places') or {}).get(args.loc) or die('no such place');text=place['texts'][original]
+    selected=[c for c in places.get('corrections') or [] if c.get('place')==f"{places['work']} {args.loc}" and c.get('review') and c.get('to')==args.to]
+    if len(selected)!=1 or 'offset' in selected[0] or text.count(args.to)!=1:die('the reviewed target must be unique and not yet indexed')
+    if any(c.get('review') and c.get('place')==selected[0]['place'] for c in places['corrections'][places['corrections'].index(selected[0])+1:]):die('the correction must be the latest reviewed change to this place')
+    correction=selected[0];previous=page_number_digest(correction)
+    receipts=[r for r in accepted.get('text_correction_reviews') or [] if r.get('loc')==args.loc and r.get('sha256')==previous]
+    if len(receipts)!=1:die('the prior accepted review must match this correction')
+    correction['offset']=text.index(args.to);receipts[0]['previous_sha256']=previous;receipts[0]['sha256']=page_number_digest(correction)
+    save(os.path.join(path,'places.json'),places);save(os.path.join(path,'accepted.json'),accepted)
+    print('unique correction position recorded; prior review digest retained')
 
 # ---- the gate ------------------------------------------------------------------------------------------------------
 
@@ -850,6 +951,51 @@ def valid_page_image(raw):
             return (raw.startswith(b'\x89PNG\r\n\x1a\n') and raw.endswith(b'IEND\xaeB`\x82')) or (raw.startswith(b'\xff\xd8\xff') and raw.endswith(b'\xff\xd9')) or (len(raw)>20 and raw.startswith(b'RIFF') and raw[8:12]==b'WEBP')
     except Exception:return False
 
+def page_number_digest(correction):
+    return hashlib.sha256(json.dumps(correction,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+
+def page_number_problems(path,ev,loc,entry,offline=False):
+    problems=[];accepted=part(path,'accepted.json') or {};reviews=accepted.get('page_number_reviews') or []
+    for correction in entry.get('page_number_corrections') or []:
+        leaf=correction.get('leaf');leaves=entry.get('leaves') or [];printed=entry.get('printed') or []
+        scan=scan_of(ev,entry);offset=scan.get('image_offset');item=scan.get('item')
+        if leaf not in leaves or leaves.index(leaf)>=len(printed) or printed[leaves.index(leaf)]!=correction.get('to'):problems.append(f'{loc}: corrected page number does not match the leaf');continue
+        expected=f'https://archive.org/download/{item}/page/n{leaf+offset}.jpg' if type(leaf) is int and type(offset) is int and item else ''
+        if correction.get('url')!=expected or not re.fullmatch(r'[a-f0-9]{64}',str(correction.get('image_sha256',''))) or correction.get('file')!=f"page-number-{correction.get('image_sha256')}.img" or not correction.get('from') or not correction.get('to') or correction.get('from')==correction.get('to'):problems.append(f'{loc}: page correction needs the exact scan image and both page numbers')
+        if not correction.get('by') or not correction.get('second') or correction.get('by')==correction.get('second') or not correction.get('second_model') or len(str(correction.get('assessment','')).strip())<30:problems.append(f'{loc}: page correction needs a distinct second reader and assessment')
+        if not any(review.get('loc')==loc and review.get('sha256')==page_number_digest(correction) for review in reviews):problems.append(f'{loc}: page correction is not bound to the accepted packet review')
+        if not offline:
+            try:
+                raw=Path(cache(path,correction['file'])).read_bytes()
+                if hashlib.sha256(raw).hexdigest()!=correction.get('image_sha256') or not valid_page_image(raw):problems.append(f'{loc}: page correction image changed or is invalid')
+            except (OSError,KeyError):problems.append(f'{loc}: page correction image is unavailable')
+    return problems
+
+def cmd_page_number_correct(args):
+    """Correct a scan's page-number metadata after two readers inspect the image."""
+    path=packet(args.packet);ev=evidence(path);accepted=part(path,'accepted.json')
+    if not accepted:die('page-number correction requires an accepted packet')
+    if not args.by or not args.second or args.by==args.second or not args.second_model or len(args.assessment.strip())<30:die('record distinct readers and the second reader’s page assessment')
+    if not args.loc or len(set(args.loc))!=len(args.loc):die('choose distinct places')
+    entries=[]
+    for loc in args.loc:
+        entry=(ev.get('places') or {}).get(loc) or die(f'{loc}: no evidence')
+        scan=scan_of(ev,entry);leaves=entry.get('leaves') or [];printed=entry.get('printed') or [];offset=scan.get('image_offset')
+        if args.leaf not in leaves or leaves.index(args.leaf)>=len(printed) or str(printed[leaves.index(args.leaf)])!=args.old:die(f'{loc}: current page number does not match the stated predecessor')
+        if type(offset) is not int or args.url!=f"https://archive.org/download/{scan.get('item')}/page/n{args.leaf+offset}.jpg":die(f'{loc}: URL must identify this exact scan leaf')
+        if any(c.get('leaf')==args.leaf for c in entry.get('page_number_corrections') or []):die(f'{loc}: this leaf already has a page-number correction')
+        entries.append((loc,entry,leaves.index(args.leaf)))
+    if not args.old or not args.new or args.old==args.new:die('give distinct old and observed page numbers')
+    raw=Path(args.file).read_bytes() if args.file else get(args.url)
+    if not valid_page_image(raw):die('the page source did not yield a readable image')
+    digest=hashlib.sha256(raw).hexdigest();filename=f'page-number-{digest}.img';Path(cache(path,filename)).write_bytes(raw)
+    for loc,entry,index in entries:
+        correction={'leaf':args.leaf,'from':args.old,'to':args.new,'url':args.url,'image_sha256':digest,'file':filename,'by':args.by,'second':args.second,'second_model':args.second_model,'assessment':args.assessment,'date':today()}
+        entry.setdefault('page_number_corrections',[]).append(correction);entry['printed'][index]=args.new
+        accepted.setdefault('page_number_reviews',[]).append({'loc':loc,'sha256':page_number_digest(correction)})
+    save(os.path.join(path,'evidence.json'),ev);save(os.path.join(path,'accepted.json'),accepted)
+    print(f"{len(entries)} page-number corrections recorded; original acceptance and source predecessor retained")
+
 def cmd_page(args):
     """Keep a page from a lawful non-Archive source without modifying its bytes."""
     path=packet(args.packet);ev=evidence(path)
@@ -905,20 +1051,34 @@ def language_coverage(path,entry,original,legacy_work=False,held=False,second=Fa
     problems=[];debts=[]
     missing_by_lang={item.get('language'):item for item in entry.get('absent') or [] if isinstance(item,dict)}
     for lang in ('ru','en','es','de','zh-Hans'):
-        if lang==original or (held and lang in (entry.get('witnesses') or {})):continue
+        if lang==original:continue
         file=witness_file(path,lang)
+        search=language_search_file(path,lang)
+        if held and lang in (entry.get('witnesses') or {}) and not os.path.isfile(file):
+            places=(part(path,'places.json') or {}).get('places') or {}
+            if places:
+                existing=world()['fragments'].get('places',{}).get(work_of(path),{})
+                for loc in sorted(places):
+                    if not (existing.get(loc,{}).get('texts') or {}).get(lang):debts.append(f'{lang} {loc}: no accepted translation or documented search for this place')
+            continue
+        if not os.path.isfile(file) and os.path.isfile(search) and (not legacy_work or os.path.isfile(search+'.accepted')):
+            raw=Path(search).read_bytes()
+            if os.path.isfile(search+'.accepted') and load(search+'.accepted').get('sha256')!=hashlib.sha256(raw).hexdigest():problems.append(f'{lang}: search changed since acceptance');continue
+            problems.extend(f'{lang}: {issue}' for issue in language_search_problems(path,lang,json.loads(raw),second=second))
+            continue
         if os.path.isfile(file):
             marker=file+'.accepted'
-            if legacy_work and not os.path.isfile(marker):continue
+            if legacy_work and not os.path.isfile(marker):
+                debts.append(f'{lang}: witness is research until independently accepted')
+                continue
             raw=Path(file).read_bytes()
             if os.path.isfile(marker) and load(marker).get('sha256')!=hashlib.sha256(raw).hexdigest():problems.append(f'{lang}: witness changed since acceptance');continue
             data=json.loads(raw)
             problems.extend(f'{lang}: {issue}' for issue in witness_problems(path,lang,data,second=second,offline=offline))
-            if not legacy_work:
-                places=(part(path,'places.json') or {}).get('places') or {}
-                for loc in sorted(set(places)-set(data.get('places') or {})):
-                    gaps=data.get('missing_places') or {}
-                    problems.extend(f'{lang} {loc}: {issue}' for issue in missing_language_problems(gaps.get(loc)))
+            places=(part(path,'places.json') or {}).get('places') or {}
+            for loc in sorted(set(places)-set(data.get('places') or {})):
+                gaps=data.get('missing_places') or {}
+                (debts if legacy_work else problems).extend(f'{lang} {loc}: {issue}' for issue in missing_language_problems(gaps.get(loc)))
         else:
             issues=missing_language_problems(missing_by_lang.get(lang))
             (debts if legacy_work else problems).extend(f'{lang}: {issue}' for issue in issues)
@@ -958,6 +1118,11 @@ def gate(path,second=False,offline=False):
     entry=entry or held or {};original=entry.get('original') or ''
     original_rights=((entry.get('witnesses') or {}).get(original) or {}).get('rights') or {}
     locator_only=all(isinstance(original_rights.get(country),dict) and original_rights[country].get('basis')=='locator-only' for country in JURISDICTIONS)
+    if held and any(isinstance(original_rights.get(country),dict) and original_rights[country].get('basis')=='short-quotation' for country in JURISDICTIONS):
+        witness={**((entry.get('witnesses') or {}).get(original) or {})};witness.pop('mexico_quotation',None)
+        if ev.get('mexico_quotation'):witness['mexico_quotation']=ev['mexico_quotation']
+        issues=mexico_problems(witness,places.get('places') or {},part(path,'review.json') or {},(reading.get('reader') or {}).get('id'),second,path=path,offline=offline)
+        for issue in issues:(owe if not ev.get('mexico_quotation') else add)(issue)
     # the witness and the rights
     if not held:
         for name in('author','title'):
@@ -980,6 +1145,9 @@ def gate(path,second=False,offline=False):
                 item=rights.get(country) or {}
                 if not isinstance(item,dict) or item.get('basis') not in BASES or len(str(item.get('law',''))) < 20:add(f'witness.rights.{country} wants a basis and a law statement')
         if len(str(rights.get('reasoning','')))<60:add('witness.rights.reasoning wants its sentences: whose text, which transcription (and which edition it follows), which scan, what was normalised')
+        if any(isinstance(rights.get(country),dict) and rights[country].get('basis')=='short-quotation' for country in JURISDICTIONS):
+            issues=mexico_problems(witness,places.get('places') or {},part(path,'review.json') or {},(reading.get('reader') or {}).get('id'),second,path=path,offline=offline)
+            for issue in issues:(owe if not witness.get('mexico_quotation') else add)(issue)
         problems.extend(license_problems(witness,ev.get('sources') or [],lambda name:cache(path,name),part(path,'review.json') or {},(reading.get('reader') or {}).get('id'),second,offline))
         for item in entry.get('absent') or []:
             if not item.get('tried'):
@@ -988,7 +1156,15 @@ def gate(path,second=False,offline=False):
         if not any(person.get('role')=='author' for person in persons):add('evidence.persons wants the author with the year of death and the page that gives it')
         sound=True
         for person in persons:
-            if (person.get('died') is not None and type(person.get('died')) is not int) or not isinstance(person.get('name'),dict) or not(person.get('qid') or trusted(person.get('source'))):sound=False;add(f"evidence.persons {person.get('name')}: enter the person again with kit.py person ROLE QID")
+            identity=person.get('identity_evidence') or {}
+            reference=(person.get('died') is None and lawful_url(person.get('source')) and identity.get('url')==person.get('source') and bool(re.fullmatch(r'[a-f0-9]{64}',str(identity.get('sha256','')))))
+            if reference and not offline:
+                try:
+                    raw=Path(cache(path,identity['file'])).read_bytes()
+                    name=(person.get('name') or {}).get('en','')
+                    reference=bool(name) and hashlib.sha256(raw).hexdigest()==identity['sha256'] and name.casefold() in plain(raw,identity['file']).casefold()
+                except (OSError,KeyError,TypeError):reference=False
+            if (person.get('died') is not None and type(person.get('died')) is not int) or not isinstance(person.get('name'),dict) or not(person.get('qid') or (not identity and trusted(person.get('source'))) or reference):sound=False;add(f"evidence.persons {person.get('name')}: enter the person again with kit.py person ROLE QID or a source for the unknown-dated hand")
             if person.get('wartime') is not None and (type(person['wartime']) is not bool or not trusted(person.get('wartime_source'))):sound=False;add('wartime status requires a trusted source')
             if person.get('rehabilitated') is not None and (type(person['rehabilitated']) is not int or not trusted(person.get('rehabilitation_source'))):sound=False;add('rehabilitation requires a year and a trusted source')
         if sound and persons:
@@ -1013,6 +1189,7 @@ def gate(path,second=False,offline=False):
     if not locs:add('places.json holds no place')
     corrections=places.get('corrections') or []
     for loc,place in locs.items():
+        problems.extend(page_number_problems(path,ev,loc,(ev.get('places') or {}).get(loc) or {},offline))
         at=f'place {loc}';text=(place.get('texts') or {}).get(original)
         if loc!=loc.strip() or not loc or (not re.search(r'\S p\d+(-\d+)?[a-z]?$',loc) and not valid_address(place.get('address'))):add(f'{at}: give a division and printed page, or a structured source address')
         if place.get('address') is not None and not valid_address(place['address']):add(f'{at}: structured address needs kind, value and lawful URL')
@@ -1033,12 +1210,40 @@ def gate(path,second=False,offline=False):
             problems.extend(quotation_problems(loc,text,(ev.get('places',{}).get(loc) or {}).get('quotation'),ev,second=second,path=path,offline=offline))
         if not str((place.get('links') or {}).get(original,'')).startswith('https://'):add(f'{at}: links.{original} wants the address of the page of the scan')
         if not any(isinstance(ref,list) and len(ref)==2 and ref[0]==original and ref[1] for ref in place.get('refs') or []):add(f'{at}: refs wants [["{original}", "edition, printed page"]]')
-    for correction in corrections:
+    predecessors={loc:place.get('texts',{}).get(original,'') for loc,place in locs.items()}
+    for receipt in (part(path,'accepted.json') or {}).get('text_correction_reviews') or []:
+        if not any(c.get('review') and c.get('place')==f"{work} {receipt.get('loc')}" and page_number_digest(c)==receipt.get('sha256') for c in corrections):add(f"{receipt.get('loc')}: accepted text correction review has no matching correction")
+    for correction in reversed(corrections):
+        loc=str(correction.get('place','')).removeprefix(work+' ')
+        if correction.get('review') and loc in predecessors:
+            before=reverse_reviewed_correction(predecessors[loc],correction)
+            if before is not None:predecessors[loc]=before
+            else:add(f'{loc}: reviewed correction offset does not match the current text')
+    previous_texts=dict(predecessors)
+    for correction in reversed(corrections):
         loc=str(correction.get('place','')).removeprefix(work+' ')
         if loc not in locs or not all(correction.get(name) for name in('lang','from','to','evidence')):add(f'correction {correction.get("place")}: lang, from, to, evidence and an existing place are wanted')
-        elif correction['to'] not in locs[loc]['texts'].get(original,''):add(f'correction {correction["place"]}: «{correction["to"]}» is not in the place')
+        elif not correction.get('review') and correction['to'] not in previous_texts[loc]:add(f'correction {correction["place"]}: «{correction["to"]}» is not in the place')
         elif correction['from']==correction['to']:add(f'correction {correction["place"]}: it changes nothing; take it out of corrections')
         elif any(scan.get('long_s') for scan in scans(ev).values()) and correction['from'].replace('ß','ss')==correction['to'].replace('ß','ss'):add(f'correction {correction["place"]}: «{correction["from"]}» → «{correction["to"]}» only trades ß and ss. In a print with the long s, ſs is the print’s ß and stays ß; ſſ is ss. Put the text back with kit.py cut and take this out of corrections')
+        review=correction.get('review')
+        if review:
+            receipt=(part(path,'accepted.json') or {}).get('text_correction_reviews') or []
+            if not any(item.get('loc')==loc and item.get('sha256')==page_number_digest(correction) for item in receipt):add(f'{loc}: text correction is not bound to the accepted packet review')
+            for item in receipt:
+                if item.get('loc')==loc and item.get('sha256')==page_number_digest(correction) and item.get('previous_sha256') and item['previous_sha256']!=page_number_digest({k:v for k,v in correction.items() if k!='offset'}):add(f'{loc}: prior correction review digest does not match')
+            if not review.get('by') or not review.get('second') or review.get('by')==review.get('second') or not review.get('second_model') or len(str(review.get('assessment','')).strip())<30:add(f'{loc}: text correction needs a distinct second reader and assessment')
+            scan=scan_of(ev,(ev.get('places') or {}).get(loc));images=(ev.get('places') or {}).get(loc,{}).get('images') or []
+            if not any(review.get('url')==f"https://archive.org/download/{scan.get('item')}/page/n{n}.jpg" for n in images) or not re.fullmatch(r'[a-f0-9]{64}',str(review.get('image_sha256',''))) or review.get('file')!=f"text-correction-{review.get('image_sha256')}.img":add(f'{loc}: text correction needs its exact scan page and digest')
+            if not offline:
+                try:
+                    raw=Path(cache(path,review['file'])).read_bytes()
+                    if hashlib.sha256(raw).hexdigest()!=review.get('image_sha256') or not valid_page_image(raw):add(f'{loc}: text correction image changed or is invalid')
+                except (OSError,KeyError):add(f'{loc}: text correction image is unavailable')
+    for correction in corrections:
+        loc=str(correction.get('place','')).removeprefix(work+' ')
+        if loc in predecessors and not correction.get('review') and correction.get('to') and correction.get('from'):
+            predecessors[loc]=predecessors[loc].replace(correction['to'],correction['from'],1)
     # a letter changed against the transcription, which the OCR does not read either, is read on the enlarged line
     for loc,what in by_eye(places,ev):
         if loc in locs and loc not in enlarged(ev,'maker'):owe(f'correction {work} {loc}: {what} rests on the eye alone, for the transcription reads otherwise and the OCR of the page does not read it either. Look at the line at the size of the scan: kit.py image . N --loc "{loc}" --zoom TOP-BOTTOM (the leaf of the place; the band of the page height in percent that holds the line). Keep the correction where the enlarged line bears it letter by letter; where it does not, put the word of the transcription back (kit.py cut) and take the correction out')
@@ -1066,14 +1271,12 @@ def gate(path,second=False,offline=False):
                 if scan.get('ocr') and offset is None and scan['item'] not in unfixed:unfixed.add(scan['item']);add(f"{scan['item']}: the image offset is not fixed (look at one image of this scan, compare it with kit.py leaf, then kit.py offset)")
                 try:_,source=transcription(path,ev,mine.get('transcription'))
                 except SystemExit:add(f'{at}: no transcription is named for it');continue
-                back=text
-                for correction in corrections:
-                    if correction.get('place')==f'{work} {loc}':back=back.replace(correction['to'],correction['from'],1)
+                back=predecessors[loc]
                 problem=in_transcription(back,modern_russian(source) if original=='ru' else source,mine.get('dropped'))
                 if problem:add(f'{at}: {problem}')
                 strip=lambda entry:[(d['transcription'],d['ocr'],d['leaf']) for d in entry.get('differences',[])]
                 if now.get('method')=='ocr':
-                    if mine.get('method')!='ocr' or strip(mine)!=strip(now) or mine.get('leaves')!=now.get('leaves') or mine.get('scan',now.get('scan'))!=now.get('scan'):add(f'{at}: the comparison on file is not the comparison of this text (run kit.py compare)');continue
+                    if mine.get('method')!='ocr' or strip(mine)!=strip(now) or mine.get('leaves')!=now.get('leaves') or mine.get('scan',now.get('scan'))!=now.get('scan') or (mine.get('page_number_corrections') and mine.get('printed')!=now.get('printed')):add(f'{at}: the comparison on file is not the comparison of this text (run kit.py compare)');continue
                     for n,d in enumerate(mine['differences'],1):
                         if d.get('stands') not in('transcription','print'):add(f'{at}: difference {n} («{d["transcription"]}» | «{d["ocr"]}») is not judged on the page image')
                         elif d['stands']=='print':add(f'{at}: difference {n} says the print stands: change the text with kit.py correct, then compare again')
@@ -1257,8 +1460,12 @@ def cmd_settle(args):
     for name,value in(('reading.json',reading),('places.json',places),('evidence.json',ev)):save(os.path.join(path,name),value)
     print(f"settled: {len(gone)} conceptions left the reading; {len(reading['conceptions'])} conceptions, {len(reading['links'])} links, {len(places['places'])} places stay")
 
-def witness_conflict(path,language):
-    """Do not sign a translation that the current projection cannot admit."""
+def same_witness(a,b):
+    """Same edition, participants and rights; each part may have a different maker."""
+    return {k:v for k,v in a.items() if k not in ('maker','participants','mexico_quotation')}=={k:v for k,v in b.items() if k not in ('maker','participants','mexico_quotation')}
+
+def witness_conflict(path,language,data):
+    """Only disjoint reviewed places of the same accepted edition may be combined."""
     work=work_of(path);current=Path(witness_file(path,language));directory=Path(path)
     parent=directory.parent.parent if directory.parent.name=='extensions' else directory
     candidates=[parent/'witnesses'/f'{language}.json']
@@ -1266,13 +1473,23 @@ def witness_conflict(path,language):
     if extensions.is_dir():
         candidates.extend(extension/'witnesses'/f'{language}.json' for extension in extensions.iterdir()
                           if extension.is_dir() and (extension/'accepted.json').is_file())
-    if any(file!=current and Path(str(file)+'.accepted').is_file() for file in candidates):
-        return f'{language}: an accepted witness already exists for this work; extend that witness after the shared-edition route lands'
+    known=[]
+    for file in candidates:
+        receipt=Path(str(file)+'.accepted')
+        if file==current or not receipt.is_file():continue
+        try:
+            raw=file.read_bytes();signed=load(receipt)
+            if signed.get('sha256')!=hashlib.sha256(raw).hexdigest():return f'{language}: existing witness changed since acceptance'
+            known.append(json.loads(raw))
+        except (OSError,ValueError,TypeError):return f'{language}: existing witness evidence is invalid'
+    for previous in known:
+        if not same_witness(previous.get('witness') or {},data.get('witness') or {}):return f'{language}: existing witness is a different edition or rights record'
+        if set(previous.get('places') or {}) & set(data.get('places') or {}):return f'{language}: an existing witness already covers one of these places'
     fragments=world()['fragments'];work_entry=(fragments.get('works') or {}).get(work) or {}
     if language in (work_entry.get('witnesses') or {}):
         record=(((fragments.get('provenance') or {}).get('translation_packets') or {}).get(work) or {}).get(language) or {}
-        if not str(record.get('record','')).endswith(f"/{packet_selector(path)}/witnesses/{language}.json"):
-            return f'{language}: an existing witness already occupies this language'
+        if not record or (not known and not str(record.get('record','')).endswith(f"/{packet_selector(path)}/witnesses/{language}.json")):
+            return f'{language}: an existing witness cannot be extended without its reviewed source packet'
     return None
 
 def cmd_accept(args):
@@ -1286,9 +1503,9 @@ def cmd_accept(args):
         pending=[os.path.join(directory,name) for name in os.listdir(directory) if name.endswith('.json') and not os.path.isfile(os.path.join(directory,name+'.accepted'))]
         if pending and args.offline:die('accepting a new witness requires the online second gate')
         for file in pending:
-            conflict=witness_conflict(path,Path(file).stem)
+            data=load(file);conflict=witness_conflict(path,Path(file).stem,data)
             if conflict:die(conflict)
-            data=load(file);issues=witness_problems(path,Path(file).stem,data,second=True,offline=False)
+            issues=witness_problems(path,Path(file).stem,data,second=True,offline=False)
             if issues:die('witness is not ready: '+'; '.join(issues))
         for file in pending:save(file+'.accepted',{'sha256':hashlib.sha256(Path(file).read_bytes()).hexdigest(),'date':today()})
     review=part(path,'review.json');reading=part(path,'reading.json');ev=evidence(path)
@@ -1299,8 +1516,31 @@ def cmd_accept(args):
     first=next((source['file'] for source in ev['sources'] if source['role']=='transcription'),None)
     ev['sources']=[source for source in ev['sources'] if source['role']!='transcription' or source['file'] in used or (None in used and source['file']==first)];save(os.path.join(path,'evidence.json'),ev)   # a place that names no transcription was cut from the first
     basis=args.basis or f"Made by {reading['reader']['id']}; every conception and link read a second time by {review['reader']['id']}, who confirms each; the gate recomputed the comparison with the scan."
-    save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[]))})
+    prior=part(path,'accepted.json') or {}
+    save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[])),**{key:prior[key] for key in ('page_number_reviews','text_correction_reviews') if prior.get(key)}})
     print(f'accepted: {work_of(path)}')
+
+def cmd_reopen(args):
+    """Withdraw an unplanted acceptance with its independent finding and predecessor."""
+    path=packet(args.packet);work=work_of(path);accepted=part(path,'accepted.json')
+    if not accepted:die('an accepted packet is required')
+    if accepted.get('page_number_reviews') or accepted.get('text_correction_reviews'):die('the acceptance holds correction receipts; preserve them and use a separately reviewed correction route')
+    if packet_selector(path)!=work:die('reopening extensions requires a separately reviewed route')
+    w=world();fragments=w['fragments'];reading=part(path,'reading.json') or {};review=part(path,'review.json') or {}
+    reader=(review.get('reader') or {}).get('id');maker=(reading.get('reader') or {}).get('id')
+    if work in (fragments.get('works') or {}) or work in ((fragments.get('provenance') or {}).get('packets') or []):die('the work is already planted; do not reopen it through this route')
+    if any((record.get('reading') or {}).get('reader')==maker for kind in ('conceptions','links') for record in w['field'].get(kind,[])):die('the packet reading is already planted')
+    witnesses=Path(path)/'witnesses'
+    if witnesses.is_dir() and any(witnesses.glob('*.json.accepted')):die('an accepted witness is attached; preserve it and use a reviewed correction')
+    if not reader or reader==maker or args.reader!=reader or len(args.finding.strip())<40:die('the existing independent reader must record a specific finding of at least 40 characters')
+    snapshots={name:part(path,name) for name in ('accepted.json','reading.json','review.json','places.json','evidence.json')}
+    history=part(path,'reopen-history.json',[])
+    if not isinstance(history,list):die('reopen history is invalid')
+    history.append({'date':today(),'reader':reader,'finding':args.finding,'predecessor':snapshots})
+    save(os.path.join(path,'reopen-history.json'),history)
+    os.unlink(os.path.join(path,'accepted.json'))
+    save(os.path.join(path,'review.json'),{})
+    print('acceptance withdrawn with history; correct the reading and obtain a fresh independent review')
 
 def cmd_status(args):
     rows=[]
@@ -1335,6 +1575,126 @@ def witness_data(path,lang):
     file=witness_file(path,lang)
     if not os.path.isfile(file):die(f'no witness {lang}: run witness-open')
     return load(file)
+
+def language_search_file(path,lang):
+    witness_file(path,lang)  # apply the same language validation
+    return os.path.join(path,'language-searches',lang+'.json')
+
+def language_search_scope(path):
+    return sorted(set(((world()['fragments'].get('places') or {}).get(work_of(path)) or {})) | set(((part(path,'places.json') or {}).get('places') or {})))
+
+def language_search_problems(path,lang,data,second=False):
+    problems=[];proof=data.get('search') or {};review=data.get('review') or {}
+    if Path(path).parent.name=='extensions':problems.append('record a whole-language search on the parent packet, not an extension')
+    if data.get('language')!=lang:problems.append('language differs from filename')
+    work=((world()['fragments'].get('works') or {}).get(work_of(path)) or {})
+    if not work or lang==work.get('original') or lang in (work.get('witnesses') or {}):problems.append('the language must still be missing from an existing work')
+    if not proof.get('maker'):problems.append('the maker must be identified')
+    if proof.get('places')!=language_search_scope(path) or not proof.get('places'):problems.append('search must identify every current original place')
+    missing=missing_search_sites(proof.get('tried') or [])
+    if missing:problems.append('search outcomes missing for '+', '.join(sorted(missing)))
+    if len(str(proof.get('reason','')).strip())<30:problems.append('a detailed account of the search outcome is required')
+    if second and (not review.get('reader') or review.get('reader')==proof.get('maker') or not review.get('model') or not review.get('date') or review.get('sha256')!=page_number_digest(proof) or len(str(review.get('assessment','')).strip())<40):problems.append('a distinct second reader must assess this exact search')
+    return problems
+
+def cmd_language_search(args):
+    path=packet(args.packet);file=language_search_file(path,args.language)
+    if os.path.exists(file+'.accepted'):die('the accepted search must be withdrawn before replacing it')
+    if args.language not in ('ru','en','es','de','zh-Hans'):die('choose an interface language')
+    fragments=world()['fragments'];work=(fragments.get('works') or {}).get(work_of(path)) or {}
+    if not work or args.language==work.get('original') or args.language in (work.get('witnesses') or {}):die('search is for a missing language of an existing work')
+    record=load(args.file)
+    if not isinstance(record,dict) or set(record)!={'maker','reason','tried'}:die('search input needs maker, reason and tried')
+    data={'language':args.language,'search':{**record,'places':language_search_scope(path)},'review':{}}
+    issues=language_search_problems(path,args.language,data)
+    if issues:die('search is incomplete: '+'; '.join(issues))
+    os.makedirs(os.path.dirname(file),exist_ok=True);save(file,data);print('search recorded; independent review is required')
+
+def cmd_language_search_review(args):
+    path=packet(args.packet);file=language_search_file(path,args.language)
+    if os.path.exists(file+'.accepted'):die('the accepted search cannot be changed')
+    data=part(os.path.dirname(file),os.path.basename(file)) or die('record the language search first')
+    data['review']={'reader':args.reader,'model':args.model,'date':today(),'sha256':page_number_digest(data['search']),'assessment':args.assessment}
+    issues=language_search_problems(path,args.language,data,second=True)
+    if issues:die('search review is incomplete: '+'; '.join(issues))
+    save(file,data);print('independent search assessment recorded')
+
+def cmd_language_search_accept(args):
+    path=packet(args.packet);file=language_search_file(path,args.language)
+    if os.path.exists(file+'.accepted'):die('search is already accepted')
+    raw=Path(file).read_bytes();issues=language_search_problems(path,args.language,json.loads(raw),second=True)
+    if issues:die('search is not ready: '+'; '.join(issues))
+    save(file+'.accepted',{'sha256':hashlib.sha256(raw).hexdigest(),'date':today()});print('language search accepted')
+
+def cmd_language_search_withdraw(args):
+    path=packet(args.packet);file=language_search_file(path,args.language)+'.accepted'
+    if not os.path.isfile(file):die('there is no accepted language search')
+    os.unlink(file);print('language search withdrawn; the evidence file remains')
+
+MEXICO_LFDA='https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf'
+def mexico_scope(witness,places):
+    return page_number_digest({'witness':{k:v for k,v in witness.items() if k!='mexico_quotation'},'places':places})
+
+def mexico_problems(witness,places,review,maker,second=False,path=None,lang=None,offline=False):
+    proof=witness.get('mexico_quotation') or {};problems=[]
+    if not isinstance(proof,dict):return ['Mexico quotation assessment must be an object']
+    if proof.get('law_url')!=MEXICO_LFDA or proof.get('scope_sha256')!=mexico_scope(witness,places):problems.append('Mexico quotation assessment needs the official LFDA and the current exact witness and places')
+    digest=proof.get('law_sha256');filename=proof.get('law_file')
+    if not re.fullmatch(r'[a-f0-9]{64}',str(digest or '')) or filename!=f'mexico-law-{digest}.pdf':problems.append('Mexico quotation assessment needs the digest of the fetched law')
+    elif path and not offline:
+        try:
+            raw=Path(witness_cache(path,lang,filename) if lang else cache(path,filename)).read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=digest or not raw.startswith(b'%PDF-'):problems.append('Mexico law source changed or is invalid')
+        except OSError:problems.append('Mexico law source is unavailable')
+    for field in ('non_substantial','normal_exploitation','source_integrity'):
+        if len(str(proof.get(field,'')).strip())<40:problems.append(f'Mexico quotation assessment needs a detailed {field} account')
+    if second:
+        check=(review or {}).get('mexico_quotation') or {};reader=(review or {}).get('reader');reader=reader.get('id') if isinstance(reader,dict) else reader
+        if not reader or reader==maker or check.get('reader')!=reader or not check.get('date') or check.get('sha256')!=page_number_digest(proof) or len(str(check.get('assessment','')).strip())<60:problems.append('Mexico quotation assessment needs a distinct second reader and dated review of the same evidence')
+    return problems
+
+def mexico_context(path,lang):
+    if lang:
+        data=witness_data(path,lang);return data,data.get('witness') or {},data.get('places') or {},data.get('review') or {},(data.get('witness') or {}).get('maker')
+    places=part(path,'places.json') or {};entry=places.get('entry') or {}
+    if entry:
+        data=places;original=entry.get('original');witness=(entry.get('witnesses') or {}).get(original) or die('no original witness')
+    else:
+        data=evidence(path);entry=((world()['fragments'].get('works') or {}).get(work_of(path)) or {});original=entry.get('original')
+        witness=dict((entry.get('witnesses') or {}).get(original) or die('no existing original witness'))
+        witness.pop('mexico_quotation',None)
+        if data.get('mexico_quotation'):witness['mexico_quotation']=data['mexico_quotation']
+    review=part(path,'review.json') or {};maker=((part(path,'reading.json') or {}).get('reader') or {}).get('id')
+    return data,witness,places.get('places') or {},review,maker
+
+def cmd_mexico_quotation(args):
+    path=packet(args.packet);data,witness,places,review,maker=mexico_context(path,args.language)
+    if not maker or not places:die('record the maker and exact places first')
+    if not any((witness.get('rights') or {}).get(country,{}).get('basis')=='short-quotation' for country in JURISDICTIONS):die('record a short-quotation basis before the Mexican quotation assessment')
+    raw=Path(args.law_file).read_bytes() if getattr(args,'law_file',None) else get(MEXICO_LFDA)
+    if not raw.startswith(b'%PDF-'):die('the official law source did not yield a PDF')
+    digest=hashlib.sha256(raw).hexdigest();filename=f'mexico-law-{digest}.pdf'
+    Path(witness_cache(path,args.language,filename) if args.language else cache(path,filename)).write_bytes(raw)
+    proof={'law_url':MEXICO_LFDA,'law_file':filename,'law_sha256':digest,'scope_sha256':mexico_scope(witness,places),'non_substantial':args.non_substantial,'normal_exploitation':args.normal_exploitation,'source_integrity':args.source_integrity}
+    witness['mexico_quotation']=proof;review.pop('mexico_quotation',None)
+    issues=mexico_problems(witness,places,review,maker,path=path,lang=args.language)
+    if issues:die('Mexico quotation assessment is incomplete: '+'; '.join(issues))
+    if args.language:data['review']=review;save(witness_file(path,args.language),data)
+    else:
+        if (part(path,'places.json') or {}).get('entry'):save(os.path.join(path,'places.json'),data)
+        else:data['mexico_quotation']=proof;save(os.path.join(path,'evidence.json'),data)
+        if review:save(os.path.join(path,'review.json'),review)
+    print('Mexico quotation assessment recorded; independent review required')
+
+def cmd_mexico_quotation_review(args):
+    path=packet(args.packet);data,witness,places,review,maker=mexico_context(path,args.language);reader=review.get('reader');reader=reader.get('id') if isinstance(reader,dict) else reader
+    if not reader or reader==maker:die('record a different second reader first')
+    proof=witness.get('mexico_quotation') or {};review['mexico_quotation']={'reader':reader,'date':today(),'sha256':page_number_digest(proof),'assessment':args.assessment}
+    issues=mexico_problems(witness,places,review,maker,second=True,path=path,lang=args.language)
+    if issues:die('Mexico quotation review is incomplete: '+'; '.join(issues))
+    if args.language:data['review']=review;save(witness_file(path,args.language),data)
+    else:save(os.path.join(path,'review.json'),review)
+    print('independent Mexico quotation review recorded')
 
 def cmd_extension_open(args):
     parent=packet(args.packet);work=work_of(parent)
@@ -1511,6 +1871,18 @@ def cmd_witness_person(args):
     data['review']={};save(witness_file(path,args.language),data)
     print(f"{name['en']} ({args.role}): {person['born']}–{died}, {args.qid}")
 
+def cmd_witness_person_remove(args):
+    path=packet(args.packet);file=witness_file(path,args.language)
+    if os.path.isfile(file+'.accepted'):die('an accepted witness cannot be changed; retain its acceptance and seek a reviewed correction')
+    data=witness_data(path,args.language);people=data['witness'].get('persons') or []
+    removed=[p for p in people if p.get('role')==args.role and p.get('qid')==args.qid]
+    if len(removed)!=1:die('exactly one person with that role and QID must be present')
+    if len(args.reason.strip())<30:die('give the reason in a full sentence')
+    data['witness']['persons']=[p for p in people if p is not removed[0]]
+    data.setdefault('person_corrections',[]).append({'removed':removed[0],'reason':args.reason,'date':today()})
+    data['review']={};save(file,data)
+    print('person removed with history; independent review must be renewed')
+
 def cmd_witness_person_source(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     if not trusted(args.url):die('person reference must be on a trusted catalogue or reference site')
@@ -1583,6 +1955,55 @@ def cmd_witness_cut(args):
     data['review']={} # the old second reading no longer describes this witness
     save(witness_file(path,args.language),data);print(run)
 
+def cmd_witness_transcribe_page(args):
+    """Record a human reading of an image, without claiming a fetched transcription."""
+    path=packet(args.packet);data=witness_data(path,args.language)
+    original={**((world()['fragments'].get('places') or {}).get(work_of(path),{})),**((part(path,'places.json') or {}).get('places') or {})}
+    if args.loc not in original:die('the original place is not in the bonsai')
+    image=next((item for item in data['images'] if item['file']==args.image and item['by']=='maker'),None)
+    if not image:die('fetch the page image as maker first')
+    try:raw=Path(witness_cache(path,args.language,image['file'])).read_bytes()
+    except OSError:die('the maker page image is missing')
+    if hashlib.sha256(raw).hexdigest()!=image['sha256'] or not valid_page_image(raw):die('the maker page image changed or is invalid')
+    address={'kind':args.address_kind,'value':args.address_value,'url':image['url']} if args.address_kind or args.address_value else None
+    if address and not valid_address(address):die('structured address needs kind, value and the source URL')
+    if not args.page and not address:die('give a printed page or an exact structured source address')
+    if len(args.reason.strip())<40:die('explain why this page needs a human transcription')
+    run=squeeze(args.text);page_text=run
+    if not run:die('transcribe the page text')
+    if args.language=='ru':
+        modern=modern_russian(run,old_source=old_russian_source(run))
+        if modern!=run:data['witness']['normalization']='Russian spelling modernized from the page by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged.'
+        run=modern
+    page=args.page or f"{address['kind']} {address['value']}"
+    data['places'][args.loc]={'text':run,'transcription':{'kind':'human-page','reason':args.reason,'original_text':page_text},'page':page,'url':image['url'],'image_sha256':image['sha256'],'alignment':args.alignment,**({'address':address} if address else {}),**({'lines':args.lines} if args.lines else {}),**({'justification':args.justification} if args.justification else {})}
+    (data.get('missing_places') or {}).pop(args.loc,None)
+    data['review']={};save(witness_file(path,args.language),data);print(run)
+
+def witness_pages(place):
+    return [{'page':place.get('page'),'url':place.get('url'),'image_sha256':place.get('image_sha256')},*(place.get('extra_pages') or [])]
+
+def cmd_witness_add_page(args):
+    path=packet(args.packet);data=witness_data(path,args.language)
+    place=(data.get('places') or {}).get(args.loc) or die('no such place in this witness')
+    image=next((item for item in data.get('images',[]) if item.get('file')==args.image and item.get('by')=='maker'),None)
+    if not image:die('fetch the additional page image as maker first')
+    try:raw=Path(witness_cache(path,args.language,image['file'])).read_bytes()
+    except (OSError,KeyError):die('the additional page image is missing')
+    if hashlib.sha256(raw).hexdigest()!=image.get('sha256') or not valid_page_image(raw):die('the additional page image changed or is invalid')
+    if not args.page.strip():die('give the printed page of the additional image')
+    if not args.span.strip() or args.span not in place.get('text',''):die('the words on the added page must occur in the place')
+    first=args.first_span or place.get('page_span')
+    if not first or not place.get('text','').startswith(first):die('give the opening words on the first page with --first-span')
+    if image['sha256']==place.get('image_sha256'):die('the primary image is already recorded')
+    page={'page':args.page,'url':image['url'],'image_sha256':image['sha256'],'span':args.span}
+    place['page_span']=first;extra=place.setdefault('extra_pages',[])
+    index=next((i for i,item in enumerate(extra) if item.get('url')==image['url']),None)
+    if index is None:extra.append(page)
+    else:extra[index]=page
+    data['review']={};save(witness_file(path,args.language),data)
+    print(f'{args.loc}: additional page recorded; every page requires independent review')
+
 def cmd_witness_correct(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     place=(data.get('places') or {}).get(args.loc) or die('no such place in this witness')
@@ -1590,14 +2011,23 @@ def cmd_witness_correct(args):
     if not old or not args.to or old==args.to:die('the correction must change a nonempty run into a nonempty run; include context for a deletion')
     if place.get('text','').count(old)!=1:die('the original run must occur exactly once in the place')
     if len(args.reason.strip())<30:die('explain the page reading in a full sentence')
-    image=next((item for item in data.get('images',[]) if item.get('by')=='maker' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
+    pages=witness_pages(place)
+    selected=pages[0] if not getattr(args,'image',None) else next((page for page in pages if any(item.get('file')==args.image and item.get('by')=='maker' and item.get('sha256')==page.get('image_sha256') and item.get('url')==page.get('url') for item in data.get('images',[]))),None)
+    if not selected:die('the correction image is not bound to this place')
+    image=next((item for item in data.get('images',[]) if item.get('by')=='maker' and item.get('sha256')==selected.get('image_sha256') and item.get('url')==selected.get('url')),None)
     if not image:die('the maker page image for this place is required')
     try:raw=Path(witness_cache(path,args.language,image['file'])).read_bytes()
     except (OSError,KeyError):die('the maker page image is missing')
-    if hashlib.sha256(raw).hexdigest()!=place['image_sha256']:die('the maker page image has changed')
+    if hashlib.sha256(raw).hexdigest()!=selected['image_sha256']:die('the maker page image has changed')
+    if place.get('extra_pages'):
+        span=place.get('page_span') if selected is pages[0] else selected.get('span')
+        if not isinstance(span,str) or span.count(old)!=1:die('the correction must lie wholly within the selected page span')
+        updated=span.replace(old,args.to,1)
+        if selected is pages[0]:place['page_span']=updated
+        else:selected['span']=updated
     offset=place['text'].index(old)
     place['text']=place['text'][:offset]+args.to+place['text'][offset+len(old):]
-    place.setdefault('corrections',[]).append({'from':old,'to':args.to,'offset':offset,'reason':args.reason,'url':place['url'],'page':place['page'],'image_sha256':place['image_sha256']})
+    place.setdefault('corrections',[]).append({'from':old,'to':args.to,'offset':offset,'reason':args.reason,'url':selected['url'],'page':selected['page'],'image_sha256':selected['image_sha256']})
     data['review']={};save(witness_file(path,args.language),data)
     print(f'{args.loc}: correction recorded; compare on the page and obtain a new second reading')
 
@@ -1605,21 +2035,94 @@ def cmd_witness_review(args):
     path=packet(args.packet);data=witness_data(path,args.language)
     if args.loc not in data['places']:die('no such place in this witness')
     place=data['places'][args.loc]
-    if not any(item['sha256']==place['image_sha256'] and item['by']=='second' and item.get('url')==place.get('url') for item in data['images']):die('fetch the same page image from the same source as second reader first')
+    pages=witness_pages(place)
+    if any(not any(item['sha256']==page.get('image_sha256') and item['by']=='second' and item.get('url')==page.get('url') for item in data['images']) for page in pages):die('fetch every same page image from the same source as second reader first')
     review=data.setdefault('review',{})
     if review.get('reader') and review['reader']!=args.reader:die('a single second reader reviews this witness')
-    review['reader']=args.reader;review['model']=args.model;review['date']=today();review.setdefault('places',{})[args.loc]={'reads':'as the packet','alignment':args.alignment,'image_sha256':place['image_sha256']}
+    review['reader']=args.reader;review['model']=args.model;review['date']=today();review.setdefault('places',{})[args.loc]={'reads':'as the packet','alignment':args.alignment,'image_sha256':place['image_sha256'],**({'pages':[{k:p.get(k) for k in ('page','url','image_sha256')} for p in pages]} if len(pages)>1 else {})}
     save(witness_file(path,args.language),data);print(f'{args.loc}: second reader recorded')
+
+def anonymous_digest(proof):
+    return hashlib.sha256(json.dumps(proof,sort_keys=True,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+
+def anonymous_problems(path,lang,data,second=False,offline=False):
+    """Review an anonymously published translation, not an unknown named person."""
+    witness=data.get('witness') or {};proof=witness.get('anonymous_translation');problems=[]
+    if not isinstance(proof,dict):return ['anonymous translation evidence must be an object']
+    if proof.get('edition')!=witness.get('edition'):problems.append('anonymous translation needs the same exact edition')
+    year=proof.get('first_publication_year');edition_year=witness.get('year')
+    if type(year) is not int or year<1 or type(edition_year) is not int or year>edition_year:problems.append('anonymous translation needs the first lawful publication year, no later than this edition')
+    for field in ('lawful_publication','identity_research','same_version'):
+        if len(str(proof.get(field,'')).strip())<60:problems.append(f'anonymous translation needs a detailed {field} assessment')
+    searches=proof.get('searches') or []
+    if not isinstance(searches,list):searches=[]
+    valid_searches=[item for item in searches if isinstance(item,dict) and lawful_url(item.get('url')) and len(str(item.get('outcome','')).strip())>=20]
+    if len({item['url'] for item in valid_searches})<3:problems.append('anonymous translation needs at least three documented identity searches')
+    references=proof.get('sources') or [];known=data.get('sources') or []
+    if not isinstance(references,list):references=[]
+    if len({item.get('url') for item in references if isinstance(item,dict) and lawful_url(item.get('url'))})<2:problems.append('anonymous translation needs two distinct fetched sources')
+    for ref in references:
+        if not isinstance(ref,dict) or not any(all(source.get(k)==ref.get(k) for k in ('file','url','sha256')) for source in known) or not re.fullmatch(r'[a-f0-9]{64}',str(ref.get('sha256',''))):
+            problems.append('anonymous translation source is not the recorded fetched source');continue
+        if not offline:
+            try:
+                raw=Path(witness_cache(path,lang,ref['file'])).read_bytes()
+                if hashlib.sha256(raw).hexdigest()!=ref['sha256']:problems.append('anonymous translation source changed')
+            except (OSError,KeyError,TypeError):problems.append('anonymous translation source is unavailable')
+    if second:
+        review=data.get('review') or {};check=review.get('anonymous') or {};reader=review.get('reader')
+        if not reader or reader==witness.get('maker') or check.get('reader')!=reader or check.get('sha256')!=anonymous_digest(proof) or len(str(check.get('assessment','')).strip())<60:
+            problems.append('anonymous translation needs an independent assessment of the same publication, version and identity search')
+    return problems
+
+def cmd_witness_anonymous(args):
+    path=packet(args.packet);data=witness_data(path,args.language);info=load(args.file)
+    if not isinstance(info,dict) or set(info)!={'first_publication_year','lawful_publication','identity_research','same_version','searches','sources'}:die('anonymous evidence needs the documented publication, identity research, version, searches and source filenames')
+    refs=[]
+    if not isinstance(info.get('sources'),list):die('anonymous sources must be filenames of fetched sources')
+    for filename in info['sources']:
+        source=next((entry for entry in data.get('sources') or [] if entry.get('file')==filename),None)
+        if not source:die(f'fetch anonymous-publication source {filename} first')
+        refs.append({key:source.get(key) for key in ('file','url','sha256')})
+    proof={**info,'sources':refs,'edition':data['witness'].get('edition')}
+    data['witness']['anonymous_translation']=proof;data['review']={}
+    issues=anonymous_problems(path,args.language,data,offline=False)
+    if issues:die('anonymous evidence is incomplete: '+'; '.join(issues))
+    save(witness_file(path,args.language),data);print('anonymous-publication evidence recorded; independent assessment required')
+
+def cmd_witness_anonymous_review(args):
+    path=packet(args.packet);data=witness_data(path,args.language);review=data.get('review') or {};reader=review.get('reader');proof=(data.get('witness') or {}).get('anonymous_translation')
+    if not proof or not reader or reader==(data.get('witness') or {}).get('maker'):die('record the anonymous evidence and a different second reader first')
+    if len(args.assessment.strip())<60:die('assess the edition, lawful publication and identity search in detail')
+    review['anonymous']={'reader':reader,'sha256':anonymous_digest(proof),'assessment':args.assessment};data['review']=review
+    save(witness_file(path,args.language),data);print('independent anonymous-publication assessment recorded')
+
+def cmd_witness_anonymous_clear(args):
+    path=packet(args.packet);data=witness_data(path,args.language)
+    if not (data.get('witness') or {}).pop('anonymous_translation',None):die('no anonymous-publication evidence is recorded')
+    data['review']={};save(witness_file(path,args.language),data);print('anonymous claim cleared; record the identified translator and renew review')
 
 def witness_problems(path,lang,data,second=False,offline=False):
     problems=[];add=problems.append;witness=data.get('witness') or {};places=data.get('places') or {}
     if data.get('language')!=lang:add('language differs from filename')
+    quoted=any(((witness.get('rights') or {}).get(country) or {}).get('basis')=='short-quotation' for country in JURISDICTIONS)
+    if quoted:
+        issues=mexico_problems(witness,places,data.get('review') or {},witness.get('maker'),second,path=path,lang=lang,offline=offline)
+        file=witness_file(path,lang);marker=file+'.accepted'
+        legacy=os.path.isfile(file) and os.path.isfile(marker) and load(marker).get('sha256')==hashlib.sha256(Path(file).read_bytes()).hexdigest()
+        if legacy and not witness.get('mexico_quotation'):OWES.extend(f'{lang}: {issue}' for issue in issues)
+        else:problems.extend(issues)
     for field in ('edition','attribution','licence','url'):
         if not isinstance(witness.get(field),str) or not witness[field].strip():add(f'witness.{field} is missing')
     if not lawful_url(witness.get('url','')):add('witness.url must be a lawful https URL')
     people=witness.get('persons') or []
     if not witness.get('maker'):add('witness.maker is missing')
-    if not any(p.get('role')=='translator' for p in people):add('translator is missing')
+    identified_translator=any(p.get('role')=='translator' for p in people)
+    anonymous=witness.get('anonymous_translation')
+    if not identified_translator and not anonymous:add('translator is missing')
+    if identified_translator and anonymous:add('clear the anonymous claim when the translator is identified')
+    anonymous_issues=anonymous_problems(path,lang,data,second,offline) if anonymous else []
+    problems.extend(anonymous_issues)
     if not any(p.get('role')=='author' for p in people):add('author is missing')
     original_authors=[p for p in (evidence(path).get('persons') or []) if p.get('role')=='author']
     w=world()
@@ -1652,6 +2155,12 @@ def witness_problems(path,lang,data,second=False,offline=False):
             except (OSError,KeyError,ValueError,TypeError):add(f'{qid or person.get("name")}: person evidence is missing or invalid')
     problems.extend(license_problems(witness,data.get('sources') or [],lambda name:witness_cache(path,lang,name),data.get('review') or {},witness.get('maker'),second,offline))
     dates=public_domain_by_dates(people,witness.get('year'))
+    if anonymous:
+        # The EU anonymous term applies to this translation; identified authors
+        # and editors retain their own death-based terms. Russia needs its own evidence.
+        first=anonymous.get('first_publication_year') if isinstance(anonymous,dict) else None
+        dates['eu']=dates['eu'] and not anonymous_issues and type(first) is int and first<=datetime.date.today().year-71
+        dates['russia']=False
     for country in JURISDICTIONS:
         item=(witness.get('rights') or {}).get(country) or {}
         if not isinstance(item,dict) or item.get('basis') not in BASES or len(str(item.get('law','')))<20:add(f'rights.{country} needs basis and law')
@@ -1667,27 +2176,44 @@ def witness_problems(path,lang,data,second=False,offline=False):
         quote=any(((witness.get('rights') or {}).get(country) or {}).get('basis')=='short-quotation' for country in JURISDICTIONS)
         for problem in sentences(text,limit=None if quote else LONGEST):add(f'{loc}: {problem}')
         if len(str(place.get('alignment','')))<20:add(f'{loc}: explain the alignment to the original')
-        source=sources.get(place.get('source'))
-        if not source or not lawful_url(source.get('url','')):add(f'{loc}: no lawful source');continue
+        source=sources.get(place.get('source'));transcription=place.get('transcription') or {}
+        if not isinstance(transcription,dict):add(f'{loc}: invalid transcription provenance');transcription={}
+        human=transcription.get('kind')=='human-page'
+        if human:
+            if place.get('source') or len(str(transcription.get('reason','')).strip())<40:add(f'{loc}: human page transcription needs its reason and no claimed downloaded transcription')
+        elif not source or not lawful_url(source.get('url','')):add(f'{loc}: no lawful source');continue
         if not place.get('page') or not lawful_url(place.get('url','')):add(f'{loc}: page or exact address and lawful URL are required')
         if place.get('address') is not None and (not valid_address(place['address']) or place['address'].get('url')!=place.get('url')):add(f'{loc}: structured address must name the same lawful source')
-        image=next((item for item in data.get('images') or [] if item.get('by')=='maker' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
-        if not image:add(f'{loc}: maker page image is missing')
+        extra=place.get('extra_pages') or []
+        if not isinstance(extra,list) or any(not isinstance(page,dict) for page in extra):add(f'{loc}: invalid additional pages');extra=[]
+        pages=[{'page':place.get('page'),'url':place.get('url'),'image_sha256':place.get('image_sha256')},*extra]
+        page_range=re.search(r'\b(\d+)\s*[-–—]\s*(\d+)\b',str(place.get('page') or ''))
+        if page_range and int(page_range.group(2))>=int(page_range.group(1)) and len(pages)<int(page_range.group(2))-int(page_range.group(1))+1:add(f'{loc}: a page range needs an image for every printed page')
+        if len({p.get('image_sha256') for p in pages})!=len(pages):add(f'{loc}: duplicate page image')
+        for page in extra:
+            if not page.get('page') or not lawful_url(page.get('url','')) or not page.get('span') or page['span'] not in text:add(f'{loc}: additional page needs its address and words from that page')
+        if extra and (not place.get('page_span') or re.sub(r'\s+','',str(place.get('page_span') or '')+''.join(str(page.get('span') or '') for page in extra))!=re.sub(r'\s+','',text)):add(f'{loc}: page spans must cover the complete place in order')
+        images=[next((item for item in data.get('images') or [] if item.get('by')=='maker' and item.get('sha256')==page.get('image_sha256') and item.get('url')==page.get('url')),None) for page in pages]
+        if any(image is None for image in images):add(f'{loc}: maker page image is missing')
         back=text
         for correction in reversed(place.get('corrections') or []):
             old,new=correction.get('from'),correction.get('to')
-            if not isinstance(old,str) or not old or not isinstance(new,str) or not new or old==new or len(str(correction.get('reason','')))<30 or correction.get('url')!=place.get('url') or correction.get('page')!=place.get('page') or correction.get('image_sha256')!=place.get('image_sha256'):
+            if not isinstance(old,str) or not old or not isinstance(new,str) or not new or old==new or len(str(correction.get('reason','')))<30 or not any(all(correction.get(k)==page.get(k) for k in ('url','page','image_sha256')) for page in pages):
                 add(f'{loc}: correction needs both readings, a reason and the same page image');continue
             offset=correction.get('offset')
             if type(offset) is not int or offset<0 or back[offset:offset+len(new)]!=new:add(f'{loc}: correction offset no longer identifies the corrected run');continue
             back=back[:offset]+old+back[offset+len(new):]
+        if human:
+            original_text=transcription.get('original_text')
+            if not isinstance(original_text,str) or not original_text.strip():add(f'{loc}: human page transcription needs the original page reading')
+            elif back!=(modern_russian(original_text,old_source=old_russian_source(original_text)) if lang=='ru' else original_text):add(f'{loc}: text differs from the recorded page transcription')
         if not offline:
-            for record in (source,image):
+            for record in [source,*images]:
                 if not record:continue
                 try:
                     raw=Path(witness_cache(path,lang,record['file'])).read_bytes()
                     if hashlib.sha256(raw).hexdigest()!=record.get('sha256'):add(f"{loc}: {record['file']} changed")
-                    elif record is image and not valid_page_image(raw):add(f'{loc}: maker page image is invalid')
+                    elif record in images and not valid_page_image(raw):add(f'{loc}: maker page image is invalid')
                     elif record is source:
                         problem=in_transcription(back,modern_russian(plain(raw,record['file'])) if lang=='ru' else plain(raw,record['file']))
                         if problem:add(f'{loc}: {problem}')
@@ -1700,22 +2226,26 @@ def witness_problems(path,lang,data,second=False,offline=False):
             review=data.get('review') or {};answer=(review.get('places') or {}).get(loc) or {}
             if not all(review.get(field) for field in ('reader','model','date')) or review.get('reader')==witness.get('maker'):add(f'{loc}: a different second reader with model and date is required')
             if answer.get('reads')!='as the packet' or answer.get('image_sha256')!=place.get('image_sha256') or len(str(answer.get('alignment','')))<20:add(f'{loc}: second reader must verify page and alignment')
-            second_image=next((item for item in data.get('images') or [] if item.get('by')=='second' and item.get('sha256')==place.get('image_sha256') and item.get('url')==place.get('url')),None)
-            if not second_image:add(f'{loc}: second reader page image is missing')
-            elif not offline:
-                try:
-                    second_raw=Path(witness_cache(path,lang,second_image['file'])).read_bytes()
-                    if hashlib.sha256(second_raw).hexdigest()!=place.get('image_sha256') or not valid_page_image(second_raw):add(f'{loc}: second reader image changed or is invalid')
-                except (OSError,KeyError):add(f'{loc}: second reader image is missing locally')
+            if len(pages)>1 and answer.get('pages')!=[{k:p.get(k) for k in ('page','url','image_sha256')} for p in pages]:add(f'{loc}: second reader must review every page of this place')
+            for page in pages:
+                second_image=next((item for item in data.get('images') or [] if item.get('by')=='second' and item.get('sha256')==page.get('image_sha256') and item.get('url')==page.get('url')),None)
+                if not second_image:add(f'{loc}: second reader page image is missing')
+                elif not offline:
+                    try:
+                        second_raw=Path(witness_cache(path,lang,second_image['file'])).read_bytes()
+                        if hashlib.sha256(second_raw).hexdigest()!=page.get('image_sha256') or not valid_page_image(second_raw):add(f'{loc}: second reader image changed or is invalid')
+                    except (OSError,KeyError):add(f'{loc}: second reader image is missing locally')
     return problems
 
 def cmd_witness_gate(args):
     path=packet(args.packet);data=witness_data(path,args.language)
+    OWES.clear()
     problems=witness_problems(path,args.language,data,second=args.second,offline=args.offline)
     if args.accept and args.second and not args.offline:
-        conflict=witness_conflict(path,args.language)
+        conflict=witness_conflict(path,args.language,data)
         if conflict:problems.append(conflict)
     for problem in problems:print(problem)
+    for debt in OWES:print('owes: '+debt)
     print('gate: '+('shut' if problems else 'open'))
     if problems:sys.exit(1)
     if args.accept:
@@ -1734,26 +2264,40 @@ def main():
     sub('extension-open',cmd_extension_open,P,(('name',),{}),(('--keys',),{'required':True}));
     sub('import',cmd_import,P,(('part',),{'choices':['places','reading','review','blocked']}),(('file',),{}));sub('unblock',cmd_unblock,P)
     sub('witness-parent',cmd_witness_parent,(('work',),{}));
+    sub('language-search',cmd_language_search,P,(('language',),{}),(('file',),{}))
+    sub('language-search-review',cmd_language_search_review,P,(('language',),{}),(('--reader',),{'required':True}),(('--model',),{'required':True}),(('--assessment',),{'required':True}))
+    sub('language-search-accept',cmd_language_search_accept,P,(('language',),{}))
+    sub('language-search-withdraw',cmd_language_search_withdraw,P,(('language',),{}))
+    sub('mexico-quotation',cmd_mexico_quotation,P,(('--language',),{}),(('--non-substantial',),{'required':True}),(('--normal-exploitation',),{'required':True}),(('--source-integrity',),{'required':True}),(('--law-file',),{}))
+    sub('mexico-quotation-review',cmd_mexico_quotation_review,P,(('--language',),{}),(('--assessment',),{'required':True}))
     sub('witness-open',cmd_witness_open,P,(('language',),{}),(('metadata',),{}))
     sub('witness-info',cmd_witness_info,P,(('language',),{}),(('file',),{}));
     sub('witness-rights',cmd_witness_rights,P,(('language',),{}),(('jurisdiction',),{'choices':JURISDICTIONS}),(('basis',),{'choices':sorted(BASES)}),(('law',),{}));
     sub('licence',cmd_licence,P,(('source',),{}),(('url',),{}),(('explanation',),{}),(('--language',),{}));
     sub('licence-review',cmd_licence_review,P,(('assessment',),{}),(('--language',),{}));
     sub('witness-missing',cmd_witness_missing,P,(('language',),{}),(('loc',),{}),(('file',),{}));
+    sub('witness-anonymous',cmd_witness_anonymous,P,(('language',),{}),(('file',),{}));
+    sub('witness-anonymous-review',cmd_witness_anonymous_review,P,(('language',),{}),(('assessment',),{}));
+    sub('witness-anonymous-clear',cmd_witness_anonymous_clear,P,(('language',),{}));
     sub('witness-candidate',cmd_witness_candidate,P,(('language',),{}),(('file',),{}));
     sub('witness-person',cmd_witness_person,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}));
-    sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));
+    sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));sub('witness-person-remove',cmd_witness_person_remove,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}),(('--reason',),{'required':True}))
     sub('witness-fetch',cmd_witness_fetch,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}))
     sub('witness-image',cmd_witness_image,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}),(('--by',),{'choices':['maker','second'],'default':'maker'}))
     sub('witness-cut',cmd_witness_cut,P,(('language',),{}),(('source',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
+    sub('witness-transcribe-page',cmd_witness_transcribe_page,P,(('language',),{}),(('--text',),{'required':True}),(('--reason',),{'required':True}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
     sub('witness-cut-candidate',cmd_witness_cut_candidate,P,(('language',),{}),(('source',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}));
-    sub('witness-correct',cmd_witness_correct,P,(('language',),{}),(('loc',),{}),(('from',),{}),(('to',),{}),(('reason',),{}));
+    sub('witness-add-page',cmd_witness_add_page,P,(('language',),{}),(('loc',),{}),(('--page',),{'required':True}),(('--image',),{'required':True}),(('--span',),{'required':True}),(('--first-span',),{}));
+    sub('witness-correct',cmd_witness_correct,P,(('language',),{}),(('loc',),{}),(('from',),{}),(('to',),{}),(('reason',),{}),(('--image',),{}));
     sub('witness-review',cmd_witness_review,P,(('language',),{}),(('loc',),{}),(('--reader',),{'required':True}),(('--alignment',),{'required':True}),(('--model',),{'default':'gpt-6.1-terra'}))
+    sub('page-number-correct',cmd_page_number_correct,P,(('--loc',),{'action':'append','required':True}),(('--leaf',),{'type':int,'required':True}),(('--old',),{'required':True}),(('--new',),{'required':True}),(('--url',),{'required':True}),(('--by',),{'required':True}),(('--second',),{'required':True}),(('--second-model',),{'required':True}),(('--assessment',),{'required':True}),(('--file',),{}))
+    sub('accepted-text-correct',cmd_accepted_text_correct,P,(('loc',),{}),(('from',),{}),(('to',),{}),(('--n',),{'type':int,'required':True}),(('--url',),{'required':True}),(('--by',),{'required':True}),(('--second',),{'required':True}),(('--second-model',),{'required':True}),(('--assessment',),{'required':True}),(('--file',),{}))
+    sub('accepted-text-index',cmd_accepted_text_index,P,(('loc',),{}),(('to',),{}))
     sub('witness-gate',cmd_witness_gate,P,(('language',),{}),(('--second',),{'action':'store_true'}),(('--offline',),{'action':'store_true'}),(('--accept',),{'action':'store_true'}))
     sub('queue',cmd_queue);sub('open',cmd_open,(('work',),{}));sub('task',cmd_task,P);sub('status',cmd_status);sub('ready',cmd_ready)
     sub('fetch',cmd_fetch,P,(('role',),{'choices':['transcription','other']}),(('url',),{}),(('--name',),{}),(('--file',),{'help':'take the bytes from a local file already fetched from URL'}))
     sub('ia',cmd_ia,P,(('item',),{}),(('--long-s',),{'action':'store_true','help':'the print sets the long s, which the OCR reads as f'}),(('--dir',),{}),(('--files',),{}))
-    sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}));sub('scan',cmd_scan,P,(('item',),{'nargs':'?'}))
+    sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}));sub('scan',cmd_scan,P,(('item',),{'nargs':'?'}));sub('scan-withdraw',cmd_scan_withdraw,P,(('item',),{}),(('--reason',),{'required':True}))
     sub('image',cmd_image,P,(('n',),{'type':int}),(('--loc',),{}),(('--width',),{'type':int,'default':1100}),(('--by',),{'choices':['maker','second'],'default':'maker'}),(('--file',),{}),(('--scan',),{'help':'the Archive item, where the packet reads several scans'}),(('--zoom',),{'help':'TOP-BOTTOM in percent of the page height: the lines of a correction, enlarged'}))
     sub('offset',cmd_offset,P,(('k',),{'type':int}),(('--scan',),{}))
     sub('person',cmd_person,P,(('role',),{'choices':list(ROLES)}),(('qid',),{'nargs':'?'}),(('--name',),{}),(('--ru',),{}),(('--died',),{'type':int}),(('--source',),{}),(('--wartime',),{'choices':['yes','no']}),(('--wartime-source',),{}),(('--rehabilitated',),{'type':int}),(('--rehabilitation-source',),{}),(('--remove',),{'action':'store_true','help':'take this hand out of the record again (another edition was chosen)'}));sub('printed',cmd_printed,P,(('year',),{'type':int}))
@@ -1766,7 +2310,7 @@ def main():
     sub('compare',cmd_compare,P);sub('judge',cmd_judge,P,(('loc',),{}),(('which',),{}),(('stands',),{'choices':['transcription','print']}),(('note',),{'nargs':'?'}))
     sub('correct',cmd_correct,P,(('loc',),{}),(('from',),{}),(('to',),{}),(('evidence',),{}))
     sub('gate',cmd_gate,P,(('--second',),{'action':'store_true'}),(('--offline',),{'action':'store_true'}))
-    sub('settle',cmd_settle,P);sub('accept',cmd_accept,P,(('--by',),{'required':True}),(('--basis',),{}),(('--offline',),{'action':'store_true'}))
+    sub('settle',cmd_settle,P);sub('accept',cmd_accept,P,(('--by',),{'required':True}),(('--basis',),{}),(('--offline',),{'action':'store_true'}));sub('reopen',cmd_reopen,P,(('--reader',),{'required':True}),(('--finding',),{'required':True}))
     args=p.parse_args();args.fn(args)
 
 if __name__=='__main__':main()

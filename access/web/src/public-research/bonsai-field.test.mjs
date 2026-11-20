@@ -106,8 +106,17 @@ describe('the Aesthetics field',()=>{
   });
   it('keeps the words of the printed page where a transcription differs from it',()=>{
     expect(fragments.provenance.corrections.map(correction=>correction.to)).toEqual(expect.arrayContaining(['unterliegen müßte. Auf solche Weise','Angenehm heißt Jemandem das','smoothness; a quality so essential']));
-    for(const {from,to,lang,place} of fragments.provenance.corrections){
-      const work=Object.keys(fragments.places).find(id=>place.startsWith(`${id} `)),text=fragments.places[work][place.slice(work.length+1)].texts[lang];
+    const corrections=fragments.provenance.corrections;
+    for(const [index,{from,to,lang,place}] of corrections.entries()){
+      const work=Object.keys(fragments.places).find(id=>place.startsWith(`${id} `));
+      let text=fragments.places[work][place.slice(work.length+1)].texts[lang];
+      // Later reviewed edits can refine an earlier correction; inspect the earlier state.
+      for(const later of corrections.slice(index+1).reverse())if(later.place===place&&later.lang===lang&&later.review){
+        expect(Number.isInteger(later.offset),place).toBe(true);
+        const chars=Array.from(text),end=later.offset+Array.from(later.to).length;
+        expect(chars.slice(later.offset,end).join(''),place).toBe(later.to);
+        text=[...chars.slice(0,later.offset),...Array.from(later.from),...chars.slice(end)].join('');
+      }
       expect(text,place).toContain(to);expect(text,place).not.toContain(from);
     }
     for(const work of Object.values(fragments.works))for(const witness of Object.values(work.witnesses))for(const country of ['russia','usa','eu']){

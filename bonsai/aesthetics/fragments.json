@@ -1087,6 +1087,24 @@
     "place": "leon-battista-alberti.de-re-aedificatoria IX.5 p136v"
    },
    {
+    "lang": "la",
+    "from": "auctoritatem",
+    "to": "autoritatem",
+    "evidence": "The 1541 Strasbourg page n289 reads autoritatem without c between gratiam and vendicat; a separate reader checked the page image.",
+    "place": "leon-battista-alberti.de-re-aedificatoria IX.5 p136v",
+    "review": {
+     "url": "https://archive.org/download/dereaedificatori00albe/page/n289.jpg",
+     "image_sha256": "e12c60d1e5ef59342db4066d90b24fa65ddb39425e1be8cb01d18864d3d00094",
+     "file": "text-correction-e12c60d1e5ef59342db4066d90b24fa65ddb39425e1be8cb01d18864d3d00094.img",
+     "by": "line-codex-2026-11-19",
+     "second": "line-terra-2026-11-19",
+     "second_model": "gpt-6.1-terra-high",
+     "assessment": "The 1541 Strasbourg page n289 reads autoritatem without c between gratiam and vendicat; a separate reader checked the page image.",
+     "date": "2026-11-19"
+    },
+    "offset": 369
+   },
+   {
     "lang": "de",
     "from": "Wisenschasten",
     "to": "Wissenschaften",
@@ -2715,7 +2733,8 @@
        "died": [
         {
          "time": "+1274-03-07T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ]
       }
@@ -2855,13 +2874,21 @@
        "born": [
         {
          "time": "+1711-04-26T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
         }
        ],
        "died": [
         {
          "time": "+1776-08-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
         }
        ]
       }
@@ -4250,13 +4277,21 @@
        "born": [
         {
          "time": "+1711-04-26T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
         }
        ],
        "died": [
         {
          "time": "+1776-08-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
         }
        ]
       }
@@ -5130,13 +5165,21 @@
        "born": [
         {
          "time": "+1711-04-26T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
         }
        ],
        "died": [
         {
          "time": "+1776-08-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
         }
        ]
       }
@@ -5199,13 +5242,21 @@
        "born": [
         {
          "time": "+1711-04-26T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
         }
        ],
        "died": [
         {
          "time": "+1776-08-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
         }
        ]
       }
@@ -6148,13 +6199,15 @@
        "born": [
         {
          "time": "+1404-02-14T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ],
        "died": [
         {
          "time": "+1472-04-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ]
       }
@@ -6221,13 +6274,15 @@
        "born": [
         {
          "time": "+1404-02-14T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ],
        "died": [
         {
          "time": "+1472-04-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ]
       }
@@ -6504,7 +6559,8 @@
        "born": [
         {
          "time": "+1554-11-30T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ],
        "died": [
@@ -11909,7 +11965,7 @@
      "en": "Book IX, ch. 5, fol. 136 verso"
     },
     "texts": {
-     "la": "Sed de his hactenus, quae si satis constant, statuisse sic possumus, pulchritudinem esse quendam consensum et conspirationem partium in eo, cuius sunt ad certum numerum finitionem, collocationeque habitam, ita uti concinnitas, hoc est, absoluta primariaque ratio naturae postularit. Hanc ipsam maiorem in modum res aedificatoria sectatur. Hac sibi dignitatem, gratiam, auctoritatem vendicat, atque in precio est."
+     "la": "Sed de his hactenus, quae si satis constant, statuisse sic possumus, pulchritudinem esse quendam consensum et conspirationem partium in eo, cuius sunt ad certum numerum finitionem, collocationeque habitam, ita uti concinnitas, hoc est, absoluta primariaque ratio naturae postularit. Hanc ipsam maiorem in modum res aedificatoria sectatur. Hac sibi dignitatem, gratiam, autoritatem vendicat, atque in precio est."
     },
     "links": {
      "la": "https://archive.org/details/dereaedificatori00albe/page/n289/mode/1up"

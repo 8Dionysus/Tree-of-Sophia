@@ -48,16 +48,41 @@
   }
  },
  "abhinavagupta": {
-  "item": null,
+  "item": "Q320619",
   "label": {
-   "ru": "Абхинавагупта",
-   "en": "Abhinavagupta"
+   "en": null,
+   "ru": "Абхинавагупта"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+0950-01-01T00:00:00Z",
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "died": [
+   {
+    "time": "+1020-01-01T00:00:00Z",
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "work": "Q4667440",
+   "work_url": "https://www.wikidata.org/wiki/Q4667440",
+   "source": "https://en.wikipedia.org/wiki/Abhinavabharati",
+   "person_url": "https://en.wikipedia.org/wiki/Abhinavagupta",
+   "basis": "The work article names Abhinavagupta as its author; the linked person page identifies Wikidata Q320619."
+  },
   "relation_search": {
    "complete": true,
    "titles": [
@@ -90,16 +115,33 @@
   }
  },
  "abu-nasr-al-farabi": {
-  "item": null,
+  "item": "Q160460",
   "label": {
-   "ru": "Абу Наср аль-Фараби",
-   "en": "Abū Naṣr al-Fārābī"
+   "en": "Farabi",
+   "ru": "Аль-Фараби"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+0870-00-00T00:00:00Z",
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "died": [
+   {
+    "time": "+0951-01-01T00:00:00Z",
+    "precision": 9,
+    "qualifiers": [
+     "Q106419137"
+    ],
+    "approximate": true
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -117,6 +159,20 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Kitāb al-shiʿr"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Kitāb al-shi‘r",
+   "source": "https://plato.stanford.edu/entries/al-farabi-logic/",
+   "person_url": "https://www.wikidata.org/wiki/Q160460",
+   "basis": "Stanford Encyclopedia lists the named Kitāb al-shi‘r among the works of Abū Naṣr al-Fārābī, the philosopher identified by this Wikidata entry."
   }
  },
  "ad-j-j-m-vingerhoets": {
@@ -188,6 +244,14 @@
     "What Is Beautiful Is Usable"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "What Is Beautiful Is Usable"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -285,7 +349,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-7832-4863",
    "doi": "10.1037/emo0000450",
@@ -405,7 +469,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1125903"
  },
  "alberto-voltolini": {
@@ -436,19 +500,40 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Fiction"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "aldo-leopold": {
-  "item": null,
+  "item": "Q971382",
   "label": {
-   "ru": "Олдо Леопольд",
-   "en": "Aldo Leopold"
+   "en": "Aldo Leopold",
+   "ru": "Альдо Леопольд"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1887-01-11T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1948-04-21T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://www.audubon.org/magazine/archives-aldo-leopolds-conservation-esthetic",
+   "person_url": "https://en.wikipedia.org/wiki/Aldo_Leopold",
+   "basis": "The original magazine attributes the 1938 essay and the later A Sand County Almanac to this author; the linked biography identifies Wikidata Q971382."
+  },
   "catalogue_search": {
    "complete": true,
    "version": "authority-v3",
@@ -456,6 +541,14 @@
     "Conservation Esthetic"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Conservation Esthetic"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -486,6 +579,14 @@
     "Goodman’s Aesthetics"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Goodman’s Aesthetics"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -555,29 +656,22 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "alexander-nehamas": {
-  "item": null,
+  "item": "Q2642734",
   "label": {
-   "ru": "Александр Нехамас",
-   "en": "Alexander Nehamas"
+   "en": "Alexander Nehamas",
+   "ru": "Александр Нехамас"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Alexander Nehamas"
-   },
-   {
-    "kind": "work",
-    "query": "Only a Promise of Happiness: The Place of Beauty in a World of Art"
+    "time": "+1946-03-22T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -603,6 +697,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Only a Promise of Happiness: The Place of Beauty in a World of Art",
+   "source": "https://press.princeton.edu/books/paperback/9780691177601/only-a-promise-of-happiness",
+   "person_url": "https://en.wikipedia.org/wiki/Alexander_Nehamas",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "alexander-pope": {
@@ -614,16 +714,18 @@
   "born": [
    {
     "time": "+1688-05-21T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
    {
     "time": "+1744-05-30T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q7168340"
  },
  "alison-hills": {
@@ -665,34 +767,24 @@
   }
  },
  "allen-carlson": {
-  "item": null,
+  "item": "Q2837880",
   "label": {
-   "ru": "Аллен Карлсон",
-   "en": "Allen Carlson"
+   "en": "Allen Arvid Carlson",
+   "ru": "Аллен Карлсон"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Allen Carlson"
-   },
-   {
-    "kind": "work",
-    "query": "Functional Beauty"
-   },
-   {
-    "kind": "work",
-    "query": "Appreciation and the Natural Environment"
-   },
-   {
-    "kind": "work",
-    "query": "The Link Between Aesthetic Appreciation and the Preservation Imperative"
+    "time": "+1943-03-03T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [
+   {
+    "time": "+2025-01-28T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -728,6 +820,31 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Allen Carlson"
+   },
+   {
+    "kind": "work",
+    "query": "Functional Beauty"
+   },
+   {
+    "kind": "work",
+    "query": "Appreciation and the Natural Environment"
+   },
+   {
+    "kind": "work",
+    "query": "The Link Between Aesthetic Appreciation and the Preservation Imperative"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Functional Beauty",
+   "source": "https://iucat.iu.edu/iuc/8018803",
+   "person_url": "https://sites.ualberta.ca/~brigandt/Annual_lecture_Carlson.pdf",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "alois-riegl": {
@@ -748,7 +865,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1858,
    "died": 1905
@@ -762,7 +879,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-5809-0940",
    "doi": "10.31234/osf.io/sr7e9",
@@ -796,7 +913,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL102871A",
    "author_url": "https://openlibrary.org/authors/OL102871A",
@@ -819,16 +936,24 @@
   }
  },
  "anandavardhana": {
-  "item": null,
+  "item": "Q2551244",
   "label": {
-   "ru": "Анандавардхана",
-   "en": "Ānandavardhana"
+   "en": "Anandavardhana",
+   "ru": "Анандавардхана"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+0820-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "died": [
+   {
+    "time": "+0890-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -846,19 +971,41 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Dhvanyāloka"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Dhvanyāloka",
+   "source": "https://sahitya-akademi.gov.in/pdf/Anandavardhana.pdf",
+   "person_url": "https://www.wikidata.org/wiki/Q2551244",
+   "basis": "Sahitya Akademi identifies Anandavardhana as the author of the work, while noting scholarly debate over attribution of its verses and commentary."
   }
  },
  "andras-angyal": {
-  "item": null,
+  "item": "Q4754714",
   "label": {
-   "ru": "Андраш Ангьял",
-   "en": "Andras Angyal"
+   "en": "Andras Angyal",
+   "ru": "Андраш Ангьял"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1902-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "died": [
+   {
+    "time": "+1960-06-04T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -884,6 +1031,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Disgust and Related Aversions",
+   "source": "https://www.researchgate.net/publication/232454523_Disgust_and_related_aversions",
+   "person_url": "https://en.wikipedia.org/wiki/Andras_Angyal",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "andrea-schiavio": {
@@ -894,7 +1047,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-8109-9185",
    "doi": "10.1007/s00426-023-01856-2",
@@ -911,16 +1064,14 @@
   }
  },
  "andrew-aberdein": {
-  "item": null,
+  "item": "Q92982900",
   "label": {
-   "ru": "Эндрю Абердин",
-   "en": "Andrew Aberdein"
+   "en": "Andrew Aberdein",
+   "ru": "Эндрю Абердин"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -946,6 +1097,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0003-2450-541X",
+   "doi": "10.1093/philmat/nku014",
+   "title": "Beauty Is Not Simplicity: An Analysis of Mathematicians' Proof Appraisals",
+   "source": "https://doi.org/10.1093/philmat/nku014",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0003-2450-541X/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q92982900#P496"
   }
  },
  "andries-oeberst": {
@@ -966,6 +1126,14 @@
     "A Model of Aesthetic Appreciation and Aesthetic Judgments"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "A Model of Aesthetic Appreciation and Aesthetic Judgments"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -988,6 +1156,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Coloniality of Power, Eurocentrism, and Latin America"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "anja-vorster": {
@@ -998,7 +1174,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-7301-0240",
    "doi": "10.1037/emo0000450",
@@ -1022,7 +1198,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-6365-1044",
    "doi": "10.1037/emo0000450",
@@ -1133,6 +1309,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "How Could Anybody Ever Feel at Home? Aesthetic Familiarity, Epistemic Comfort, and Displacement"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "aristotle": {
@@ -1144,28 +1328,35 @@
   "born": [
    {
     "time": "-0384-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "-0322-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "arnold-berleant": {
-  "item": null,
+  "item": "Q4794966",
   "label": {
-   "ru": "Арнольд Берлиант",
-   "en": "Arnold Berleant"
+   "en": "Arnold Berleant",
+   "ru": "Арнольд Берлеант"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1932-03-04T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1183,6 +1374,20 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Aesthetics and Environment: Variations on a Theme"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Aesthetics and Environment: Variations on a Theme",
+   "source": "https://arnoldberleant.com/pages/environ.html",
+   "person_url": "https://en.wikipedia.org/wiki/Arnold_Berleant",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "arthur-c-danto": {
@@ -1203,7 +1408,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1924,
    "died": 2013
@@ -1227,19 +1432,17 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "asmir-gracanin": {
-  "item": null,
+  "item": "Q57420322",
   "label": {
-   "ru": "Асмир Грачанин",
-   "en": "Asmir Gračanin"
+   "en": "Asmir Gracanin",
+   "ru": "Асмир Грачанин"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1265,6 +1468,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0002-4824-9046",
+   "doi": "10.1037/emo0000450",
+   "title": "Kama Muta: Conceptualizing and Measuring the Experience Often Labelled Being Moved Across 19 Nations and 15 Languages",
+   "source": "https://doi.org/10.1037/emo0000450",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0002-4824-9046/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q57420322#P496"
   }
  },
  "audre-lorde": {
@@ -1285,30 +1497,28 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q85542398"
  },
  "aurel-kolnai": {
-  "item": null,
+  "item": "Q774997",
   "label": {
-   "ru": "Аурель Колнаи",
-   "en": "Aurel Kolnai"
+   "en": "Aurel Kolnai",
+   "ru": "Аурель Колнаи"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Aurel Kolnai"
-   },
-   {
-    "kind": "work",
-    "query": "Der Ekel"
+    "time": "+1900-12-05T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [
+   {
+    "time": "+1973-06-28T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1334,6 +1544,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Aurel Kolnai"
+   },
+   {
+    "kind": "work",
+    "query": "Der Ekel"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Der Ekel",
+   "source": "https://www.aesthetik.hu-berlin.de/en/der-ekel-ein-aesthetisches-gefuehl/",
+   "person_url": "https://en.wikipedia.org/wiki/Aurel_Kolnai",
+   "basis": "Humboldt names the philosopher and essay; publication dates in sources differ and are not resolved here."
   }
  },
  "baruch-spinoza": {
@@ -1354,7 +1581,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "beate-seibt": {
   "item": "Q57832758",
@@ -1369,7 +1596,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-0148-0961",
    "doi": "10.1037/emo0000450",
@@ -1497,7 +1724,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1866,
    "died": 1952
@@ -1522,37 +1749,30 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "A Model of Aesthetic Appreciation and Aesthetic Judgments"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "berys-gaut": {
-  "item": null,
+  "item": "Q55104651",
   "label": {
-   "ru": "Берис Гот",
-   "en": "Berys Gaut"
+   "en": "Berys Nigel Gaut",
+   "ru": "Берис Гот"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Berys Gaut"
-   },
-   {
-    "kind": "work",
-    "query": "Just Joking: The Ethics and Aesthetics of Humor"
-   },
-   {
-    "kind": "work",
-    "query": "The Ethical Criticism of Art"
-   },
-   {
-    "kind": "work",
-    "query": "The Cluster Account of Art Defended"
+    "time": "+1958-02-17T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1586,6 +1806,33 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Berys Gaut"
+   },
+   {
+    "kind": "work",
+    "query": "Just Joking: The Ethics and Aesthetics of Humor"
+   },
+   {
+    "kind": "work",
+    "query": "The Ethical Criticism of Art"
+   },
+   {
+    "kind": "work",
+    "query": "The Cluster Account of Art Defended"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0003-4966-5874",
+   "doi": "10.1093/aesthj/ayi032",
+   "title": "The Cluster Account of Art Defended",
+   "source": "https://doi.org/10.1093/aesthj/ayi032",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0003-4966-5874/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q55104651#P496"
   }
  },
  "bharata": {
@@ -1654,6 +1901,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Hṛdayadarpaṇa"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "boban-petrovic": {
@@ -1664,7 +1919,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-1840-3153",
    "doi": "10.1037/emo0000450",
@@ -1681,26 +1936,19 @@
   }
  },
  "brian-boyd": {
-  "item": null,
+  "item": "Q4090348",
   "label": {
-   "ru": "Брайан Бойд",
-   "en": "Brian Boyd"
+   "en": "Brian Boyd",
+   "ru": "Брайан Бойд"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Brian Boyd"
-   },
-   {
-    "kind": "work",
-    "query": "Laughter and Literature: A Play Theory of Humor"
+    "time": "+1952-07-30T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1726,19 +1974,39 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Brian Boyd"
+   },
+   {
+    "kind": "work",
+    "query": "Laughter and Literature: A Play Theory of Humor"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Laughter and Literature: A Play Theory of Humor",
+   "source": "https://literary-universals.uconn.edu/bibliography/",
+   "person_url": "https://thenabokovian.org/node/25896",
+   "basis": "The university bibliography and the Nabokov society record link the paper to this scholar."
   }
  },
  "brian-massumi": {
-  "item": null,
+  "item": "Q912704",
   "label": {
-   "ru": "Брайан Массуми",
-   "en": "Brian Massumi"
+   "en": "Brian Massumi",
+   "ru": "Брайан Массуми"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1956-05-08T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1764,6 +2032,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "The Autonomy of Affect",
+   "source": "https://sisu.ut.ee/wp-content/uploads/sites/172/massumi._the_autonomy_of_affect.pdf",
+   "person_url": "https://en.wikipedia.org/wiki/Brian_Massumi",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "buffon": {
@@ -1788,7 +2062,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "c-thi-nguyen": {
   "item": null,
@@ -1847,6 +2121,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Art Museums and the Ritual of Citizenship"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "caroline-curwen": {
@@ -1857,7 +2139,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-2557-7909",
    "doi": "10.1007/s00426-023-01856-2",
@@ -1874,34 +2156,19 @@
   }
  },
  "carolyn-korsmeyer": {
-  "item": null,
+  "item": "Q16980015",
   "label": {
-   "ru": "Кэролин Корсмейер",
-   "en": "Carolyn Korsmeyer"
+   "en": null,
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Carolyn Korsmeyer"
-   },
-   {
-    "kind": "work",
-    "query": "Savoring Disgust: The Foul and the Fair in Aesthetics"
-   },
-   {
-    "kind": "work",
-    "query": "Aesthetic Value, Art, and Food"
-   },
-   {
-    "kind": "work",
-    "query": "Feminist Aesthetics"
+    "time": "+1950-01-01T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -1935,6 +2202,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Savoring Disgust: The Foul and the Fair in Aesthetics",
+   "source": "https://academic.oup.com/bjaesthetics/article-abstract/52/1/113/12993",
+   "person_url": "https://en.wikipedia.org/wiki/Carolyn_Korsmeyer",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "catherine-bell": {
@@ -1955,6 +2228,14 @@
     "Ritual Theory, Ritual Practice"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Ritual Theory, Ritual Practice"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -2007,16 +2288,19 @@
   }
  },
  "catherine-z-elgin": {
-  "item": null,
+  "item": "Q5052654",
   "label": {
-   "ru": "Кэтрин Элгин",
-   "en": "Catherine Z. Elgin"
+   "en": "Catherine Z. Elgin",
+   "ru": "Кэтрин Элгин"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1948-02-20T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -2050,6 +2334,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Art in the Advancement of Understanding",
+   "source": "https://dash.harvard.edu/entities/publication/bb5cdd6a-9f29-4e51-9139-189b6658631f",
+   "person_url": "https://www.gse.harvard.edu/directory/faculty/catherine-elgin",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "charles-baudelaire": {
@@ -2070,7 +2361,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "charles-darwin": {
   "item": "Q1035",
@@ -2090,7 +2381,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1192325"
  },
  "charles-sanders-peirce": {
@@ -2111,7 +2402,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1839,
    "died": 1914
@@ -2281,7 +2572,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-7503-5131",
    "doi": "10.1037/emo0000450",
@@ -2315,6 +2606,14 @@
     "Antagonism and Relational Aesthetics"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Antagonism and Relational Aesthetics"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -2367,16 +2666,14 @@
   }
  },
  "claudia-lunghi": {
-  "item": null,
+  "item": "Q59693037",
   "label": {
-   "ru": "Клаудия Лунги",
-   "en": "Claudia Lunghi"
+   "en": "Claudia Lunghi",
+   "ru": "Клаудия Лунги"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -2402,6 +2699,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0003-3811-5404",
+   "doi": "10.1163/22134808-00002529",
+   "title": "The Complex Interplay Between Multisensory Integration and Perceptual Awareness",
+   "source": "https://doi.org/10.1163/22134808-00002529",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0003-3811-5404/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q59693037#P496"
   }
  },
  "claudio-rozzoni": {
@@ -2512,7 +2818,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q952540"
  },
  "clifford-geertz": {
@@ -2533,6 +2839,14 @@
     "Religion as a Cultural System"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Religion as a Cultural System"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -2558,23 +2872,26 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1881,
    "died": 1964
   }
  },
  "colin-mcginn": {
-  "item": null,
+  "item": "Q742827",
   "label": {
-   "ru": "Колин Макгинн",
-   "en": "Colin McGinn"
+   "en": "Colin McGinn",
+   "ru": null
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1950-03-10T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -2600,6 +2917,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "The Meaning of Disgust",
+   "source": "https://academic.oup.com/book/11817",
+   "person_url": "https://en.wikipedia.org/wiki/Colin_McGinn",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "colin-radford": {
@@ -2620,7 +2943,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1935,
    "died": 2001
@@ -2635,16 +2958,26 @@
   "born": [
    {
     "time": "-0551-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "-0479-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL40315A",
    "author_url": "https://openlibrary.org/authors/OL40315A",
@@ -2668,26 +3001,24 @@
   }
  },
  "conrad-hyers": {
-  "item": null,
+  "item": "Q5162542",
   "label": {
-   "ru": "Конрад Хайерс",
-   "en": "Conrad Hyers"
+   "en": "Conrad Hyers",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Conrad Hyers"
-   },
-   {
-    "kind": "work",
-    "query": "The Spirituality of Comedy: Comic Heroism in a Tragic World"
+    "time": "+1933-07-31T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [
+   {
+    "time": "+2013-03-23T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -2713,6 +3044,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "The Spirituality of Comedy: Comic Heroism in a Tragic World",
+   "source": "https://en.wikipedia.org/wiki/Conrad_Hyers",
+   "person_url": "https://en.wikipedia.org/wiki/Conrad_Hyers",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "constantine-sedikides": {
@@ -2803,12 +3140,12 @@
   },
   "born": [
    {
-    "time": "+1958-01-01T00:00:00Z",
-    "precision": 9
+    "time": "+1958-06-20T00:00:00Z",
+    "precision": 11
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL403214A",
    "work": "/works/OL2748244W",
@@ -2921,26 +3258,24 @@
   }
  },
  "daniel-dennett": {
-  "item": null,
+  "item": "Q215263",
   "label": {
-   "ru": "Дэниел Деннет",
-   "en": "Daniel Dennett"
+   "en": "Daniel Dennett",
+   "ru": "Дэниел Деннет"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Daniel Dennett"
-   },
-   {
-    "kind": "work",
-    "query": "Inside Jokes: Using Humor to Reverse-Engineer the Mind"
+    "time": "+1942-03-28T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [
+   {
+    "time": "+2024-04-19T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -2966,6 +3301,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Inside Jokes: Using Humor to Reverse-Engineer the Mind",
+   "source": "https://openlibrary.org/authors/OL342699A/Daniel_C._Dennett",
+   "person_url": "https://www.wikidata.org/wiki/Q215263",
+   "basis": "Open Library lists the exact coauthored book on this author authority and links it to the Wikidata person."
   }
  },
  "daniel-e-berlyne": {
@@ -3075,7 +3416,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-8459-6037",
    "doi": "10.31234/osf.io/sr7e9",
@@ -3092,26 +3433,24 @@
   }
  },
  "dave-hickey": {
-  "item": null,
+  "item": "Q5228949",
   "label": {
-   "ru": "Дейв Хики",
-   "en": "Dave Hickey"
+   "en": "Dave Hickey",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Dave Hickey"
-   },
-   {
-    "kind": "work",
-    "query": "The Invisible Dragon: Essays on Beauty"
+    "time": "+1940-12-05T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [
+   {
+    "time": "+2021-11-12T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3137,6 +3476,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "The Invisible Dragon: Essays on Beauty",
+   "source": "https://press.uchicago.edu/dam/jcr:f8885e95-f9e1-4e4b-ba14-fa8e5a71cd66/Fall2012_UChicagoPress.pdf",
+   "person_url": "https://en.wikipedia.org/wiki/Dave_Hickey",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "david-comer-kidd": {
@@ -3159,26 +3504,38 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Reading Literary Fiction Improves Theory of Mind",
+    "Reading Literary Fiction and Theory of Mind: Three Preregistered Replications and Extensions of Kidd and Castano (2013)"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "david-dodell-feder": {
-  "item": null,
+  "item": "Q87881319",
   "label": {
-   "ru": "Дэвид Доделл-Федер",
-   "en": "David Dodell-Feder"
+   "en": "David Dodell-Feder",
+   "ru": null
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "catalogue_search": {
+  "fetched": "2026-11-19",
+  "identity_orcid": {
+   "orcid": "0000-0003-0678-1728",
+   "doi": "10.1037/xge0000395",
+   "title": "Fiction Reading Has a Small Positive Impact on Social Cognition: A Meta-Analysis",
+   "source": "https://doi.org/10.1037/xge0000395"
+  },
+  "orcid_search": {
    "complete": true,
-   "version": "authority-v3",
    "titles": [
     "Fiction Reading Has a Small Positive Impact on Social Cognition: A Meta-Analysis"
    ],
-   "source": "https://openlibrary.org/",
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -3191,28 +3548,44 @@
   "born": [
    {
     "time": "+1711-04-26T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q38173183",
+     "Q26877143"
+    ]
    }
   ],
   "died": [
    {
     "time": "+1776-08-25T00:00:00Z",
+    "precision": 11,
+    "qualifiers": [
+     "Q26877139"
+    ]
+   }
+  ],
+  "fetched": "2026-11-19"
+ },
+ "david-lewis": {
+  "item": "Q384522",
+  "label": {
+   "en": "David Lewis",
+   "ru": "Дейвид Льюис"
+  },
+  "born": [
+   {
+    "time": "+1941-09-28T00:00:00Z",
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
- },
- "david-lewis": {
-  "item": null,
-  "label": {
-   "ru": "Дэвид Льюис",
-   "en": "David Lewis"
-  },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "died": [
+   {
+    "time": "+2001-10-14T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3238,19 +3611,29 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Truth in Fiction",
+   "source": "https://academic.oup.com/book/36015/chapter-abstract/313264949",
+   "person_url": "https://en.wikipedia.org/wiki/David_Lewis_(philosopher)",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "david-mcneill": {
-  "item": null,
+  "item": "Q5237449",
   "label": {
-   "ru": "Дэвид Макнил",
-   "en": "David McNeill"
+   "en": "David McNeill",
+   "ru": null
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1933-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3276,6 +3659,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Hand and Mind: What Gestures Reveal about Thought",
+   "source": "https://press.uchicago.edu/ucp/books/book/chicago/H/bo3641188.html",
+   "person_url": "https://en.wikipedia.org/wiki/David_McNeill",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "de-witt-henry-parker": {
@@ -3306,26 +3695,37 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Principles of Aesthetics"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "deena-skolnick-weisberg": {
-  "item": null,
+  "item": "Q59829565",
   "label": {
-   "ru": "Дина Сколник Вайсберг",
-   "en": "Deena Skolnick Weisberg"
+   "en": "Deena Skolnick Weisberg",
+   "ru": null
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "catalogue_search": {
+  "fetched": "2026-11-19",
+  "identity_orcid": {
+   "orcid": "0000-0002-4000-4941",
+   "doi": "10.1037/pspa0000064",
+   "title": "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication",
+   "source": "https://doi.org/10.1037/pspa0000064"
+  },
+  "orcid_search": {
    "complete": true,
-   "version": "authority-v3",
    "titles": [
     "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication"
    ],
-   "source": "https://openlibrary.org/",
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -3348,19 +3748,30 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Fiction Reading Has a Small Positive Impact on Social Cognition: A Meta-Analysis"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "diane-negra": {
-  "item": null,
+  "item": "Q112492817",
   "label": {
-   "ru": "Диана Негра",
-   "en": "Diane Negra"
+   "en": "Diane Negra",
+   "ru": "Диана Негра"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1966-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3386,6 +3797,16 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0001-8400-6239",
+   "doi": "10.4324/9781315658520",
+   "title": "THE AESTHETICS AND AFFECTS OF CUTENESS",
+   "source": "https://doi.org/10.4324/9781315658520",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0001-8400-6239/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q112492817#P496",
+   "contribution_role": "co-editor, not author of every contribution"
   }
  },
  "dick-higgins": {
@@ -3406,7 +3827,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1938,
    "died": 1998
@@ -3515,7 +3936,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q111719385",
   "relation_search": {
    "complete": true,
@@ -3545,7 +3966,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1917,
    "died": 2003
@@ -3570,6 +3991,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "A Model of Aesthetic Appreciation and Aesthetic Judgments"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "dror-ikar": {
@@ -3590,6 +4019,14 @@
     "What Is Beautiful Is Usable"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "What Is Beautiful Is Usable"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -3662,26 +4099,24 @@
   }
  },
  "e-f-carritt": {
-  "item": null,
+  "item": "Q52305948",
   "label": {
-   "ru": "Эдгар Фредерик Кэрритт",
-   "en": "E. F. Carritt"
+   "en": "Edgar Frederick Carritt",
+   "ru": "Эдгар Фредерик Кэрритт"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "E. F. Carritt"
-   },
-   {
-    "kind": "work",
-    "query": "Philosophies of Beauty"
+    "time": "+1876-01-01T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [
+   {
+    "time": "+1964-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3707,19 +4142,45 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "E. F. Carritt"
+   },
+   {
+    "kind": "work",
+    "query": "Philosophies of Beauty"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Philosophies of Beauty",
+   "source": "https://www.nationaltrustcollections.org.uk/object/3216549",
+   "person_url": "https://en.wikipedia.org/wiki/Edgar_Frederick_Carritt",
+   "basis": "The National Trust identifies Carritt as selector and editor of the anthology, not the author of every text."
   }
  },
  "e-h-gombrich": {
-  "item": null,
+  "item": "Q78504",
   "label": {
-   "ru": "Эрнст Гомбрих",
-   "en": "E. H. Gombrich"
+   "en": "Ernst Gombrich",
+   "ru": "Эрнст Гомбрих"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1909-03-30T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2001-11-03T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
+  "identity_work": "Q4797164",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -3742,6 +4203,16 @@
     "Art and Illusion: A Study in the Psychology of Pictorial Representation"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Illusion and Art",
+    "Preface to Art and Illusion2000: Images and Signs",
+    "Art and Illusion: A Study in the Psychology of Pictorial Representation"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -3811,7 +4282,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "edmund-burke": {
   "item": "Q165792",
@@ -3831,7 +4302,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "edmund-husserl": {
   "item": "Q58586",
@@ -3851,7 +4322,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1859,
    "died": 1938
@@ -3875,7 +4346,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "edward-bullough": {
   "item": "Q5342062",
@@ -3895,7 +4366,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "edward-l-bernays": {
   "item": "Q434839",
@@ -3915,7 +4386,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL410747A",
    "author_url": "https://openlibrary.org/authors/OL410747A",
@@ -3955,7 +4426,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "edward-w-said": {
   "item": "Q201538",
@@ -3979,7 +4450,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL26322A",
    "author_url": "https://openlibrary.org/authors/OL26322A",
@@ -4002,26 +4473,19 @@
   }
  },
  "elaine-scarry": {
-  "item": null,
+  "item": "Q3721125",
   "label": {
-   "ru": "Элейн Скарри",
-   "en": "Elaine Scarry"
+   "en": "Elaine Scarry",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Elaine Scarry"
-   },
-   {
-    "kind": "work",
-    "query": "On Beauty and Being Just"
+    "time": "+1946-06-30T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -4047,6 +4511,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "On Beauty and Being Just",
+   "source": "https://press.princeton.edu/books/paperback/9780691089591/on-beauty-and-being-just",
+   "person_url": "https://en.wikipedia.org/wiki/Elaine_Scarry",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "elena-abate": {
@@ -4067,6 +4537,14 @@
     "Fashion as an Aesthetic Form of Life: A Wittgensteinian Interpretation"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Fashion as an Aesthetic Form of Life: A Wittgensteinian Interpretation"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -4126,6 +4604,14 @@
     "Conceptual Art"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Conceptual Art"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -4234,6 +4720,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Food as Art"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "ella-peek": {
@@ -4255,6 +4749,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Ethical Criticism of Art"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "ellen-winner": {
@@ -4275,6 +4777,14 @@
     "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -4298,6 +4808,15 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Reading Literary Fiction Improves Theory of Mind",
+    "Reading Literary Fiction and Theory of Mind: Three Preregistered Replications and Extensions of Kidd and Castano (2013)"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "emile-durkheim": {
@@ -4318,7 +4837,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "emily-brady": {
   "item": null,
@@ -4348,19 +4867,35 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Imagination and the Aesthetic Appreciation of Nature"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "emmanuel-levinas": {
-  "item": null,
+  "item": "Q153034",
   "label": {
-   "ru": "Эмманюэль Левинас",
-   "en": "Emmanuel Levinas"
+   "en": "Emmanuel Levinas",
+   "ru": "Эммануэль Левинас"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1906-01-12T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1995-12-25T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -4386,19 +4921,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "De l'existence à l'existant",
+   "source": "https://bibliotheque.dominicains.fr/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=9332",
+   "person_url": "https://en.wikipedia.org/wiki/Emmanuel_Levinas",
+   "basis": "The linked person article identifies this work; the cited edition or source confirms the author and title."
   }
  },
  "erica-g-hepper": {
-  "item": null,
+  "item": "Q83908301",
   "label": {
-   "ru": "Эрика Хеппер",
-   "en": "Erica G. Hepper"
+   "en": "Erica G Hepper",
+   "ru": "Эрика Хеппер"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -4424,19 +4963,31 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0003-4587-5866",
+   "doi": "10.1037/emo0000136",
+   "title": "Nostalgia Fosters Self-Continuity: Uncovering the Mechanism (Social Connectedness) and Consequence (Eudaimonic Well-Being)",
+   "source": "https://doi.org/10.1037/emo0000136",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0003-4587-5866/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q83908301#P496"
   }
  },
  "erika-fischer-lichte": {
-  "item": null,
+  "item": "Q1354364",
   "label": {
-   "ru": "Эрика Фишер-Лихте",
-   "en": "Erika Fischer-Lichte"
+   "en": "Erika Fischer-Lichte",
+   "ru": "Эрика Фишер-Лихте"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1943-06-25T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -4454,6 +5005,21 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Transformative Power of Performance: A New Aesthetics"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Transformative Power of Performance: A New Aesthetics",
+   "source": "https://www.routledge.com/link/link/p/book/9780415458566",
+   "person_url": "https://www.geisteswissenschaften.fu-berlin.de/we07/theater-tanz/mitarbeiter-innen/prof/fischerlichte/index.html",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "ernst-jentsch": {
@@ -4474,7 +5040,7 @@
     "precision": 9
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "erwin-panofsky": {
   "item": "Q57656",
@@ -4494,7 +5060,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1892,
    "died": 1968
@@ -4519,6 +5085,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Political Aesthetics"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "esther-newton": {
@@ -4540,33 +5114,25 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Mother Camp: Female Impersonators in America"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "eugen-wassiliwizky": {
-  "item": null,
+  "item": "Q96691266",
   "label": {
-   "ru": "Ойген Вассиливицки",
-   "en": "Eugen Wassiliwizky"
+   "en": "Eugen Wassiliwizky",
+   "ru": "Ойген Вассиливицки"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
-   {
-    "kind": "person",
-    "query": "Eugen Wassiliwizky"
-   },
-   {
-    "kind": "work",
-    "query": "The Distancing-Embracing model of the enjoyment of negative emotions in art reception"
-   },
-   {
-    "kind": "work",
-    "query": "Towards a Psychological Construct of Being Moved"
-   }
-  ],
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -4596,6 +5162,29 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Eugen Wassiliwizky"
+   },
+   {
+    "kind": "work",
+    "query": "The Distancing-Embracing model of the enjoyment of negative emotions in art reception"
+   },
+   {
+    "kind": "work",
+    "query": "Towards a Psychological Construct of Being Moved"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0002-1087-1657",
+   "doi": "10.1017/S0140525X17000309",
+   "title": "The Distancing-Embracing model of the enjoyment of negative emotions in art reception",
+   "source": "https://doi.org/10.1017/S0140525X17000309",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0002-1087-1657/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q96691266#P496"
   }
  },
  "eugene-ionesco": {
@@ -4616,7 +5205,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q101084576"
  },
  "eugene-thacker": {
@@ -4632,7 +5221,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q131577098"
  },
  "frances-s-connelly": {
@@ -4701,7 +5290,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "frank-sibley": {
   "item": "Q5489565",
@@ -4721,7 +5310,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1923,
    "died": 1996
@@ -4745,7 +5334,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q107484564"
  },
  "fred-kroon": {
@@ -4776,6 +5365,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Fiction"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "fredric-jameson": {
@@ -4796,7 +5393,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1934,
    "died": 2024
@@ -4820,7 +5417,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "friedrich-schiller": {
   "item": "Q22670",
@@ -4840,7 +5437,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "friedrich-schlegel": {
   "item": "Q157271",
@@ -4864,7 +5461,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "frits-staal": {
   "item": null,
@@ -4884,6 +5481,14 @@
     "The Meaninglessness of Ritual"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Meaninglessness of Ritual"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -4905,7 +5510,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q619599",
   "relation_search": {
    "complete": true,
@@ -4918,16 +5523,43 @@
   }
  },
  "gaius-plinius-secundus": {
-  "item": null,
+  "item": "Q82778",
   "label": {
-   "ru": "Плиний Старший",
-   "en": "Gaius Plinius Secundus"
+   "en": "Pliny the Elder",
+   "ru": "Плиний Старший"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+0020-00-00T00:00:00Z",
+    "precision": 8,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "bounds": {
+     "earliest": [
+      {
+       "time": "+0023-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ],
+     "latest": [
+      {
+       "time": "+0024-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ]
+    },
+    "approximate": true
+   }
+  ],
+  "died": [
+   {
+    "time": "+0079-00-00T00:00:00Z",
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
+   }
+  ],
+  "fetched": "2026-11-19",
+  "identity_work": "Q442",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -4944,6 +5576,14 @@
     "Naturalis historia"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Naturalis historia"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -4993,7 +5633,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q30448147"
  },
  "gary-kemp": {
@@ -5052,7 +5692,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1884,
    "died": 1962
@@ -5109,7 +5749,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q135953548"
  },
  "georg-simmel": {
@@ -5130,7 +5770,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "georg-wilhelm-friedrich-hegel": {
   "item": "Q9235",
@@ -5150,7 +5790,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "george-berkeley": {
   "item": "Q82049",
@@ -5170,7 +5810,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL108000A",
    "author_url": "https://openlibrary.org/authors/OL108000A",
@@ -5210,7 +5850,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1926,
    "died": 2020
@@ -5244,6 +5884,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Does understanding moderate aesthetic appraisals of proofs?"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "george-santayana": {
@@ -5264,7 +5912,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q7763293"
  },
  "georges-bataille": {
@@ -5285,7 +5933,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1897,
    "died": 1962
@@ -5347,7 +5995,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1937,
    "died": 2022
@@ -5371,7 +6019,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1932,
    "died": 1999
@@ -5395,7 +6043,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1925,
    "died": 1995
@@ -5420,6 +6068,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Elogio della profanazione"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "giovanni-matteucci": {
@@ -5440,6 +6096,14 @@
     "Aesthetics of Fashion"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Aesthetics of Fashion"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -5517,7 +6181,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "gustav-theodor-fechner": {
   "item": "Q76881",
@@ -5537,29 +6201,27 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "guy-sircello": {
-  "item": null,
+  "item": "Q5622598",
   "label": {
-   "ru": "Гай Сирчелло",
-   "en": "Guy Sircello"
+   "en": "Guy Sircello",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Guy Sircello"
-   },
-   {
-    "kind": "work",
-    "query": "A New Theory of Beauty"
+    "time": "+1936-01-01T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [
+   {
+    "time": "+1992-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -5585,19 +6247,28 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "A New Theory of Beauty",
+   "source": "https://academic.oup.com/jaac/article-abstract/35/3/361/6337650",
+   "person_url": "https://www.wikidata.org/wiki/Q5622598",
+   "basis": "The review names the author and exact title; the linked philosopher’s article identifies this book."
   }
  },
  "hadrien-ceyte": {
-  "item": null,
+  "item": "Q58322318",
   "label": {
-   "ru": "Адриен Сейт",
-   "en": "Hadrien Ceyte"
+   "en": "Hadrien Ceyte",
+   "ru": "Адриен Сейт"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1979-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -5623,6 +6294,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0003-1746-5026",
+   "doi": "10.1371/journal.pone.0193174",
+   "title": "Perception of body movement when real and simulated displacements are combined",
+   "source": "https://doi.org/10.1371/journal.pone.0193174",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0003-1746-5026/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q58322318#P496"
   }
  },
  "hal-foster": {
@@ -5643,6 +6323,14 @@
     "Postmodernism: A Preface, in The Anti-Aesthetic: Essays on Postmodern Culture"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Postmodernism: A Preface, in The Anti-Aesthetic: Essays on Postmodern Culture"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -5674,6 +6362,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Appendix to “Intermedia”"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "hans-belting": {
@@ -5694,6 +6390,14 @@
     "Bild und Kult"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Bild und Kult"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -5719,7 +6423,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q122088102"
  },
  "hans-ulrich-gumbrecht": {
@@ -5735,7 +6439,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q130330304"
  },
  "harold-bloom": {
@@ -5756,7 +6460,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL29809A",
    "author_url": "https://openlibrary.org/authors/OL29809A",
@@ -5872,7 +6576,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1936,
    "died": 1998
@@ -5896,7 +6600,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q107421844"
  },
  "helmut-leder": {
@@ -5918,6 +6622,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "A Model of Aesthetic Appreciation and Aesthetic Judgments"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "henri-bergson": {
@@ -5938,7 +6650,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "henri-poincare": {
   "item": "Q81082",
@@ -5958,7 +6670,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "hermann-schmitz": {
   "item": "Q112038",
@@ -5978,7 +6690,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1928,
    "died": 2021
@@ -6002,6 +6714,14 @@
     "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -6061,7 +6781,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q21133958"
  },
  "holmes-rolston-iii": {
@@ -6092,6 +6812,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Does Aesthetic Appreciation of Landscapes Need to Be Science-Based?"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "howard-phillips-lovecraft": {
@@ -6112,7 +6840,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1124816",
   "relation_search": {
    "complete": true,
@@ -6143,6 +6871,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Art as Collective Action"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "igor-kardum": {
@@ -6158,7 +6894,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-8778-2740",
    "doi": "10.1037/emo0000450",
@@ -6182,7 +6918,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-3121-5728",
    "doi": "10.1037/emo0000450",
@@ -6216,7 +6952,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "ingvild-gilhus": {
   "item": null,
@@ -6293,6 +7029,14 @@
     "Literature and Truth: Revisiting Stolnitz’s Anti-cognitivism"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Literature and Truth: Revisiting Stolnitz’s Anti-cognitivism"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -6390,7 +7134,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q330722"
  },
  "jack-reynolds": {
@@ -6420,6 +7164,14 @@
     "Jean-Paul Sartre"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Jean-Paul Sartre"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -6512,7 +7264,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL3292788A",
    "author_url": "https://openlibrary.org/authors/OL3292788A",
@@ -6602,6 +7354,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Creative Process"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "james-beattie": {
@@ -6670,6 +7430,14 @@
     "Autonomism Reconsidered"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Autonomism Reconsidered"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -6900,7 +7668,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q130306012",
   "relation_search": {
    "complete": true,
@@ -6920,7 +7688,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-7660-2719",
    "doi": "10.1037/emo0000450",
@@ -6954,7 +7722,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1929,
    "died": 2007
@@ -6978,7 +7746,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL3908475A",
    "author_url": "https://openlibrary.org/authors/OL3908475A",
@@ -7018,7 +7786,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q658288"
  },
  "jennifer-l-barnes": {
@@ -7039,6 +7807,14 @@
     "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -7173,26 +7949,37 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Defining Art Historically"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "jessica-black": {
-  "item": null,
+  "item": "Q88358817",
   "label": {
-   "ru": "Джессика Блэк",
-   "en": "Jessica Black"
+   "en": "Jessica Black",
+   "ru": null
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "catalogue_search": {
+  "fetched": "2026-11-19",
+  "identity_orcid": {
+   "orcid": "0000-0002-9710-3297",
+   "doi": "10.1037/pspa0000064",
+   "title": "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication",
+   "source": "https://doi.org/10.1037/pspa0000064"
+  },
+  "orcid_search": {
    "complete": true,
-   "version": "authority-v3",
    "titles": [
     "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication"
    ],
-   "source": "https://openlibrary.org/",
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -7214,7 +8001,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1872,
    "died": 1945
@@ -7238,7 +8025,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q3454752"
  },
  "johann-wolfgang-goethe": {
@@ -7259,7 +8046,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "johanna-k-blomster": {
   "item": "Q57832752",
@@ -7269,7 +8056,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-3157-5443",
    "doi": "10.1037/emo0000450",
@@ -7303,7 +8090,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q2690629"
  },
  "john-macdonald": {
@@ -7345,34 +8132,19 @@
   }
  },
  "john-morreall": {
-  "item": null,
+  "item": "Q927369",
   "label": {
-   "ru": "Джон Морреалл",
-   "en": "John Morreall"
+   "en": "John Morreall",
+   "ru": "Джон Морреалл"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "John Morreall"
-   },
-   {
-    "kind": "work",
-    "query": "Philosophy of Humor"
-   },
-   {
-    "kind": "work",
-    "query": "Taking Laughter Seriously"
-   },
-   {
-    "kind": "work",
-    "query": "Comic Relief: A Comprehensive Philosophy of Humor"
+    "time": "+1947-02-01T00:00:00Z",
+    "precision": 11
    }
   ],
-  "checked": "2026-11-13",
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -7408,7 +8180,32 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "Philosophy of Humor",
+   "source": "https://plato.stanford.edu/entries/humor/",
+   "person_url": "https://en.wikipedia.org/wiki/John_Morreall",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "John Morreall"
+   },
+   {
+    "kind": "work",
+    "query": "Philosophy of Humor"
+   },
+   {
+    "kind": "work",
+    "query": "Taking Laughter Seriously"
+   },
+   {
+    "kind": "work",
+    "query": "Comic Relief: A Comprehensive Philosophy of Humor"
+   }
+  ],
+  "checked": "2026-11-13"
  },
  "john-of-damascus": {
   "item": null,
@@ -7430,19 +8227,36 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "On Holy Images",
+    "The Fount of Wisdom"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "john-r-searle": {
-  "item": null,
+  "item": "Q295012",
   "label": {
-   "ru": "Джон Сёрл",
-   "en": "John R. Searle"
+   "en": "John Searle",
+   "ru": "Джон Роджерс Сёрль"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1932-07-31T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2025-09-17T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -7460,29 +8274,43 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Logical Status of Fictional Discourse"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Logical Status of Fictional Discourse",
+   "source": "https://archives.lib.virginia.edu/repositories/uva-sc/archival_objects/volume_vi_no_2_winter_1975_john_searle_-the_logica",
+   "person_url": "https://en.wikipedia.org/wiki/John_Searle",
+   "basis": "The cited institution identifies the person and exact work; the linked person article leads to this Wikidata entry."
   }
  },
  "john-ruskin": {
-  "item": null,
+  "item": "Q179126",
   "label": {
-   "ru": "Джон Рёскин",
-   "en": "John Ruskin"
+   "en": "John Ruskin",
+   "ru": "Джон Рёскин"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "John Ruskin"
-   },
-   {
-    "kind": "work",
-    "query": "The Stones of Venice, Volume III"
+    "time": "+1819-02-08T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [
+   {
+    "time": "+1900-01-20T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
+  "identity_work": "Q7766650",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -7561,7 +8389,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q30448147"
  },
  "jonathan-yorke-bean": {
@@ -7583,6 +8411,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Consuming Hygge at Home: Perception, Representation, Practice"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "jonna-vuoskoski": {
@@ -7593,7 +8429,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-0049-4373",
    "doi": "10.1037/emo0000450",
@@ -7617,7 +8453,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-9883-8765",
    "doi": "10.1037/emo0000450",
@@ -7651,7 +8487,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "joseph-kosuth": {
   "item": null,
@@ -7671,6 +8507,14 @@
     "Art After Philosophy"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Art After Philosophy"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -7779,15 +8623,18 @@
   }
  },
  "judith-butler": {
-  "item": null,
+  "item": "Q219368",
   "label": {
    "ru": "Джудит Батлер",
    "en": "Judith Butler"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1956-02-24T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -7797,6 +8644,22 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Performative Acts and Gender Constitution: An Essay in Phenomenology and Feminist Theory"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "work": "Q55879479",
+   "work_url": "https://www.wikidata.org/wiki/Q55879479",
+   "source": "https://www.wikidata.org/wiki/Q55879479#P50",
+   "person_url": "https://www.wikidata.org/wiki/Q219368",
+   "basis": "The exact queued essay names Q219368 as author in Wikidata P50."
   }
  },
  "juergen-habermas": {
@@ -7817,60 +8680,47 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q142068631"
  },
  "jukka-mikkonen": {
-  "item": null,
+  "item": "Q61103421",
   "label": {
-   "ru": "Юкка Микконен",
-   "en": "Jukka Mikkonen"
+   "en": "Jukka Mikkonen",
+   "ru": null
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "relation_search": {
-   "complete": true,
-   "titles": [
-    "Traditional Ecological Knowledge and the Aesthetic Appreciation of Nature: Lessons from Gilbbesjávri and Guovdageaidnu",
-    "Традиционное экологическое знание и эстетическая оценка природы: уроки Гилббесъяври и Гувдагайдну"
-   ],
-   "source": "https://query.wikidata.org/",
-   "checked": "2026-11-13"
+  "fetched": "2026-11-19",
+  "identity_orcid": {
+   "orcid": "0000-0003-0436-8526",
+   "doi": "10.1177/09632719251326132",
+   "title": "Traditional Ecological Knowledge and the Aesthetic Appreciation of Nature: Lessons from Gilbbesjávri and Guovdageaidnu",
+   "source": "https://doi.org/10.1177/09632719251326132"
   },
-  "catalogue_search": {
+  "orcid_search": {
    "complete": true,
-   "version": "authority-v3",
    "titles": [
     "Traditional Ecological Knowledge and the Aesthetic Appreciation of Nature: Lessons from Gilbbesjávri and Guovdageaidnu"
    ],
-   "source": "https://openlibrary.org/",
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
  "julia-kristeva": {
-  "item": null,
+  "item": "Q159876",
   "label": {
-   "ru": "Юлия Кристева",
-   "en": "Julia Kristeva"
+   "en": "Julia Kristeva",
+   "ru": "Юлия Кристева"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Julia Kristeva"
-   },
-   {
-    "kind": "work",
-    "query": "Pouvoirs de l’horreur. Essai sur l’abjection"
+    "time": "+1941-06-24T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -7896,7 +8746,24 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "Pouvoirs de l’horreur. Essai sur l’abjection",
+   "source": "https://catalogue.bnf.fr/ark:/12148/cb34635381f",
+   "person_url": "https://en.wikipedia.org/wiki/Julia_Kristeva",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Julia Kristeva"
+   },
+   {
+    "kind": "work",
+    "query": "Pouvoirs de l’horreur. Essai sur l’abjection"
+   }
+  ],
+  "checked": "2026-11-13"
  },
  "julia-leyda": {
   "item": null,
@@ -7937,30 +8804,19 @@
   }
  },
  "julian-hanich": {
-  "item": null,
+  "item": "Q99759998",
   "label": {
-   "ru": "Юлиан Ханих",
-   "en": "Julian Hanich"
+   "en": "Julian Hanich",
+   "ru": "Юлиан Ханих"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Julian Hanich"
-   },
-   {
-    "kind": "work",
-    "query": "The Distancing-Embracing model of the enjoyment of negative emotions in art reception"
-   },
-   {
-    "kind": "work",
-    "query": "Towards a Psychological Construct of Being Moved"
+    "time": "+1975-01-01T00:00:00Z",
+    "precision": 9
    }
   ],
-  "checked": "2026-11-13",
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -7990,6 +8846,29 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Julian Hanich"
+   },
+   {
+    "kind": "work",
+    "query": "The Distancing-Embracing model of the enjoyment of negative emotions in art reception"
+   },
+   {
+    "kind": "work",
+    "query": "Towards a Psychological Construct of Being Moved"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0002-1471-2821",
+   "doi": "10.1017/S0140525X17000309",
+   "title": "The Distancing-Embracing model of the enjoyment of negative emotions in art reception",
+   "source": "https://doi.org/10.1017/S0140525X17000309",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0002-1471-2821/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q99759998#P496"
   }
  },
  "justin-d-edwards": {
@@ -8172,7 +9051,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL468951A",
    "work": "/works/OL15310419W",
@@ -8214,6 +9093,14 @@
     "The Philosophy of Digital Art"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Philosophy of Digital Art"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -8274,7 +9161,8 @@
   "born": [
    {
     "time": "+1879-02-11T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    },
    {
     "time": "+1879-02-23T00:00:00Z",
@@ -8287,23 +9175,26 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1879,
    "died": 1935
   }
  },
  "kendall-l-walton": {
-  "item": null,
+  "item": "Q6388945",
   "label": {
-   "ru": "Кендалл Уолтон",
-   "en": "Kendall L. Walton"
+   "en": "Kendall Walton",
+   "ru": "Кендалл Уолтон"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1939-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -8333,6 +9224,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Categories of Art",
+   "source": "https://lsa.umich.edu/philosophy/people/emeritus-faculty/klwalton/Categories-of-Art.html",
+   "person_url": "https://en.wikipedia.org/wiki/Kendall_Walton",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "kenneth-vail": {
@@ -8430,6 +9328,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Concept of Religion"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "kitty-dumont": {
@@ -8516,7 +9422,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q24606770"
  },
  "kurt-woelfel": {
@@ -8576,6 +9482,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Who Will I Become?"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "lara-harb": {
@@ -8606,18 +9520,29 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Arabic Poetics: Aesthetic Experience in Classical Arabic Literature"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "laura-mulvey": {
-  "item": null,
+  "item": "Q440887",
   "label": {
    "ru": "Лора Малви",
    "en": "Laura Mulvey"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1941-08-15T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -8627,6 +9552,22 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Visual Pleasure and Narrative Cinema"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "work": "Q55878954",
+   "work_url": "https://www.wikidata.org/wiki/Q55878954",
+   "source": "https://www.wikidata.org/wiki/Q55878954#P50",
+   "person_url": "https://www.wikidata.org/wiki/Q440887",
+   "basis": "The exact queued article names Q440887 as its author in Wikidata P50."
   }
  },
  "leemamol-mathew": {
@@ -8714,16 +9655,25 @@
   "born": [
    {
     "time": "+1828-08-28T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q26877143",
+     "Q27055388"
+    ]
    }
   ],
   "died": [
    {
     "time": "+1910-11-07T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q27055388"
+    ]
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q4517325"
  },
  "leon-battista-alberti": {
@@ -8735,16 +9685,18 @@
   "born": [
    {
     "time": "+1404-02-14T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
    {
     "time": "+1472-04-25T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "leonard-b-meyer": {
   "item": "Q6525088",
@@ -8764,22 +9716,25 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1918,
    "died": 2007
   }
  },
  "lev-manovich": {
-  "item": null,
+  "item": "Q716367",
   "label": {
    "ru": "Лев Манович",
    "en": "Lev Manovich"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1960-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "relation_search": {
    "complete": true,
@@ -8801,6 +9756,21 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "New Media: a User’s Guide",
+    "Post-media Aesthetics"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://manovich.net/index.php/projects/new-media-a-user-s-guide",
+   "person_url": "https://www.wikidata.org/wiki/Q716367",
+   "basis": "Author site names Lev Manovich and the exact queued work; Wikidata Q716367 links this same author site as P856."
   }
  },
  "lewis-carroll": {
@@ -8821,19 +9791,22 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "linda-hutcheon": {
-  "item": null,
+  "item": "Q4558366",
   "label": {
-   "ru": "Линда Хатчен",
-   "en": "Linda Hutcheon"
+   "en": "Linda Hutcheon",
+   "ru": "Линда Хатчен"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1947-08-24T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -8851,7 +9824,22 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "A Theory of Parody: The Teachings of Twentieth-Century Art Forms"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "A Theory of Parody: The Teachings of Twentieth-Century Art Forms",
+   "source": "https://www.press.uillinois.edu/books/?id=p069383",
+   "person_url": "https://en.wikipedia.org/wiki/Linda_Hutcheon",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "checked": "2026-11-13"
  },
  "linda-nochlin": {
   "item": "Q434478",
@@ -8871,20 +9859,18 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q17016608"
  },
  "ljiljana-b-lazarevic": {
-  "item": null,
+  "item": "Q57451031",
   "label": {
-   "ru": "Лиляна Б. Лазаревич",
-   "en": "Ljiljana B. Lazarević"
+   "en": "Ljiljana Lazarevic",
+   "ru": "Лиляна Б. Лазаревич"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -8910,6 +9896,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0003-1629-3699",
+   "doi": "10.1037/emo0000450",
+   "title": "Kama Muta: Conceptualizing and Measuring the Experience Often Labelled Being Moved Across 19 Nations and 15 Languages",
+   "source": "https://doi.org/10.1037/emo0000450",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0003-1629-3699/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q57451031#P496"
   }
  },
  "lothar-pikulik": {
@@ -8961,15 +9956,23 @@
   }
  },
  "louis-althusser": {
-  "item": null,
+  "item": "Q184169",
   "label": {
    "ru": "Луи Альтюссер",
    "en": "Louis Althusser"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
+  "born": [
+   {
+    "time": "+1918-10-16T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1990-10-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -8979,6 +9982,22 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Idéologie et appareils idéologiques d’État"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://www.marxists.org/reference/archive/althusser/1970/ideology.htm",
+   "person_url": "https://www.wikidata.org/wiki/Q184169",
+   "basis": "The 1970 La Pensée essay identifies Louis Althusser; Wikidata records Q184169 as author of a later French edition of that essay.",
+   "work": "Q95995806",
+   "work_url": "https://www.wikidata.org/wiki/Q95995806"
   }
  },
  "louise-hanson": {
@@ -9219,7 +10238,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-7775-2265",
    "doi": "10.1037/emo0000450",
@@ -9262,6 +10281,14 @@
     "Vyaktiviveka"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Vyaktiviveka"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -9380,16 +10407,34 @@
   }
  },
  "marcus-vitruvius-pollio": {
-  "item": null,
+  "item": "Q47163",
   "label": {
-   "ru": "Марк Витрувий Поллион",
-   "en": "Marcus Vitruvius Pollio"
+   "en": "Vitruvius",
+   "ru": "Марк Витрувий Поллион"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "-0080-01-01T00:00:00Z",
+    "precision": 9,
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "died": [
+   {
+    "time": "-0015-00-00T00:00:00Z",
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "fetched": "2026-11-19",
+  "identity_work": "Q1232238",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -9406,6 +10451,14 @@
     "De architectura"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "De architectura"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -9448,23 +10501,26 @@
   }
  },
  "maria-eugenia-panero": {
-  "item": null,
+  "item": "Q88358815",
   "label": {
-   "ru": "Мария Эухения Панеро",
-   "en": "Maria Eugenia Panero"
+   "en": "Maria Eugenia Panero",
+   "ru": null
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "catalogue_search": {
+  "fetched": "2026-11-19",
+  "identity_orcid": {
+   "orcid": "0000-0002-2648-2541",
+   "doi": "10.1037/pspa0000064",
+   "title": "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication",
+   "source": "https://doi.org/10.1037/pspa0000064"
+  },
+  "orcid_search": {
    "complete": true,
-   "version": "authority-v3",
    "titles": [
     "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication"
    ],
-   "source": "https://openlibrary.org/",
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -9476,7 +10532,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q33955242"
  },
  "martin-esslin": {
@@ -9497,7 +10553,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL4324514A",
    "work": "/works/OL20953688W",
@@ -9530,7 +10586,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1197760"
  },
  "mary-devereaux": {
@@ -9582,26 +10638,24 @@
   }
  },
  "mary-mothersill": {
-  "item": null,
+  "item": "Q24205767",
   "label": {
-   "ru": "Мэри Мазерсилл",
-   "en": "Mary Mothersill"
+   "en": "Mary Mothersill",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Mary Mothersill"
-   },
-   {
-    "kind": "work",
-    "query": "Beauty Restored"
+    "time": "+1923-00-00T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [
+   {
+    "time": "+2008-01-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -9627,6 +10681,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Beauty Restored",
+   "source": "https://collections.barnard.edu/public/repositories/2/resources/63",
+   "person_url": "https://www.wikidata.org/wiki/Q24205767",
+   "basis": "The Barnard collection identifies this philosopher and her Beauty Restored; the person article links the same individual to Wikidata."
   }
  },
  "massimiliano-di-luca": {
@@ -9637,20 +10697,18 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q33955242"
  },
  "mate-aller": {
-  "item": null,
+  "item": "Q92787007",
   "label": {
-   "ru": "Мате Аллер",
-   "en": "Máté Aller"
+   "en": "Máté Aller",
+   "ru": "Мате Аллер"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -9676,6 +10734,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0001-7096-5180",
+   "doi": "10.1163/22134808-00002529",
+   "title": "The Complex Interplay Between Multisensory Integration and Perceptual Awareness",
+   "source": "https://doi.org/10.1163/22134808-00002529",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0001-7096-5180/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q92787007#P496"
   }
  },
  "matthew-botvinick": {
@@ -9772,7 +10839,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-7617-4689",
    "doi": "10.1016/j.jmathb.2025.101284",
@@ -9808,6 +10875,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Forbidden Knowledge: The Challenge of Immoralism"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "maurice-merleau-ponty": {
@@ -9828,7 +10903,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q2714332"
  },
  "max-black": {
@@ -9849,7 +10924,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1909,
    "died": 1988
@@ -9873,6 +10948,14 @@
     "Kulturindustrie. Aufklärung als Massenbetrug"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Kulturindustrie. Aufklärung als Massenbetrug"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -9933,6 +11016,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Aesthetic and the Artistic in Aesthetic Education"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "mayuko-onuki": {
@@ -9943,7 +11034,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-8314-5402",
    "doi": "10.1037/emo0000450",
@@ -10067,7 +11158,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1904,
    "died": 1996
@@ -10101,6 +11192,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Getting to Grips with Classical Art: Rethinking the Haptics of Graeco-Roman Visual Culture"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "michael-weston": {
@@ -10130,6 +11229,14 @@
     "How Can We Be Moved by the Fate of Anna Karenina?"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "How Can We Be Moved by the Fate of Anna Karenina?"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -10199,7 +11306,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL4346031A",
    "author_url": "https://openlibrary.org/authors/OL4346031A",
@@ -10316,7 +11423,8 @@
   "born": [
    {
     "time": "+1895-11-05T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -10325,7 +11433,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q3819637"
  },
  "milena-ivanova": {
@@ -10355,6 +11463,14 @@
     "Beauty, Truth and Understanding"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Beauty, Truth and Understanding"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -10397,15 +11513,24 @@
   }
  },
  "mircea-eliade": {
-  "item": null,
+  "item": "Q41590",
   "label": {
    "ru": "Мирча Элиаде",
    "en": "Mircea Eliade"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
+  "born": [
+   {
+    "time": "+1907-03-09T00:00:00Z",
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
+   }
+  ],
+  "died": [
+   {
+    "time": "+1986-04-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "checked": "2026-11-13",
   "catalogue_search": {
    "complete": true,
@@ -10415,6 +11540,22 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Sacred and the Profane"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "work": "Q66738102",
+   "work_url": "https://www.wikidata.org/wiki/Q66738102",
+   "source": "https://www.wikidata.org/wiki/Q66738102#P50",
+   "person_url": "https://www.wikidata.org/wiki/Q41590",
+   "basis": "The exact queued book identifies Q41590 as author in Wikidata P50; its English edition is distinct from the original."
   }
  },
  "monroe-c-beardsley": {
@@ -10439,7 +11580,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1915,
    "died": 1985
@@ -10464,6 +11605,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Role of Theory in Aesthetics"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "moses-mendelssohn": {
@@ -10484,7 +11633,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "nanda-jarosz": {
   "item": null,
@@ -10514,19 +11663,30 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Indigenous and Local Knowledge and Aesthetics: Towards an Intergenerational Aesthetics of Nature"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "nathan-faivre": {
-  "item": null,
+  "item": "Q52147384",
   "label": {
-   "ru": "Натан Февр",
-   "en": "Nathan Faivre"
+   "en": "Nathan Faivre",
+   "ru": "Натан Февр"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1986-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -10552,6 +11712,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0001-6011-4921",
+   "doi": "10.1163/22134808-00002529",
+   "title": "The Complex Interplay Between Multisensory Integration and Perceptual Awareness",
+   "source": "https://doi.org/10.1163/22134808-00002529",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0001-6011-4921/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q52147384#P496"
   }
  },
  "nekane-basabe": {
@@ -10610,34 +11779,23 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1701144"
  },
  "nick-zangwill": {
-  "item": null,
+  "item": "Q59815573",
   "label": {
-   "ru": "Ник Зангвилл",
-   "en": "Nick Zangwill"
+   "en": "Nick Zangwill",
+   "ru": "Ник Зангвилл"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Nick Zangwill"
-   },
-   {
-    "kind": "work",
-    "query": "The Metaphysics of Beauty"
-   },
-   {
-    "kind": "work",
-    "query": "Aesthetic Judgment"
+    "time": "+1957-10-27T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -10667,7 +11825,28 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "The Metaphysics of Beauty",
+   "source": "https://www.jstor.org/stable/10.7591/j.ctv1nhmzk",
+   "person_url": "https://en.wikipedia.org/wiki/Nick_Zangwill",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Nick Zangwill"
+   },
+   {
+    "kind": "work",
+    "query": "The Metaphysics of Beauty"
+   },
+   {
+    "kind": "work",
+    "query": "Aesthetic Judgment"
+   }
+  ],
+  "checked": "2026-11-13"
  },
  "nicolas-j-bullot": {
   "item": null,
@@ -10687,6 +11866,14 @@
     "The Artful Mind Meets Art History: Toward a Psycho-Historical Framework for the Science of Art Appreciation"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Artful Mind Meets Art History: Toward a Psycho-Historical Framework for the Science of Art Appreciation"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -10729,27 +11916,26 @@
   }
  },
  "nikolay-chernyshevsky": {
-  "item": null,
+  "item": "Q192331",
   "label": {
-   "ru": "Николай Чернышевский",
    "en": "Nikolay Chernyshevsky",
-   "original": "Николай Гаврилович Чернышевский"
+   "ru": "Николай Гаврилович Чернышевский"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Nikolay Chernyshevsky"
-   },
-   {
-    "kind": "work",
-    "query": "The Aesthetic Relations of Art to Reality"
+    "time": "+1828-07-12T00:00:00Z",
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
+  "died": [
+   {
+    "time": "+1889-10-17T00:00:00Z",
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -10777,6 +11963,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Nikolay Chernyshevsky"
+   },
+   {
+    "kind": "work",
+    "query": "The Aesthetic Relations of Art to Reality"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Эстетические отношения искусства к действительности",
+   "source": "https://rusneb.ru/catalog/000199_000009_003563395/",
+   "person_url": "https://en.wikipedia.org/wiki/Nikolay_Chernyshevsky",
+   "basis": "The Russian State Library catalogue identifies N. G. Chernyshevsky as the author of this exact work; the linked biography identifies Wikidata Q192331."
   }
  },
  "noam-tractinsky": {
@@ -10810,6 +12013,15 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Aesthetics and Apparent Usability: Empirically Assessing Cultural and Methodological Issues",
+    "What Is Beautiful Is Usable"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "noel-carroll": {
@@ -10825,7 +12037,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL391774A",
    "author_url": "https://openlibrary.org/authors/OL391774A",
@@ -10857,20 +12069,18 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q24606770"
  },
  "o-r-aragon": {
-  "item": null,
+  "item": "Q41769015",
   "label": {
-   "ru": "Ориана Р. Арагон",
-   "en": "O. R. Aragón"
+   "en": "Oriana Aragón",
+   "ru": "Ориана Р. Арагон"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -10896,6 +12106,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0002-1016-2076",
+   "doi": "10.1177/0956797614561044",
+   "title": "Dimorphous Expressions of Positive Emotion: Displays of Both Care and Aggression in Response to Cute Stimuli",
+   "source": "https://doi.org/10.1177/0956797614561044",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0002-1016-2076/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q41769015#P496"
   }
  },
  "olav-velthuis": {
@@ -10917,19 +12136,25 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Symbolic Meanings of Prices: Constructing the Value of Contemporary Art in Amsterdam and New York Galleries"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "ophelia-deroy": {
-  "item": null,
+  "item": "Q76861562",
   "label": {
-   "ru": "Офелия Деруа",
-   "en": "Ophelia Deroy"
+   "en": "Ophelia Deroy",
+   "ru": null
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -10955,6 +12180,12 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "The Complex Interplay Between Multisensory Integration and Perceptual Awareness",
+   "source": "https://pubmed.ncbi.nlm.nih.gov/27795942/",
+   "person_url": "https://en.wikipedia.org/wiki/Ophelia_Deroy",
+   "basis": "The person article lists the exact publication, whose author and affiliation are recorded by PubMed; the article links Wikidata Q76861562."
   }
  },
  "oscar-wilde": {
@@ -10975,7 +12206,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "otto-rank": {
   "item": "Q84172",
@@ -10995,26 +12226,29 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "panos-paris": {
-  "item": null,
+  "item": "Q64589643",
   "label": {
-   "ru": "Панос Парис",
-   "en": "Panos Paris"
+   "en": "Panos Paris",
+   "ru": null
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "catalogue_search": {
+  "fetched": "2026-11-19",
+  "identity_orcid": {
+   "orcid": "0000-0002-2549-1075",
+   "doi": "10.1093/aesthj/ayy043",
+   "title": "The ‘Moralism’ in Immoralism: A Critique of Immoralism in Aesthetics",
+   "source": "https://doi.org/10.1093/aesthj/ayy043"
+  },
+  "orcid_search": {
    "complete": true,
-   "version": "authority-v3",
    "titles": [
     "The ‘Moralism’ in Immoralism: A Critique of Immoralism in Aesthetics"
    ],
-   "source": "https://openlibrary.org/",
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -11036,7 +12270,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q119170": {
   "item": "Q119170",
@@ -11060,7 +12294,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q125249": {
   "item": "Q125249",
@@ -11080,7 +12314,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q1336319": {
   "item": "Q1336319",
@@ -11100,7 +12334,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q157271": {
   "item": "Q157271",
@@ -11124,7 +12358,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q15948": {
   "item": "Q15948",
@@ -11144,7 +12378,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q182046": {
   "item": "Q182046",
@@ -11155,16 +12389,18 @@
   "born": [
    {
     "time": "+1404-02-14T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
    {
     "time": "+1472-04-25T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q182589": {
   "item": "Q182589",
@@ -11184,7 +12420,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q206384": {
   "item": "Q206384",
@@ -11204,7 +12440,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q22670": {
   "item": "Q22670",
@@ -11224,7 +12460,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q229264": {
   "item": "Q229264",
@@ -11248,7 +12484,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q2401379": {
   "item": "Q2401379",
@@ -11268,7 +12504,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q2558995": {
   "item": "Q2558995",
@@ -11288,7 +12524,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q30875": {
   "item": "Q30875",
@@ -11308,7 +12544,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q309759": {
   "item": "Q309759",
@@ -11328,7 +12564,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q315509": {
   "item": "Q315509",
@@ -11339,7 +12575,8 @@
   "born": [
    {
     "time": "+1554-11-30T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -11348,7 +12585,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q316367": {
   "item": "Q316367",
@@ -11368,7 +12605,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q335112": {
   "item": "Q335112",
@@ -11388,7 +12625,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q34628": {
   "item": "Q34628",
@@ -11408,7 +12645,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q35802": {
   "item": "Q35802",
@@ -11428,7 +12665,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q37160": {
   "item": "Q37160",
@@ -11439,16 +12676,24 @@
   "born": [
    {
     "time": "+1711-04-26T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q38173183",
+     "Q26877143"
+    ]
    }
   ],
   "died": [
    {
     "time": "+1776-08-25T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "qualifiers": [
+     "Q26877139"
+    ]
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q38082": {
   "item": "Q38082",
@@ -11468,7 +12713,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q38193": {
   "item": "Q38193",
@@ -11488,7 +12733,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q4006821": {
   "item": "Q4006821",
@@ -11512,7 +12757,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q42156": {
   "item": "Q42156",
@@ -11532,7 +12777,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q467962": {
   "item": "Q467962",
@@ -11552,7 +12797,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q501": {
   "item": "Q501",
@@ -11572,7 +12817,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q5342062": {
   "item": "Q5342062",
@@ -11592,7 +12837,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q535": {
   "item": "Q535",
@@ -11612,7 +12857,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q5395053": {
   "item": "Q5395053",
@@ -11632,7 +12877,7 @@
     "precision": 9
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q5828092": {
   "item": "Q5828092",
@@ -11652,7 +12897,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q5879": {
   "item": "Q5879",
@@ -11672,7 +12917,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q61970": {
   "item": "Q61970",
@@ -11692,7 +12937,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q6221660": {
   "item": "Q6221660",
@@ -11712,7 +12957,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q68710": {
   "item": "Q68710",
@@ -11732,7 +12977,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q72950": {
   "item": "Q72950",
@@ -11752,7 +12997,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76517": {
   "item": "Q76517",
@@ -11772,7 +13017,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76748": {
   "item": "Q76748",
@@ -11792,7 +13037,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76749": {
   "item": "Q76749",
@@ -11812,7 +13057,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76849": {
   "item": "Q76849",
@@ -11832,7 +13077,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76881": {
   "item": "Q76881",
@@ -11852,7 +13097,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q76997": {
   "item": "Q76997",
@@ -11872,7 +13117,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q77045": {
   "item": "Q77045",
@@ -11892,7 +13137,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q81082": {
   "item": "Q81082",
@@ -11912,7 +13157,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q82409": {
   "item": "Q82409",
@@ -11932,7 +13177,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q84172": {
   "item": "Q84172",
@@ -11952,7 +13197,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q84246": {
   "item": "Q84246",
@@ -11972,7 +13217,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q91163": {
   "item": "Q91163",
@@ -11992,7 +13237,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q91617": {
   "item": "Q91617",
@@ -12012,7 +13257,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q9215": {
   "item": "Q9215",
@@ -12032,7 +13277,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q9235": {
   "item": "Q9235",
@@ -12052,7 +13297,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q9358": {
   "item": "Q9358",
@@ -12072,7 +13317,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "participant-Q9438": {
   "item": "Q9438",
@@ -12089,10 +13334,11 @@
   "died": [
    {
     "time": "+1274-03-07T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-13"
+  "fetched": "2026-11-19"
  },
  "patricia-arriaga": {
   "item": "Q63953046",
@@ -12102,7 +13348,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0001-5766-0489",
    "doi": "10.1037/emo0000450",
@@ -12119,30 +13365,19 @@
   }
  },
  "paul-guyer": {
-  "item": null,
+  "item": "Q7151044",
   "label": {
-   "ru": "Пол Гайер",
-   "en": "Paul Guyer"
+   "en": "Paul Guyer",
+   "ru": "Пол Гайер"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Paul Guyer"
-   },
-   {
-    "kind": "work",
-    "query": "Values of Beauty: Historical Essays in Aesthetics"
-   },
-   {
-    "kind": "work",
-    "query": "18th Century German Aesthetics"
+    "time": "+1948-01-13T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -12172,6 +13407,27 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Paul Guyer"
+   },
+   {
+    "kind": "work",
+    "query": "Values of Beauty: Historical Essays in Aesthetics"
+   },
+   {
+    "kind": "work",
+    "query": "18th Century German Aesthetics"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Values of Beauty: Historical Essays in Aesthetics",
+   "source": "https://www.cambridge.org/core/books/values-of-beauty/0FC264C2A70D9A1169DC1468B9846755",
+   "person_url": "https://philosophy.brown.edu/people/paul-guyer",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "paul-j-silvia": {
@@ -12258,6 +13514,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Two Notes on Xie He’s “Six Criteria” (liufa), Aided by Digital Databases"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "peg-brand-weiser": {
@@ -12278,6 +13542,14 @@
     "Feminist Aesthetics"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Feminist Aesthetics"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -12330,16 +13602,19 @@
   }
  },
  "peter-lamarque": {
-  "item": null,
+  "item": "Q7175337",
   "label": {
-   "ru": "Питер Ламарк",
-   "en": "Peter Lamarque"
+   "en": "Peter Lamarque",
+   "ru": "Питер Ламарк"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1948-05-21T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -12357,19 +13632,37 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "How Can We Fear and Pity Fictions?"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "How Can We Fear and Pity Fictions?",
+   "source": "https://pure.york.ac.uk/portal/en/publications/how-can-we-fear-and-pity-fictions",
+   "person_url": "https://en.wikipedia.org/wiki/Peter_Lamarque",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "checked": "2026-11-13"
  },
  "philip-pettit": {
-  "item": null,
+  "item": "Q1237041",
   "label": {
-   "ru": "Филип Петтит",
-   "en": "Philip Pettit"
+   "en": "Philip Pettit",
+   "ru": "Филип Петтит"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1945-12-20T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -12395,6 +13688,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Possibility of Aesthetic Realism",
+   "source": "https://ppettit.scholar.princeton.edu/publications/possibility-aesthetic-realism",
+   "person_url": "https://en.wikipedia.org/wiki/Philip_Pettit",
+   "basis": "The Princeton bibliography names the work; its record lists it as an article but the bibliographic details describe a chapter."
   }
  },
  "philip-sidney": {
@@ -12406,7 +13706,8 @@
   "born": [
    {
     "time": "+1554-11-30T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -12415,7 +13716,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "philip-thomson": {
   "item": null,
@@ -12521,7 +13822,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1930,
    "died": 2002
@@ -12584,6 +13885,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Philosophy as a Way of Life: Spiritual Exercises from Socrates to Foucault"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "pierre-jean-renaudie": {
@@ -12614,6 +13923,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Jean-Paul Sartre"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "pilar-carrera": {
@@ -12624,7 +13941,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-3940-9028",
    "doi": "10.31234/osf.io/sr7e9",
@@ -12668,6 +13985,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Indeterminacy and Concretization"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "plato": {
@@ -12679,16 +14004,48 @@
   "born": [
    {
     "time": "-0428-00-00T00:00:00Z",
-    "precision": 8
+    "precision": 8,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "bounds": {
+     "earliest": [
+      {
+       "time": "-0428-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ],
+     "latest": [
+      {
+       "time": "-0427-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ]
+    },
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "-0348-00-00T00:00:00Z",
-    "precision": 8
+    "precision": 8,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "bounds": {
+     "earliest": [
+      {
+       "time": "-0348-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ],
+     "latest": [
+      {
+       "time": "-0347-00-00T00:00:00Z",
+       "precision": 9
+      }
+     ]
+    },
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "plotinus": {
   "item": "Q134189",
@@ -12699,16 +14056,20 @@
   "born": [
    {
     "time": "+0205-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "+0270-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "pseudo-longinus": {
   "item": "Q744540",
@@ -12719,16 +14080,26 @@
   "born": [
    {
     "time": "+0100-00-00T00:00:00Z",
-    "precision": 7
+    "precision": 7,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q30230067"
+    ],
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "+0100-00-00T00:00:00Z",
-    "precision": 7
+    "precision": 7,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q56644435"
+    ],
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q6245111"
  },
  "r-c-buckley": {
@@ -12787,7 +14158,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1889,
    "died": 1943
@@ -12849,7 +14220,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL43581A",
    "author_url": "https://openlibrary.org/authors/OL43581A",
@@ -12917,7 +14288,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-7331-548X",
    "doi": "10.1037/emo0000450",
@@ -12951,6 +14322,14 @@
     "A Semiotics of Coziness and Disappearing Night"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "A Semiotics of Coziness and Disappearing Night"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -13010,7 +14389,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-2724-4297",
    "doi": "10.1037/emo0000450",
@@ -13034,7 +14413,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q34021901"
  },
  "renee-timmers": {
@@ -13050,7 +14429,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-1981-0834",
    "doi": "10.1007/s00426-023-01856-2",
@@ -13122,7 +14501,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL114620A",
    "work": "/works/OL38441859W",
@@ -13138,34 +14517,24 @@
   }
  },
  "richard-shusterman": {
-  "item": null,
+  "item": "Q749505",
   "label": {
-   "ru": "Ричард Шустерман",
-   "en": "Richard Shusterman"
+   "en": "Richard Shusterman",
+   "ru": "Ричард Шустерман"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Richard Shusterman"
-   },
-   {
-    "kind": "work",
-    "query": "Ars Erotica: Sex and Somaesthetics in the Classical Arts of Love"
-   },
-   {
-    "kind": "work",
-    "query": "Thinking Through the Body, Educating for the Humanities: A Plea for Somaesthetics"
-   },
-   {
-    "kind": "work",
-    "query": "Somaesthetics: A Disciplinary Proposal"
+    "time": "+1949-12-03T00:00:00Z",
+    "precision": 11
    }
   ],
+  "died": [],
+  "fetched": "2026-11-19",
+  "identity_reference": {
+   "source": "https://api.crossref.org/works/10.1017/9780511791888",
+   "person_url": "https://en.wikipedia.org/wiki/Richard_Shusterman",
+   "basis": "Cambridge metadata names the author of Ars Erotica; the author biography lists the same book and resolves to Wikidata Q749505."
+  },
   "relation_search": {
    "complete": true,
    "titles": [
@@ -13219,7 +14588,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1923,
    "died": 2003
@@ -13252,6 +14621,14 @@
     "Picture, Image and Experience"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Picture, Image and Experience"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -13321,7 +14698,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL23478A",
    "author_url": "https://openlibrary.org/authors/OL23478A",
@@ -13361,7 +14738,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1915,
    "died": 1980
@@ -13386,6 +14763,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Artful Mind Meets Art History: Toward a Psycho-Historical Framework for the Science of Art Appreciation"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "roman-ingarden": {
@@ -13406,7 +14791,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q112116840"
  },
  "ronald-aronson": {
@@ -13488,6 +14873,15 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Nature Humanised: Nature Respected",
+    "Contemporary Aesthetics and the Neglect of Natural Beauty"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "ronald-moore": {
@@ -13539,16 +14933,23 @@
   }
  },
  "rosalind-krauss": {
-  "item": null,
+  "item": "Q431963",
   "label": {
-   "ru": "Розалинд Краусс",
-   "en": "Rosalind Krauss"
+   "en": "Rosalind E. Krauss",
+   "ru": "Розалинда Краусс"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1941-11-30T00:00:00Z",
+    "precision": 11
+   },
+   {
+    "time": "+1940-11-30T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -13574,6 +14975,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "L’informe: mode d’emploi",
+   "source": "https://www.si.edu/object/siris_sil_643737",
+   "person_url": "https://en.wikipedia.org/wiki/Rosalind_E._Krauss",
+   "basis": "Smithsonian records Krauss and Bois as editors of the exhibition catalogue, not authors of every contribution."
   }
  },
  "ruben-c-gur": {
@@ -13642,7 +15050,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "rune-graulund": {
   "item": null,
@@ -13796,7 +15204,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q101095440"
  },
  "samuel-taylor-coleridge": {
@@ -13817,7 +15225,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "sari-mentser": {
   "item": "Q89060270",
@@ -13827,7 +15235,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-1520-8253",
    "doi": "10.31234/osf.io/sr7e9",
@@ -13856,7 +15264,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-5160-8767",
    "doi": "10.1371/journal.pone.0193174",
@@ -13890,7 +15298,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "sharon-kinsella": {
   "item": null,
@@ -14014,19 +15422,30 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Philosophy of Digital Art"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "sherrie-levine": {
-  "item": null,
+  "item": "Q319569",
   "label": {
-   "ru": "Шерри Левин",
-   "en": "Sherrie Levine"
+   "en": "Sherrie Levine",
+   "ru": "Шерри Левин"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1947-04-17T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -14044,7 +15463,22 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "After Walker Evans: 4"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "After Walker Evans: 4",
+   "source": "https://whitney.org/collection/works/10247",
+   "person_url": "https://en.wikipedia.org/wiki/Sherrie_Levine",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "checked": "2026-11-13"
  },
  "shiri-lieber-milo": {
   "item": null,
@@ -14159,34 +15593,19 @@
   }
  },
  "sianne-ngai": {
-  "item": null,
+  "item": "Q28006987",
   "label": {
-   "ru": "Сиан Нгай",
-   "en": "Sianne Ngai"
+   "en": "Sianne Ngai",
+   "ru": "Сиан Нгай"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Sianne Ngai"
-   },
-   {
-    "kind": "work",
-    "query": "Our Aesthetic Categories: Zany, Cute, Interesting"
-   },
-   {
-    "kind": "work",
-    "query": "Merely Interesting"
-   },
-   {
-    "kind": "work",
-    "query": "Ugly Feelings"
+    "time": "+1971-10-03T00:00:00Z",
+    "precision": 11
    }
   ],
-  "checked": "2026-11-13",
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -14220,7 +15639,32 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "Our Aesthetic Categories: Zany, Cute, Interesting",
+   "source": "https://english.uchicago.edu/people/sianne-ngai",
+   "person_url": "https://en.wikipedia.org/wiki/Sianne_Ngai",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Sianne Ngai"
+   },
+   {
+    "kind": "work",
+    "query": "Our Aesthetic Categories: Zany, Cute, Interesting"
+   },
+   {
+    "kind": "work",
+    "query": "Merely Interesting"
+   },
+   {
+    "kind": "work",
+    "query": "Ugly Feelings"
+   }
+  ],
+  "checked": "2026-11-13"
  },
  "sigmund-freud": {
   "item": "Q9215",
@@ -14240,7 +15684,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "silvan-s-tomkins": {
   "item": "Q571698",
@@ -14260,7 +15704,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL173002A",
    "author_url": "https://openlibrary.org/authors/OL173002A",
@@ -14295,7 +15739,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q114007349"
  },
  "simon-lacey": {
@@ -14403,6 +15847,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Paragraphs on Conceptual Art"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "sophocles": {
@@ -14414,16 +15866,26 @@
   "born": [
    {
     "time": "-0496-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "-0406-00-00T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q24705006"
  },
  "soren-kierkegaard": {
@@ -14444,7 +15906,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL20509A",
    "author_url": "https://openlibrary.org/authors/OL20509A",
@@ -14484,7 +15946,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL231759A",
    "author_url": "https://openlibrary.org/authors/OL231759A",
@@ -14519,30 +15981,23 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q30572306"
  },
  "stephen-houlgate": {
-  "item": null,
+  "item": "Q61410057",
   "label": {
-   "ru": "Стивен Хулгейт",
-   "en": "Stephen Houlgate"
+   "en": "Stephen Houlgate",
+   "ru": "Стивен Хулгейт"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Stephen Houlgate"
-   },
-   {
-    "kind": "work",
-    "query": "Hegel’s Aesthetics"
+    "time": "+1954-03-23T00:00:00Z",
+    "precision": 11
    }
   ],
-  "checked": "2026-11-13",
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -14568,6 +16023,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Stephen Houlgate"
+   },
+   {
+    "kind": "work",
+    "query": "Hegel’s Aesthetics"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Hegel’s Aesthetics",
+   "source": "https://plato.stanford.edu/entries/hegel-aesthetics/",
+   "person_url": "https://warwick.ac.uk/fac/soc/philosophy/people/houlgate/",
+   "basis": "The Stanford entry and the Warwick profile identify the modern commentator, not Hegel as author."
   }
  },
  "steven-gimbel": {
@@ -14676,6 +16148,15 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Cultural Identity and Diaspora",
+    "Notes on Deconstructing “the Popular”"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "susan-b-miller": {
@@ -14735,6 +16216,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Aesthetics and Anaesthetics: Walter Benjamin’s Artwork Essay Reconsidered"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "susan-sontag": {
@@ -14755,7 +16244,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q58955445"
  },
  "susanne-k-langer": {
@@ -14776,7 +16265,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1895,
    "died": 1985
@@ -14801,6 +16290,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "A Theory of Narrative Empathy"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "svetlana-boym": {
@@ -14821,7 +16318,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1959,
    "died": 2015
@@ -14845,7 +16342,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q12250082"
  },
  "tachibana-no-toshitsuna": {
@@ -14878,19 +16375,31 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "作庭記",
+    "Sakuteiki"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "tamar-szabo-gendler": {
-  "item": null,
+  "item": "Q7680735",
   "label": {
-   "ru": "Тамар Сабо Гендлер",
-   "en": "Tamar Szabó Gendler"
+   "en": "Tamar Gendler",
+   "ru": "Тамар Сабо Гендлер"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1965-12-20T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -14916,29 +16425,34 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Alief and Belief",
+   "source": "https://tamar-gendler.yale.edu/alief-and-belief",
+   "person_url": "https://en.wikipedia.org/wiki/Tamar_Gendler",
+   "basis": "The Yale professor names the exact article."
   }
  },
  "ted-cohen": {
-  "item": null,
+  "item": "Q55634818",
   "label": {
-   "ru": "Тед Коэн",
-   "en": "Ted Cohen"
+   "en": "Ted Cohen",
+   "ru": "Тед Коэн"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Ted Cohen"
-   },
-   {
-    "kind": "work",
-    "query": "Jokes: Philosophical Thoughts on Joking Matters"
+    "time": "+1939-00-00T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [
+   {
+    "time": "+2014-03-14T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -14964,6 +16478,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Ted Cohen"
+   },
+   {
+    "kind": "work",
+    "query": "Jokes: Philosophical Thoughts on Joking Matters"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Jokes: Philosophical Thoughts on Joking Matters",
+   "source": "https://press.uchicago.edu/ucp/books/book/chicago/J/bo3613669.html",
+   "person_url": "https://artshumanities.uchicago.edu/news/ted-cohen",
+   "basis": "The university press and obituary connect this book to the philosopher."
   }
  },
  "ted-toadvine": {
@@ -15005,23 +16536,26 @@
   }
  },
  "thalia-r-goldstein": {
-  "item": null,
+  "item": "Q86906068",
   "label": {
-   "ru": "Талия Р. Голдстайн",
-   "en": "Thalia R. Goldstein"
+   "en": "Thalia R Goldstein",
+   "ru": null
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "catalogue_search": {
+  "fetched": "2026-11-19",
+  "identity_orcid": {
+   "orcid": "0000-0002-3892-0852",
+   "doi": "10.1037/pspa0000064",
+   "title": "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication",
+   "source": "https://doi.org/10.1037/pspa0000064"
+  },
+  "orcid_search": {
    "complete": true,
-   "version": "authority-v3",
    "titles": [
     "Does Reading a Single Passage of Literary Fiction Really Improve Theory of Mind? An Attempt at Replication"
    ],
-   "source": "https://openlibrary.org/",
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -15043,7 +16577,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "theodor-w-adorno": {
   "item": "Q152388",
@@ -15063,7 +16597,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q4688582"
  },
  "theodore-gracyk": {
@@ -15132,6 +16666,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "al-Farabi’s Philosophy of Logic and Language"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "thomas-adajian": {
@@ -15153,6 +16695,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Definition of Art"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "thomas-aquinas": {
@@ -15170,10 +16720,11 @@
   "died": [
    {
     "time": "+1274-03-07T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "thomas-hobbes": {
   "item": "Q37621",
@@ -15193,7 +16744,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q113015919"
  },
  "thomas-j-palmeri": {
@@ -15204,7 +16755,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q34021901"
  },
  "thomas-jacobsen": {
@@ -15213,9 +16764,14 @@
    "en": "Thomas Jacobsen",
    "ru": null
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1967-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q30572306"
  },
  "thomas-leddy": {
@@ -15261,26 +16817,19 @@
   }
  },
  "thomas-nagel": {
-  "item": null,
+  "item": "Q350239",
   "label": {
-   "ru": "Томас Нагель",
-   "en": "Thomas Nagel"
+   "en": "Thomas Nagel",
+   "ru": "Томас Нагель"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Thomas Nagel"
-   },
-   {
-    "kind": "work",
-    "query": "The Absurd"
+    "time": "+1937-07-04T00:00:00Z",
+    "precision": 11
    }
   ],
-  "checked": "2026-11-13",
+  "died": [],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -15306,6 +16855,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Thomas Nagel"
+   },
+   {
+    "kind": "work",
+    "query": "The Absurd"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Absurd",
+   "source": "https://www.cambridge.org/core/books/abs/mortal-questions/absurd/F6799C54D1AC056A0F879D8841657D45",
+   "person_url": "https://en.wikipedia.org/wiki/Thomas_Nagel",
+   "basis": "The cited institution identifies the person and exact work; the linked person article leads to this Wikidata entry."
   }
  },
  "thomas-w-schubert": {
@@ -15321,7 +16887,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-3797-4568",
    "doi": "10.31234/osf.io/sr7e9",
@@ -15338,16 +16904,19 @@
   }
  },
  "thorsten-botz-bornstein": {
-  "item": null,
+  "item": "Q2374247",
   "label": {
-   "ru": "Торстен Ботц-Борнштайн",
-   "en": "Thorsten Botz-Bornstein"
+   "en": "Thorsten Botz-Bornstein",
+   "ru": "Торстен Ботц-Борнштайн"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1964-01-01T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -15373,7 +16942,14 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "identity_reference": {
+   "work": "The Cool-Kawaii: Afro-Japanese Aesthetics and New World Modernity",
+   "source": "https://www.bloomsbury.com/us/coolkawaii-9780739148457/",
+   "person_url": "https://en.wikipedia.org/wiki/Thorsten_Botz-Bornstein",
+   "basis": "The linked person article identifies this work; the cited edition, catalogue or source confirms the author and title."
+  },
+  "checked": "2026-11-13"
  },
  "tim-wildschut": {
   "item": "Q47598261",
@@ -15383,7 +16959,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-6499-5487",
    "doi": "10.1037/emo0000136",
@@ -15439,26 +17015,24 @@
   }
  },
  "tobin-siebers": {
-  "item": null,
+  "item": "Q55949921",
   "label": {
-   "ru": "Тобин Сиберс",
-   "en": "Tobin Siebers"
+   "en": "Tobin Siebers",
+   "ru": "Тобин Сиберс"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
-  "searched": [
+  "born": [
    {
-    "kind": "person",
-    "query": "Tobin Siebers"
-   },
-   {
-    "kind": "work",
-    "query": "Disability Aesthetics"
+    "time": "+1953-01-01T00:00:00Z",
+    "precision": 9
    }
   ],
+  "died": [
+   {
+    "time": "+2015-01-29T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -15484,6 +17058,23 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Tobin Siebers"
+   },
+   {
+    "kind": "work",
+    "query": "Disability Aesthetics"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Disability Aesthetics",
+   "source": "https://press.umich.edu/Books/D/Disability-Aesthetics",
+   "person_url": "https://en.wikipedia.org/wiki/Tobin_Siebers",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "tonino-griffero": {
@@ -15543,6 +17134,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Exhibitionary Complex"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "tzvetan-todorov": {
@@ -15563,7 +17162,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q2425412"
  },
  "u-s-national-library-of-medicine": {
@@ -15622,20 +17221,18 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q48963408"
  },
  "uta-noppeney": {
-  "item": null,
+  "item": "Q21264829",
   "label": {
-   "ru": "Ута Ноппени",
-   "en": "Uta Noppeney"
+   "en": "Uta Noppeney",
+   "ru": "Ута Ноппени"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -15661,6 +17258,15 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0002-7697-2290",
+   "doi": "10.1163/22134808-00002529",
+   "title": "The Complex Interplay Between Multisensory Integration and Perceptual Awareness",
+   "source": "https://doi.org/10.1163/22134808-00002529",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0002-7697-2290/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q21264829#P496"
   }
  },
  "uvedale-price": {
@@ -15685,33 +17291,17 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "valentin-wagner": {
-  "item": null,
+  "item": "Q92936800",
   "label": {
-   "ru": "Валентин Вагнер",
-   "en": "Valentin Wagner"
+   "en": "Valentin Wagner",
+   "ru": "Валентин Вагнер"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "searched": [
-   {
-    "kind": "person",
-    "query": "Valentin Wagner"
-   },
-   {
-    "kind": "work",
-    "query": "The Distancing-Embracing model of the enjoyment of negative emotions in art reception"
-   },
-   {
-    "kind": "work",
-    "query": "Towards a Psychological Construct of Being Moved"
-   }
-  ],
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -15741,6 +17331,29 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "searched": [
+   {
+    "kind": "person",
+    "query": "Valentin Wagner"
+   },
+   {
+    "kind": "work",
+    "query": "The Distancing-Embracing model of the enjoyment of negative emotions in art reception"
+   },
+   {
+    "kind": "work",
+    "query": "Towards a Psychological Construct of Being Moved"
+   }
+  ],
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0001-9510-351X",
+   "doi": "10.1017/S0140525X17000309",
+   "title": "The Distancing-Embracing model of the enjoyment of negative emotions in art reception",
+   "source": "https://doi.org/10.1017/S0140525X17000309",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0001-9510-351X/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q92936800#P496"
   }
  },
  "valerie-gaulhofer": {
@@ -15751,7 +17364,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-3268-6110",
    "doi": "10.1037/emo0000450",
@@ -15795,6 +17408,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Getting to Grips with Classical Art: Rethinking the Haptics of Graeco-Roman Visual Culture"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "victor-hugo": {
@@ -15815,19 +17436,27 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "victor-papanek": {
-  "item": null,
+  "item": "Q89542",
   "label": {
-   "ru": "Виктор Папанек",
-   "en": "Victor Papanek"
+   "en": "Victor Papanek",
+   "ru": "Виктор Папанек"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1923-11-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1998-01-14T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -15845,6 +17474,24 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Design for the Real World: Human Ecology and Social Change"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "identity_reference": {
+   "work": "Design for the Real World",
+   "source": "https://papanek.org/archivelibrary/victor-papanek/",
+   "person_url": "https://www.wikidata.org/wiki/Q89542",
+   "basis": "The Papanek Foundation identifies this designer and the exact work; the linked person article corresponds to the Wikidata entry."
+  },
+  "date_note": {
+   "source": "https://en.wikipedia.org/wiki/Victor_Papanek",
+   "statement": "The linked biography gives 10 January 1998, while Wikidata gives 14 January 1998. Both agree on the year; the day is unresolved."
   }
  },
  "victor-turner": {
@@ -15866,6 +17513,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Forest of Symbols: Aspects of Ndembu Ritual"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "victoria-schoenefeld": {
@@ -15876,7 +17531,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0003-0661-0275",
    "doi": "10.1037/emo0000450",
@@ -15901,7 +17556,8 @@
   "born": [
    {
     "time": "+1893-01-12T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -15910,7 +17566,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1893,
    "died": 1984
@@ -16014,7 +17670,8 @@
   "born": [
    {
     "time": "+1899-04-10T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -16023,7 +17680,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q113164996",
   "relation_search": {
    "complete": true,
@@ -16044,16 +17701,18 @@
   "born": [
    {
     "time": "+1853-01-16T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
    {
     "time": "+1900-07-31T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q4239790"
  },
  "w-e-b-du-bois": {
@@ -16075,6 +17734,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Criteria of Negro Art"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "walter-benjamin": {
@@ -16095,7 +17762,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1169425"
  },
  "walter-d-mignolo": {
@@ -16117,6 +17784,14 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Aiesthesis decolonial"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "walter-gropius": {
@@ -16137,7 +17812,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_register": {
    "born": 1883,
    "died": 1969
@@ -16152,7 +17827,8 @@
   "born": [
    {
     "time": "+1866-11-22T00:00:00Z",
-    "precision": 11
+    "precision": 11,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786"
    }
   ],
   "died": [
@@ -16161,7 +17837,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q51584128"
  },
  "wendy-steiner": {
@@ -16240,19 +17916,30 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "al-Farabi’s Philosophy of Logic and Language"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "william-cronon": {
-  "item": null,
+  "item": "Q8007305",
   "label": {
-   "ru": "Уильям Кронон",
-   "en": "William Cronon"
+   "en": "William Cronon",
+   "ru": "Уильям Кронон"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1954-09-11T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16270,6 +17957,21 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Trouble with Wilderness; or, Getting Back to the Wrong Nature"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Trouble with Wilderness; or, Getting Back to the Wrong Nature",
+   "source": "https://www.journals.uchicago.edu/doi/10.2307/3985059",
+   "person_url": "https://en.wikipedia.org/wiki/William_Cronon",
+   "basis": "The journal record and biography identify this essay and environmental historian."
   }
  },
  "william-empson": {
@@ -16294,7 +17996,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q7457494"
  },
  "william-gilpin": {
@@ -16315,7 +18017,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "william-hazlitt": {
   "item": "Q126596",
@@ -16335,7 +18037,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL220326A",
    "author_url": "https://openlibrary.org/authors/OL220326A",
@@ -16379,7 +18081,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "william-ian-miller": {
   "item": "Q16430429",
@@ -16394,7 +18096,7 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL539381A",
    "author_url": "https://openlibrary.org/authors/OL539381A",
@@ -16434,19 +18136,36 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "william-k-wimsatt": {
-  "item": null,
+  "item": "Q8014127",
   "label": {
-   "ru": "Уильям Курц Уимсетт",
-   "en": "William K. Wimsatt"
+   "en": "William Kurtz Wimsatt, Jr.",
+   "ru": null
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1907-11-17T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+1975-12-17T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
+  "identity_register": {
+   "born": 1907,
+   "died": 1975
+  },
+  "identity_reference": {
+   "source": "https://en.wikipedia.org/wiki/William_K._Wimsatt",
+   "work_source": "https://api.crossref.org/works/10.1515/9781474465519-013",
+   "basis": "The biography identifies Q8014127 and names the coauthored work; Crossref independently records Wimsatt and Beardsley for the title."
+  },
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16463,6 +18182,14 @@
     "The Intentional Fallacy"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "The Intentional Fallacy"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -16484,7 +18211,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-12"
+  "fetched": "2026-11-19"
  },
  "william-whetsell-jr": {
   "item": null,
@@ -16537,20 +18264,18 @@
    }
   ],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q30572306"
  },
  "wing-yee-cheung": {
-  "item": null,
+  "item": "Q84591613",
   "label": {
-   "ru": "Вин-И Чун",
-   "en": "Wing-Yee Cheung"
+   "en": "Wing-Yee Cheung",
+   "ru": "Вин-И Чун"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16576,19 +18301,36 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_orcid": {
+   "orcid": "0000-0003-2395-1872",
+   "doi": "10.1037/emo0000136",
+   "title": "Nostalgia Fosters Self-Continuity: Uncovering the Mechanism (Social Connectedness) and Consequence (Eudaimonic Well-Being)",
+   "source": "https://doi.org/10.1037/emo0000136",
+   "orcid_source": "https://pub.orcid.org/v3.0/0000-0003-2395-1872/works",
+   "qid_property": "https://www.wikidata.org/wiki/Q84591613#P496"
   }
  },
  "wolfgang-iser": {
-  "item": null,
+  "item": "Q60486",
   "label": {
-   "ru": "Вольфганг Изер",
-   "en": "Wolfgang Iser"
+   "en": "Wolfgang Iser",
+   "ru": "Вольфганг Изер"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "+1926-07-22T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "died": [
+   {
+    "time": "+2007-01-24T00:00:00Z",
+    "precision": 11
+   }
+  ],
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16614,6 +18356,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "The Reading Process: A Phenomenological Approach",
+   "source": "https://www.lib.uci.edu/sites/all/docs/wellek/iser/A14_articles.html",
+   "person_url": "https://en.wikipedia.org/wiki/Wolfgang_Iser",
+   "basis": "The cited publisher or university identifies this person and work; the linked biography corresponds to the Wikidata item."
   }
  },
  "wolfgang-kayser": {
@@ -16634,7 +18383,7 @@
     "precision": 11
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_catalogue": {
    "author": "OL145569A",
    "work": "/works/OL1410199W",
@@ -16667,6 +18416,14 @@
     "Aestheticization Processes: Phenomena, Distinctions and Prospects"
    ],
    "source": "https://openlibrary.org/",
+   "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Aestheticization Processes: Phenomena, Distinctions and Prospects"
+   ],
+   "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
   }
  },
@@ -16739,6 +18496,15 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "古畫品錄",
+    "Record of the Classification of Old Painters: Preface"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "xinyue-zhou": {
@@ -16787,7 +18553,7 @@
   },
   "born": [],
   "died": [],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_orcid": {
    "orcid": "0000-0002-1315-7440",
    "doi": "10.1037/emo0000450",
@@ -16812,29 +18578,36 @@
   "born": [
    {
     "time": "+1283-01-01T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
   "died": [
    {
     "time": "+1350-01-01T00:00:00Z",
-    "precision": 9
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "approximate": true
    }
   ],
-  "fetched": "2026-11-13",
+  "fetched": "2026-11-19",
   "identity_work": "Q1350535"
  },
  "yuriko-saito": {
-  "item": null,
+  "item": "Q8061670",
   "label": {
-   "ru": "Юрико Сайто",
-   "en": "Yuriko Saito"
+   "en": "Yuriko Saito",
+   "ru": "Юрико Сайто"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1953-00-00T00:00:00Z",
+    "precision": 9
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16871,19 +18644,29 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "Aesthetics of the Everyday",
+   "source": "https://plato.stanford.edu/entries/aesthetics-of-everyday/",
+   "person_url": "https://en.wikipedia.org/wiki/Yuriko_Saito",
+   "basis": "The cited institution identifies the person and exact work; the linked person article leads to this Wikidata entry."
   }
  },
  "yve-alain-bois": {
-  "item": null,
+  "item": "Q970901",
   "label": {
-   "ru": "Ив-Ален Буа",
-   "en": "Yve-Alain Bois"
+   "en": "Yve-Alain Bois",
+   "ru": "Ив-Ален Буа"
   },
-  "born": [],
+  "born": [
+   {
+    "time": "+1952-04-16T00:00:00Z",
+    "precision": 11
+   }
+  ],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "fetched": "2026-11-19",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16909,6 +18692,13 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "checked": "2026-11-13",
+  "identity_reference": {
+   "work": "L’informe: mode d’emploi",
+   "source": "https://www.si.edu/object/siris_sil_643737",
+   "person_url": "https://en.wikipedia.org/wiki/Yve-Alain_Bois",
+   "basis": "Smithsonian records Bois and Krauss as editors of the exhibition catalogue, not authors of every contribution."
   }
  },
  "zhang-yanyuan": {
@@ -16939,19 +18729,46 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Lidai minghua ji"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
   }
  },
  "zhuangzi": {
-  "item": null,
+  "item": "Q47739",
   "label": {
-   "ru": "Чжуан-цзы / авторы «Чжуан-цзы»",
-   "en": "Zhuangzi"
+   "en": "Zhuang Zhou",
+   "ru": "Чжуан-цзы"
   },
-  "born": [],
-  "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
-  "checked": "2026-11-13",
+  "born": [
+   {
+    "time": "-0369-00-00T00:00:00Z",
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "died": [
+   {
+    "time": "-0288-00-00T00:00:00Z",
+    "precision": 9,
+    "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+    "qualifiers": [
+     "Q5727902"
+    ],
+    "approximate": true
+   }
+  ],
+  "fetched": "2026-11-19",
+  "identity_work": "Q1074987",
   "relation_search": {
    "complete": true,
    "titles": [
@@ -16969,6 +18786,15 @@
    ],
    "source": "https://openlibrary.org/",
    "checked": "2026-11-13"
-  }
+  },
+  "orcid_search": {
+   "complete": true,
+   "titles": [
+    "Zhuangzi: The Inner Chapters"
+   ],
+   "source": "https://api.crossref.org/",
+   "checked": "2026-11-13"
+  },
+  "identity_work_note": "Wikidata records traditional attribution; the register notes that the received text is a multilayer corpus."
  }
 }
