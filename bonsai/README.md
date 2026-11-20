@@ -17,6 +17,7 @@ routes.
 | [`antiquity/`](antiquity/bonsai.json) | `/antiquity/` | the collection and its fifteen branches, the first six branches, the alignment of the corpus works they cite and the places of other works, the Tree's object types of its own words, the chronology of lives, phases and writings, places, the graft map, the authors' portraits |
 | [`zarathustra/`](zarathustra/bonsai.json) | `/zarathustra/` | the book's witnesses (German first editions, Common's English, Antonovsky's Russian of 1913) aligned paragraph by paragraph and sentence by sentence, the places of other works its map cites, the alignment of the corpus works it cites, the Tree's object types of its own words, the [philosophical core](CORE.md) of the book, the [word layer, today's spelling and the origin of every lemma](review/philology/README.md#the-word-layer), the chronology of the book's four parts, of the texts its map rests on and of the thought of eternal recurrence, their places, the graft map, images of works sharing its motifs; the map itself is grafted from the [constructor atlas](../access/web/constructor/README.md) |
 | [`aesthetics/`](aesthetics/bonsai.json) | `/aesthetics/`, to open | the [core of the field](CORE.md#a-core-across-works): thirty-six areas with their questions, 407 concepts, the first conceptions read in the works themselves and the links resting on them; the library of the works and authors those conceptions cite; the alignment of the corpus works they cite; the graft map. It grows from the research batches kept under [review/aesthetics/](review/aesthetics/README.md) |
+| [`population/`](population/bonsai.json) | `/population/` | the [core of a population](CORE.md#a-core-of-a-population): the authors of the philosophical corpus as the persons research registers name them, each member grown from the register rows the identity resolution joined, with its kind, names, the registers' statuses and the reader's verdict; their lives and years of activity in the registers' words; the graft map. It grows from the registers kept under [review/population/](review/population/README.md) |
 | [`shared/`](shared/coastlines.json) | Antiquity and Zarathustra | Natural Earth coastlines under the map of places |
 
 [`zarathustra/held.json`](zarathustra/held.json) keeps whole the stars and links removed by the strict rebuild of 1 November 2026, together with their texts, verdicts, reasons and places, and the earlier texts of what stays. The audit found 19 of the 128 earlier links grounded in a named place in the book; the remaining readings and comparisons are held to grow together with the operator, and the stand neither shows nor binds them.
@@ -367,6 +368,38 @@ layer and the readers' records. The check reads the field against the Tree's
 entity and relation registries and the library, and reads the exact words of
 every formula in the original where the corpus is fetched. Nothing here is
 admitted to the Tree.
+
+### Core of a population (`tos.bonsai.population.v1`)
+
+`population/population.json` holds a population as
+[CORE.md](CORE.md#a-core-of-a-population) describes it. A member is keyed by its
+ID (`m-` and ten base32 characters of the SHA-256 of the register row it was
+founded on) and holds its kind, which `kinds` types in the Tree's entity
+registry (agent or organization); its names in Russian, in Latin script and in
+the original script where a row gives one; the register's statuses and roles;
+the reader's verdict; the phases of its life in the stand's chronology; its gaps
+(`name:latin`, `life:unchecked`, `identity:queue`, …); and under `grew_from` the
+register rows it grew from (`T3-15:T3-15-A001`). `batches` counts each batch's
+rows and names its register as the site's copy keeps it (`register`).
+`redirects` maps a merged ID to the member it joined. `chronology.json` dates each phase in the register's own
+words, with the register's line as `source_wording` and the register's rows (kept
+in R2) as its source; `identities.json` names the Tree agent each member stands
+for.
+
+The modules are written by
+[`review/population/plant.mjs`](review/population/plant.mjs) from the review
+layer, the identity resolution and the ledger. The check reads every member
+against the kinds, the chronology and the graft map, and, through `cli.mjs
+check`, the review folder: every register row in exactly one member or left out
+with a reason, every member ID in the ledger, every control case held. Nothing
+here is admitted to the Tree.
+
+The stand is a page of its own (`access/web/src/population/`), not the research
+space of the other stands: it reads `population.json` and `chronology.json`,
+finds a member by any of its names, its kind or the century of its life, and
+shows its names, its years in the registers' words and the register rows it
+grew from, each batch linked to its register. Its tree in the site's choice is
+a banyan (`access/web/public/trees/population.svg`).
 
 ### Graft map (`tos.bonsai.identities.v1`)
 

@@ -166,8 +166,8 @@ describe('every bonsai',()=>{
   // A bonsai exports datings once it keeps a chronology, and places once it keeps their module; Aesthetics dates its authors and works and names no places yet.
   const dated=ids.filter(id=>loadBonsai(root,id).modules.chronology);
   it('is found at the repository root, one per stand',()=>{
-    expect(ids).toEqual(['aesthetics','antiquity','zarathustra']);
-    expect(dated).toEqual(['aesthetics','antiquity','zarathustra']);
+    expect(ids).toEqual(['aesthetics','antiquity','population','zarathustra']);
+    expect(dated).toEqual(['aesthetics','antiquity','population','zarathustra']);
     for(const id of ids)expect(bonsaiFor(id)?.manifest?.id).toBe(id);
   });
   for(const id of ids)it(`${id}: its modules keep their contracts and its export fits the Tree's contracts`,()=>{
