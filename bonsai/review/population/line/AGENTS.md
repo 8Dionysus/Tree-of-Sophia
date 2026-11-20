@@ -40,7 +40,7 @@ decisions, which `resolve.mjs` reads on its next run.
 ```sh
 node bonsai/lib/layers.mjs fetch bonsai/review/population   # the register rows and the parsed layer
 node bonsai/review/population/resolve.mjs                   # keys, ledger, queue/identity.jsonl
-node bonsai/review/population/line/kit.mjs packets          # cut new packets from the queue
+node bonsai/review/population/line/kit.mjs packets          # cut new packets, planted members' questions first
 node bonsai/review/population/line/drive.mjs --parallel 8   # two codex readers per packet, gate, accept
 node bonsai/review/population/resolve.mjs && node bonsai/review/population/plant.mjs
 node bonsai/lib/cli.mjs check population

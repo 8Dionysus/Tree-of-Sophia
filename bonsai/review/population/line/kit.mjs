@@ -2,7 +2,8 @@
 // The reading line of the Population bonsai.
 //
 //   node bonsai/review/population/line/kit.mjs queues [--check]    write queue/{kind,dates,latin,living}.jsonl and print every queue's size
-//   node bonsai/review/population/line/kit.mjs packets [--size 20] cut the identity questions no packet holds yet into new packets
+//   node bonsai/review/population/line/kit.mjs packets [--size 20] cut the identity questions no packet holds yet into new packets,
+//                                                                   the planted members' questions first
 //   node bonsai/review/population/line/kit.mjs gate <packet>       0: open · 1: problems in the readers' verdicts · 3: a fault of the line
 //   node bonsai/review/population/line/kit.mjs accept <packet> --by <who>   append the verdicts both readers agree on to decisions.jsonl
 //   node bonsai/review/population/line/kit.mjs status
@@ -88,7 +89,12 @@ function packets(size){
     const items=meta.items.map(id=>queue.find(entry=>entry.item===id)).filter(Boolean).map(entry=>item(rows,entry));
     writeJsonl(packetFile(packet,'items.jsonl'),items);
   }
-  const waiting=queue.filter(entry=>!held.has(entry.item));
+  // The questions about planted members come first: both sides planted, then one, then none.
+  const population=join(ROOT,'bonsai','population','population.json');
+  const planted=new Set(existsSync(population)?Object.keys(JSON.parse(readFileSync(population,'utf8')).members):[]);
+  const weight=entry=>2-[entry.a.member,entry.b.member].filter(member=>planted.has(member)).length;
+  const waiting=queue.map((entry,at)=>({entry,at})).filter(({entry})=>!held.has(entry.item))
+    .sort((x,y)=>weight(x.entry)-weight(y.entry)||x.at-y.at).map(({entry})=>entry);
   for(let i=0;i<waiting.length;i+=size){
     const packet=`p-${String(next++).padStart(4,'0')}`,chunk=waiting.slice(i,i+size);
     const items=chunk.map(entry=>item(rows,entry));
