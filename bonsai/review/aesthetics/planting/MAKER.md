@@ -51,8 +51,10 @@ it, and `K scan . ITEM` chooses the one that `K leaf`, `K image`, `K offset`
 and `K cut . ocr` work on (`K scan .` lists them). Each scan wants its own
 offset.
 
-Then fill `entry` in `places.json`: `original` (language code) and one witness
-under that code:
+Prepare a complete copy of the packet's current `places.json` outside the
+packet, add `entry`: `original` (language code) and one witness under that
+code, then use `K import . places FILE` to record it. Packet files are changed
+only through kit commands; retain existing cuts and page checks in the copy:
 
 ```json
 "witnesses": {"en": {
@@ -223,7 +225,8 @@ Every waiting reading and link ends in a `from` or under `left`:
 ```
 
 Fill `reader.reads` with one sentence saying what was read (the language, the
-edition, beside the registers' readings).
+edition, beside the registers' readings). Prepare the complete reading object
+outside the packet and record it with `K import . reading FILE`.
 
 ## 6. The gate
 
@@ -256,6 +259,26 @@ K witness-review . ru "§1 p1" --reader another-reader --alignment "How the seco
 K witness-gate . ru --second --accept
 ```
 
+When any jurisdiction uses `short-quotation`, separately assess Mexico's
+LFDA article 148(I) for this exact witness and its selected places. Record
+why the quotation is not a substantial substitute, how normal exploitation
+is affected, and how attribution, source and unchanged wording are preserved:
+
+```sh
+K mexico-quotation . --language ru --non-substantial '…' --normal-exploitation '…' --source-integrity '…'
+K mexico-quotation-review . --language ru --assessment 'Independent assessment of these exact places and the law.'
+K witness-gate . ru --second --accept
+```
+
+The first command fetches the official Cámara de Diputados law PDF, retains
+its digest and binds the assessment to the exact witness and places. The second
+reader must already be recorded through `witness-review`. For an original
+witness omit `--language`; its existing packet second reader reviews the
+assessment. An extension records its own assessment on its evidence and review,
+scoped to that extension's places. A later change to the witness or its places requires a new
+assessment and independent review. Missing assessments on older accepted
+packets remain explicit `owes`, while new quotations require this assessment.
+
 The reader opens each fetched image and checks the whole translated sentences
 against it and against the original; recording a review is not itself a page
 reading. A quotation also records `--lines`, and an exceptional longer place
@@ -264,6 +287,37 @@ by SHA-256. Changes require a new independent reading and acceptance. Local
 source files and images stay in the kit cache outside Git. A partial witness
 leaves the other places without a translation.
 
+For a place that runs across printed pages, fetch each additional page as
+maker and bind its words to the place. Open every image and read the
+complete passage; the second reader independently fetches and opens the same
+images before recording one review of the whole place:
+
+```
+K witness-image . en https://example.org/page38 --name page38.jpg
+K witness-add-page . en 'I p39a' --page 'p. 38' --image page38.jpg --first-span 'words on the first page' --span 'words on the second page'
+K witness-image . en https://example.org/page38 --name second38.jpg --by second
+K witness-review . en 'I p39a' --reader another-reader --alignment 'Both pages read against the original place.'
+```
+
+The spans cover the whole place in order; each records the words read on that
+page. The review binds the URL, printed page and digest of every image. A page
+range needs an image for every page. For a correction on an additional page, pass
+`--image page38.jpg` to `witness-correct`; the selected page span is updated.
+The citation and packet provenance preserve the additional page references.
+
+When no usable transcription contains the passage, open and read the maker's
+page image, then record the actual words as a human page transcription:
+
+```
+K witness-transcribe-page . es --loc '§1 p1' --page 'p. 86' --image page.jpg --text 'The actual complete sentences read on this page.' --reason 'The image-only source has no usable transcription of this passage.' --alignment 'How these sentences correspond to the original.'
+```
+
+Use the exact image URL for each page; another page source requires its own
+image. The packet identifies this as a human transcription, not a downloaded
+text. A different reader must open the same image and independently review the
+words and alignment with `witness-image --by second` and `witness-review`.
+Recording a check is a statement that the reader actually opened and read it.
+
 A prepared JSON object can be brought into a new, unaccepted packet with
 `K import . places FILE` or `K import . reading FILE`; the second reader can
 use `K import . review FILE`. `K import . blocked FILE` records a block and
@@ -271,7 +325,53 @@ use `K import . review FILE`. `K import . blocked FILE` records a block and
 accept the packet. The gate still checks the source files, page evidence and
 reading. Accepted packets cannot be replaced by these commands.
 
+For an accepted packet whose Archive page-number metadata disagrees with the
+visible printed page, the line owner and a different reader open that exact
+leaf. The owner can record the two observations without replacing acceptance:
+
+```
+K page-number-correct . --loc 'III affects2 p184' --loc 'III affects3 p184' --leaf 218 --old 183 --new 184 --url 'https://archive.org/download/benedictidespin01spingoog/page/n218.jpg' --by maker-id --second second-id --second-model model --assessment 'What the second reader actually saw on this image.'
+```
+
+The source page image is kept in the local cache; its URL and digest, the
+previous number, both readers and the assessment are recorded in evidence.
+The original acceptance stays in place and binds the correction review. A new
+comparison retains the correction only while its original leaf and recorded
+predecessor still match.
+
+For an accepted original text whose print differs from its transcription,
+two independent readers may record the exact page-bound correction without
+replacing the original acceptance:
+
+```
+K accepted-text-correct . 'LOC' 'BEFORE' 'AFTER' --n 289 --url 'https://archive.org/download/ITEM/page/n289.jpg' --by maker-id --second reader-id --second-model model --assessment 'What the second reader saw on this page.'
+K compare .
+K gate . --second
+```
+
+The page must already be recorded for this place; the source image and digest,
+both readings and the separate assessment remain bound to the acceptance.
+
 ## Continue an accepted reading
+
+If every required source has actually been searched and no translation of any
+current place was found, record the search on the parent packet, without inventing a
+translation witness or book locator. The input JSON has `maker`, a detailed
+`reason`, and `tried` entries with `site`, `url`, and `outcome` for each
+required source. The command records the current original-place scope.
+
+```sh
+K language-search . es search.json
+K language-search-review . es --reader SECOND --model MODEL --assessment 'What the second reader checked and concluded.'
+K language-search-accept . es
+node ../../../plant.mjs
+```
+
+The second reader must differ from the maker; acceptance binds their decision
+to the exact search. Adding an original place requires renewed search and
+review. `K language-search-withdraw . es` removes the acceptance while keeping
+the evidence, so the search can be replaced. A subsequently accepted witness
+takes precedence over the search in the projection.
 
 Leave the accepted packet and its review intact. To work on specific waiting
 register keys, make an independent extension:
@@ -303,6 +403,16 @@ sets one jurisdiction at a time. For a person without a usable Wikidata item,
 fetches a trusted reference and records its digest. A missing death year stays
 unknown and cannot establish public domain by dates. Every metadata change
 requires a fresh independent reading before acceptance.
+For an unaccepted witness, `witness-person-remove . ru author Q123 --reason
+'Reason for removing this mistaken identity.'` preserves the removed record
+and clears the second reading; verify the replacement before reviewing again.
+
+If a second reader finds an error after acceptance but before the work was
+planted, `K reopen . --reader ID --finding 'The specific error seen on the
+page …'` withdraws the acceptance, retains the complete predecessor and
+clears the second reading. Correct the reading through the kit and obtain a
+new independent review. This route refuses already planted works and packets
+with accepted translation witnesses or correction receipts.
 
 For a work already in `fragments.json` that predates the line and has no
 packet, run `K witness-parent WORK` first. It creates a witness-only parent;
@@ -358,3 +468,41 @@ a documented search for that particular missing place. For a partial witness,
 search, edition and book locator required for a missing language; a later cut
 of that location replaces the gap. Accepted older works may still add a
 partial witness and retain their existing coverage debt.
+
+An extension may add translated places to an already accepted language when
+its witness records the same edition, participants, rights and source metadata;
+the maker may differ. Each extension is independently reviewed and signed.
+An overlapping place or a different edition is refused before acceptance.
+
+### An anonymously published translation
+
+An unnamed translator is not necessarily an anonymously published translation.
+First fetch at least two sources with `witness-fetch` and research attribution
+across at least three distinct catalogues or sources. Prepare a JSON object:
+
+```json
+{
+  "first_publication_year": 1875,
+  "lawful_publication": "Evidence for the first lawful public availability of this translation.",
+  "identity_research": "Searches for disclosure of the translator's identity during the applicable period.",
+  "same_version": "Evidence that the first publication is the translation in this exact edition.",
+  "searches": [{"url": "https://example.org/catalogue", "outcome": "What was searched and what the catalogue established."}],
+  "sources": ["edition.html", "catalogue.html"]
+}
+```
+
+The example is a shape, not sufficient evidence: each explanation needs at
+least 60 characters, three distinct searches and two fetched sources are
+required. Record it with `witness-anonymous PACKET LANG evidence.json`, then
+have the second reader verify the edition, publication and identity research
+and run `witness-anonymous-review PACKET LANG ASSESSMENT` after their page
+review. The review binds to the exact evidence record. The identified original
+author and every identified editor still require their own sourced dates.
+
+For the EU, Directive 2006/116/EC Article 1(3) and Article 8 permit the
+anonymous-publication term only after the evidenced first lawful availability
+and subject to identity disclosure; the dynamic gate uses year − 71. Russia is
+not automatically classified public domain from this EU route: assess a
+separate lawful quotation or licence, or establish the translator's identity.
+If a translator is identified, use `witness-anonymous-clear PACKET LANG`,
+record the person and obtain a new independent review.

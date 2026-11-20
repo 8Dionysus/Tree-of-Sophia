@@ -5,9 +5,8 @@ the Aesthetics bonsai one work at a time.
 
 ## Role
 
-A packet is one work, `packets/<work id>/`, made by one reader (the maker) and
-read again by another (the second reader). `kit.py` is the line's one tool;
-`drive.py` starts readers and is the operator's.
+A packet is one work, `packets/<work id>/`, read by a maker and an independent
+second reader. `kit.py` is the line's tool; `drive.py` starts readers.
 
 | File | Holds | Written by |
 | --- | --- | --- |
@@ -28,6 +27,9 @@ read again by another (the second reader). `kit.py` is the line's one tool;
    transcription holds the passage, out of the scan's own OCR. It is never typed,
    recalled, translated, modernised or mended by hand. Where the printed page
    reads otherwise, `kit.py correct` changes the text and records the change.
+   For translation without usable transcription, `witness-transcribe-page`
+   records a human reading, independently checked against the same image;
+   it is not a downloaded transcription.
    In a print with the long s, ſ is s and ſs is the print's ß.
 2. **The page decides.** `kit.py compare` sets every place beside the scan.
    Every difference is looked at on the page image, then judged with
@@ -66,10 +68,8 @@ recomputes the comparison from the fetched files and checks rights, coverage
 of the register readings, the affirming style and the planting itself; each
 line it prints is one thing to settle.
 
-An honest `blocked.json` is a finished packet. A packet pushed through the
-gate by a judgment nobody looked at, a date nobody fetched or a reading bent
-to fit is worse than none. Stop at `gate: open` or at `blocked.json`, nowhere
-between.
+An honest `blocked.json` is a finished packet. Never invent a page judgment,
+date or reading. Stop at `gate: open` or `blocked.json`.
 
 A gate line that begins `line:` names a fault of the line itself: the checkout
 or the corpus the planting reads. The packet stands as it is. Write no

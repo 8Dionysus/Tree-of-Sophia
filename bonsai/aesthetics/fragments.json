@@ -1087,6 +1087,24 @@
     "place": "leon-battista-alberti.de-re-aedificatoria IX.5 p136v"
    },
    {
+    "lang": "la",
+    "from": "auctoritatem",
+    "to": "autoritatem",
+    "evidence": "The 1541 Strasbourg page n289 reads autoritatem without c between gratiam and vendicat; a separate reader checked the page image.",
+    "place": "leon-battista-alberti.de-re-aedificatoria IX.5 p136v",
+    "review": {
+     "url": "https://archive.org/download/dereaedificatori00albe/page/n289.jpg",
+     "image_sha256": "e12c60d1e5ef59342db4066d90b24fa65ddb39425e1be8cb01d18864d3d00094",
+     "file": "text-correction-e12c60d1e5ef59342db4066d90b24fa65ddb39425e1be8cb01d18864d3d00094.img",
+     "by": "line-codex-2026-11-19",
+     "second": "line-terra-2026-11-19",
+     "second_model": "gpt-6.1-terra-high",
+     "assessment": "The 1541 Strasbourg page n289 reads autoritatem without c between gratiam and vendicat; a separate reader checked the page image.",
+     "date": "2026-11-19"
+    },
+    "offset": 369
+   },
+   {
     "lang": "de",
     "from": "Wisenschasten",
     "to": "Wissenschaften",
@@ -2032,7 +2050,503 @@
    "william-gilpin.three-essays",
    "william-james.the-principles-of-psychology",
    "william-morris.the-decorative-arts"
-  ]
+  ],
+  "translation_packets": {
+   "baruch-spinoza.ethics": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/baruch-spinoza.ethics/witnesses/en.json",
+     "corrections": []
+    }
+   },
+   "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "Essay p739",
+       "from": "not (»ily",
+       "to": "not only",
+       "offset": 108,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n354.jpg",
+       "page": "p. 268",
+       "image_sha256": "f402aa29ff7bd3d220e5a7d93b3231b21485f10ed870e59ce1e84b83eb452baf"
+      },
+      {
+       "loc": "Essay p739",
+       "from": "senti- ments",
+       "to": "sentiments",
+       "offset": 258,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n354.jpg",
+       "page": "p. 268",
+       "image_sha256": "f402aa29ff7bd3d220e5a7d93b3231b21485f10ed870e59ce1e84b83eb452baf"
+      },
+      {
+       "loc": "Essay p740a",
+       "from": "oppanenty",
+       "to": "apparent,",
+       "offset": 37,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg",
+       "page": "p. 269",
+       "image_sha256": "c189fa26eaa9a3288b90747e51d404ba8538c64737f0171711315a228a6ed7a8"
+      },
+      {
+       "loc": "Essay p740a",
+       "from": "fitimi",
+       "to": "fitness",
+       "offset": 99,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg",
+       "page": "p. 269",
+       "image_sha256": "c189fa26eaa9a3288b90747e51d404ba8538c64737f0171711315a228a6ed7a8"
+      },
+      {
+       "loc": "Essay p740a",
+       "from": "ihem in s",
+       "to": "them in a",
+       "offset": 151,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg",
+       "page": "p. 269",
+       "image_sha256": "c189fa26eaa9a3288b90747e51d404ba8538c64737f0171711315a228a6ed7a8"
+      },
+      {
+       "loc": "Essay p740a",
+       "from": "aide",
+       "to": "side",
+       "offset": 218,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg",
+       "page": "p. 269",
+       "image_sha256": "c189fa26eaa9a3288b90747e51d404ba8538c64737f0171711315a228a6ed7a8"
+      },
+      {
+       "loc": "Essay p740a",
+       "from": "whicb",
+       "to": "which",
+       "offset": 235,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg",
+       "page": "p. 269",
+       "image_sha256": "c189fa26eaa9a3288b90747e51d404ba8538c64737f0171711315a228a6ed7a8"
+      },
+      {
+       "loc": "Essay p740a",
+       "from": "eoBcealed",
+       "to": "concealed",
+       "offset": 269,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg",
+       "page": "p. 269",
+       "image_sha256": "c189fa26eaa9a3288b90747e51d404ba8538c64737f0171711315a228a6ed7a8"
+      },
+      {
+       "loc": "Essay p740a",
+       "from": "expreiuon",
+       "to": "expression",
+       "offset": 300,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg",
+       "page": "p. 269",
+       "image_sha256": "c189fa26eaa9a3288b90747e51d404ba8538c64737f0171711315a228a6ed7a8"
+      },
+      {
+       "loc": "Essay p740a",
+       "from": "wluch",
+       "to": "which",
+       "offset": 311,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg",
+       "page": "p. 269",
+       "image_sha256": "c189fa26eaa9a3288b90747e51d404ba8538c64737f0171711315a228a6ed7a8"
+      },
+      {
+       "loc": "Essay p740a",
+       "from": "low,, accessory .representations",
+       "to": "low, accessory representations",
+       "offset": 326,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg",
+       "page": "p. 269",
+       "image_sha256": "c189fa26eaa9a3288b90747e51d404ba8538c64737f0171711315a228a6ed7a8"
+      },
+      {
+       "loc": "Essay p740b",
+       "from": "artthelov",
+       "to": "art the low",
+       "offset": 43,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n356.jpg",
+       "page": "p. 270",
+       "image_sha256": "b2fcef7ea909211d427d4436f093515ef7f3bae6a4e90438117f34c1c8426d47"
+      },
+      {
+       "loc": "Essay p740b",
+       "from": "allowed ;",
+       "to": "allowed;",
+       "offset": 62,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n356.jpg",
+       "page": "p. 270",
+       "image_sha256": "b2fcef7ea909211d427d4436f093515ef7f3bae6a4e90438117f34c1c8426d47"
+      },
+      {
+       "loc": "Essay p740b",
+       "from": "tosir cite",
+       "to": "to excite",
+       "offset": 106,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n356.jpg",
+       "page": "p. 270",
+       "image_sha256": "b2fcef7ea909211d427d4436f093515ef7f3bae6a4e90438117f34c1c8426d47"
+      },
+      {
+       "loc": "Essay p741",
+       "from": "eveh",
+       "to": "even",
+       "offset": 26,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n357.jpg",
+       "page": "p. 271",
+       "image_sha256": "cf1e199f24788fc2fcd5d2ad6e148ca9695fabe8704e0fdb6deeb9a7f91ca817"
+      },
+      {
+       "loc": "Essay p741",
+       "from": "\\6w",
+       "to": "low",
+       "offset": 68,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n357.jpg",
+       "page": "p. 271",
+       "image_sha256": "cf1e199f24788fc2fcd5d2ad6e148ca9695fabe8704e0fdb6deeb9a7f91ca817"
+      },
+      {
+       "loc": "Essay p741",
+       "from": "fearfoil",
+       "to": "fearful",
+       "offset": 127,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n357.jpg",
+       "page": "p. 271",
+       "image_sha256": "cf1e199f24788fc2fcd5d2ad6e148ca9695fabe8704e0fdb6deeb9a7f91ca817"
+      },
+      {
+       "loc": "Essay p741",
+       "from": "swal- lowed",
+       "to": "swallowed",
+       "offset": 252,
+       "reason": "The 1845 printed page image reads this correction; OCR misrecognition or line-break hyphenation is resolved against the page.",
+       "url": "https://archive.org/download/aestheticletter00schigoog/page/n357.jpg",
+       "page": "p. 271",
+       "image_sha256": "cf1e199f24788fc2fcd5d2ad6e148ca9695fabe8704e0fdb6deeb9a7f91ca817"
+      }
+     ]
+    }
+   },
+   "friedrich-schiller.ueber-das-erhabene": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-erhabene/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "Essay p286a",
+       "from": "ofjoyfulness",
+       "to": "of joyfulness",
+       "offset": 132,
+       "reason": "Printed page 246, IA leaf n287, shows separate words of and joyfulness; OCR merged them.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+       "page": "p. 246",
+       "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b"
+      },
+      {
+       "loc": "Essay p286a",
+       "from": "refine- ment",
+       "to": "refinement",
+       "offset": 273,
+       "reason": "Printed page 246, IA leaf n287, divides refinement at the line end; join the word without the line-break hyphen.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+       "page": "p. 246",
+       "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b"
+      },
+      {
+       "loc": "Essay p286a",
+       "from": "independ- ence",
+       "to": "independence",
+       "offset": 375,
+       "reason": "Printed page 246, IA leaf n287, divides independence at the line end; join the word without the line-break hyphen.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+       "page": "p. 246",
+       "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b"
+      },
+      {
+       "loc": "Essay p286b",
+       "from": "reason ;",
+       "to": "reason;",
+       "offset": 93,
+       "reason": "Printed page 246, IA leaf n287, has a semicolon directly after reason; the OCR inserted a space before it.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+       "page": "p. 246",
+       "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b"
+      }
+     ]
+    }
+   },
+   "friedrich-schiller.ueber-das-pathetische": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-pathetische/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "III p312",
+       "from": "representa- tion",
+       "to": "representation",
+       "offset": 24,
+       "reason": "Printed p. 202: line-wrap hyphen removed, restoring the printed word.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n243.jpg",
+       "page": "202",
+       "image_sha256": "87630ffc9e6b59fc0c51b4b3fa002854a0d27e1572243a51de84fd2e927d309c"
+      },
+      {
+       "loc": "III p312",
+       "from": "nature :",
+       "to": "nature:",
+       "offset": 114,
+       "reason": "Printed p. 202 has a colon immediately following nature; OCR whitespace normalized.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n243.jpg",
+       "page": "202",
+       "image_sha256": "87630ffc9e6b59fc0c51b4b3fa002854a0d27e1572243a51de84fd2e927d309c"
+      },
+      {
+       "loc": "III p345",
+       "from": "emo- tions",
+       "to": "emotions",
+       "offset": 4,
+       "reason": "Printed p. 220: line-wrap hyphen removed, restoring the printed word.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n261.jpg",
+       "page": "220",
+       "image_sha256": "1b64bf159d715a46827ee0e1470a5f5d8d513bb38253d6574fe79800debb33ae"
+      },
+      {
+       "loc": "III p345",
+       "from": "aesthetic",
+       "to": "æsthetic",
+       "offset": 22,
+       "reason": "Printed p. 220 uses the æ ligature.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n261.jpg",
+       "page": "220",
+       "image_sha256": "1b64bf159d715a46827ee0e1470a5f5d8d513bb38253d6574fe79800debb33ae"
+      },
+      {
+       "loc": "III p345",
+       "from": "sym- pathy",
+       "to": "sympathy",
+       "offset": 54,
+       "reason": "Printed p. 220: line-wrap hyphen removed, restoring the printed word.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n261.jpg",
+       "page": "220",
+       "image_sha256": "1b64bf159d715a46827ee0e1470a5f5d8d513bb38253d6574fe79800debb33ae"
+      },
+      {
+       "loc": "III p345",
+       "from": "ferentem Cornpiunt.",
+       "to": "ferentem\nCorripiunt.",
+       "offset": 152,
+       "reason": "Printed p. 220 has ferentem at the end of the first Latin line and Corripiunt. on the second; OCR misreads Corripiunt and squeezing obscures the verse line break.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n261.jpg",
+       "page": "220",
+       "image_sha256": "1b64bf159d715a46827ee0e1470a5f5d8d513bb38253d6574fe79800debb33ae"
+      }
+     ]
+    }
+   },
+   "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "XV p164",
+       "from": "play-im- pulse",
+       "to": "play-impulse",
+       "offset": 18,
+       "reason": "p. 68 n109 divides impulse at the line end; preserve the lexical hyphen.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n109.jpg",
+       "page": "p. 68",
+       "image_sha256": "9d75c77f302fdcaa6bb592ba05137e717fd6d91495f8540902ea3e57b1816be9"
+      },
+      {
+       "loc": "XV p164",
+       "from": "aesthetic",
+       "to": "æsthetic",
+       "offset": 138,
+       "reason": "p. 68 n109 prints the æ ligature.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n109.jpg",
+       "page": "p. 68",
+       "image_sha256": "9d75c77f302fdcaa6bb592ba05137e717fd6d91495f8540902ea3e57b1816be9"
+      },
+      {
+       "loc": "XXIII p236a",
+       "from": "per- ception",
+       "to": "perception",
+       "offset": 47,
+       "reason": "p. 108 n149 divides perception at the line end.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+       "page": "p. 108",
+       "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+      },
+      {
+       "loc": "XXIII p236a",
+       "from": "aes- thetic",
+       "to": "æsthetic",
+       "offset": 153,
+       "reason": "p. 108 n149 divides æsthetic at the line end and prints æ ligature.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+       "page": "p. 108",
+       "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+      },
+      {
+       "loc": "XXIII p236a",
+       "from": "disposi- tions",
+       "to": "dispositions",
+       "offset": 256,
+       "reason": "p. 108 n149 divides dispositions at the line end.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+       "page": "p. 108",
+       "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+      },
+      {
+       "loc": "XXIII p236a",
+       "from": "judg- ment",
+       "to": "judgment",
+       "offset": 419,
+       "reason": "p. 108 n149 divides judgment at the line end.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+       "page": "p. 108",
+       "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+      }
+     ]
+    }
+   },
+   "friedrich-schiller.ueber-die-tragische-kunst": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No translation is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-die-tragische-kunst/witnesses/en.json",
+     "corrections": []
+    }
+   },
+   "gotthold-ephraim-lessing.laokoon": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/gotthold-ephraim-lessing.laokoon/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "XVI p153b",
+       "from": "Conse- quently",
+       "to": "Consequently",
+       "offset": 258,
+       "reason": "The 1890 scan p. 91 (n108) prints Conse- at the end of one line and quently at the beginning of the next; join the line-divided word.",
+       "url": "https://archive.org/download/laocoon01less/page/n108.jpg",
+       "page": "p. 91",
+       "image_sha256": "74291587a38deb541c9420f5350ec8344fc2eb21ab5e17658f5a965005cfdb3c"
+      }
+     ]
+    }
+   },
+   "henri-poincare.l-invention-mathematique": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No translation is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/henri-poincare.l-invention-mathematique/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "Conférence p12a",
+       "from": "with- out",
+       "to": "without",
+       "offset": 242,
+       "reason": "Page 391 divides without at the line break; the printed word is without.",
+       "url": "https://archive.org/download/foundationsofsci0000hpoi/page/n406/mode/1up",
+       "page": "391",
+       "image_sha256": "7b7c8fcf15f44806d2655c3017748bd7e208e96302bbef368662f77c8201f649"
+      },
+      {
+       "loc": "Conférence p12b",
+       "from": "combina- tions",
+       "to": "combinations",
+       "offset": 27,
+       "reason": "Page 392 divides combinations at the line break; the printed word is combinations.",
+       "url": "https://archive.org/download/foundationsofsci0000hpoi/page/n407/mode/1up",
+       "page": "392",
+       "image_sha256": "90728a0f2d9f93b3235d0fed29ae730ee7ba47778cabd6fbf22eea9c84b4e797"
+      },
+      {
+       "loc": "Conférence p12b",
+       "from": "atten- tion",
+       "to": "attention",
+       "offset": 478,
+       "reason": "Page 392 divides attention at the line break; the printed word is attention.",
+       "url": "https://archive.org/download/foundationsofsci0000hpoi/page/n407/mode/1up",
+       "page": "392",
+       "image_sha256": "90728a0f2d9f93b3235d0fed29ae730ee7ba47778cabd6fbf22eea9c84b4e797"
+      },
+      {
+       "loc": "Conférence p13",
+       "from": "combina- tions",
+       "to": "combinations",
+       "offset": 27,
+       "reason": "Page 392 divides combinations at the line break; the printed word is combinations.",
+       "url": "https://archive.org/download/foundationsofsci0000hpoi/page/n407/mode/1up",
+       "page": "392",
+       "image_sha256": "90728a0f2d9f93b3235d0fed29ae730ee7ba47778cabd6fbf22eea9c84b4e797"
+      },
+      {
+       "loc": "Conférence p13",
+       "from": "atten- tion",
+       "to": "attention",
+       "offset": 478,
+       "reason": "Page 392 divides attention at the line break; the printed word is attention.",
+       "url": "https://archive.org/download/foundationsofsci0000hpoi/page/n407/mode/1up",
+       "page": "392",
+       "image_sha256": "90728a0f2d9f93b3235d0fed29ae730ee7ba47778cabd6fbf22eea9c84b4e797"
+      }
+     ]
+    }
+   }
+  }
  },
  "works": {
   "immanuel-kant.kritik-der-urteilskraft": {
@@ -2482,6 +2996,103 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy",
+     "year": 1845,
+     "url": "https://archive.org/details/stheticletterses01schi",
+     "licence": "Public-domain 1845 translation and book; Internet Archive machine OCR of Duke University Libraries copy corrected against its page images, with line-wrap hyphens removed. No separate OCR licence is asserted.",
+     "attribution": "Friedrich Schiller, Upon the Sublime, translated by John Weiss, in The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller (Boston, 1845), pp. 246 and 261; IA OCR checked and corrected against the scanned pages.",
+     "maker": "codex-2026-11-19-weiss-sublime-maker",
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: Шиллер умер в 1805, переводчик Вейсс в 1879, сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "US copyright: translation published in the United States in 1845, before 1931, and is in the public domain."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC art. 1: author died 1805 and translator died 1879; the ordinary life plus 70 years terms have expired."
+      }
+     },
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Weiss, John",
+        "ru": "Джон Вейсс"
+       },
+       "born": 1818,
+       "died": 1879,
+       "source": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-d9a438f7e4b8e240.html",
+        "sha256": "aa58f28f3b4f9a7564a41ee24c47faafe581fdafd975d8ff42a5c39c10499e66",
+        "url": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10"
+       }
+      }
+     ],
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Weiss, John",
+        "ru": "Джон Вейсс"
+       },
+       "source": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10",
+       "born": [
+        {
+         "year": 1818
+        }
+       ],
+       "died": [
+        {
+         "year": 1879
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -2489,10 +3100,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -2557,6 +3164,106 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy",
+     "year": 1845,
+     "url": "https://archive.org/details/stheticletterses01schi",
+     "licence": "Public-domain 1845 translation and book; Internet Archive machine OCR of Duke University Libraries copy corrected against its page images, with line-wrap hyphens removed. No separate OCR licence is asserted.",
+     "maker": "codex-2026-11-19-education-weiss-maker",
+     "attribution": "Friedrich Schiller, The Æsthetic Letters, translated by John Weiss, in The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller (Boston, 1845), pp. 68 and 108; IA OCR of Duke copy compared and corrected against the page images.",
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: Шиллер умер в 1805, переводчик Вейсс в 1879, сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "US copyright: translation published in the United States in 1845, before 1931, and is in the public domain."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC art. 1: author died 1805 and translator died 1879; the ordinary life plus 70 years terms have expired."
+      }
+     },
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q6263392",
+       "name": {
+        "en": "John Weiss",
+        "ru": "Джон Уайсс"
+       },
+       "born": 1818,
+       "died": 1879,
+       "source": "https://www.wikidata.org/wiki/Q6263392",
+       "evidence": {
+        "file": "wikidata-Q6263392.json",
+        "sha256": "a0bd8ec47bc32753a296951c8154c2d461dc8eb5fb6abbde1a2326f0d13118be",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q6263392.json"
+       }
+      }
+     ],
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "John Weiss",
+        "ru": "Джон Уайсс"
+       },
+       "qid": "Q6263392",
+       "source": "https://www.wikidata.org/wiki/Q6263392",
+       "born": [
+        {
+         "time": "+1818-06-28T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1879-03-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -2564,10 +3271,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -2715,7 +3418,8 @@
        "died": [
         {
          "time": "+1274-03-07T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ]
       }
@@ -2855,13 +3559,21 @@
        "born": [
         {
          "time": "+1711-04-26T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
         }
        ],
        "died": [
         {
          "time": "+1776-08-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
         }
        ]
       }
@@ -3029,16 +3741,109 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy",
+     "year": 1845,
+     "url": "https://archive.org/details/stheticletterses01schi",
+     "licence": "Public-domain historical text and 1845 translation. Internet Archive machine OCR of this Duke University Libraries copy was checked against its page image; source provenance is separate from the underlying book and no separate OCR licence is asserted.",
+     "attribution": "Friedrich Schiller, Upon the Tragic Art, translated by John Weiss, in The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller (Boston, 1845), p. 333; Internet Archive OCR checked against the scanned page, with whitespace normalized.",
+     "maker": "codex-2026-11-19-tragic-art-weiss-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Weiss, John",
+        "ru": "Джон Вейсс"
+       },
+       "born": 1818,
+       "died": 1879,
+       "source": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-d9a438f7e4b8e240.html",
+        "sha256": "aa58f28f3b4f9a7564a41ee24c47faafe581fdafd975d8ff42a5c39c10499e66",
+        "url": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: Шиллер умер в 1805, переводчик Вейсс в 1879, сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Translation published in the United States in 1845, before 1931, and public domain in the United States."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: author died 1805 and translator died 1879; the ordinary 70-year post-mortem terms expired."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Weiss, John",
+        "ru": "Джон Вейсс"
+       },
+       "source": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10",
+       "born": [
+        {
+         "year": 1818
+        }
+       ],
+       "died": [
+        {
+         "year": 1879
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
    "unsearched": [
     {
      "language": "ru",
-     "reason": "No translation is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
      "reason": "No translation is taken in this pass: the line plants the original first."
     }
    ]
@@ -3540,6 +4345,106 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy",
+     "year": 1845,
+     "url": "https://archive.org/details/stheticletterses01schi",
+     "licence": "Public-domain historical text and 1845 translation. Internet Archive machine OCR of this Duke University Libraries copy was checked against its page image; source provenance is separate from the underlying book and no separate OCR licence is asserted.",
+     "attribution": "Friedrich Schiller, Upon the Pathetic, translated by John Weiss, in The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller (Boston, 1845), pp. 202, 220. The untranslated Latin quotation on p. 220 is from Virgil, Aeneid II.216–217 (excerpt); it is quoted by Schiller, not co-authorship of his essay. Internet Archive OCR checked against the page images.",
+     "maker": "codex-2026-11-19-pathetic-weiss-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q6263392",
+       "name": {
+        "en": "John Weiss",
+        "ru": "Джон Уайсс"
+       },
+       "born": 1818,
+       "died": 1879,
+       "source": "https://www.wikidata.org/wiki/Q6263392",
+       "evidence": {
+        "file": "wikidata-Q6263392.json",
+        "sha256": "a0bd8ec47bc32753a296951c8154c2d461dc8eb5fb6abbde1a2326f0d13118be",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q6263392.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: Шиллер умер в 1805, переводчик Вейсс в 1879, сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Translation published in the United States in 1845, before 1931, and public domain in the United States."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: author died 1805 and translator died 1879; the ordinary 70-year post-mortem terms expired."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "John Weiss",
+        "ru": "Джон Уайсс"
+       },
+       "qid": "Q6263392",
+       "source": "https://www.wikidata.org/wiki/Q6263392",
+       "born": [
+        {
+         "time": "+1818-06-28T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1879-03-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -3547,10 +4452,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -3777,6 +4678,106 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan",
+     "year": 1891,
+     "url": "https://archive.org/details/chiefworksofbene02spin",
+     "licence": "Spinoza's work and Elwes's historical translation are public domain on the stated jurisdictional grounds. Words were taken from English Wikisource, Ethics (Spinoza)/Part 3, revision 14519811, rendered at https://en.wikisource.org/w/index.php?title=Ethics_(Spinoza)/Part_3&oldid=14519811&action=render, and checked against Internet Archive page images of the 1891 Elwes edition; Wikisource does not identify a scan of its transcription's edition. Wikisource's copyright policy https://en.wikisource.org/wiki/Wikisource:Copyright_policy states that, unless otherwise noted, user contributions are released under CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/) and the unversioned GNU Free Documentation License with no invariant sections or cover texts (https://www.gnu.org/licenses/fdl.html). For applicable copyrightable user contributions respect attribution, licence and share-alike terms; revision history identifies contributors. Wikisource's reuse guidance https://en.wikisource.org/wiki/Wikisource:Reusing_Wikisource_content states that transcription of a public-domain work does not create new copyright: these site terms do not by themselves create rights in the historic text.",
+     "attribution": "Baruch Spinoza, Ethics, translated by Robert Harvey Monro Elwes, in The Chief Works, vol. II, revised edition (London: George Bell and Sons, 1891), pp. 130, 174. Transcription: English Wikisource contributors, Ethics (Spinoza)/Part 3, revision 14519811, https://en.wikisource.org/w/index.php?title=Ethics_(Spinoza)/Part_3&oldid=14519811&action=render; contributors and revision history: https://en.wikisource.org/w/index.php?title=Ethics_(Spinoza)/Part_3&action=history. Words checked against 1891 page images; whitespace normalized and print emphasis not retained.",
+     "maker": "codex-2026-11-19-spinoza-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q35802",
+       "name": {
+        "en": "Benedictus de Spinoza",
+        "ru": "Бенедикт Спиноза"
+       },
+       "born": 1632,
+       "died": 1677,
+       "source": "https://www.wikidata.org/wiki/Q35802",
+       "evidence": {
+        "file": "wikidata-Q35802.json",
+        "sha256": "1f54e5bbe926af378b4b14e20d00203122710c93021980dcf7e8aa0c0d9a28a1",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q35802.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q18911484",
+       "name": {
+        "en": "Robert Harvey Monro Elwes",
+        "ru": "Robert Harvey Monro Elwes"
+       },
+       "born": 1853,
+       "died": 1892,
+       "source": "https://www.wikidata.org/wiki/Q18911484",
+       "evidence": {
+        "file": "wikidata-Q18911484.json",
+        "sha256": "cc088924a4e258c49aa240d8c5fdf6a2a9fc71a13572a97911cff28e6e2cb03d",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q18911484.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281; ФЗ 231-ФЗ ст. 6: автор умер в 1677, переводчик в 1892, сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "The translation was published by 1891, before 1931; the copyright term has expired in the United States."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC Article 1: more than 70 years since the deaths of author (1677) and translator (1892)."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Benedictus de Spinoza",
+        "ru": "Бенедикт Спиноза"
+       },
+       "qid": "Q35802",
+       "source": "https://www.wikidata.org/wiki/Q35802",
+       "born": [
+        {
+         "time": "+1632-11-24T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1677-02-21T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Robert Harvey Monro Elwes",
+        "ru": "Robert Harvey Monro Elwes"
+       },
+       "qid": "Q18911484",
+       "source": "https://www.wikidata.org/wiki/Q18911484",
+       "born": [
+        {
+         "time": "+1853-01-01T00:00:00Z",
+         "precision": 9
+        }
+       ],
+       "died": [
+        {
+         "time": "+1892-01-01T00:00:00Z",
+         "precision": 9
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -3784,10 +4785,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -4250,13 +5247,21 @@
        "born": [
         {
          "time": "+1711-04-26T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
         }
        ],
        "died": [
         {
          "time": "+1776-08-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
         }
        ]
       }
@@ -4494,6 +5499,106 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845)",
+     "year": 1845,
+     "url": "https://archive.org/details/aestheticletter00schigoog",
+     "licence": "Historical 1845 work and Weiss translation are public domain on the stated jurisdictional grounds. Internet Archive scan OCR is used as transcription; errors and line-break hyphenation are corrected against page images with recorded witness-correct entries. Print italics are not represented.",
+     "attribution": "Friedrich Schiller, The Common and Low, translated by John Weiss, in The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller (Boston: Charles C. Little and James Brown, 1845), pp. 268–271. Internet Archive Google scan OCR, corrected against the printed pages.",
+     "maker": "codex-2026-11-19-schiller-common-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q6263392",
+       "name": {
+        "en": "John Weiss",
+        "ru": "Джон Уайсс"
+       },
+       "born": 1818,
+       "died": 1879,
+       "source": "https://www.wikidata.org/wiki/Q6263392",
+       "evidence": {
+        "file": "wikidata-Q6263392.json",
+        "sha256": "a0bd8ec47bc32753a296951c8154c2d461dc8eb5fb6abbde1a2326f0d13118be",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q6263392.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "Шиллер умер в 1805 году, переводчик Вайс — в 1879 году; сроки истекли до 1993 года по ст. 1281 ГК РФ и ст. 6 ФЗ 231-ФЗ."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "The translation was published in Boston in 1845, before 1931; the United States copyright term has expired."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Schiller died in 1805 and translator Weiss in 1879, more than 70 years ago; Directive 2006/116/EC article 1."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "John Weiss",
+        "ru": "Джон Уайсс"
+       },
+       "qid": "Q6263392",
+       "source": "https://www.wikidata.org/wiki/Q6263392",
+       "born": [
+        {
+         "time": "+1818-06-28T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1879-03-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -4501,10 +5606,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -4640,6 +5741,106 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Gotthold Ephraim Lessing, Laocoon, translated by Ellen Frothingham (Boston: Roberts Brothers, 1890), Duke University Libraries copy",
+     "year": 1890,
+     "url": "https://archive.org/details/laocoon01less",
+     "licence": "Public-domain historical text and translation; Internet Archive machine OCR from the same Duke University Libraries scan was checked against its page image. No separate rights in the automated OCR are asserted.",
+     "attribution": "Gotthold Ephraim Lessing, Laocoon, translated by Ellen Frothingham (Boston: Roberts Brothers, 1890), p. 91. Internet Archive OCR of this scan, whitespace normalized and explicitly corrected against the page. Preface credits W. T. Brigham for help with classical quotations; these passages contain no such quotation and his participation in them is not established.",
+     "maker": "codex-2026-11-19-lessing-frothingham-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q34628",
+       "name": {
+        "en": "Gotthold Ephraim Lessing",
+        "ru": "Готхольд Эфраим Лессинг"
+       },
+       "born": 1729,
+       "died": 1781,
+       "source": "https://www.wikidata.org/wiki/Q34628",
+       "evidence": {
+        "file": "wikidata-Q34628.json",
+        "sha256": "5036574f104f0a331c6f312ff68b32f6c75d0b12c283849757293aaa237bae1d",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q34628.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q5364841",
+       "name": {
+        "en": "Ellen Frothingham",
+        "ru": "Ellen Frothingham"
+       },
+       "born": 1835,
+       "died": 1902,
+       "source": "https://www.wikidata.org/wiki/Q5364841",
+       "evidence": {
+        "file": "wikidata-Q5364841.json",
+        "sha256": "8d919a7112aedd9ba5aaffc351ebdd6eabb9d7adf790f07779b47b604da5338f",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q5364841.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: автор умер в 1781, переводчица в 1902; сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "The translation was published in the United States by 1890, before 1931."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC Article 1: author died 1781 and translator died 1902; ordinary 70-year terms expired."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Gotthold Ephraim Lessing",
+        "ru": "Готхольд Эфраим Лессинг"
+       },
+       "qid": "Q34628",
+       "source": "https://www.wikidata.org/wiki/Q34628",
+       "born": [
+        {
+         "time": "+1729-01-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1781-02-15T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Ellen Frothingham",
+        "ru": "Ellen Frothingham"
+       },
+       "qid": "Q5364841",
+       "source": "https://www.wikidata.org/wiki/Q5364841",
+       "born": [
+        {
+         "time": "+1835-03-25T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1902-01-01T00:00:00Z",
+         "precision": 9
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -4647,10 +5848,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -4786,16 +5983,150 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Henri Poincaré, The Foundations of Science: Science and Hypothesis, The Value of Science, Science and Method, authorized translation by George Bruce Halsted, The Science Press, New York and Garrison, 1913; reprinted 1921, pp. 391–392, Internet Archive copy foundationsofsci0000hpoi.",
+     "year": 1921,
+     "url": "https://archive.org/details/foundationsofsci0000hpoi",
+     "licence": "The selected 1913 translation and 1921 reprint are public domain on the stated territorial terms. Internet Archive supplies the machine OCR and page photographs; its rights page gives no blanket copyright assurance. No independent image licence or reuse permission is asserted; images are retained as source-check evidence and linked to their provider.",
+     "attribution": "Henri Poincaré, Mathematical Creation, translated George Bruce Halsted, The Foundations of Science, The Science Press, 1921 reprint, pp. 391–392; Josiah Royce authored the separate introduction and J. McKeen Cattell edited the Science and Education series. OCR and page images from Internet Archive.",
+     "maker": "codex-poincare-maker-2026-11-19",
+     "normalization": "Machine OCR of the identified Internet Archive 1921 printing, whitespace normalized by kit; printed line-wrap hyphens explicitly corrected against page images. No Gutenberg transcription is used.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q81082",
+       "name": {
+        "en": "Henri Poincaré",
+        "ru": "Анри Пуанкаре"
+       },
+       "born": 1854,
+       "died": 1912,
+       "source": "https://www.wikidata.org/wiki/Q81082",
+       "evidence": {
+        "file": "wikidata-Q81082.json",
+        "sha256": "fcf7ca7708bf66da1a0550469a69d2d9a345917f512b72f22d71afe6e91d5b8b",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q81082.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q442260",
+       "name": {
+        "en": "George Bruce Halsted",
+        "ru": "George Bruce Halsted"
+       },
+       "born": 1853,
+       "died": 1922,
+       "source": "https://www.wikidata.org/wiki/Q442260",
+       "evidence": {
+        "file": "wikidata-Q442260.json",
+        "sha256": "b0e5a1639966feebc4f3092e00133ca9fa193e334c7d0dcc5c6e7ae21959fa2e",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q442260.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q545047",
+       "name": {
+        "en": "James McKeen Cattell",
+        "ru": "Джеймс Маккин Кэттелл"
+       },
+       "born": 1860,
+       "died": 1944,
+       "source": "https://www.wikidata.org/wiki/Q545047",
+       "evidence": {
+        "file": "wikidata-Q545047.json",
+        "sha256": "5ff9bf87b96dc6e4653d6944cbbe7734873e25e8d504ae357d91a7a0ea988158",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q545047.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ статьи 1281–1282: срок исключительного права 70 лет после смерти, с оговоркой военного продления; автор 1912, переводчик 1922, редактор серии 1944, сроки истекли."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "US Copyright Office Circular 15A: published US works before 1931 are public domain; this translation appeared in the United States in 1913 and the examined reprint is 1921."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: the general term is life plus 70 years; author died 1912, translator 1922, series editor 1944. National special terms and moral rights remain distinct."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Henri Poincaré",
+        "ru": "Анри Пуанкаре"
+       },
+       "qid": "Q81082",
+       "source": "https://www.wikidata.org/wiki/Q81082",
+       "born": [
+        {
+         "time": "+1854-04-29T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1912-07-17T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "George Bruce Halsted",
+        "ru": "George Bruce Halsted"
+       },
+       "qid": "Q442260",
+       "source": "https://www.wikidata.org/wiki/Q442260",
+       "born": [
+        {
+         "time": "+1853-11-23T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1922-03-16T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "James McKeen Cattell",
+        "ru": "Джеймс Маккин Кэттелл"
+       },
+       "qid": "Q545047",
+       "source": "https://www.wikidata.org/wiki/Q545047",
+       "born": [
+        {
+         "time": "+1860-05-25T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1944-01-20T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
    "unsearched": [
     {
      "language": "ru",
-     "reason": "No translation is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
      "reason": "No translation is taken in this pass: the line plants the original first."
     }
    ]
@@ -5130,13 +6461,21 @@
        "born": [
         {
          "time": "+1711-04-26T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
         }
        ],
        "died": [
         {
          "time": "+1776-08-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
         }
        ]
       }
@@ -5199,13 +6538,21 @@
        "born": [
         {
          "time": "+1711-04-26T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
         }
        ],
        "died": [
         {
          "time": "+1776-08-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
         }
        ]
       }
@@ -6148,13 +7495,15 @@
        "born": [
         {
          "time": "+1404-02-14T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ],
        "died": [
         {
          "time": "+1472-04-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ]
       }
@@ -6221,13 +7570,15 @@
        "born": [
         {
          "time": "+1404-02-14T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ],
        "died": [
         {
          "time": "+1472-04-25T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ]
       }
@@ -6504,7 +7855,8 @@
        "born": [
         {
          "time": "+1554-11-30T00:00:00Z",
-         "precision": 11
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
         }
        ],
        "died": [
@@ -8732,15 +10084,21 @@
      "en": "p. 286"
     },
     "texts": {
-     "de": "Das Gefühl des Erhabenen ist ein gemischtes Gefühl. Es ist eine Zusammensetzung von Wehseyn, das sich in seinem höchsten Grad als ein Schauer äußert, und von Frohseyn, das bis zum Entzücken steigen kann und, ob es gleich nicht eigentlich Lust ist, von feinen Seelen aller Lust doch weit vorgezogen wird. Diese Verbindung zweier widersprechender Empfindungen in einem einzigen Gefühl beweist unsere moralische Selbstständigkeit auf eine unwiderlegliche Weise."
+     "de": "Das Gefühl des Erhabenen ist ein gemischtes Gefühl. Es ist eine Zusammensetzung von Wehseyn, das sich in seinem höchsten Grad als ein Schauer äußert, und von Frohseyn, das bis zum Entzücken steigen kann und, ob es gleich nicht eigentlich Lust ist, von feinen Seelen aller Lust doch weit vorgezogen wird. Diese Verbindung zweier widersprechender Empfindungen in einem einzigen Gefühl beweist unsere moralische Selbstständigkeit auf eine unwiderlegliche Weise.",
+     "en": "The feeling of sublimity is a mingled feeling. It is a composition of wofulness, which in its highest degree appears as horror, and of joyfulness, which can amount to transport, and although it is not strictly pleasure, is still far preferred to all pleasure by spirits of refinement. This union of two diverse perceptions in a single feeling, proves incontestably our moral independence."
     },
     "links": {
-     "de": "https://archive.org/details/11000676bsb/page/n291/mode/1up"
+     "de": "https://archive.org/details/11000676bsb/page/n291/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n287.jpg"
     },
     "refs": [
      [
       "de",
       "Schillers sämmtliche Werke, Band 12 (1858), p. 286"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, p. 246"
      ]
     ]
    },
@@ -8750,15 +10108,21 @@
      "en": "p. 286"
     },
     "texts": {
-     "de": "Wir fühlen uns frei bei der Schönheit, weil die sinnlichen Triebe mit dem Gesetz der Vernunft harmoniren; wir fühlen uns frei beim Erhabenen, weil die sinnlichen Triebe auf die Gesetzgebung der Vernunft keinen Einfluß haben, weil der Geist hier handelt, als ob er unter keinen andern als seinen eigenen Gesetzen stünde."
+     "de": "Wir fühlen uns frei bei der Schönheit, weil die sinnlichen Triebe mit dem Gesetz der Vernunft harmoniren; wir fühlen uns frei beim Erhabenen, weil die sinnlichen Triebe auf die Gesetzgebung der Vernunft keinen Einfluß haben, weil der Geist hier handelt, als ob er unter keinen andern als seinen eigenen Gesetzen stünde.",
+     "en": "We feel ourselves free through Beauty, since the sensuous impulses harmonize with the law of reason; we feel ourselves free through Sublimity, since the sensuous impulses have no influence upon the legislation of the reason, since the spirit acts here, as if it existed under no other laws than its own."
     },
     "links": {
-     "de": "https://archive.org/details/11000676bsb/page/n291/mode/1up"
+     "de": "https://archive.org/details/11000676bsb/page/n291/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n287.jpg"
     },
     "refs": [
      [
       "de",
       "Schillers sämmtliche Werke, Band 12 (1858), p. 286"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, p. 246"
      ]
     ]
    },
@@ -8768,15 +10132,21 @@
      "en": "pp. 299–300"
     },
     "texts": {
-     "de": "Ohne das Erhabene würde uns die Schönheit unsrer Würde vergessen machen."
+     "de": "Ohne das Erhabene würde uns die Schönheit unsrer Würde vergessen machen.",
+     "en": "Beauty without Sublimity would lead us to forget our dignity."
     },
     "links": {
-     "de": "https://archive.org/details/11000676bsb/page/n304/mode/1up"
+     "de": "https://archive.org/details/11000676bsb/page/n304/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n302.jpg"
     },
     "refs": [
      [
       "de",
       "Schillers sämmtliche Werke, Band 12 (1858), pp. 299–300"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, p. 261"
      ]
     ]
    }
@@ -8843,15 +10213,21 @@
      "en": "Letter XV, pp. 164–165"
     },
     "texts": {
-     "de": "Der Gegenstand des Spieltriebes, in einem allgemeinen Schema vorgestellt, wird also lebende Gestalt heißen können; ein Begriff, der allen ästhetischen Beschaffenheiten der Erscheinungen, und mit einem Worte dem, was man in weitester Bedeutung Schönheit nennt, zur Bezeichnung dient."
+     "de": "Der Gegenstand des Spieltriebes, in einem allgemeinen Schema vorgestellt, wird also lebende Gestalt heißen können; ein Begriff, der allen ästhetischen Beschaffenheiten der Erscheinungen, und mit einem Worte dem, was man in weitester Bedeutung Schönheit nennt, zur Bezeichnung dient.",
+     "en": "The object of the play-impulse, expressed in a general proposition, can then be called living shape, an idea which serves to indicate all æsthetic qualities of phenomena, and in a word, what in its widest signification we call Beauty."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n174/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n174/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n109.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, vol. 3 (1801), pp. 164–165"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, p. 68"
      ]
     ]
    },
@@ -8861,15 +10237,21 @@
      "en": "Letter XXIII, p. 236"
     },
     "texts": {
-     "de": "Der Uebergang von dem leidenden Zustande des Empfindens zu dem thätigen des Denkens und Wollens geschieht also nicht anders, als durch einen mittleren Zustand ästhetischer Freyheit, und obgleich dieser Zustand an sich selbst weder für unsere Einsichten, noch Gesinnungen etwas entscheidet, mithin unsern intellektuellen und moralischen Werth ganz und gar problematisch läßt, so ist er doch die nothwendige Bedingung, unter welcher allein wir zu einer Einsicht und zu einer Gesinnung gelangen können."
+     "de": "Der Uebergang von dem leidenden Zustande des Empfindens zu dem thätigen des Denkens und Wollens geschieht also nicht anders, als durch einen mittleren Zustand ästhetischer Freyheit, und obgleich dieser Zustand an sich selbst weder für unsere Einsichten, noch Gesinnungen etwas entscheidet, mithin unsern intellektuellen und moralischen Werth ganz und gar problematisch läßt, so ist er doch die nothwendige Bedingung, unter welcher allein wir zu einer Einsicht und zu einer Gesinnung gelangen können.",
+     "en": "Then the passage from the passive condition of perception to the active one of reflection and volition, is only effected by an intermediate condition of æsthetic freedom, and although this condition determines of itself nothing either for our judgments or dispositions, consequently leaving our intellectual and moral worth entirely problematical, yet it is the necessary stipulation, by which alone we can attain to a judgment and a disposition."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n245/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n245/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n149.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, vol. 3 (1801), p. 236"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, p. 108"
      ]
     ]
    },
@@ -9359,15 +10741,21 @@
      "en": "p. 164"
     },
     "texts": {
-     "de": "Aber die Tragödie hat einen poetischen Zweck, d. i. sie stellt eine Handlung dar, um zu rühren und durch Rührung zu ergötzen."
+     "de": "Aber die Tragödie hat einen poetischen Zweck, d. i. sie stellt eine Handlung dar, um zu rühren und durch Rührung zu ergötzen.",
+     "en": "But Tragedy has a poetic design, that is, it represents an action in order to move, and to delight by the emotion."
     },
     "links": {
-     "de": "https://archive.org/details/schillerswerke15schiuoft/page/n167/mode/1up"
+     "de": "https://archive.org/details/schillerswerke15schiuoft/page/n167/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n374.jpg"
     },
     "refs": [
      [
       "de",
       "Schillers Werke, vol. 15 (Berlin 1879), p. 164"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, p. 333"
      ]
     ]
    }
@@ -9931,15 +11319,21 @@
      "en": "On the Pathetic, p. 312"
     },
     "texts": {
-     "de": "Man gelangt also zur Darstellung der moralischen Freyheit nur durch die lebendigste Darstellung der leidenden Natur; und der tragische Held muß sich erst als empfindendes Wesen bey uns legitimirt haben, ehe wir ihm als Vernunftwesen huldigen, und an seine Seelenstärke glauben."
+     "de": "Man gelangt also zur Darstellung der moralischen Freyheit nur durch die lebendigste Darstellung der leidenden Natur; und der tragische Held muß sich erst als empfindendes Wesen bey uns legitimirt haben, ehe wir ihm als Vernunftwesen huldigen, und an seine Seelenstärke glauben.",
+     "en": "One attains, then, to a representation of moral freedom, only through the most lively representation of suffering nature: and the tragic hero must legitimate himself in our opinion as a susceptible being, before we can do homage to him as a rational being, and believe in his strength of spirit."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n321/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n321/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n243.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, part III (1801), p. 312"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, 202"
      ]
     ]
    },
@@ -9949,15 +11343,21 @@
      "en": "On the Pathetic, p. 345"
     },
     "texts": {
-     "de": "Alle Affekte sind ästhetischer aus der zweyten Hand und keine Sympathie ist stärker als die wir mit der Sympathie empfinden,\n\nPost ipsum, auxilio subeuntem ac tela ferentem corripiunt."
+     "de": "Alle Affekte sind ästhetischer aus der zweyten Hand und keine Sympathie ist stärker als die wir mit der Sympathie empfinden,\n\nPost ipsum, auxilio subeuntem ac tela ferentem corripiunt.",
+     "en": "All emotions are more æsthetic at second hand, and no sympathy is stronger than that which we feel with sympathy.\n\nPost ipsum auxilio subeuntem ac tela ferentem\nCorripiunt."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n354/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n354/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n261.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, part III (1801), p. 345"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, 220"
      ]
     ]
    },
@@ -10135,15 +11535,21 @@
      "en": "Part III, definition 3, p. 132"
     },
     "texts": {
-     "la": "Per Affectum intelligo Corporis affectiones, quibus ipsius Corporis agendi potentia augetur, vel minuitur, juvatur vel coërcetur, et simul harum affectionum ideas. Si itaque alicujus harum affectionum adaequata possimus esse causa, tum per Affectum actionem intelligo; alias passionem."
+     "la": "Per Affectum intelligo Corporis affectiones, quibus ipsius Corporis agendi potentia augetur, vel minuitur, juvatur vel coërcetur, et simul harum affectionum ideas. Si itaque alicujus harum affectionum adaequata possimus esse causa, tum per Affectum actionem intelligo; alias passionem.",
+     "en": "By emotion I mean the modifications of the body, whereby the active power of the said body is increased or diminished, aided or constrained, and also the ideas of such modifications.\n\nN.B. If we can be the adequate cause of any of these modifications, I then call the emotion an activity, otherwise I call it a passion, or state wherein the mind is passive."
     },
     "links": {
-     "la": "https://archive.org/details/benedictidespin01spingoog/page/n170/mode/1up"
+     "la": "https://archive.org/details/benedictidespin01spingoog/page/n170/mode/1up",
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n155.jpg"
     },
     "refs": [
      [
       "la",
       "Paulus edition (Jena 1802–1803), p. 132"
+     ],
+     [
+      "en",
+      "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 130"
      ]
     ]
    },
@@ -10153,15 +11559,21 @@
      "en": "Part III, definitions of the affects, 2, p. 184"
     },
     "texts": {
-     "la": "Laetitia est hominis transitio a minore ad majorem perfectionem."
+     "la": "Laetitia est hominis transitio a minore ad majorem perfectionem.",
+     "en": "Pleasure is the transition of a man from a less to a greater perfection."
     },
     "links": {
-     "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up"
+     "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up",
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg"
     },
     "refs": [
      [
       "la",
       "Paulus edition (Jena 1802–1803), p. 184"
+     ],
+     [
+      "en",
+      "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 174"
      ]
     ]
    },
@@ -10171,15 +11583,21 @@
      "en": "Part III, definitions of the affects, 3, p. 184"
     },
     "texts": {
-     "la": "Tristitia est hominis transitio a majore ad minorem perfectionem."
+     "la": "Tristitia est hominis transitio a majore ad minorem perfectionem.",
+     "en": "Pain is the transition of a man from a greater to a less perfection."
     },
     "links": {
-     "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up"
+     "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up",
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg"
     },
     "refs": [
      [
       "la",
       "Paulus edition (Jena 1802–1803), p. 184"
+     ],
+     [
+      "en",
+      "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 174"
      ]
     ]
    }
@@ -10765,15 +12183,21 @@
      "en": "p. 739"
     },
     "texts": {
-     "de": "Noch eine Stufe unter dem Gemeinen steht das Niedrige, welches von jenem darin unterschieden ist, daß es nicht bloß etwas Negatives, nicht bloß Mangel des Geistreichen und Edeln, sondern etwas Positives, nämlich Rohheit des Gefühls, schlechte Sitten und verächtliche Gesinnungen anzeigt."
+     "de": "Noch eine Stufe unter dem Gemeinen steht das Niedrige, welches von jenem darin unterschieden ist, daß es nicht bloß etwas Negatives, nicht bloß Mangel des Geistreichen und Edeln, sondern etwas Positives, nämlich Rohheit des Gefühls, schlechte Sitten und verächtliche Gesinnungen anzeigt.",
+     "en": "The Low stands yet one degree below the Common, and is distinguished from it by the fact, that it indicates not only something negative, not only a want of the spiritual and noble, but something positive, namely rudeness of feeling, bad manners and degraded sentiments."
     },
     "links": {
-     "de": "https://archive.org/details/schillerssmmtli05goedgoog/page/n810/mode/1up"
+     "de": "https://archive.org/details/schillerssmmtli05goedgoog/page/n810/mode/1up",
+     "en": "https://archive.org/download/aestheticletter00schigoog/page/n354.jpg"
     },
     "refs": [
      [
       "de",
       "Cotta edition (1877), p. 739"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), p. 268"
      ]
     ]
    },
@@ -10783,15 +12207,21 @@
      "en": "p. 740"
     },
     "texts": {
-     "de": "Auch in Kunstwerken kann man in das Niedrige verfallen, nicht bloß, indem man niedrige Gegenstände wählt, die der Sinn für Anstand und Schicklichkeit ausschließt, sondern auch indem man sie niedrig behandelt. Niedrig behandelt man einen Gegenstand, wenn man entweder diejenige Seite an ihm, welche der gute Anstand verbergen heißt, bemerklich macht, oder wenn man ihm einen Ausdruck gibt, der auf niedrige Nebenvorstellungen leitet."
+     "de": "Auch in Kunstwerken kann man in das Niedrige verfallen, nicht bloß, indem man niedrige Gegenstände wählt, die der Sinn für Anstand und Schicklichkeit ausschließt, sondern auch indem man sie niedrig behandelt. Niedrig behandelt man einen Gegenstand, wenn man entweder diejenige Seite an ihm, welche der gute Anstand verbergen heißt, bemerklich macht, oder wenn man ihm einen Ausdruck gibt, der auf niedrige Nebenvorstellungen leitet.",
+     "en": "In works of art also, the low may be apparent, not only by selecting low objects, which a sense of fitness and propriety forbids, but also by treating them in a low way. We so treat an object, either if we render that side conspicuous which propriety demands should be concealed, or if we give it an expression which suggests low, accessory representations."
     },
     "links": {
-     "de": "https://archive.org/details/schillerssmmtli05goedgoog/page/n811/mode/1up"
+     "de": "https://archive.org/details/schillerssmmtli05goedgoog/page/n811/mode/1up",
+     "en": "https://archive.org/download/aestheticletter00schigoog/page/n355.jpg"
     },
     "refs": [
      [
       "de",
       "Cotta edition (1877), p. 740"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), p. 269"
      ]
     ]
    },
@@ -10801,15 +12231,21 @@
      "en": "p. 740"
     },
     "texts": {
-     "de": "Es gibt zwar Fälle, wo das Niedrige auch in der Kunst gestattet werden kann, da nämlich, wo es Lachen erregen soll."
+     "de": "Es gibt zwar Fälle, wo das Niedrige auch in der Kunst gestattet werden kann, da nämlich, wo es Lachen erregen soll.",
+     "en": "There are cases, it is true, where even in art the low may be allowed; there, namely, where its object is to excite laughter."
     },
     "links": {
-     "de": "https://archive.org/details/schillerssmmtli05goedgoog/page/n811/mode/1up"
+     "de": "https://archive.org/details/schillerssmmtli05goedgoog/page/n811/mode/1up",
+     "en": "https://archive.org/download/aestheticletter00schigoog/page/n356.jpg"
     },
     "refs": [
      [
       "de",
       "Cotta edition (1877), p. 740"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), p. 270"
      ]
     ]
    },
@@ -10819,15 +12255,21 @@
      "en": "p. 741"
     },
     "texts": {
-     "de": "Es gibt aber auch im Ernsthaften und Tragischen einige seltene Fälle, wo das Niedrige angewandt werden kann. Alsdann muß es aber ins Furchtbare übergehen, und die augenblickliche Beleidigung des Geschmacks muß durch eine starke Beschäftigung des Affekts ausgelöscht und also von einer höhern tragischen Wirkung gleichsam verschlungen werden."
+     "de": "Es gibt aber auch im Ernsthaften und Tragischen einige seltene Fälle, wo das Niedrige angewandt werden kann. Alsdann muß es aber ins Furchtbare übergehen, und die augenblickliche Beleidigung des Geschmacks muß durch eine starke Beschäftigung des Affekts ausgelöscht und also von einer höhern tragischen Wirkung gleichsam verschlungen werden.",
+     "en": "But there are a few cases even in the serious and tragic, where the low may be introduced. Yet then it must pass over into the fearful, and the momentary offence of taste must be counteracted by a powerful employment of emotion, and become as it were, swallowed up by a deeply tragical effect."
     },
     "links": {
-     "de": "https://archive.org/details/schillerssmmtli05goedgoog/page/n812/mode/1up"
+     "de": "https://archive.org/details/schillerssmmtli05goedgoog/page/n812/mode/1up",
+     "en": "https://archive.org/download/aestheticletter00schigoog/page/n357.jpg"
     },
     "refs": [
      [
       "de",
       "Cotta edition (1877), p. 741"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), p. 271"
      ]
     ]
    }
@@ -10877,15 +12319,21 @@
      "en": "Ch. XVI, p. 153"
     },
     "texts": {
-     "de": "Wenn es wahr ist, daß die Mahlerey zu ihren Nachahmungen ganz andere Mittel, oder Zeichen gebrauchet, als die Poesie; jene nehmlich Figuren und Farben in dem Raume, diese aber artikulirte Töne in der Zeit; wenn unstreitig die Zeichen ein bequemes Verhältniß zu dem Bezeichneten haben müssen: So können neben einander geordnete Zeichen, auch nur Gegenstände, die neben einander, oder deren Theile neben einander existiren, auf einander folgende Zeichen aber, auch nur Gegenstände ausdrücken, die auf einander, oder deren Theile auf einander folgen."
+     "de": "Wenn es wahr ist, daß die Mahlerey zu ihren Nachahmungen ganz andere Mittel, oder Zeichen gebrauchet, als die Poesie; jene nehmlich Figuren und Farben in dem Raume, diese aber artikulirte Töne in der Zeit; wenn unstreitig die Zeichen ein bequemes Verhältniß zu dem Bezeichneten haben müssen: So können neben einander geordnete Zeichen, auch nur Gegenstände, die neben einander, oder deren Theile neben einander existiren, auf einander folgende Zeichen aber, auch nur Gegenstände ausdrücken, die auf einander, oder deren Theile auf einander folgen.",
+     "en": "If it be true that painting employs wholly different signs or means of imitation from poetry, — the one using forms and colors in space, the other articulate sounds in time, — and if signs must unquestionably stand in convenient relation with the thing signified, then signs arranged side by side can represent only objects existing side by side, or whose parts so exist, while consecutive signs can express only objects which succeed each other, or whose parts succeed each other, in time."
     },
     "links": {
-     "de": "https://archive.org/details/laokoonoderueber00less/page/n164/mode/1up"
+     "de": "https://archive.org/details/laokoonoderueber00less/page/n164/mode/1up",
+     "en": "https://archive.org/download/laocoon01less/page/n108.jpg"
     },
     "refs": [
      [
       "de",
       "First edition (Berlin 1766), p. 153"
+     ],
+     [
+      "en",
+      "Gotthold Ephraim Lessing, Laocoon, translated by Ellen Frothingham (Boston: Roberts Brothers, 1890), Duke University Libraries copy, p. 91"
      ]
     ]
    },
@@ -10895,15 +12343,21 @@
      "en": "Ch. XVI, pp. 153–154"
     },
     "texts": {
-     "de": "Gegenstände, die neben einander oder deren Theile neben einander existiren, heissen Körper. Folglich sind Körper mit ihren sichtbaren Eigenschaften, die eigentlichen Gegenstände der Mahlerey. Gegenstände, die auf einander, oder deren Theile auf einander folgen, heissen überhaupt Handlungen. Folglich sind Handlungen der eigentliche Gegenstand der Poesie."
+     "de": "Gegenstände, die neben einander oder deren Theile neben einander existiren, heissen Körper. Folglich sind Körper mit ihren sichtbaren Eigenschaften, die eigentlichen Gegenstände der Mahlerey. Gegenstände, die auf einander, oder deren Theile auf einander folgen, heissen überhaupt Handlungen. Folglich sind Handlungen der eigentliche Gegenstand der Poesie.",
+     "en": "Objects which exist side by side, or whose parts so exist, are called bodies. Consequently bodies with their visible properties are the peculiar subjects of painting.\n\nObjects which succeed each other, or whose parts succeed each other in time, are actions. Consequently actions are the peculiar subjects of poetry."
     },
     "links": {
-     "de": "https://archive.org/details/laokoonoderueber00less/page/n164/mode/1up"
+     "de": "https://archive.org/details/laokoonoderueber00less/page/n164/mode/1up",
+     "en": "https://archive.org/download/laocoon01less/page/n108.jpg"
     },
     "refs": [
      [
       "de",
       "First edition (Berlin 1766), pp. 153–154"
+     ],
+     [
+      "en",
+      "Gotthold Ephraim Lessing, Laocoon, translated by Ellen Frothingham (Boston: Roberts Brothers, 1890), Duke University Libraries copy, p. 91"
      ]
     ]
    }
@@ -10971,15 +12425,21 @@
      "en": "p. 12"
     },
     "texts": {
-     "fr": "Or quels sont les êtres mathématiques auxquels nous attribuons ce caractère de beauté et d’élégance et qui sont susceptibles de développer en nous une sorte d’émotion esthétique ? Ce sont ceux dont les éléments sont harmonieusement disposés de façon que l’esprit puisse sans effort en embrasser l’ensemble tout en pénétrant les détails. Cette harmonie est à la fois une satisfaction pour nos besoins esthétiques et une aide pour l’esprit qu’elle soutient et qu’elle guide."
+     "fr": "Or quels sont les êtres mathématiques auxquels nous attribuons ce caractère de beauté et d’élégance et qui sont susceptibles de développer en nous une sorte d’émotion esthétique ? Ce sont ceux dont les éléments sont harmonieusement disposés de façon que l’esprit puisse sans effort en embrasser l’ensemble tout en pénétrant les détails. Cette harmonie est à la fois une satisfaction pour nos besoins esthétiques et une aide pour l’esprit qu’elle soutient et qu’elle guide.",
+     "en": "Now, what are the mathematic entities to which we attribute this character of beauty and elegance, and which are capable of developing in us a sort of esthetic emotion? They are those whose elements are harmoniously disposed so that the mind without effort can embrace their totality while realizing the details. This harmony is at once a satisfaction of our esthetic needs and an aid to the mind, sustaining and guiding."
     },
     "links": {
-     "fr": "https://archive.org/details/linventionmath00poin/page/n24/mode/1up"
+     "fr": "https://archive.org/details/linventionmath00poin/page/n24/mode/1up",
+     "en": "https://archive.org/download/foundationsofsci0000hpoi/page/n406/mode/1up"
     },
     "refs": [
      [
       "fr",
       "1908 printing, p. 12"
+     ],
+     [
+      "en",
+      "Henri Poincaré, The Foundations of Science: Science and Hypothesis, The Value of Science, Science and Method, authorized translation by George Bruce Halsted, The Science Press, New York and Garrison, 1913; reprinted 1921, pp. 391–392, Internet Archive copy foundationsofsci0000hpoi., 391"
      ]
     ]
    },
@@ -10989,15 +12449,21 @@
      "en": "pp. 12–13"
     },
     "texts": {
-     "fr": "Parmi les combinaisons en très grand nombre que le moi subliminal a aveuglément formées, presque toutes sont sans intérêt et sans utilité mais par cela même elles sont sans action sur la sensibilité esthétique ; la conscience ne les connaîtra jamais ; quelques-unes seulement sont harmonieuses, et par suite à la fois utiles et belles, elles seront capables d’émouvoir cette sensibilité spéciale du géomètre dont je viens de vous parler, et qui, une fois excitée, appellera sur elles notre attention, et leur donnera ainsi l’occasion de devenir conscientes."
+     "fr": "Parmi les combinaisons en très grand nombre que le moi subliminal a aveuglément formées, presque toutes sont sans intérêt et sans utilité mais par cela même elles sont sans action sur la sensibilité esthétique ; la conscience ne les connaîtra jamais ; quelques-unes seulement sont harmonieuses, et par suite à la fois utiles et belles, elles seront capables d’émouvoir cette sensibilité spéciale du géomètre dont je viens de vous parler, et qui, une fois excitée, appellera sur elles notre attention, et leur donnera ainsi l’occasion de devenir conscientes.",
+     "en": "Among the great numbers of combinations blindly formed by the subliminal self, almost all are without interest and without utility; but just for that reason they are also without effect upon the esthetic sensibility. Consciousness will never know them; only certain ones are harmonious, and, consequently, at once useful and beautiful. They will be capable of touching this special sensibility of the geometer of which I have just spoken, and which, once aroused, will call our attention to them, and thus give them occasion to become conscious."
     },
     "links": {
-     "fr": "https://archive.org/details/linventionmath00poin/page/n24/mode/1up"
+     "fr": "https://archive.org/details/linventionmath00poin/page/n24/mode/1up",
+     "en": "https://archive.org/download/foundationsofsci0000hpoi/page/n407/mode/1up"
     },
     "refs": [
      [
       "fr",
       "1908 printing, pp. 12–13"
+     ],
+     [
+      "en",
+      "Henri Poincaré, The Foundations of Science: Science and Hypothesis, The Value of Science, Science and Method, authorized translation by George Bruce Halsted, The Science Press, New York and Garrison, 1913; reprinted 1921, pp. 391–392, Internet Archive copy foundationsofsci0000hpoi., 392"
      ]
     ]
    },
@@ -11007,17 +12473,26 @@
      "en": "pp. 12–13"
     },
     "texts": {
-     "fr": "Parmi les combinaisons en très grand nombre que le moi subliminal a aveuglément formées, presque toutes sont sans intérêt et sans utilité mais par cela même elles sont sans action sur la sensibilité esthétique ; la conscience ne les connaîtra jamais ; quelques-unes seulement sont harmonieuses, et par suite à la fois utiles et belles, elles seront capables d’émouvoir cette sensibilité spéciale du géomètre dont je viens de vous parler, et qui, une fois excitée, appellera sur elles notre attention, et leur donnera ainsi l’occasion de devenir conscientes.\n\nCe n’est là qu’une hypothèse, et cependant voici une observation qui pourrait la confirmer ; quand une illumination subite envahit l’esprit du mathématicien, il arrive le plus souvent qu’elle ne le trompe pas ; mais il arrive aussi quelquefois, je l’ai dit, qu’elle ne supporte pas l’épreuve d’une vérification ; eh bien, on remarque presque toujours que cette idée fausse, si elle avait été juste, aurait flatté notre instinct naturel de l’élégance mathématique."
+     "fr": "Parmi les combinaisons en très grand nombre que le moi subliminal a aveuglément formées, presque toutes sont sans intérêt et sans utilité mais par cela même elles sont sans action sur la sensibilité esthétique ; la conscience ne les connaîtra jamais ; quelques-unes seulement sont harmonieuses, et par suite à la fois utiles et belles, elles seront capables d’émouvoir cette sensibilité spéciale du géomètre dont je viens de vous parler, et qui, une fois excitée, appellera sur elles notre attention, et leur donnera ainsi l’occasion de devenir conscientes.\n\nCe n’est là qu’une hypothèse, et cependant voici une observation qui pourrait la confirmer ; quand une illumination subite envahit l’esprit du mathématicien, il arrive le plus souvent qu’elle ne le trompe pas ; mais il arrive aussi quelquefois, je l’ai dit, qu’elle ne supporte pas l’épreuve d’une vérification ; eh bien, on remarque presque toujours que cette idée fausse, si elle avait été juste, aurait flatté notre instinct naturel de l’élégance mathématique.",
+     "en": "Among the great numbers of combinations blindly formed by the subliminal self, almost all are without interest and without utility; but just for that reason they are also without effect upon the esthetic sensibility. Consciousness will never know them; only certain ones are harmonious, and, consequently, at once useful and beautiful. They will be capable of touching this special sensibility of the geometer of which I have just spoken, and which, once aroused, will call our attention to them, and thus give them occasion to become conscious.\n\nThis is only a hypothesis, and yet here is an observation which may confirm it: when a sudden illumination seizes upon the mind of the mathematician, it usually happens that it does not deceive him, but it also sometimes happens, as I have said, that it does not stand the test of verification; well, we almost always notice that this false idea, had it been true, would have gratified our natural feeling for mathematical elegance."
     },
     "links": {
-     "fr": "https://archive.org/details/linventionmath00poin/page/n24/mode/1up"
+     "fr": "https://archive.org/details/linventionmath00poin/page/n24/mode/1up",
+     "en": "https://archive.org/download/foundationsofsci0000hpoi/page/n407/mode/1up"
     },
     "refs": [
      [
       "fr",
       "1908 printing, pp. 12–13"
+     ],
+     [
+      "en",
+      "Henri Poincaré, The Foundations of Science: Science and Hypothesis, The Value of Science, Science and Method, authorized translation by George Bruce Halsted, The Science Press, New York and Garrison, 1913; reprinted 1921, pp. 391–392, Internet Archive copy foundationsofsci0000hpoi., 392"
      ]
-    ]
+    ],
+    "quotation_justification": {
+     "en": "The selected original place includes the complete preceding sentence and the following hypothesis; both are necessary for faithful alignment."
+    }
    }
   },
   "johann-wolfgang-goethe.maximen-und-reflexionen": {
@@ -11909,7 +13384,7 @@
      "en": "Book IX, ch. 5, fol. 136 verso"
     },
     "texts": {
-     "la": "Sed de his hactenus, quae si satis constant, statuisse sic possumus, pulchritudinem esse quendam consensum et conspirationem partium in eo, cuius sunt ad certum numerum finitionem, collocationeque habitam, ita uti concinnitas, hoc est, absoluta primariaque ratio naturae postularit. Hanc ipsam maiorem in modum res aedificatoria sectatur. Hac sibi dignitatem, gratiam, auctoritatem vendicat, atque in precio est."
+     "la": "Sed de his hactenus, quae si satis constant, statuisse sic possumus, pulchritudinem esse quendam consensum et conspirationem partium in eo, cuius sunt ad certum numerum finitionem, collocationeque habitam, ita uti concinnitas, hoc est, absoluta primariaque ratio naturae postularit. Hanc ipsam maiorem in modum res aedificatoria sectatur. Hac sibi dignitatem, gratiam, autoritatem vendicat, atque in precio est."
     },
     "links": {
      "la": "https://archive.org/details/dereaedificatori00albe/page/n289/mode/1up"

@@ -15,6 +15,9 @@ describe('territorial fragment rights',()=>{
     expect(wholeExternalSentence('这是一句完整的话。')).toBe(true);
     expect(wholeExternalSentence('「这是一个句子。」')).toBe(true);
     expect(wholeExternalSentence('هذه جملة كاملة؟')).toBe(true);
+    expect(wholeExternalSentence('εἰ ξυμπονήσεις;')).toBe(true);
+    expect(wholeExternalSentence('नाट्यशास्त्रम्।')).toBe(true);
+    expect(wholeExternalSentence('Not a complete sentence;')).toBe(false);
     expect(wholeExternalSentence('lowercase fragment.')).toBe(false);
     expect(wholeExternalSentence('没有终点')).toBe(false);
   });
