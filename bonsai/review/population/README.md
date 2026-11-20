@@ -94,9 +94,14 @@ row. Only a spelling whose works give no row is looked for by its form.
 
 ## The reading line
 
-[`line/`](line/AGENTS.md) cuts the identity questions into packets for two
-independent readers, checks their verdicts with a gate and turns the agreed ones
-into decisions. [`line/READER.md`](line/READER.md) is the reader's route.
+[`line/`](line/AGENTS.md) cuts questions into packets for two independent
+readers, checks their verdicts with a gate and turns the agreed ones into
+decisions. An identity question asks whether two members are one bearer
+(`resolve.mjs` reads the decision); a planted member's question asks a row's
+kind, the member's name in Latin script, or its years and whether it lives
+(`plant.mjs` plants the answer: a kind, a name, years with the readers' source
+in place of the registers' gap). [`line/READER.md`](line/READER.md) is the
+reader's route.
 
 ## What this folder does not claim
 

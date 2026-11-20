@@ -56,7 +56,40 @@ function inputs(review,root,files){
   const manifest=JSON.parse(readFileSync(join(root,'bonsai',STAND,'bonsai.json'),'utf8'));
   const ledger=new Map();
   for(const line of readJsonl(read('ids.jsonl')))ledger.set(line.id,{...(ledger.get(line.id)??{}),...line});
-  return {rows,digests,manifest,ledger,keys:readJsonl(read('keys.jsonl')),core:JSON.parse(read('core.json')),queue:readJsonl(read('queue/identity.jsonl'))};
+  const decisions=files?.['decisions.jsonl']!==undefined||existsSync(join(review,'decisions.jsonl'))?readJsonl(read('decisions.jsonl')):[];
+  return {rows,digests,manifest,ledger,decisions,keys:readJsonl(read('keys.jsonl')),core:JSON.parse(read('core.json')),queue:readJsonl(read('queue/identity.jsonl'))};
+}
+
+// Two readers' years: a year of an era as the Tree's lexeme (astronomical, four digits at least).
+const lexeme=point=>{const year=point.era==='BCE'?1-point.year:point.year;return `${year<0?'-':''}${String(Math.abs(year)).padStart(4,'0')}`;};
+// A year as the stand says it, in Russian and in English: ок. 428 до н. э., c. 428 BCE, 1904 (?).
+const yearWords=(point,certainty)=>{
+  const about=certainty==='approximate'?['ок. ','c. ']:['',''],doubt=certainty==='uncertain'?' (?)':'';
+  return [`${about[0]}${point.year}${point.era==='BCE'?' до н. э.':''}${doubt}`,`${about[1]}${point.year}${point.era==='BCE'?' BCE':''}${doubt}`];
+};
+const said=(point,certainty,[ru,en])=>{const [r,e]=yearWords(point,certainty);return [`${ru} — ${r}`,`${en} ${e}`];};
+
+/** The phases two readers' agreed years give, and how the stand says them. */
+function readersLife(decision){
+  const {birth,death,activity}=decision;
+  const lifetime=birth||death?{shape:birth&&death?'closed':'open',start:birth?lexeme(birth):undefined,end:death?lexeme(death):undefined,
+    certainty:weaker(...[birth,death].filter(Boolean).map(point=>point.certainty))}:null;
+  const years=activity?(lexeme(activity.from)===lexeme(activity.to)
+    ?{shape:'date',value:lexeme(activity.from),certainty:activity.certainty}
+    :{shape:'span',start:lexeme(activity.from),end:lexeme(activity.to),certainty:activity.certainty}):null;
+  const parts=[];
+  if(birth)parts.push(said(birth,birth.certainty,['рождение','born']));
+  if(death)parts.push(said(death,death.certainty,['смерть','died']));
+  if(activity){
+    const [from,to]=[yearWords(activity.from,activity.certainty),yearWords(activity.to,'exact')];
+    parts.push([`деятельность — ${from[0]}–${to[0]}`,`active ${from[1]}–${to[1]}`]);
+  }
+  if(decision.living)parts.push(['жив(а) по источникам читателей','living as the readers\' sources stand']);
+  const statement={
+    ru:`Два независимых читателя линии Популяции (решение ${decision.id}): ${parts.map(([ru])=>ru).join('; ')}.`,
+    en:`Two independent readers of the Population line (decision ${decision.id}): ${parts.map(([,en])=>en).join('; ')}.`
+  };
+  return {lifetime,activity:years,statement};
 }
 
 /** The member's names: Latin from the first row that has one, Russian from its founding row, the original script where a row gives one. */
@@ -126,7 +159,11 @@ function dating(found,wording){
 
 /** The modules the records give, in memory: {files: {path: text}, summary}. */
 export function plant({review=HERE,root=ROOT,files=null}={}){
-  const {rows,digests,manifest,ledger,keys,core,queue}=inputs(review,root,files);
+  const {rows,digests,manifest,ledger,decisions,keys,core,queue}=inputs(review,root,files);
+  // Two readers' decisions on a member's rows: a row's kind, the member's name in Latin script, its years; the latest stands.
+  const decided={kind:new Map(),name:new Map(),life:new Map()};
+  decisions.forEach((decision,at)=>{const map=decided[decision.type];if(map)for(const row of decision.rows??[])map.set(row,{...decision,at});});
+  const latest=(map,list)=>list.map(row=>map.get(row.row)).filter(Boolean).sort((a,b)=>b.at-a.at)[0]??null;
   const memberRows=new Map(),leftOut=new Map();
   for(const line of keys){
     if(line.left_out){leftOut.set(line.row,line.left_out);continue;}
@@ -153,15 +190,39 @@ export function plant({review=HERE,root=ROOT,files=null}={}){
     const ordered=[entry.founded_on,...list.filter(row=>row!==entry.founded_on)].map(row=>rows.get(row));
     if(ordered.some(row=>!row))throw new Error(`plant: ${id} names a row the layer lacks`);
     for(const row of ordered)batches[row.batch].core_rows++;
-    const kind=ordered[0].kind;
+    const kind=decided.kind.get(ordered[0].row)?.kind??ordered[0].kind;
     const {name,latin}=names(ordered);
+    // A name two readers gave in Latin script stands where no row gives one.
+    const named=latin?null:latest(decided.name,ordered);
+    if(named)name.en=named.latin;
     const gaps=new Set();
-    if(!latin)gaps.add('name:latin');
+    if(!latin&&!named)gaps.add('name:latin');
     if(queued.has(id))gaps.add('identity:queue');
     if(ordered.some(row=>ambiguousRows.has(row.row)))gaps.add('core:ambiguous');
-    if(ordered.some(row=>row.signals?.length))gaps.add('kind:signal');
+    if(ordered.some(row=>row.signals?.length&&!decided.kind.has(row.row)))gaps.add('kind:signal');
     const phases=[];
-    if(KINDS[kind].tree_type==='tos.entity.agent'){
+    const life=KINDS[kind].tree_type==='tos.entity.agent'?latest(decided.life,ordered):null;
+    if(life){
+      // Two readers' years stand in place of the registers' own: from the sources they name, else from the rows.
+      const slug=entry.slug,{lifetime,activity,statement:words}=readersLife(life);
+      const opened=(life.sources??[]).find(source=>/^https:\/\//.test(source));
+      const source=`line-${life.id}`;
+      sources[source]={short:`Линия Популяции, ${life.id}`,title:`Two independent readers of the Population line (${life.by}) agreed on these years${life.sources?.length?`, from: ${life.sources.join('; ')}`:', from the register rows'}`,
+        url:opened??register(ordered[0].batch)};
+      const note=life.readers?.[0]?.note??words.en;
+      const wording=(found)=>({...dating(found,note),source_wording:{text:note,language:/[а-яё]/i.test(note)?'ru':'en'}});
+      const add=(suffix,found,label)=>{
+        const key=`tos.biographical-phase.${slug}.${suffix}`;
+        situations[key]={type:'biographical-phase',subject:id,label,dating:wording(found),statement:words,sources:[source],footing:opened?'medium':'low',epistemic:'reported'};
+        phases.push(key);
+        return key;
+      };
+      const lifeKey=lifetime?add('lifetime',lifetime,{ru:`${name.ru}: годы жизни`,en:`${name.en}: lifetime`}):null;
+      const activityKey=activity&&lifetime?.shape!=='closed'?add('activity',activity,{ru:`${name.ru}: годы деятельности`,en:`${name.en}: years of activity`}):null;
+      if(lifetime?.shape==='closed')lives[id]=lifeKey;
+      else if(activityKey)lives[id]=activityKey;
+    }
+    else if(KINDS[kind].tree_type==='tos.entity.agent'){
       const life=best(ordered,lifetimeOf,lifetimeOrder),activity=best(ordered,activityOf,activityOrder);
       const slug=entry.slug;
       const add=(suffix,chosen,label)=>{

@@ -366,7 +366,10 @@ export function resolve({review=HERE,root=ROOT,tolerance=yearTolerance}={}){
     else if(decision.type==='left_out')leftOut.set(indices[0],{reason:decision.reason,by:decision.id});
     else if(decision.type==='same')for(let i=1;i<indices.length;i++)same.push([indices[0],indices[i],decision.id]);
     else if(decision.type==='different'||decision.type==='related'){cannot.add(`${Math.min(...indices)}|${Math.max(...indices)}`);settled.push(indices);}
-    else if(decision.type==='held')settled.push(indices);
+    // A held member's question (its kind, name or years) settles no pair of members.
+    else if(decision.type==='held'){if((decision.question??'identity')==='identity')settled.push(indices);}
+    // A member's name in Latin script and its years are the planting's (plant.mjs); resolution reads what joins rows.
+    else if(decision.type==='name'||decision.type==='life')continue;
     else throw new Error(`resolve: decision ${decision.id} has unknown type ${decision.type}`);
   }
   for(const row of rows){

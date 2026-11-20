@@ -32,7 +32,7 @@ let stopped=null;
 const kit=(...args)=>{const run=spawnSync(process.execPath,[KIT,...args],{encoding:'utf8'});return {code:run.status,text:`${run.stdout}${run.stderr}`.trim()};};
 
 function prompt(reader){
-  return `You are reader ${reader} of the Population identity line of the Tree of Sophia. Read ../../AGENTS.md and ../../READER.md first, then the questions: node ../../kit.mjs show ${'$'}(basename "$PWD"). `+
+  return `You are reader ${reader} of the Population line of the Tree of Sophia. Read ../../AGENTS.md and ../../READER.md first (packet.json names the questions' type, and READER.md has its section), then the questions: node ../../kit.mjs show ${'$'}(basename "$PWD"). `+
     `Answer every question in reader-${reader}.jsonl, one JSON line per question, as READER.md says. Never open reader-${reader===1?2:1}.jsonl. `+
     `When you are done, run: node ../../kit.mjs gate ${'$'}(basename "$PWD") --reader ${reader} — and fix your file until it names no problem. Stop then.`;
 }
