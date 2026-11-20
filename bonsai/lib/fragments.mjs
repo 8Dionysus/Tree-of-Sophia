@@ -79,8 +79,12 @@ export function fragmentMayShow(witness){
 export function wholeExternalSentence(text){
   const start=String(text??'').trim().replace(/^[\s"“„«‚‘「『'([—–-]+/u,'');
   const first=Array.from(start)[0]??'';
-  const sentenceInitial=/^\p{L}$/u.test(first)&&(first.toLowerCase()===first.toUpperCase()||first===first.toUpperCase());
-  return sentenceInitial&&/[.!?…。！？؟][”»’」』"')\]]*$/u.test(String(text??'').trimEnd());
+  // Editions of Greek verse can start a speaker's sentence in lower case.
+  // The source and page review still determine the actual sentence boundary.
+  const greek=/^\p{Script=Greek}$/u.test(first);
+  const sentenceInitial=/^\p{L}$/u.test(first)&&(greek||first.toLowerCase()===first.toUpperCase()||first===first.toUpperCase());
+  const end=String(text??'').trimEnd();
+  return sentenceInitial&&(/[.!?…。！？؟।॥][”»’」』"')\]]*$/u.test(end)||(greek&&/;[”»’」』"')\]]*$/u.test(end)));
 }
 // What a link opens: the whole work, the page a quotation is taken from, or where a book can be found.
 const OPENS=['work','quotation','book'];

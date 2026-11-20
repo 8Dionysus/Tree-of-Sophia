@@ -129,6 +129,58 @@ class SentenceBoundaryTest(unittest.TestCase):
         ev={'images':[{'sha256':'a'*64,'by':'maker'}]}
         self.assertTrue(any('exceeds' in p for p in kit.quotation_problems('p','一句。二句。三句。四句。',proof,ev)))
 
+    def test_indic_words_and_danda_keep_their_boundaries(self):
+        self.assertEqual(kit.letters('नाट्यशास्त्रम्'), 'नाट्यशास्त्रम्')
+        self.assertNotEqual(kit.letters('कला'), kit.letters('कल'))
+        self.assertEqual(kit.changed('कला', 'कल'), [('कला', 'कल')])
+        self.assertEqual(kit.sentences('नाट्यशास्त्रम्।'), [])
+        self.assertEqual(kit.sentences('नाट्यशास्त्रम्॥'), [])
+        self.assertIsNone(kit.in_transcription('नाट्यशास्त्रम्।', 'प्रथमम्। नाट्यशास्त्रम्।'))
+        self.assertEqual([x[0] for x in kit.tokens('一二三。')], ['一','二','三','。'])
+        self.assertEqual([x[0] for x in kit.tokens('かな漢字。')], ['か','な','漢','字','。'])
+        self.assertEqual(kit.changed('學', '学'), [('學', '学')])
+        self.assertEqual(kit.letters('ςϲσ'), kit.letters('σσσ'))
+
+    def test_lookup_folds_preserve_printed_differences_for_review(self):
+        self.assertEqual(kit.iast('नाट्यशास्त्रम्'), 'nāṭyaśāstram')
+        self.assertEqual(kit.key('ivvenis',script='la'), kit.key('iuuenis',script='la'))
+        self.assertNotEqual(kit.key('ivvenis'), kit.key('iuuenis'))
+        self.assertEqual(kit.key('學',script='zh'), kit.key('学',script='zh'))
+        for transcription, printed, script in [('學','学','zh'), ('ivvenis','iuuenis','la'), ('नाट्यशास्त्रम्','nāṭyaśāstram','sa')]:
+            o={'words':[printed], 'at':[0], 'starts':[0], 'printed':{}, 'long_s':False}
+            found=kit.against_ocr(transcription,o,script=script)
+            self.assertEqual(found['share'],1)
+            self.assertEqual(found['differences'][0]['ocr'],printed)
+
+    def test_cjk_correction_without_ocr_support_requires_enlarged_review(self):
+        places={'work':'w','corrections':[{'place':'w p1','from':'天地元黄宇宙洪荒','to':'天地玄黄宇宙洪荒'}]}
+        ev={'scan':{'item':'s'},'places':{'p1':{'method':'ocr','differences':[{'transcription':'玄','ocr':'天'}]}}}
+        self.assertEqual([loc for loc,_ in kit.by_eye(places,ev)], ['p1'])
+
+    def test_cjk_deletion_contradicted_by_ocr_requires_enlarged_review(self):
+        places={'work':'w','corrections':[{'place':'w p1','from':'天地玄黄宇宙洪荒','to':'天地黄宇宙洪荒'}]}
+        words=list('天地玄黄宇宙洪荒')
+        o={'words':words,'at':list(range(len(words))),'starts':[0],'printed':{},'long_s':False}
+        comparison=kit.against_ocr('天地黄宇宙洪荒。',o,script='zh')
+        ev={'scan':{'item':'s'},'places':{'p1':{'method':'ocr','differences':comparison['differences']}}}
+        self.assertEqual([loc for loc,_ in kit.by_eye(places,ev)], ['p1'])
+        ev['places']['p1']['differences']=[]
+        self.assertEqual(kit.by_eye(places,ev), [])
+
+    def test_quotation_counts_danda_sentences(self):
+        proof={'source':'https://example.org/page','page':'1','lines':'1–4','sha256':'a'*64}
+        ev={'images':[{'sha256':'a'*64,'by':'maker'}]}
+        self.assertTrue(any('exceeds' in p for p in kit.quotation_problems('p','एकम्। द्वे। त्रीणि। चत्वारि।',proof,ev)))
+
+    def test_greek_question_mark_is_a_sentence_boundary(self):
+        self.assertEqual(kit.sentences('Τί ἐστι θεός;'), [])
+        self.assertEqual(kit.sentences('εἰ ξυμπονήσεις;'), [])
+        self.assertTrue(kit.sentences('This is not a complete sentence;'))
+        self.assertIsNone(kit.in_transcription('Τί ἐστι θεός;', 'Τί λέγεις; Τί ἐστι θεός;'))
+        proof={'source':'https://example.org/page','page':'1','lines':'1–4','sha256':'a'*64}
+        ev={'images':[{'sha256':'a'*64,'by':'maker'}]}
+        self.assertTrue(any('exceeds' in p for p in kit.quotation_problems('p','Τί; Πῶς; Ποῦ; Πότε;',proof,ev)))
+
 class RussianExtensionTest(unittest.TestCase):
     def test_extension_normalizes_without_editing_parent(self):
         import argparse, json, tempfile
