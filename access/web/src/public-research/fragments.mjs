@@ -507,7 +507,9 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     wrap.append(figure,toggle);return wrap;
   }
   async function placeLabel(cite){const data=await externalPlaces();return localeValue(data.places?.[cite?.w]?.[cite?.loc]?.label,locale());}
-  return {render,fragment,showChapter,sourceSelection,placeLabel,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
+  /** Begin loading the chapters these places stand in, so opening them later is immediate. Failures wait for the real read. */
+  function preload(cites=[]){if(profile!=='zarathustra')return;void witnesses().catch(()=>{});for(const key of new Set(cites.map(cite=>cite?.c).filter(value=>typeof value==='string')))void chapter(key).catch(()=>{});}
+  return {render,fragment,showChapter,sourceSelection,placeLabel,citesOf,preload,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
 }
 
 export {CHAPTER_KEYS,copyLocale};

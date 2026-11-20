@@ -14,7 +14,9 @@ import {scaleLabelClear} from './scale-labels.mjs';
 // depthCue dims what lies further back; planarMoves keeps a moved star in its
 // own depth; onPose hears every turn of the view. Such a space may lay its
 // stars on named planes of depth (state.planes), shown while it turns.
-export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, onBackground=null, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null, onThreadSelect=null, threadsFor=null, obstacles=null}) {
+export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, onBackground=null, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null, onThreadSelect=null, threadsFor=null, obstacles=null, controls=null}) {
+  // The device's own steering (turn and zoom speed, coasting, inversion), read at every gesture.
+  const steer=()=>controls?.()??{};
   let canvas=root.querySelector('canvas'),ctx;
   try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
   catch {const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';}
@@ -1132,7 +1134,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   let zoomCeiling=4;
   const zoomTo=(value,max=zoomCeiling)=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.5,Math.max(max,Math.min(tzoom,16)));kick();};
   const wheel=e=>{
-    e.preventDefault();const before=tzoom;zoomTo(tzoom*Math.exp(-e.deltaY*.0012));
+    e.preventDefault();const c=steer(),before=tzoom;zoomTo(tzoom*Math.exp(-e.deltaY*.0012*(c.zoomSpeed??1)*(c.invertZoom?-1:1)));
     // On a measured scale the moment under the pointer stays under it.
     if(measured&&before>0){const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left-(targetViewport.left+targetViewport.right)/2,y=e.clientY-rect.top-(targetViewport.top+targetViewport.bottom)/2;tpan={x:x-(x-tpan.x)*tzoom/before,y:measured.axes==='xy'?y-(y-tpan.y)*tzoom/before:0};kick();}
   };
@@ -1143,8 +1145,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   function dragBy(state,dx,dy){
     introUntil=0;
     if(measured||state.forcePan||(rotate?state.shift:!state.shift)){tpan={x:state.pan.x+dx,y:measured?.axes==='x'?0:state.pan.y+dy};kick();return;}
-    const nextYaw=state.yaw+dx*.0025,nextPitch=clamp(state.pitch+dy*.0025,...PITCH);
-    if(inertia&&!reduced.matches){
+    const c=steer(),turn=.0025*(c.turnSpeed??1)*(c.invertTurn?-1:1);
+    const nextYaw=state.yaw+dx*turn,nextPitch=clamp(state.pitch+dy*turn,...PITCH);
+    if(inertia&&c.inertia!==false&&!reduced.matches){
       const now=performance.now();
       if(lastTurn&&now>lastTurn.t){const dt=(now-lastTurn.t)/1000,vy=(nextYaw-lastTurn.yaw)/dt,vp=(nextPitch-lastTurn.pitch)/dt,limit=v=>clamp(v,-3,3);velocity={yaw:limit(velocity?velocity.yaw*.35+vy*.65:vy),pitch:limit(velocity?velocity.pitch*.35+vp*.65:vp),t:now};}
       lastTurn={t:now,yaw:nextYaw,pitch:nextPitch};
@@ -1152,7 +1155,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     tyaw=nextYaw;tpitch=nextPitch;kick();
   }
   // A turn let go while still moving coasts; one that had already stopped stays.
-  function letGo(){if(!(inertia&&velocity&&performance.now()-velocity.t<90))velocity=null;lastTurn=null;}
+  function letGo(){if(!(inertia&&steer().inertia!==false&&velocity&&performance.now()-velocity.t<90))velocity=null;lastTurn=null;}
   // Two fingers move and pinch the view wherever they land, on the sky or on its stars; the turn belongs to one finger.
   const touches=new Map(),presses=new Set();let gesture=null,touchHeld=false;
   const touchPair=()=>{const [a,b]=[...touches.values()];return {distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),mid:{x:(a.x+b.x)/2,y:(a.y+b.y)/2}};};

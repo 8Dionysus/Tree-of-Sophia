@@ -11,6 +11,9 @@ import {mountKnowing} from './knowing-map.mjs';
 import {connectResearchPage} from './page-agent.mjs';
 import {mountActionLayer} from './action-layer.mjs';
 import {mountActDesk} from './act-desk.mjs';
+import {createControlPrefs} from './control-prefs.mjs';
+// How this device steers the stand: one set of preferences for the space, its keys and the reading size.
+const controlPrefs=createControlPrefs();
 import {createActJournal} from '../act-journal/journal.mjs';
 import {openActStore} from '../act-journal/store.mjs';
 import {mirrorWorkspace} from '../act-journal/workspace-mirror.mjs';
@@ -497,7 +500,7 @@ async function start() {
   if(appDisposed)return;
   spaceView = mountPublicResearchSpace({host:readerRoot,header,profile,locale:()=>locale,library:publicSpace.library,
     bindings:publicSpace.bindings,documentBindings:publicSpace.documentBindings,groundTargets:publicSpace.groundTargets,routeGroundTargets:publicSpace.routeGroundTargets,graphPredecessors:publicSpace.graphPredecessors,api:window.tosPublicResearch,
-    workspace:publicOwners.workspace,shelf:publicOwners.shelf,question:questionLabel,saveState,status,journeys:profileInfo?.journeys??[],index:publicSpace.index});
+    workspace:publicOwners.workspace,shelf:publicOwners.shelf,question:questionLabel,saveState,status,journeys:profileInfo?.journeys??[],index:publicSpace.index,controlPrefs});
   saveState.after(resolveQuestionConflict, questionHistory);
   header.addEventListener('public-space-locale',onPublicSpaceLocale);
   agentBridge = mountPublicAgentBridge({root:spaceView.agentRoot, api:window.tosPublicResearch, notebook:entry.notebook,
@@ -517,8 +520,8 @@ async function start() {
   cognitive=mountCognitiveSession({root:knowing?.agentRoot??experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,onHelpChange:value=>knowing?.setHelpLevel(value),getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
   actJournal=createActJournal({store:openActStore()});
   stopWorkspaceMirror=publicOwners.workspace?mirrorWorkspace(publicOwners.workspace,actJournal,{sessionId:'local'}):null;
-  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,actTier:()=>actDesk?.tier()??'propose',viewState:()=>actionLayer?.context()??null,locale:()=>locale});
-  actionLayer=mountActionLayer({shell:spaceView.root,header,space:spaceView,experience,registry:pageAgent.registry,acts:actJournal,api:window.tosPublicResearch,locale:()=>locale});
+  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,actTier:()=>actDesk?.tier()??'propose',viewState:()=>actionLayer?.context()??null,viewControl:()=>actionLayer,locale:()=>locale});
+  actionLayer=mountActionLayer({shell:spaceView.root,header,space:spaceView,experience,registry:pageAgent.registry,acts:actJournal,api:window.tosPublicResearch,locale:()=>locale,controls:controlPrefs});
   actDesk=mountActDesk({shell:spaceView.root,actionLayer,space:spaceView,acts:actJournal,registry:pageAgent.registry,api:window.tosPublicResearch,locale:()=>locale,profile});
   workspaceView?.render();
   spaceView.refreshLocale();

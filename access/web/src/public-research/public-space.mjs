@@ -106,7 +106,7 @@ export function toggleResearchFullscreen(host,doc=document){
 }
 
 /** A public adapter over the existing constructor scene and its Rust graph owner. */
-export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',library,bindings=new Map(),documentBindings=new Map(),groundTargets=()=>[],routeGroundTargets=()=>null,graphPredecessors=[],api,workspace,shelf,question,saveState,status,personalOwnerRoot,agentOwnerRoot,journeys=[],index=null}={}){
+export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',library,bindings=new Map(),documentBindings=new Map(),groundTargets=()=>[],routeGroundTargets=()=>null,graphPredecessors=[],api,workspace,shelf,question,saveState,status,personalOwnerRoot,agentOwnerRoot,journeys=[],index=null,controlPrefs=null}={}){
   if(!host||!library||!api)throw new TypeError('The public space needs a host, library, and reader API.');
   // Antiquity calls its authored routes branches, as the earlier tree did.
   const profileWords={antiquity:{ru:{routes:'Ветви',stepName:'Ход',backToRoute:'назад к ветви',routeNext:'Следующий ход',routePrevious:'Предыдущий ход'},en:{routes:'Branches',stepName:'Move',backToRoute:'back to the branch',routeNext:'Next move',routePrevious:'Previous move'}}}[profile]??{};
@@ -2156,7 +2156,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       card.addEventListener('click',()=>{sky?.light(null);startRoute(item);});list.append(card);
       // Pointed at, a branch or route lights its way through the stars it walks.
       if(item.source==='atlas'){
-        const light=()=>{const view=new Set((shownView?.nodes??[]).map(node=>node.id));sky?.light(routeStars(shown.steps??[],{graphIdOf:id=>graphIdForMaterial(materials.has(id)?id:String(id).replace(/^material:/,'')),shown:view}));};
+        // Pointing at a route also begins loading the chapters its steps stand in, so opening it is immediate.
+        const light=()=>{const view=new Set((shownView?.nodes??[]).map(node=>node.id));sky?.light(routeStars(shown.steps??[],{graphIdOf:id=>graphIdForMaterial(materials.has(id)?id:String(id).replace(/^material:/,'')),shown:view}));
+          fragments.preload?.(citedPlaces([item,...(item.steps??[]).map(step=>previewMaterials.get(String(step.nodeId??step.graphNodeId??'').replace(/^material:/,''))?.record??null)]));};
         const dark=()=>sky?.light(null);
         card.addEventListener('pointerenter',light);card.addEventListener('focus',light);card.addEventListener('pointerleave',dark);card.addEventListener('blur',dark);
       }
@@ -2347,7 +2349,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(benchView?.isOpen()||dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"],.ps-personal'))return;
     const key=event.key.toLowerCase();if((event.ctrlKey||event.metaKey)&&key==='z'){event.preventDefault();event.shiftKey?model.redo():model.undo();checkGraphPersistence();}
     else if(!event.ctrlKey&&!event.metaKey&&!event.altKey){
-      if(key==='o')frameSky();
+      // The device's keys (control-prefs.mjs); by default O, /, B and F.
+      const keys=controlPrefs?.get?.().keys??{frame:'KeyO',search:'Slash',bench:'KeyB',expand:'KeyF'};
+      if(event.code===keys.frame)frameSky();
       // Escape lets a chosen star go; on the tree the view steps back to the whole of it.
       // Escape folds the workbench back to the column, with the same star still chosen; the reader's own work opened
       // from the bench closes back onto it.
@@ -2355,11 +2359,11 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(key==='escape'&&fragments.reader?.dialog?.open){event.preventDefault();fragments.reader.dialog.close();return;}
       if(key==='escape'&&bench){event.preventDefault();if(!personal.hidden)closePersonal();else toggleBench(false);return;}
       if(key==='escape'&&(selected||selectedEdge)&&!route){event.preventDefault();closePanel();}
-      if(key==='/'){event.preventDefault();search.focus();}
+      if(event.code===keys.search||(key==='/'&&keys.search==='Slash')){event.preventDefault();search.focus();}
       // B lays the open card on the workbench, or opens the workbench when no card is open (Shift+B always opens it);
       // F spreads the card over the whole screen and folds it back. Both in any keyboard layout.
-      if(event.code==='KeyB'){event.preventDefault();if(!event.shiftKey&&!panelAdd.hidden)layOnBench();else benchView?.show();return;}
-      if(event.code==='KeyF'&&!panelBench.hidden){event.preventDefault();toggleBench();return;}
+      if(event.code===keys.bench){event.preventDefault();if(!event.shiftKey&&!panelAdd.hidden)layOnBench();else benchView?.show();return;}
+      if(event.code===keys.expand&&!panelBench.hidden){event.preventDefault();toggleBench();return;}
       if(key==='+'||key==='='){event.preventDefault();sky?.zoomBy(1.25);}
       if(key==='-'||key==='_'){event.preventDefault();sky?.zoomBy(1/1.25);}
       // Arrows walk the open branch or route a step at a time.
@@ -2423,7 +2427,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // The space turns under a drag and rests a little turned, so its depth shows; Shift, the right button or two fingers move it,
   // a pinch or the wheel zooms, and a star held still is picked up. A measuring lens lays its scale flat and only moves.
-  sky=mountConstructorSky(shell,{obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!treeView()&&!gatherView()&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge,
+  sky=mountConstructorSky(shell,{controls:()=>controlPrefs?.get?.()??null,obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!treeView()&&!gatherView()&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge,
     // A click on the empty sky lets a chosen star of the tree go.
     onBackground:()=>{if(selected&&(treeView()||gatherView())&&!route)closePanel();}});
   inkTheme();
@@ -2526,7 +2530,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   mountWorkbench();
   // The action layer (action-layer.mjs) reaches the space through these: lenses, routes, search, the bench and the card's tools.
   const actionApi={lenses:()=>lenses.map(item=>({id:item.id,title:item.title})),lens:()=>lens,setLens:id=>{const target=lensList.querySelector(`[data-lens="${CSS.escape(id)}"]`);if(!target)return false;target.click();return true;},
-    routeState:()=>route?{id:route.id,source:route.source,step:routeIndex+1}:null,toggleRoutes:()=>toggleRoutes(),setPassageActions:actions=>standOrigin?.setPassageActions?.(actions),terms:()=>bonsaiFor(profile)?.terms?.terms??[],focusSearch:()=>search.focus(),layOnBench:()=>layOnBench(),canLayOnBench:()=>!panelAdd.hidden,columnTools:panelTools};
+    routeState:()=>route?{id:route.id,source:route.source,step:routeIndex+1}:null,toggleRoutes:()=>toggleRoutes(),setPassageActions:actions=>standOrigin?.setPassageActions?.(actions),terms:()=>bonsaiFor(profile)?.terms?.terms??[],
+    routes:()=>[...routes,...journeyList].map(item=>({id:item.id,source:item.source??'atlas',title:item.title,steps:item.steps?.length??0})),
+    startRoute:id=>{const item=routes.find(entry=>entry.id===id)??journeyList.find(entry=>entry.id===id);if(!item)return false;startRoute(item);return true;},focusSearch:()=>search.focus(),layOnBench:()=>layOnBench(),canLayOnBench:()=>!panelAdd.hidden,columnTools:panelTools};
   return {root:shell,index,selection:researchSelection,actions:actionApi,openBench:()=>benchView?.show(),bench:()=>benchView,setTrail,openResearch,renderResearch,renderContents,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
     destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();standOrigin?.dispose();api.reader?.setSelectionActions?.([]);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);benchView?.dispose();benchButton?.remove();sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
 }

@@ -5,6 +5,7 @@
 import './action-layer.css';
 import {localeText,resolveLocale} from './locale.mjs';
 import {encodeReadingRoute} from '../corpus-reader/route.mjs';
+import {PRESETS,keyLabel} from './control-prefs.mjs';
 import pageCommands from '../../../contracts/page-commands.v1.json' with {type:'json'};
 import actCommands from '../../../contracts/act-commands.v1.json' with {type:'json'};
 import knowledgeApi from '../../../contracts/knowledge-api.v1.json' with {type:'json'};
@@ -37,6 +38,7 @@ const labels={
   copied:['Скопировано','Copied'],
   copyFailed:['Не удалось скопировать: выделите текст и скопируйте вручную','Could not copy: select the text and copy it by hand'],
   routes:['Маршруты','Routes'],
+  route:['Маршрут','Route'],
   find:['Искать в пространстве','Search the space'],
   lens:['Линза','Lens'],
   tasks:['Задачи','Tasks'],
@@ -54,12 +56,38 @@ const labels={
   manifest:['Скопировать манифест для агента','Copy the manifest for an agent'],
   journal:['Журнал действий','Act journal'],
   journalLoaded:['записей прочитано','records read'],
+  settings:['Настройки управления','Control settings'],
+  preset:['Набор','Preset'],
+  'preset-mouse':['Мышь','Mouse'],
+  'preset-trackpad':['Трекпад','Trackpad'],
+  'preset-touch':['Касание','Touch'],
+  'preset-precise':['Точное','Precise'],
+  'preset-custom':['Свой','Custom'],
+  turnSpeed:['Скорость поворота','Turning speed'],
+  zoomSpeed:['Скорость приближения','Zoom speed'],
+  inertia:['Поворот докатывается после отпускания','A turn coasts after letting go'],
+  invertTurn:['Обратный поворот','Inverted turning'],
+  invertZoom:['Обратное приближение','Inverted zoom'],
+  keys:['Клавиши','Keys'],
+  pressKey:['Нажмите клавишу…','Press a key…'],
+  'key-palette':['Команды (с Ctrl или ⌘)','Commands (with Ctrl or ⌘)'],
+  'key-layer':['Слой','Layer'],
+  'key-search':['Поиск','Search'],
+  'key-frame':['Вписать всё','Fit everything'],
+  'key-bench':['На верстак','To the workbench'],
+  'key-expand':['Развернуть карточку','Expand the card'],
+  textScale:['Размер текста для чтения','Reading text size'],
+  contrast:['Контраст знаков','Contrast of signs'],
+  'contrast-normal':['Обычный','Normal'],
+  'contrast-high':['Высокий','High'],
+  reset:['Вернуть исходные','Restore defaults'],
   close:['Закрыть','Close'],
 };
 
 const pageCommandIds=new Set(pageCommands.commands.map(command=>command.command_id));
 
-export function mountActionLayer({shell,header,space,experience,registry=null,acts=null,api,locale=()=> 'ru',tier=()=> 'propose'}){
+export function mountActionLayer({shell,header,space,experience,registry=null,acts=null,api,locale=()=> 'ru',tier=()=> 'propose',controls=null}){
+  const keys=()=>controls?.get?.().keys??{palette:'KeyK',layer:'KeyL'};
   const t=key=>{const pair=labels[key];if(!pair)return key;return resolveLocale(locale())==='ru'?pair[0]:localeText(pair[1],locale());};
   const doc=shell.ownerDocument,view=doc.defaultView;
   const el=(tag,cls='',text)=>{const node=doc.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;};
@@ -174,8 +202,8 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
   const actions=[
     {id:'open-card',label:'openCard',for:['star','link'],command:'tos.page.select',run:target=>registry?registry.invoke('tos.page.select',{item_id:target.id}):experience?.open?.(target.id)},
     {id:'open-article',label:'openArticle',for:['star','link'],command:'tos.page.open-view',run:target=>registry?registry.invoke('tos.page.open-view',{view_id:'reference',focus_id:target.id}):(experience?.open?.(target.id),experience?.setMode?.('reference'))},
-    {id:'compare',label:'compare',for:['star'],run:target=>space?.compare?.(target.id)},
-    {id:'bench',label:'bench',for:['star','link'],when:()=>space?.actions?.canLayOnBench?.(),run:()=>space?.actions?.layOnBench?.()},
+    {id:'compare',label:'compare',for:['star'],command:'tos.page.compare',run:target=>registry?registry.invoke('tos.page.compare',{item_id:target.id}):space?.compare?.(target.id)},
+    {id:'bench',label:'bench',for:['star','link'],command:'tos.page.lay-on-bench',when:()=>space?.actions?.canLayOnBench?.(),run:()=>registry?registry.invoke('tos.page.lay-on-bench',{}):space?.actions?.layOnBench?.()},
     {id:'copy-link',label:'copyLink',for:['star','link','passage'],when:target=>target.type!=='passage'||Boolean(target.passage),run:target=>copy(linkTo(target))},
     {id:'copy-quote',label:'copyQuote',for:['passage'],run:target=>copy(target.passage
       ?`«${target.passage.quote}» — ${[target.passage.title,target.passage.versionLabel].filter(Boolean).join(', ')}\n${linkTo(target)}`
@@ -183,15 +211,18 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
     {id:'copy-place',label:'copyJson',for:['passage'],when:target=>Boolean(target.stand),run:target=>copy(JSON.stringify({quote:target.quote,...target.stand},null,2))},
     {id:'copy-json',label:'copyJson',for:['star','link'],command:'tos.page.research-item',run:async target=>copy(JSON.stringify(registry?await registry.invoke('tos.page.research-item',{id:target.id}):target.item,null,2))},
     {id:'copy-view-link',label:'copyViewLink',for:['none','star','link','passage'],run:()=>copy(linkTo({type:'none'}))},
-    ...LAYERS.map(id=>({id:`layer-${id}`,label:id,prefix:'layer',for:['any'],key:'L',active:()=>layer===id,run:()=>setLayer(id)})),
+    ...LAYERS.map(id=>({id:`layer-${id}`,label:id,prefix:'layer',for:['any'],key:()=>keyLabel(keys().layer),command:'tos.page.set-layer',active:()=>layer===id,run:()=>registry?registry.invoke('tos.page.set-layer',{layer:id}):setLayer(id)})),
     {id:'routes',label:'routes',for:['any'],run:()=>space?.actions?.toggleRoutes?.()},
-    {id:'find',label:'find',for:['any'],key:'/',run:()=>space?.actions?.focusSearch?.()},
+    {id:'find',label:'find',for:['any'],key:()=>keyLabel(controls?.get?.().keys?.search??'Slash'),run:()=>space?.actions?.focusSearch?.()},
+    {id:'settings',label:'settings',for:['any'],when:()=>Boolean(controls),run:()=>openSettings()},
     {id:'tasks',label:'tasks',for:['any'],run:()=>{tray.hidden=false;trayList.hidden=false;paintTray();}},
     {id:'capabilities',label:'capabilities',for:['any'],run:()=>openCapabilities()},
     {id:'manifest',label:'manifest',for:['any'],command:'tos.act.manifest',when:()=>Boolean(acts),run:async()=>{const {actManifest}=await import('../act-journal/agent-tools.mjs');return copy(JSON.stringify(await actManifest(acts,{tier:tier()}),null,2));}},
   ];
   // One action per lens, named by the lens.
-  const lensActions=()=>(space?.actions?.lenses?.()??[]).map(item=>({id:`lens-${item.id}`,text:`${t('lens')}: ${titleFromForm(item.title)}`,for:['any'],active:()=>space.actions.lens()===item.id,run:()=>space.actions.setLens(item.id)}));
+  const lensActions=()=>[...(space?.actions?.lenses?.()??[]).map(item=>({id:`lens-${item.id}`,text:`${t('lens')}: ${titleFromForm(item.title)}`,for:['any'],command:'tos.page.set-lens',active:()=>space.actions.lens()===item.id,run:()=>registry?registry.invoke('tos.page.set-lens',{lens:item.id}):space.actions.setLens(item.id)})),
+    // Every route is one action away.
+    ...(space?.actions?.routes?.()??[]).map(item=>({id:`route-${item.id}`,text:`${t('route')}: ${titleFromForm(item.title)}`,for:['any'],command:'tos.page.start-route',active:()=>space.actions.routeState?.()?.id===item.id,run:()=>registry?registry.invoke('tos.page.start-route',{route_id:item.id}):space.actions.startRoute?.(item.id)}))];
   const titleFromForm=form=>typeof form==='string'?form:form?.[resolveLocale(locale())==='ru'?'ru':'en']??(form?.en?localeText(form.en,locale()):form?.ru)??'';
   const actionText=action=>typeof action.text==='function'?action.text():action.text??(action.prefix?`${t(action.prefix)}: ${t(action.label)}`:t(action.label));
   // Other owners add their actions (the act desk: tickets, review, transfer); each keeps its own label.
@@ -216,7 +247,7 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
       const item=el('li','al-palette-item');item.setAttribute('role','option');item.id=`al-option-${index}`;
       item.setAttribute('aria-selected',String(index===cursor));if(action.active?.())item.dataset.active='true';
       item.append(el('span','al-palette-label',actionText(action)));
-      if(action.key)item.append(el('kbd','al-palette-key',action.key));
+      if(action.key)item.append(el('kbd','al-palette-key',typeof action.key==='function'?action.key():action.key));
       item.addEventListener('pointerdown',event=>event.preventDefault());
       item.addEventListener('click',()=>{cursor=index;void runCurrent();});
       return item;
@@ -264,10 +295,10 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
 
   // Keys: Ctrl/⌘+K opens the palette anywhere; L walks the layers when no field has the keyboard.
   on(doc,'keydown',event=>{
-    if((event.ctrlKey||event.metaKey)&&!event.altKey&&event.key.toLowerCase()==='k'){event.preventDefault();if(palette.open)closePalette();else openPalette();return;}
+    if((event.ctrlKey||event.metaKey)&&!event.altKey&&event.code===keys().palette){event.preventDefault();if(palette.open)closePalette();else openPalette();return;}
     if(event.ctrlKey||event.metaKey||event.altKey||event.defaultPrevented)return;
     if(event.target.closest?.('input,textarea,select,[contenteditable="true"],dialog[open]'))return;
-    if(event.code==='KeyL'){event.preventDefault();setLayer(LAYERS[(LAYERS.indexOf(layer)+1)%LAYERS.length]);}
+    if(event.code===keys().layer){event.preventDefault();setLayer(LAYERS[(LAYERS.indexOf(layer)+1)%LAYERS.length]);}
   },{capture:true});
 
   // ------------------------------------------------------------ what agents can do (D5)
@@ -298,15 +329,49 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
     capabilities.showModal();
   }
 
+  // ------------------------------------------------------------ control settings (F1) and reading size and contrast (F4)
+  const settings=el('dialog','al-settings');shell.append(settings);
+  function openSettings(){
+    if(!controls)return;
+    const prefs=controls.get(),form=el('div','al-settings-body');
+    const head=el('div','al-capabilities-head'),close=button('×','icon');close.setAttribute('aria-label',t('close'));close.addEventListener('click',()=>settings.close());
+    head.append(el('h2','',t('settings')),close);
+    const row=(label,control)=>{const wrap=el('label','al-setting');wrap.append(el('span','',label),control);return wrap;};
+    const preset=el('select','al-input');preset.id='al-preset';
+    for(const name of [...Object.keys(PRESETS),'custom']){const option=el('option','',t(`preset-${name}`));option.value=name;option.selected=prefs.preset===name;preset.append(option);}
+    preset.addEventListener('change',()=>{if(preset.value!=='custom')controls.set({preset:preset.value});openSettings();});
+    const range=(name,min,max,step)=>{const input=el('input','al-range');input.type='range';input.id=`al-${name}`;input.min=String(min);input.max=String(max);input.step=String(step);input.value=String(prefs[name]);
+      const out=el('output','al-range-value',`${prefs[name].toFixed(2)}×`);input.addEventListener('input',()=>{out.textContent=`${Number(input.value).toFixed(2)}×`;});input.addEventListener('change',()=>{controls.set({[name]:Number(input.value)});openSettings();});
+      const wrap=el('span','al-range-wrap');wrap.append(input,out);return wrap;};
+    const check=name=>{const input=el('input');input.type='checkbox';input.id=`al-${name}`;input.checked=Boolean(prefs[name]);input.addEventListener('change',()=>controls.set({[name]:input.checked}));return input;};
+    const keyRows=el('div','al-keys');
+    for(const [name,code] of Object.entries(prefs.keys)){
+      const capture=button(keyLabel(code),'al-key');capture.id=`al-key-${name}`;
+      capture.addEventListener('click',()=>{capture.textContent=t('pressKey');
+        const onKey=event=>{event.preventDefault();event.stopPropagation();doc.removeEventListener('keydown',onKey,true);if(event.key!=='Escape')controls.set({keys:{...controls.get().keys,[name]:event.code}});openSettings();};
+        doc.addEventListener('keydown',onKey,true);});
+      keyRows.append(row(t(`key-${name}`),capture));
+    }
+    const contrast=el('select','al-input');contrast.id='al-contrast';
+    for(const name of ['normal','high']){const option=el('option','',t(`contrast-${name}`));option.value=name;option.selected=prefs.contrast===name;contrast.append(option);}
+    contrast.addEventListener('change',()=>controls.set({contrast:contrast.value}));
+    const reset=button(t('reset'),'text-button');reset.addEventListener('click',()=>{controls.reset();openSettings();});
+    form.append(row(t('preset'),preset),row(t('turnSpeed'),range('turnSpeed',.2,3,.1)),row(t('zoomSpeed'),range('zoomSpeed',.2,3,.1)),
+      row(t('inertia'),check('inertia')),row(t('invertTurn'),check('invertTurn')),row(t('invertZoom'),check('invertZoom')),
+      el('h3','al-settings-title',t('keys')),keyRows,row(t('textScale'),range('textScale',.85,1.5,.05)),row(t('contrast'),contrast),reset);
+    settings.replaceChildren(head,form);
+    if(!settings.open)settings.showModal();
+  }
+
   function refreshLocale(){paintLayer();paintTray();cardMenu.setAttribute('aria-label',t('actions'));cardMenu.title=`${t('actions')} · Ctrl+K`;}
   refreshLocale();
   if(layer!=='reading')shell.dispatchEvent(new view.CustomEvent('public-research-layer',{bubbles:true,detail:{layer}}));
 
   return {
-    layer:()=>layer,setLayer,openPalette,closePalette,linkTo,currentTarget,track,startTask,refreshLocale,addActions,say,copy,
+    layer:()=>layer,setLayer,openPalette,closePalette,linkTo,currentTarget,track,startTask,refreshLocale,addActions,say,copy,openSettings,
     /** For the page context: the presence layer, lens, route step and the reader's chosen passage. */
     context:()=>{const passage=api?.reader?.selectedSource?.();return {presence_layer:layer,lens:space?.actions?.lens?.()??null,route:space?.actions?.routeState?.()??null,
       bench_open:Boolean(space?.bench?.()?.isOpen?.()),reader_selection:passage?.reference?{reference:passage.reference,quote:String(passage.quote??'').slice(0,500)}:null};},
-    destroy(){for(const dispose of disposers.splice(0))dispose();layerControl.remove();layerGroup.remove();tray.remove();toast.remove();palette.remove();capabilities.remove();cardMenu.remove();api?.reader?.setPassageActions?.([]);space?.actions?.setPassageActions?.([]);delete doc.documentElement.dataset.presenceLayer;},
+    destroy(){for(const dispose of disposers.splice(0))dispose();layerControl.remove();layerGroup.remove();settings.remove();tray.remove();toast.remove();palette.remove();capabilities.remove();cardMenu.remove();api?.reader?.setPassageActions?.([]);space?.actions?.setPassageActions?.([]);delete doc.documentElement.dataset.presenceLayer;},
   };
 }
