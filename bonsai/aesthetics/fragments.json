@@ -2055,6 +2055,17 @@
       }
      ]
     }
+   },
+   "friedrich-schiller.ueber-das-pathetische": {
+    "ru": {
+     "absent": {
+      "language": "ru",
+      "reason": "No Russian text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-pathetische/witnesses/ru.json",
+     "corrections": []
+    }
    }
   }
  },
@@ -3564,14 +3575,143 @@
        ]
       }
      ]
+    },
+    "ru": {
+     "edition": "Ф. Шиллер. О патетическом. Перевод Петра Вейнберга. Собрание сочинений в переводе русских писателей, т. IV, под редакцией С. А. Венгерова. СПб.: Брокгауз — Ефрон, 1902, с. 280, 287–289.",
+     "year": 1902,
+     "url": "https://archive.org/details/sobranesochinen03venggoog",
+     "licence": "Public domain in Russia, the EU, the United States and Mexico based on publication in 1902 and deaths of Schiller (1805), Weinberg (1908) and editor Vengerov (1920).",
+     "attribution": "Фридрих Шиллер, «О патетическом», перевод Петра Вейнберга, под общей редакцией С. А. Венгерова, т. IV, 1902. The transcription is a locally prepared diplomatic excerpt from the research candidate, checked against the page scans; it is not downloaded text.",
+     "maker": "codex-01a1f628-schiller-ru-maker",
+     "normalization": "The local scan-excerpts-old.txt is a diplomatic transcription assembled from the prior ru research candidate and personally compared by this maker to the 1902 Internet Archive page images n303, n310, n311 and n312, not a downloaded transcription; source URL identifies the scanned edition. kit.py applies access/web/src/public-research/orthography.mjs 1918 orthographic normalization to that source; printed wording and punctuation are retained, with line breaks joined. The separate metadata and transcription are preserved in out/ru-planting/schiller-pathos-maker.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q2623051",
+       "name": {
+        "en": "Semyon Vengerov",
+        "ru": "Венгеров, Семён Афанасьевич"
+       },
+       "born": 1855,
+       "died": 1920,
+       "source": "https://www.wikidata.org/wiki/Q2623051",
+       "evidence": {
+        "file": "wikidata-Q2623051.json",
+        "sha256": "3207edbafb9025b145a2aa7ce3d02b0d09a2b7e5b0600a7f40fbf43141e64c4c",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q2623051.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Pyotr Weinberg",
+        "ru": "Пётр Исаевич Вейнберг"
+       },
+       "born": null,
+       "died": 1908,
+       "source": "https://www.wikidata.org/wiki/Special:EntityData/Q4106006.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-3b1c21bc0784043b.html",
+        "sha256": "f2bab5f30b20ed2ddec939c41d611998135e03d7a445afc40ebbe13af4c1090b",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q4106006.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281; 231-ФЗ ст. 6: автор умер в 1805, переводчик в 1908, редактор в 1920; сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "17 USC 304: book published in 1902, before 1931, in public domain in the United States."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC Article 1: life plus 70 years; last identified participant died 1920."
+      },
+      "mexico": {
+       "basis": "public-domain",
+       "law": "Ley Federal del Derecho de Autor, artículo 29: life plus 100 years; last identified participant died 1920, so term ended after 2020."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Semyon Vengerov",
+        "ru": "Венгеров, Семён Афанасьевич"
+       },
+       "qid": "Q2623051",
+       "source": "https://www.wikidata.org/wiki/Q2623051",
+       "born": [
+        {
+         "year": 1855
+        }
+       ],
+       "died": [
+        {
+         "year": 1920
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Pyotr Weinberg",
+        "ru": "Пётр Исаевич Вейнберг"
+       },
+       "source": "https://www.wikidata.org/wiki/Special:EntityData/Q4106006.json",
+       "born": [],
+       "died": [
+        {
+         "year": 1908
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
    "unsearched": [
-    {
-     "language": "ru",
-     "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
     {
      "language": "en",
      "reason": "No English text is taken in this pass: the line plants the original first."
@@ -10058,15 +10198,21 @@
      "en": "On the Pathetic, p. 312"
     },
     "texts": {
-     "de": "Man gelangt also zur Darstellung der moralischen Freyheit nur durch die lebendigste Darstellung der leidenden Natur; und der tragische Held muß sich erst als empfindendes Wesen bey uns legitimirt haben, ehe wir ihm als Vernunftwesen huldigen, und an seine Seelenstärke glauben."
+     "de": "Man gelangt also zur Darstellung der moralischen Freyheit nur durch die lebendigste Darstellung der leidenden Natur; und der tragische Held muß sich erst als empfindendes Wesen bey uns legitimirt haben, ehe wir ihm als Vernunftwesen huldigen, und an seine Seelenstärke glauben.",
+     "ru": "Таким образом, изображения нравственной свободы мы достигаем только самым живым представлением страждущей натуры человека, и для того, чтобы мы признали трагического героя за разумное существо и поверили в его душевную силу, ему необходимо сперва доказать нам, что он есть существо чувствующее."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n321/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n321/mode/1up",
+     "ru": "https://archive.org/download/sobranesochinen03venggoog/page/n303.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, part III (1801), p. 312"
+     ],
+     [
+      "ru",
+      "Ф. Шиллер. О патетическом. Перевод Петра Вейнберга. Собрание сочинений в переводе русских писателей, т. IV, под редакцией С. А. Венгерова. СПб.: Брокгауз — Ефрон, 1902, с. 280, 287–289., 280"
      ]
     ]
    },
@@ -10076,15 +10222,21 @@
      "en": "On the Pathetic, p. 345"
     },
     "texts": {
-     "de": "Alle Affekte sind ästhetischer aus der zweyten Hand und keine Sympathie ist stärker als die wir mit der Sympathie empfinden,\n\nPost ipsum, auxilio subeuntem ac tela ferentem corripiunt."
+     "de": "Alle Affekte sind ästhetischer aus der zweyten Hand und keine Sympathie ist stärker als die wir mit der Sympathie empfinden,\n\nPost ipsum, auxilio subeuntem ac tela ferentem corripiunt.",
+     "ru": "Все аффекты эстетичнее из вторых рук, и нет симпатии сильнее той, которую мы чувствуем посредством симпатии. Post ipsum auxilio subeuntem ac tela ferentem corripiunt."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n354/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n354/mode/1up",
+     "ru": "https://archive.org/download/sobranesochinen03venggoog/page/n310.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, part III (1801), p. 345"
+     ],
+     [
+      "ru",
+      "Ф. Шиллер. О патетическом. Перевод Петра Вейнберга. Собрание сочинений в переводе русских писателей, т. IV, под редакцией С. А. Венгерова. СПб.: Брокгауз — Ефрон, 1902, с. 280, 287–289., 287"
      ]
     ]
    },
@@ -10094,15 +10246,21 @@
      "en": "On the Pathetic, p. 351"
     },
     "texts": {
-     "de": "Ein erhabenes Objekt, bloß in der ästhetischen Schätzung, ist schon derjenige Mensch, der uns die Würde der menschlichen Bestimmung durch seinen Zustand vorstellig macht, gesetzt auch, daß wir diese Bestimmung in seiner Person nicht realisirt finden sollten."
+     "de": "Ein erhabenes Objekt, bloß in der ästhetischen Schätzung, ist schon derjenige Mensch, der uns die Würde der menschlichen Bestimmung durch seinen Zustand vorstellig macht, gesetzt auch, daß wir diese Bestimmung in seiner Person nicht realisirt finden sollten.",
+     "ru": "Объектом возвышенным только с точки зрения эстетической становится уже тот человек, который своим внутренним состоянием проявляет перед нами достоинство человеческого призвания, если предположить даже, что мы не увидим этого призвания осуществленным в его личности."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n360/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n360/mode/1up",
+     "ru": "https://archive.org/download/sobranesochinen03venggoog/page/n311.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, part III (1801), p. 351"
+     ],
+     [
+      "ru",
+      "Ф. Шиллер. О патетическом. Перевод Петра Вейнберга. Собрание сочинений в переводе русских писателей, т. IV, под редакцией С. А. Венгерова. СПб.: Брокгауз — Ефрон, 1902, с. 280, 287–289., 288–289"
      ]
     ]
    },
@@ -10112,15 +10270,21 @@
      "en": "On the Pathetic, pp. 349–350"
     },
     "texts": {
-     "de": "Zum Erhabenen der Handlung wird erfodert, daß das Leiden eines Menschen auf seine moralische Beschaffenheit nicht nur keinen Einfluß habe, sondern vielmehr umgekehrt das Werk seines moralischen Charakters sey. Dieses kann auf zweyerley Weise seyn. Entweder mittelbar und nach dem Gesetz der Freyheit, wenn er aus Achtung für irgend eine Pflicht das Leiden erwählt. Die Vorstellung der Pflicht bestimmt ihn in diesem Falle als Motiv, und sein Leiden ist eine Willenshandlung. Oder unmittelbar und nach dem Gesetz der Nothwendigkeit, wenn er eine übertretene Pflicht moralisch büßt. Die Vorstellung der Pflicht bestimmt ihn in diesem Falle als Macht, und sein Leiden ist bloß eine Wirkung. Ein Beyspiel des ersten gibt uns Regulus, wenn er um Wort zu halten, sich der Rachbegier der Karthaginienser ausliefert; zu einem Beyspiel des zweyten würde er uns dienen, wenn er sein Wort gebrochen und das Bewußtseyn dieser Schuld ihn elend gemacht hätte. In beyden Fällen hat das Leiden einen moralischen Grund, nur mit dem Unterschied, daß er uns in dem ersten Fall seinen moralischen Charakter, in dem andern bloß seine Bestimmung dazu zeigt. In dem ersten Fall erscheint er als eine moralisch große Person, in dem zweyten bloß als ein ästhetisch großer Gegenstand."
+     "de": "Zum Erhabenen der Handlung wird erfodert, daß das Leiden eines Menschen auf seine moralische Beschaffenheit nicht nur keinen Einfluß habe, sondern vielmehr umgekehrt das Werk seines moralischen Charakters sey. Dieses kann auf zweyerley Weise seyn. Entweder mittelbar und nach dem Gesetz der Freyheit, wenn er aus Achtung für irgend eine Pflicht das Leiden erwählt. Die Vorstellung der Pflicht bestimmt ihn in diesem Falle als Motiv, und sein Leiden ist eine Willenshandlung. Oder unmittelbar und nach dem Gesetz der Nothwendigkeit, wenn er eine übertretene Pflicht moralisch büßt. Die Vorstellung der Pflicht bestimmt ihn in diesem Falle als Macht, und sein Leiden ist bloß eine Wirkung. Ein Beyspiel des ersten gibt uns Regulus, wenn er um Wort zu halten, sich der Rachbegier der Karthaginienser ausliefert; zu einem Beyspiel des zweyten würde er uns dienen, wenn er sein Wort gebrochen und das Bewußtseyn dieser Schuld ihn elend gemacht hätte. In beyden Fällen hat das Leiden einen moralischen Grund, nur mit dem Unterschied, daß er uns in dem ersten Fall seinen moralischen Charakter, in dem andern bloß seine Bestimmung dazu zeigt. In dem ersten Fall erscheint er als eine moralisch große Person, in dem zweyten bloß als ein ästhetisch großer Gegenstand.",
+     "ru": "Возвышенное в действии требует, чтобы страдание человека не только не имело никакого влияния на его нравственное состояние, но даже, совершенно наоборот, было делом его нравственного характера. Это может совершаться двояким образом. Во-первых, посредственно и по закону свободы, когда человек, ради какой-нибудь обязанности, сам обрекает себя на страдание. В этом случае, представление обязанности становится для него побуждением, и его страдание есть действие свободной воли. Или, во-вторых, непосредственно и по закону необходимости, когда человек нравственно искупает нарушение какой-нибудь обязанности. Представление обязанности в этом случае заставляет его действовать как сила, и его страдание есть только результат. Пример первого представляет нам Регул, когда, чтобы сдержать слово, он отдает себя мщению карфагенян; примером второго послужил бы нам этот самый Регул, если бы он не сдержал слова и сделался несчастным вследствие сознания своей вины. В обоих случаях, страдание имеет причину нравственную — с тою только разницею, что в первом этот человек обнаруживает перед нами свой нравственный характер, во втором — только призвание свое к этому. В первом он является нравственно-великою личностью, во втором — только эстетически-великим предметом."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n358/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n358/mode/1up",
+     "ru": "https://archive.org/download/sobranesochinen03venggoog/page/n311.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, part III (1801), pp. 349–350"
+     ],
+     [
+      "ru",
+      "Ф. Шиллер. О патетическом. Перевод Петра Вейнберга. Собрание сочинений в переводе русских писателей, т. IV, под редакцией С. А. Венгерова. СПб.: Брокгауз — Ефрон, 1902, с. 280, 287–289., 288"
      ]
     ]
    }
