@@ -15,6 +15,7 @@ import {fragmentMayShow} from '../../../../bonsai/lib/fragments.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
 import {modernRussian,isPreReform,respell} from './orthography.mjs';
 import {createChapterVoice} from './chapter-voice.mjs';
+import {editionPagesSection} from './edition-pages.mjs';
 import {createLatestFragmentRequest} from './fragment-request.mjs';
 import {copyLocale,localeText,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
 
@@ -322,6 +323,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const toggleCredit=()=>credit.setAttribute('aria-expanded',String(credit.classList.toggle('is-open')));
     credit.addEventListener('click',toggleCredit);credit.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCredit();}});
     view.foot.append(credit);
+    // The pages of the editions, where a witness has a page map: behind the technical door (TOS-D-0084).
+    void editionPagesSection(document,locale,{data,languages:shownColumns}).then(section=>{if(section&&view.current?.key===key)view.foot.append(section);}).catch(()=>{});
     if(!view.dialog.open)view.dialog.showModal();
     (first??grid.firstElementChild)?.scrollIntoView({block:first?'center':'start'});
   }

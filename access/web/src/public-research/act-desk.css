@@ -48,3 +48,6 @@
 .tech-section>summary{cursor:pointer;width:max-content;color:var(--ps-muted);font:500 12px/1.6 var(--ps-sans);letter-spacing:.06em;text-transform:uppercase;list-style-position:inside}
 .tech-section[open]>summary{margin-bottom:6px;color:var(--ps-text)}
 .tech-section>*:not(summary){margin:4px 0 0}
+.ep-pages{display:flex;gap:8px;overflow-x:auto;padding:4px 0}
+.ep-page{display:flex;flex-direction:column;gap:2px;align-items:center;color:var(--ps-muted);font-size:11.5px;text-decoration:none}
+.ep-page img{width:120px;height:auto;min-height:60px;border:1px solid var(--ps-line);border-radius:3px;background:#0b1626}
