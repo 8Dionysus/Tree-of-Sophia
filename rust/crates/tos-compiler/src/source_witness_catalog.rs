@@ -5,7 +5,7 @@
 //! local schemas. Neither a worker verdict nor this catalog grants admission.
 //! Original source bytes remain in `raw_records` for bibliographic continuation.
 
-use crate::knowledge_normalization::SourceRow;
+use crate::knowledge_normalization::{MAX_SOURCE_ROW_BYTES, SourceRow};
 use crate::knowledge_stage::{KnowledgeStage, WritePhase};
 use crate::{Error, Result};
 use rusqlite::{OptionalExtension, params};
@@ -2518,7 +2518,10 @@ fn native_inventory(
                     .ok_or(Error::Budget("catalog native identity inventory packets"))?;
             }
             let basename = source_ref(&row.id)?;
-            let packet = SourceRow::parse(&row.payload, l.max_row_bytes)?;
+            // Native inventories are bounded source files; their individual
+            // identities are projected separately from regular catalog rows.
+            let packet =
+                SourceRow::parse(&row.payload, l.max_file_bytes.min(MAX_SOURCE_ROW_BYTES))?;
             if basename.starts_with("semantic-annotation") && basename.ends_with(".json") {
                 if text(packet.value(), "schema_version")? != "tos_semantic_annotation_packet_v2" {
                     return Err(Error::Invalid("catalog native identity packet schema"));

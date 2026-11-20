@@ -725,9 +725,24 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
         deadline: Instant,
     ) -> Result<Option<Vec<u8>>, ItemRefusal> {
         self.checkpoint(deadline)?;
-        allowed(path)?;
+        // These fixed evidence bindings live outside the authored corpus cut.
+        // The laboratory keeps the original builder reference and checks the
+        // digest against the exact bytes retained by the research crate.
+        let auxiliary = match path {
+            "rust/crates/tos-compiler/src/synthetic_foundation_labs.rs" => {
+                Some("rust/crates/tos-research/src/historical/synthetic_foundation_labs.rs.txt")
+            }
+            "docs/decisions/TOS-D-0020-corpus-evidence-spine-and-witness-storage.md" => Some(path),
+            _ => None,
+        };
+        if auxiliary.is_none() {
+            allowed(path)?;
+        }
         if !self.selects_required_member(path)? {
             return Ok(None);
+        }
+        if let Some(auxiliary) = auxiliary {
+            return self.auxiliary_read(auxiliary, requested, deadline);
         }
         if self
             .history
@@ -754,7 +769,11 @@ impl LayerFamilySource for FoundationRuleSource<'_, '_> {
                         return Ok(None);
                     };
                     if metadata.size_bytes > cap as u64 {
-                        return Err(ItemRefusal::Budget);
+                        return Err(ItemRefusal::BudgetCheck {
+                            check: "foundation current member bytes",
+                            used: Some(metadata.size_bytes),
+                            limit: Some(cap as u64),
+                        });
                     }
                     cut.read_member(
                         cut.current().revision(),

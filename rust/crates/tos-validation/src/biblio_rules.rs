@@ -1008,6 +1008,58 @@ fn claim_stream(path: &str) -> bool {
     owned(path) && path.ends_with("-claims.jsonl")
 }
 
+// Nonstandard textual journals declare their event profile beside the
+// journal. Their events never become evidence for a bibliographic Claim.
+fn bibliography_event_id<'a>(
+    path: &str,
+    value: &'a Value,
+    source: &impl BiblioSourceAccess,
+    rules: &mut Rules<'_>,
+) -> Result<Option<&'a str>, ItemRefusal> {
+    let id = s(value, "event_id");
+    let schema = s(value, "schema_version");
+    let (Some(schema), Some(directory), Some(_)) =
+        (schema, path.strip_suffix("/provenance.jsonl"), id)
+    else {
+        return Ok(id);
+    };
+    if matches!(
+        schema,
+        "tos_provenance_event_v1" | "tos_provenance_event_v2"
+    ) {
+        return Ok(id);
+    }
+    let route = format!("{directory}/bibliography-provenance-route.json");
+    if !source.path_presence(&route, rules)? {
+        return Ok(id);
+    }
+    let ceiling = rules.limits.max_member_bytes;
+    rules.limits.max_member_bytes = ceiling.min(1024);
+    let raw = source.read_current(&route, rules);
+    rules.limits.max_member_bytes = ceiling;
+    let raw = raw?;
+    let raw_state =
+        raw.len() + route.len() + std::mem::size_of::<Vec<u8>>() + std::mem::size_of::<String>();
+    reserve(&mut rules.state, raw_state, rules.limits.max_state_bytes)?;
+    let (declaration, declaration_state) = strict_decoded(&raw, rules)?;
+    reserve(
+        &mut rules.state,
+        declaration_state,
+        rules.limits.max_state_bytes,
+    )?;
+    rules.read(route.len() + 71, || PredicateRead::ExactPath {
+        path: route.clone(),
+        digest: Digest256::of_bytes(&raw).to_prefixed(),
+    })?;
+    let routed = declaration.as_object().is_some_and(|obj| obj.len() == 2)
+        && s(&declaration, "schema_version") == Some("tos_text_provenance_route_v1")
+        && s(&declaration, "event_schema") == Some(schema);
+    drop(declaration);
+    drop(raw);
+    rules.state -= raw_state + declaration_state;
+    Ok(if routed { None } else { id })
+}
+
 /// Requires record-family output from the same exact current cut. EOF is
 /// checked again for this family's Claim/event/Item-manifest traversal.
 pub fn inspect_bibliography_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRange>(
@@ -1211,7 +1263,7 @@ fn inspect_bibliography_on_cut(
                     raw_sha256: Digest256::of_bytes(&member.raw).to_hex(),
                     native: path.ends_with("/source-claims.jsonl"),
                 });
-            } else if let Some(id) = s(&value, "event_id") {
+            } else if let Some(id) = bibliography_event_id(path, &value, &source, &mut rules)? {
                 let contract = match s(&value, "schema_version") {
                     Some("tos_provenance_event_v1") => "ToS/contracts/provenance-event.schema.json",
                     Some("tos_provenance_event_v2") => {
@@ -1549,6 +1601,7 @@ fn inspect_bibliography_on_cut(
             && !s(&claim.value, "claim_id").is_some_and(|id| verified_native.contains(id))
     });
     let mut topology_limits = rules.limits;
+    topology_limits.max_issues -= rules.shadow.issues.len();
     topology_limits.max_state_bytes = rules
         .limits
         .max_state_bytes
@@ -2121,7 +2174,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                         rules.state -= claim_meta_state + value_state;
                         continue;
                     }
-                    if let Some(id) = s(&value, "event_id") {
+                    if let Some(id) = bibliography_event_id(path, &value, &source, &mut rules)? {
                         let contract = match s(&value, "schema_version") {
                             Some("tos_provenance_event_v1") => {
                                 "ToS/contracts/provenance-event.schema.json"
@@ -2294,6 +2347,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
     )?;
     let generation = scanned.membership().digest.to_prefixed();
     let mut topology_limits = limits;
+    topology_limits.max_issues -= rules.shadow.issues.len();
     topology_limits.max_state_bytes = limits
         .max_state_bytes
         .checked_sub(rules.state)
@@ -4333,6 +4387,56 @@ fn inspect_closure_stored<C: SourceFoundationDefaultClaims + ?Sized>(
 mod tests {
     use super::*;
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn routes_only_the_declared_sibling_text_event_profile() {
+        struct Source;
+        impl BiblioSourceAccess for Source {
+            fn read_current(&self, path: &str, _: &mut Rules<'_>) -> Result<Vec<u8>, ItemRefusal> {
+                assert_eq!(path, "works/item/bibliography-provenance-route.json");
+                Ok(br#"{"schema_version":"tos_text_provenance_route_v1","event_schema":"alignment_example_v1"}"#.to_vec())
+            }
+            fn path_presence(&self, path: &str, _: &Rules<'_>) -> Result<bool, ItemRefusal> {
+                Ok(path == "works/item/bibliography-provenance-route.json")
+            }
+            fn resolve_recorded_input(
+                &self,
+                _: &str,
+                _: Digest256,
+                _: &mut Rules<'_>,
+                _: &str,
+            ) -> Result<RecordedInputResolution, ItemRefusal> {
+                unreachable!("event routing reads only the exact current route")
+            }
+        }
+
+        let cancelled = AtomicBool::new(false);
+        let mut rules = rules(&cancelled);
+        let source = Source;
+        let same = "works/item/provenance.jsonl";
+        let other = "works/other/provenance.jsonl";
+        let row = |schema| json!({"schema_version": schema, "event_id": "test-event"});
+        let declared = row("alignment_example_v1");
+        let unknown = row("another_text_profile_v1");
+        let bibliography = row("tos_provenance_event_v2");
+        assert_eq!(
+            bibliography_event_id(same, &declared, &source, &mut rules).unwrap(),
+            None
+        );
+        assert_eq!(
+            bibliography_event_id(other, &declared, &source, &mut rules).unwrap(),
+            Some("test-event")
+        );
+        assert_eq!(
+            bibliography_event_id(same, &unknown, &source, &mut rules).unwrap(),
+            Some("test-event")
+        );
+        assert_eq!(
+            bibliography_event_id(same, &bibliography, &source, &mut rules).unwrap(),
+            Some("test-event")
+        );
+    }
+
     fn rules(cancelled: &AtomicBool) -> Rules<'_> {
         Rules {
             limits: ItemLimits {
