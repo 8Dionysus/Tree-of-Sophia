@@ -132,9 +132,20 @@ as `verdict`: `person`, `pseudonymous` (an author writing under another's name),
 ### Name in Latin script
 
 No row gives the member's name in Latin script. Give it as scholarship writes
-it: the form a row's variants or sources use, else a standard transliteration
-(pinyin for Chinese, IAST for Sanskrit and Pali, ALA-LC for Russian, Arabic,
-Persian and Hebrew), with its marks. `verdict` is `latin` with the name in
+it: the form a row's variants or sources use, else the name in the person's
+own language by its standard romanization, with all its marks:
+
+- Chinese: pinyin with tones (`Zhāng Shì`); Japanese: Hepburn with long vowels
+  (`Ogyū Sorai`); Korean: McCune–Reischauer (`Chŏng Tojŏn`), unless the person
+  published under a spelling of their own;
+- Sanskrit and Pali: IAST; Arabic, Persian and Hebrew: ALA-LC;
+- Russian: ALA-LC with `ĭ`, `ë` and `ė` (`Nikolaĭ Fëdorovich Fëdorov`), the
+  soft sign as `'`, and without the ligature ties (`Kuznetsova`, not
+  `Kuznet͡sova`; `Iakov`, not `IAkov`); a Ukrainian or Belarusian person by
+  the romanization of their own language (`Volodymyr Shynkaruk`).
+
+Write every apostrophe as `'`; `ʿ` and `ʾ` stay the Arabic letters they are.
+`verdict` is `latin` with the name in
 `latin`, or `undecidable`. Quote the row, or name the source you took the form
 from. The line compares the two readers' forms without their marks and case,
 and keeps the one with more marks.
@@ -159,16 +170,34 @@ cite or a scholarly source; never years from memory alone.
 - `birth`, `death` — each `null` or `{"year": 428, "era": "BCE" or "CE",
   "certainty": "exact", "approximate" or "uncertain"}`;
 - `activity` — `null` or the years of activity where no life is known:
-  `{"from": {"year", "era"}, "to": {"year", "era"}, "certainty"}`; a century
-  is its first and last year;
-- `living` — `true` only for a person the sources show alive (born 1880 or
-  later, no death); otherwise leave it out.
+  `{"from": {"year", "era"}, "to": {"year", "era"}, "certainty"}`. A dated
+  work of the person's own is a year of activity: a book or article first
+  published in 2017 gives from 2017 to 2017, several give the span from the
+  first to the last; a post, an office or a dated event counts the same. The
+  year of a reprint, or of an anthology that reprints an older text, does not.
+  A century a row or a source gives is its first and last year;
+- `living` — in a `living` question only, `true` for a person the sources show
+  alive (born 1880 or later, no death); otherwise leave it out. A `dates`
+  question leaves it out: whether a person lives is a question of its own.
+
+`undecidable` is for a member to whom no year at all can be tied.
+
+A `living` question is asked of the world, not of the rows: an unknown death in
+a register does not answer it. Search for the person. An obituary gives the
+death; a dated source of the last two years that shows the person alive then
+(an interview, a talk, a new book or article, a news item) gives `living`; a
+staff or faculty page alone does not, since such pages outlive their people.
+Name in `sources` the newest dated source you opened about the person, and say
+in the note what it shows and when; where you find neither an obituary nor a
+recent source, leave `living` out and say what you searched.
 
 Give what the evidence holds and leave the rest `null`: a death without a birth
 is an answer. Quote the row's words, or name the source in `sources` (and the
 basis `text` or `authority`). The two readers agree when they give the same
 bounds within a few years (more for approximate and ancient years); the line
-keeps the first reader's years at the weaker certainty.
+keeps the first reader's years at the weaker certainty. Two spans of activity
+agree when one holds the other or both lie within a working life of each
+other; the line keeps the span that covers both.
 
 ```json
 {"item":"q-…","sha":"…","verdict":"dates",

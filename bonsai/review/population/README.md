@@ -21,7 +21,7 @@ the decisions of the readers. The bonsai itself is
 | `keys.jsonl` | every register row: the member it belongs to and on what basis, or why it was left out | git |
 | `ids.jsonl` | the ledger of member IDs: minted, merged into another (a redirect), retired | git |
 | `core.json` | the authors table's spellings bound to the register rows they stand for | git |
-| `decisions.jsonl` | the readers' decisions: `same`, `different`, `related`, `held`, `left_out`, `kind` | git |
+| `decisions.jsonl` | the readers' decisions: `same`, `different`, `related`, `held`, `left_out`, `kind`, `name`, `life` | git |
 | `queue/` | the questions for readers: `identity.jsonl` (resolve.mjs), `kind`, `dates`, `latin`, `living` (line/kit.mjs) | git |
 | `control.json` | the cases the resolution must keep whatever readers decide | git |
 | `layers.json` | the digest manifest of `registry/` and `layer/` | git |
@@ -100,8 +100,11 @@ decisions. An identity question asks whether two members are one bearer
 (`resolve.mjs` reads the decision); a planted member's question asks a row's
 kind, the member's name in Latin script, or its years and whether it lives
 (`plant.mjs` plants the answer: a kind, a name, years with the readers' source
-in place of the registers' gap). [`line/READER.md`](line/READER.md) is the
-reader's route.
+in place of the registers' gap). Whether a member lives is a question of its
+own, asked of the world rather than of the rows: it waits while the member's
+life is open (a birth from 1900 on and no death, in the latest years readers
+gave or else in its rows) until a living question answers it.
+[`line/READER.md`](line/READER.md) is the reader's route.
 
 ## What this folder does not claim
 

@@ -82,7 +82,8 @@ function readersLife(decision){
   if(death)parts.push(said(death,death.certainty,['смерть','died']));
   if(activity){
     const [from,to]=[yearWords(activity.from,activity.certainty),yearWords(activity.to,'exact')];
-    parts.push([`деятельность — ${from[0]}–${to[0]}`,`active ${from[1]}–${to[1]}`]);
+    parts.push(lexeme(activity.from)===lexeme(activity.to)?[`деятельность — ${from[0]}`,`active ${from[1]}`]
+      :[`деятельность — ${from[0]}–${to[0]}`,`active ${from[1]}–${to[1]}`]);
   }
   if(decision.living)parts.push(['жив(а) по источникам читателей','living as the readers\' sources stand']);
   const statement={

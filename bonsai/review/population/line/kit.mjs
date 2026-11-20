@@ -227,6 +227,9 @@ export function verdictProblems(entry,verdict){
     if(verdict.verdict==='latin'){
       const name=typeof verdict.latin==='string'?verdict.latin.trim():'';
       if(!LATIN.test(name)||[...name.replace(/[^\p{L}]/gu,'')].length<2)problems.push('latin must be the name in Latin script');
+      if(/[︠͠͡-︣]/u.test(name))problems.push('write ALA-LC without its ligature ties: Kuznetsova, not Kuznet͡sova');
+      if(/(^|[\s'(-])(?!IJ)\p{Lu}{2}\p{Ll}/u.test(name))problems.push('capitalize a word by its first letter only: Iakov, not IAkov');
+      if(name.includes('’'))problems.push("write the apostrophe as ' (a soft sign, an elision, an aspiration): Il'in, not Il’in");
       needBasis();
       if(!quotes.length&&!sources.length)problems.push('a Latin name needs a quote of the rows or a source you opened');
     }
@@ -236,6 +239,10 @@ export function verdictProblems(entry,verdict){
       problems.push(...datesProblems(verdict));
       needBasis();
       if(!quotes.length&&!sources.length)problems.push('years need a quote of the rows or a source you opened');
+      // Whether a person lives is asked of the world, not of the rows, and only by a question of its own: the
+      // answer names what the reader opened.
+      if(type==='living'){if(!sources.length)problems.push('a living question needs in sources the newest dated source you opened about the person');}
+      else if(verdict.living)problems.push('a dates question leaves living out: whether a person lives is a question of its own');
     }
   }
   const texts=textsOf(entry);
@@ -262,15 +269,32 @@ const meet=(p,q,certainty)=>{
   const a=astronomical(p),b=astronomical(q);
   return Math.abs(a-b)<=yearTolerance(Math.min(a,b),weaker(certainty?.[0]??p.certainty,certainty?.[1]??q.certainty));
 };
+// Two readers' spans of activity are one answer when their bounds meet, or when together they reach no wider than the
+// wider of them and a working life: one span holds the other, they overlap, or each reader found a stretch of one career.
+const WORKING_LIFE=40;
+const spanOf=activity=>[astronomical(activity.from),astronomical(activity.to)];
+const boundsMeet=(one,two)=>meet(one.from,two.from,[one.certainty,two.certainty])&&meet(one.to,two.to,[one.certainty,two.certainty]);
+function activityAgrees(one,two){
+  if(!one||!two)return !one&&!two;
+  if(boundsMeet(one,two))return true;
+  const [a,b]=[spanOf(one),spanOf(two)];
+  return Math.max(a[1],b[1])-Math.min(a[0],b[0])<=Math.max(a[1]-a[0],b[1]-b[0])+WORKING_LIFE;
+}
 /** Whether two readers' years are one answer: each bound present in both or in neither, within the resolution's tolerance. */
 function datesAgree(one,two){
-  const activity=(!one.activity&&!two.activity)||(one.activity&&two.activity
-    &&meet(one.activity.from,two.activity.from,[one.activity.certainty,two.activity.certainty])
-    &&meet(one.activity.to,two.activity.to,[one.activity.certainty,two.activity.certainty]));
-  return meet(one.birth,two.birth)&&meet(one.death,two.death)&&Boolean(activity)&&Boolean(one.living)===Boolean(two.living);
+  return meet(one.birth,two.birth)&&meet(one.death,two.death)&&activityAgrees(one.activity,two.activity)&&Boolean(one.living)===Boolean(two.living);
 }
 // The answer of two agreeing readers: the first reader's years, at the weaker certainty, approximate where the years differ.
 const settle=(p,q)=>p?{year:p.year,era:p.era,certainty:astronomical(p)===astronomical(q)?weaker(p.certainty,q.certainty):weaker(p.certainty,q.certainty,'approximate')}:null;
+// Their activity: the first reader's span where the bounds meet, else the span that covers both, approximate where they differ.
+function settleActivity(one,two){
+  if(!one)return null;
+  const same=astronomical(one.from)===astronomical(two.from)&&astronomical(one.to)===astronomical(two.to);
+  const certainty=same?weaker(one.certainty,two.certainty):weaker(one.certainty,two.certainty,'approximate');
+  const [from,to]=boundsMeet(one,two)?[one.from,one.to]
+    :[astronomical(one.from)<=astronomical(two.from)?one.from:two.from,astronomical(one.to)>=astronomical(two.to)?one.to:two.to];
+  return {from:{year:from.year,era:from.era},to:{year:to.year,era:to.era},certainty};
+}
 // Of two Latin forms that fold alike, the one that keeps more of the name's marks.
 const marks=text=>[...text.normalize('NFD')].filter(ch=>/\p{M}/u.test(ch)).length;
 
@@ -299,9 +323,7 @@ export function agreement(entry,one,two){
   }
   const agreed=one.verdict==='dates'&&two.verdict==='dates'&&datesAgree(one,two);
   if(!agreed)return {agreed:false,verdict:null,relation:null};
-  const activity=one.activity?{from:{year:one.activity.from.year,era:one.activity.from.era},to:{year:one.activity.to.year,era:one.activity.to.era},
-    certainty:astronomical(one.activity.from)===astronomical(two.activity.from)&&astronomical(one.activity.to)===astronomical(two.activity.to)?weaker(one.activity.certainty,two.activity.certainty):weaker(one.activity.certainty,two.activity.certainty,'approximate')}:null;
-  return {agreed:true,verdict:'dates',relation:null,value:{birth:settle(one.birth,two.birth),death:settle(one.death,two.death),activity,living:Boolean(one.living)}};
+  return {agreed:true,verdict:'dates',relation:null,value:{birth:settle(one.birth,two.birth),death:settle(one.death,two.death),activity:settleActivity(one.activity,two.activity),living:Boolean(one.living)}};
 }
 
 /** Problems of one packet's verdicts; `fault` marks a problem of the line rather than of a reader. */
@@ -388,9 +410,14 @@ function queues({check=false}={}){
   const population=JSON.parse(readFileSync(join(ROOT,'bonsai','population','population.json'),'utf8'));
   const decisions=readJsonl(join(REVIEW,'decisions.jsonl'));
   // A question two readers answered, or both left open, is not asked again; the years two readers gave answer a
-  // member's dates and its living status alike, and a kind they gave answers its row.
+  // member's dates, and a kind they gave answers its row. Whether a member lives is asked while its life is open (a
+  // birth from 1900 on and no death, in the latest years readers gave or else in its rows) until a living question
+  // answers it.
   const answered=new Set(decisions.map(decision=>decision.item).filter(Boolean));
-  const lived=new Set(decisions.filter(decision=>decision.type==='life').flatMap(decision=>decision.rows));
+  const lives=decisions.filter(decision=>decision.type==='life');
+  const lived=new Set(lives.flatMap(decision=>decision.rows));
+  const lifeOf=new Map();
+  for(const [at,decision] of lives.entries())for(const row of decision.rows)lifeOf.set(row,{at,decision});
   const kinded=new Set(decisions.filter(decision=>decision.type==='kind').flatMap(decision=>decision.rows));
   const kind=[],dates=[],latin=[],living=[];
   const ask=(list,entry)=>{if(!answered.has(entry.item))list.push(entry);};
@@ -400,8 +427,10 @@ function queues({check=false}={}){
     const decided=record.grew_from.some(row=>lived.has(row));
     if(!decided&&(!record.phases.length||record.gaps.includes('life:rows-differ')))
       ask(dates,{item:itemId('dates',member),type:'dates',member,reason:record.phases.length?'rows-differ':record.gaps.find(gap=>gap.startsWith('life:'))??'life:none',rows:record.grew_from,gaps:[...new Set(datedRows.flatMap(row=>row.gaps.filter(gap=>gap.startsWith('life:'))))].sort()});
-    const open=datedRows.some(row=>row.life.birth?.kind==='point'&&row.life.birth.year>=1900&&row.life.death?.kind!=='point');
-    if(open&&!decided)ask(living,{item:itemId('living',member),type:'living',member,rows:record.grew_from});
+    const life=record.grew_from.map(row=>lifeOf.get(row)).filter(Boolean).sort((a,b)=>a.at-b.at).at(-1)?.decision;
+    const open=life&&(life.birth||life.death)?Boolean(life.birth&&astronomical(life.birth)>=1900&&!life.death)
+      :datedRows.some(row=>row.life.birth?.kind==='point'&&row.life.birth.year>=1900&&row.life.death?.kind!=='point');
+    if(open&&!(life&&(life.question==='living'||life.living)))ask(living,{item:itemId('living',member),type:'living',member,rows:record.grew_from});
     for(const row of datedRows)if(row.signals.length&&!kinded.has(row.row))ask(kind,{item:itemId('kind',row.row),type:'kind',member,row:row.row,kind:row.kind,signals:row.signals,rows:record.grew_from});
   }
   if(check){
