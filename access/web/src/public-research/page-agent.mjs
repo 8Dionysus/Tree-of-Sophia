@@ -49,7 +49,7 @@ export async function readResearchSource({index,provider,fragments},input,{signa
 }
 
 /** Public stands expose their existing owners through the shared page registry. */
-export function connectResearchPage({index,space,experience,session,api,workspace,acts=null,actTier=()=>'propose',locale,targetDocument=document}){
+export function connectResearchPage({index,space,experience,session,api,workspace,acts=null,actTier=()=>'propose',viewState=()=>null,locale,targetDocument=document}){
   const summary=()=>workspace.summary();
   const selectedState=()=>{const state=experience.getState();return {...state,id:state.id??space.selection()?.id,revision:state.revision??index.revision};};
   const versionContext=(input={})=>experience.versionContext(input.revision??selectedState().revision);
@@ -64,7 +64,9 @@ export function connectResearchPage({index,space,experience,session,api,workspac
     return {id:item.id,revision:resolved.index.revision,kind:item.kind==='relation'?'edge':['statement','passage'].includes(item.kind)?'item':'node',semantic_kind:item.kind,label:localeValue(item.title,locale()),source_refs:item.dependencies.map(value=>typeof value==='string'?value:value.id).filter(id=>resolved.index.get(id)?.kind==='passage'),
       from_id:item.record?.from,to_id:item.record?.to,predicate_id:item.record?.relation,authority_posture:item.owner,review_posture:item.record?.assessment?.verdict??item.record?.reading?.review_status??'source-visible-proposal',canon_status:'stand-scope',path_available:false};
   };
-  const context=()=>({mode:'philosophy',view_id:`bonsai:${api.profile}`,graph_mode:'nodes',index_revision:selectedState().revision,selected:selection(),path_start_node_id:null,active_layers:[experience.getState().mode],active_predicates:[],deep_link:location.href,research_workspace:summary()});
+  const context=()=>({mode:'philosophy',view_id:`bonsai:${api.profile}`,graph_mode:'nodes',index_revision:selectedState().revision,selected:selection(),path_start_node_id:null,active_layers:[experience.getState().mode,...viewLayers()],active_predicates:[],deep_link:location.href,research_workspace:summary()});
+  // The presence layer and lens join the experience mode among the active layers; the full view state has its own tool.
+  function viewLayers(){const state=viewState();return state?[`presence:${state.presence_layer}`,...(state.lens?[`lens:${state.lens}`]:[])]:[];}
   const readSource=async(input,options)=>{const resolved=await versionContext(input);return readResearchSource({index:resolved.index,provider:api.provider,fragments:space.fragments},input,options);};
   let registry;
   const handlers={
@@ -98,6 +100,8 @@ export function connectResearchPage({index,space,experience,session,api,workspac
     tool('tos.bonsai.session-respond','tos.page.cognitive-action','Return an attributed question, hint, finding or feedback into the learning panel. Bind all revisions from the event; source_ids must resolve in the same research index. Repeated identical delivery is idempotent.',schema({session_id:str,event_id:str,question_revision:integer,index_revision:str,actor:str,kind:{type:'string',enum:['question','hint','finding','feedback']},body:{type:'string',maxLength:12000},source_ids:{type:'array',items:str,maxItems:32},next_step:{type:'string',maxLength:2000}},['event_id','question_revision','index_revision','body']),input=>({...input,action:'respond'})),
     tool('tos.bonsai.session-pause','tos.page.cognitive-action','Pause processing while retaining every action and response.',schema({session_id:str}),input=>({...input,action:'pause'})),
   ];
+  extra.push({name:'tos.bonsai.view-state',description:'Read what the person sees besides the selection: presence layer (reading, research, with agents), lens, route and step, whether the workbench is open, and the passage chosen in the reader with its exact reference.',
+    inputSchema:schema({}),annotations:{readOnlyHint:true,untrustedContentHint:true},execute:async()=>({content:[{type:'text',text:JSON.stringify(viewState()??{})}]})});
   // Addressed act commands sit beside the pointing ones: they name their targets and never cancel each other.
   if(acts)extra.push(...actJournalTools(acts,{tier:actTier}));
   const allowed=new Set(['tos.page.context','tos.page.cancel',...Object.keys(handlers)]);

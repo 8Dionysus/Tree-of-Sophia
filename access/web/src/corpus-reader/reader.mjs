@@ -1725,6 +1725,9 @@ export function mountCorpusReader({
   const benchAction = {get label(){return benchWord('lay');},phrases:true,when:()=>benchListens()&&Boolean(benchPassage()),
         run:()=>{const passage=benchPassage();return passage?layOnBench(passage).then(laid=>benchWord(laid?'laid':'failed')):null;}};
   const selectionMenu = createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest?.('.cr-unit')),actions:[originAction,benchAction]});
+  // Host actions: word actions wait for a known word; passage actions stand beside any selected passage.
+  let hostWordActions = [], hostPassageActions = [];
+  const applySelectionActions = () => selectionMenu.setActions([originAction, benchAction, ...hostWordActions.map(hostAction), ...hostPassageActions]);
   const beforeUnload=event=>{if(noteDirty||noteFlushPromise){void flushNote();event.preventDefault();event.returnValue='';}};
   const visibilityChanged=()=>{if(document.visibilityState==='hidden')void flushNote();};
   window.addEventListener('beforeunload',beforeUnload);
@@ -1733,7 +1736,12 @@ export function mountCorpusReader({
   return {
     get element() { return root; },
     /** The host's own actions for a selected word, shown after its origin. */
-    setSelectionActions(actions = []) { selectionMenu.setActions([originAction, benchAction, ...actions.map(hostAction)]); },
+    setSelectionActions(actions = []) { hostWordActions = [...actions]; applySelectionActions(); },
+    /** The host's actions for any selected passage, after the reader's own. */
+    setPassageActions(actions = []) {
+      hostPassageActions = actions.map(action => ({get label(){return action.label;}, phrases:true, when:action.when, run:action.run}));
+      applySelectionActions();
+    },
     async open(args = {}) {
       editionSwitch++;
       if(disposed)return this;

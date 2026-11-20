@@ -1,0 +1,53 @@
+/* The action layer: the presence layer control in the bar, one menu and palette of actions, the tray of long tasks,
+   the table of what agents can do. Night colours; the light themes are added at build time. */
+.al-layer-current{width:30px;height:30px;flex:none;display:grid;place-items:center;padding:0;border:1px solid var(--ps-line-strong);border-radius:999px;background:none;color:var(--ps-muted);font-size:15px;line-height:1;cursor:pointer}
+.al-layer-current:hover{color:var(--ps-ink)}
+.al-layer-current:not([data-layer=reading]){border-color:#dcc69080;color:var(--ps-gold)}
+.al-layers{display:flex;flex-direction:column;gap:2px;padding:4px 0 8px;margin-bottom:6px;border-bottom:1px solid var(--ps-line)}
+.al-layer{display:flex;align-items:center;gap:10px;padding:6px 10px;border:0;border-radius:6px;background:none;color:var(--ps-text);font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.al-layer:hover{background:#ffffff0a;color:var(--ps-ink)}
+.al-layer[aria-checked=true]{color:var(--ps-gold)}
+.al-layer-glyph{width:18px;text-align:center}
+.al-palette{position:fixed;inset:12vh auto auto 50%;transform:translateX(-50%);width:min(560px,calc(100vw - 32px));max-height:min(70vh,560px);margin:0;padding:0;
+  display:none;flex-direction:column;border:1px solid var(--ps-line-strong);border-radius:12px;background:#0b1626;color:var(--ps-ink);box-shadow:0 24px 60px #000a;font-family:var(--ps-sans)}
+.al-palette[open]{display:flex}
+.al-palette[data-mode=menu]{transform:none;width:min(360px,calc(100vw - 16px));max-height:min(60vh,420px)}
+.al-palette::backdrop{background:#02050b66}
+.al-palette[data-mode=menu]::backdrop{background:transparent}
+.al-palette-head{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border-bottom:1px solid var(--ps-line)}
+.al-palette-target{margin:0;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ps-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.al-palette-input{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--ps-line-strong);border-radius:8px;background:#070f1b;color:var(--ps-ink);font:inherit;font-size:15px}
+.al-palette-list{list-style:none;margin:0;padding:6px;overflow:auto}
+.al-palette-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--ps-text);cursor:pointer}
+.al-palette-item[aria-selected=true]{background:#dcc6901f;color:var(--ps-ink)}
+.al-palette-item[data-active=true] .al-palette-label::after{content:' ●';color:var(--ps-gold)}
+.al-palette-label{flex:1;min-width:0}
+.al-palette-key{flex:none;padding:1px 6px;border:1px solid var(--ps-line-strong);border-radius:4px;font:12px ui-monospace,monospace;color:var(--ps-muted)}
+.al-palette-empty{padding:12px 10px;color:var(--ps-muted)}
+.al-card-menu{font-size:18px;letter-spacing:1px}
+.al-tray{position:fixed;z-index:45;left:16px;bottom:16px;max-width:min(380px,calc(100vw - 32px));display:flex;flex-direction:column-reverse;gap:6px;font-family:var(--ps-sans)}
+.al-tray-toggle{align-self:flex-start;padding:6px 12px;border:1px solid var(--ps-line-strong);border-radius:999px;background:#0b1626e6;color:var(--ps-text);font:inherit;font-size:13px;cursor:pointer}
+.al-tray[data-running=true] .al-tray-toggle{border-color:#dcc69080;color:var(--ps-ink)}
+.al-tray-list{list-style:none;margin:0;padding:8px;border:1px solid var(--ps-line-strong);border-radius:10px;background:#0b1626f2;display:flex;flex-direction:column;gap:4px}
+.al-task{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--ps-text)}
+.al-task-state{color:var(--ps-muted);white-space:nowrap}
+.al-task[data-state=running] .al-task-state{color:var(--ps-gold)}
+.al-task[data-state=failed] .al-task-state{color:#ef8c62}
+.al-toast{position:fixed;z-index:60;left:50%;bottom:24px;transform:translateX(-50%);padding:8px 14px;border-radius:8px;background:#0b1626f2;border:1px solid var(--ps-line-strong);color:var(--ps-ink);font:14px var(--ps-sans)}
+.al-capabilities{width:min(980px,calc(100vw - 32px));max-height:80vh;padding:20px;border:1px solid var(--ps-line-strong);border-radius:12px;background:#0b1626;color:var(--ps-text);font-family:var(--ps-sans)}
+.al-capabilities::backdrop{background:#02050b99}
+.al-capabilities-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.al-capabilities-head h2{margin:0;font:500 22px var(--ps-serif);color:var(--ps-ink)}
+.al-capabilities-lead{max-width:70ch;color:var(--ps-muted);font-size:14px}
+.al-capabilities-scroll{overflow:auto;max-height:60vh}
+.al-capabilities-table{border-collapse:collapse;width:100%;font-size:13px}
+.al-capabilities-table th{position:sticky;top:0;background:#0b1626;text-align:left;font-weight:500;color:var(--ps-muted);padding:6px 10px;border-bottom:1px solid var(--ps-line-strong)}
+.al-capabilities-table td{padding:6px 10px;border-bottom:1px solid var(--ps-line);vertical-align:top}
+.al-capabilities-table .al-code{font-family:ui-monospace,monospace;font-size:12px;color:var(--ps-ink)}
+.al-capabilities-table .al-gap{background:#ffffff05}
+@media (max-width:760px){.al-palette{inset:8vh auto auto 50%}}
+@media (prefers-reduced-motion:reduce){.al-palette,.al-tray{transition:none}}
+/* The bar has room for the layer button only on wide screens; elsewhere the three layers live under "more", which
+   shows a gold ring while a layer other than reading is on. */
+@media (max-width:1499px){.al-layer-current{display:none}}
+:root:not([data-presence-layer=reading]) #research-bar .rb-more{box-shadow:inset 0 0 0 1px #dcc69099;color:var(--ps-gold)}

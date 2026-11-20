@@ -9,6 +9,7 @@ import {mountResearchExperience} from './experience-view.mjs';
 import {mountCognitiveSession} from './cognitive-session.mjs';
 import {mountKnowing} from './knowing-map.mjs';
 import {connectResearchPage} from './page-agent.mjs';
+import {mountActionLayer} from './action-layer.mjs';
 import {createActJournal} from '../act-journal/journal.mjs';
 import {openActStore} from '../act-journal/store.mjs';
 import {mirrorWorkspace} from '../act-journal/workspace-mirror.mjs';
@@ -135,6 +136,7 @@ let pageAgent;
 // One act journal per browser: tickets, proposals and agent acts across every stand. It reads its records in the
 // background after the first view.
 let actJournal;
+let actionLayer;
 let stopWorkspaceMirror;
 let appDisposed=false;
 let saveTimer = null;
@@ -365,7 +367,7 @@ function setLanguage(value,{updateUrl=true}={}){
   if(updateUrl){const url=new URL(location.href);url.searchParams.set('lang',locale);history.replaceState(history.state,'',url);}
   setUiLanguage(locale);
   document.title=`${strings.title} · ${english?localeText('Tree of Sophia',locale):'Древо Софии'}`;
-  experience?.refreshLocale();cognitive?.refreshLocale();knowing?.refreshLocale();spaceView?.refreshLocale();workspaceView?.refreshLocale?.();agentBridge?.refreshLocale?.();
+  experience?.refreshLocale();cognitive?.refreshLocale();knowing?.refreshLocale();spaceView?.refreshLocale();workspaceView?.refreshLocale?.();agentBridge?.refreshLocale?.();actionLayer?.refreshLocale();
 }
 
 function mountJourneys(items, documentIds) {
@@ -513,7 +515,8 @@ async function start() {
   cognitive=mountCognitiveSession({root:knowing?.agentRoot??experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,onHelpChange:value=>knowing?.setHelpLevel(value),getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
   actJournal=createActJournal({store:openActStore()});
   stopWorkspaceMirror=publicOwners.workspace?mirrorWorkspace(publicOwners.workspace,actJournal,{sessionId:'local'}):null;
-  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,locale:()=>locale});
+  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,viewState:()=>actionLayer?.context()??null,locale:()=>locale});
+  actionLayer=mountActionLayer({shell:spaceView.root,header,space:spaceView,experience,registry:pageAgent.registry,acts:actJournal,api:window.tosPublicResearch,locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && corpusInfo) {
@@ -544,6 +547,7 @@ function disposeApp() {
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
+  actionLayer?.destroy();
   pageAgent?.destroy();
   void stopWorkspaceMirror?.();
   actJournal?.dispose();
