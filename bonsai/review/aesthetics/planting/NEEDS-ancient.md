@@ -99,3 +99,19 @@ uses the actual language and preserves the normal capital-initial check for
 modern translations; the source text and independent page reading still need to
 establish the boundary. The call from `plant.mjs` is owned by the line. A
 blanket exemption for every Latin-script translation would weaken the check.
+
+## A printed footnote after a full stop
+
+In Kirchmann's German *On the Soul* (1871), printed p. 149,
+https://archive.org/details/aristotelesdrei00arisgoog/page/n161/mode/1up ,
+a full stop is followed by the superscript footnote marker `220)` and then a
+new sentence. The maker's two OCR witnesses preserve or corrupt that marker;
+`witness-cut` rejects the next sentence as opening inside the previous one.
+The operator also inspected the actual page. The source-page review is still
+needed for the whole translation and its alignment.
+
+Please let the transcription boundary check recognize a clearly identified
+trailing footnote marker after sentence punctuation without treating arbitrary
+words as footnotes or weakening the whole-sentence rule. Preserve the original
+source bytes and the independent page-reading requirement. Other language
+searches are incomplete; this is not a missing-translation finding.
