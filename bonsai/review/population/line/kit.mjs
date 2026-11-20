@@ -77,18 +77,26 @@ function item(rows,entry){
 
 const packetIds=()=>existsSync(PACKETS)?readdirSync(PACKETS).filter(name=>/^p-\d{4}$/.test(name)).sort():[];
 const packetFile=(packet,name)=>join(PACKETS,packet,name);
+const retired=packet=>existsSync(packetFile(packet,'retired.json'));
 
 function packets(size){
   const queue=readJsonl(join(REVIEW,'queue','identity.jsonl'));
-  const held=new Set(packetIds().flatMap(packet=>JSON.parse(readFileSync(packetFile(packet,'packet.json'),'utf8')).items));
+  const byItem=new Map(queue.map(entry=>[entry.item,entry]));
   const rows=layerRows();
-  let next=packetIds().length?Number(packetIds().at(-1).slice(2))+1:1,made=0;
+  let next=packetIds().length?Number(packetIds().at(-1).slice(2))+1:1,made=0,gone=0;
+  // A packet not yet accepted whose questions left the queue or whose evidence changed (a later run of
+  // resolve.mjs read decisions) is retired; its questions still open are cut anew below.
   for(const packet of packetIds()){
-    if(existsSync(packetFile(packet,'accepted.json')))continue;
+    if(existsSync(packetFile(packet,'accepted.json'))||retired(packet))continue;
     const meta=JSON.parse(readFileSync(packetFile(packet,'packet.json'),'utf8'));
-    const items=meta.items.map(id=>queue.find(entry=>entry.item===id)).filter(Boolean).map(entry=>item(rows,entry));
+    const items=meta.items.map(id=>byItem.get(id)).filter(Boolean).map(entry=>item(rows,entry));
+    if(items.length<meta.items.length||items.some(entry=>entry.sha!==meta.shas[entry.item])){
+      writeFileSync(packetFile(packet,'retired.json'),JSON.stringify({packet,reason:'its questions or their evidence changed since it was cut'},null,1)+'\n');
+      gone++;continue;
+    }
     writeJsonl(packetFile(packet,'items.jsonl'),items);
   }
+  const held=new Set(packetIds().filter(packet=>!retired(packet)).flatMap(packet=>JSON.parse(readFileSync(packetFile(packet,'packet.json'),'utf8')).items));
   // The questions about planted members come first: both sides planted, then one, then none.
   const population=join(ROOT,'bonsai','population','population.json');
   const planted=new Set(existsSync(population)?Object.keys(JSON.parse(readFileSync(population,'utf8')).members):[]);
@@ -103,7 +111,7 @@ function packets(size){
     writeJsonl(packetFile(packet,'items.jsonl'),items);
     made++;
   }
-  console.log(`packets: ${made} new, ${packetIds().length} in all; ${waiting.length} questions cut, ${held.size} already held`);
+  console.log(`packets: ${made} new, ${gone} retired, ${packetIds().length} in all; ${waiting.length} questions cut, ${held.size} already held`);
 }
 
 function textsOf(entry){
@@ -115,6 +123,7 @@ function textsOf(entry){
 /** Problems of one packet's verdicts; `fault` marks a problem of the line rather than of a reader. */
 export function gatePacket(packet){
   const problems=[],faults=[];
+  if(retired(packet))return {problems,faults:[`${packet} is retired; its open questions are in newer packets`],agreed:[]};
   if(!existsSync(packetFile(packet,'packet.json'))||!existsSync(packetFile(packet,'items.jsonl')))return {problems,faults:['packet.json or items.jsonl is missing (run kit.mjs packets)'],agreed:[]};
   const meta=JSON.parse(readFileSync(packetFile(packet,'packet.json'),'utf8'));
   const items=new Map(readJsonl(packetFile(packet,'items.jsonl')).map(entry=>[entry.item,entry]));
@@ -233,8 +242,9 @@ function queues({check=false}={}){
 }
 
 function status(){
-  const counts={packets:0,answered:0,open:0,accepted:0,questions:0};
+  const counts={packets:0,answered:0,open:0,accepted:0,retired:0,questions:0};
   for(const packet of packetIds()){
+    if(retired(packet)){counts.retired++;continue;}
     counts.packets++;
     counts.questions+=JSON.parse(readFileSync(packetFile(packet,'packet.json'),'utf8')).items.length;
     if(existsSync(packetFile(packet,'accepted.json')))counts.accepted++;

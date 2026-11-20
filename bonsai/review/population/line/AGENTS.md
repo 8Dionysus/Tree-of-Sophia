@@ -48,6 +48,8 @@ node bonsai/lib/cli.mjs check population
 
 Packets accepted by the line change `decisions.jsonl`; after each round the
 operator runs `resolve.mjs` and `plant.mjs` again and commits the decisions,
-the keys, the ledger and the planted modules together. `held` decisions (the
+the keys, the ledger and the planted modules together. The next `packets`
+retires a packet whose questions or evidence that run changed and cuts its
+open questions anew. `held` decisions (the
 readers disagree, or both found it undecidable) wait for an operator or a third
 reader; `kit.mjs status` counts them.

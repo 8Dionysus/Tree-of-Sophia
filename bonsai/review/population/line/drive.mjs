@@ -85,7 +85,8 @@ async function runPacket(packet){
 async function main(args){
   const option=name=>{const at=args.indexOf(name);return at>=0?args[at+1]:null;};
   const parallel=Math.max(1,Math.min(16,Number(option('--parallel')??4)));
-  const chosen=option('--packets')?.split(',')??readdirSync(PACKETS).filter(name=>/^p-\d{4}$/.test(name)).sort().filter(packet=>!existsSync(join(PACKETS,packet,'accepted.json')));
+  const chosen=option('--packets')?.split(',')??readdirSync(PACKETS).filter(name=>/^p-\d{4}$/.test(name)).sort()
+    .filter(packet=>!existsSync(join(PACKETS,packet,'accepted.json'))&&!existsSync(join(PACKETS,packet,'retired.json')));
   const queue=chosen.slice(0,Number(option('--count')??chosen.length));
   const workers=Array.from({length:parallel},async()=>{while(queue.length&&!stopped)await runPacket(queue.shift());});
   await Promise.all(workers);
