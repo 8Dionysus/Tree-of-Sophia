@@ -67,3 +67,21 @@ not by itself proof that this is Wikidata Q15140044. The packet's
 through the line's source route and preserve uncertain dates. The recent 1964
 edition has an editor whose independent contribution and rights also need
 separate assessment; ancient authorship alone does not free that edition.
+
+## Legacy Arabic encoding and PDF licence evidence
+
+For al-Farabi's *Kitab al-shiʿr*, the publisher-served Özpilavcı (2026)
+critical edition is a PDF whose first page visibly states CC BY-NC 4.0; the
+publisher's article API also returns that licence URL. The kit's licence
+check searches raw PDF bytes for the URL and does not establish the visible
+statement. The edition is not public domain; attribution, noncommercial scope,
+third-party material and any jurisdiction-specific quotation basis remain
+subject to independent review. The exact source, PDF digest, first page and
+printed p. 48 are recorded in the packet's `blocked.json`.
+
+A separate Arabic quotation at https://www.ahewar.org/debat/show.art.asp?aid=266761
+is served as Windows-1256, while the transcription path assumes UTF-8 and
+inserts replacement characters. It is a separate edition whose rights and
+alignment still require review. The line needs source-byte-preserving handling
+of declared encodings and verifiable page or publisher-API licence evidence;
+converting bytes and claiming they were fetched unchanged is not a solution.
