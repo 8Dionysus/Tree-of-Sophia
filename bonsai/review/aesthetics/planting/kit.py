@@ -653,7 +653,7 @@ def cmd_person(args):
         if args.died is None:
             raw=get(args.source)
             if args.name.casefold() not in plain(raw,'person.html').casefold():die('the source does not contain the stated name')
-            filename='person-'+hashlib.sha256(args.source.encode()).hexdigest()[:16]+'.html'
+            filename='person-'+hashlib.sha256(raw).hexdigest()+'.html'
             Path(cache(path,filename)).write_bytes(raw)
             person['identity_evidence']={'file':filename,'url':args.source,'sha256':hashlib.sha256(raw).hexdigest()}
     if args.wartime is not None:

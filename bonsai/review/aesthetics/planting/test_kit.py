@@ -977,6 +977,12 @@ class UnknownParticipantTest(unittest.TestCase):
                 self.assertEqual(person['identity_evidence']['url'],args.source)
                 self.assertFalse(kit.public_domain_by_dates([person],2025)['eu'])
                 self.assertFalse(kit.public_domain_by_dates([person],2025)['russia'])
+                args.name='Another Author'
+                with patch.object(kit,'get',return_value=b'<html><body>Another Author</body></html>'):
+                    kit.cmd_person(args)
+                other=json.loads((path/'evidence.json').read_text())['persons'][1]
+                self.assertNotEqual(person['identity_evidence']['file'],other['identity_evidence']['file'])
+                self.assertTrue(Path(kit.cache(str(path),person['identity_evidence']['file'])).is_file())
 
     def test_remove_wrong_witness_identity_keeps_history_and_clears_review(self):
         import argparse, json, tempfile
