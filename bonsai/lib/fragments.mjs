@@ -20,12 +20,15 @@ export const CORPUS_ALIGNMENT_SCHEMA='tos.bonsai.corpus-alignment.v1';
 export const TRANSLATION_SCOPES_SCHEMA='tos.bonsai.translation-scopes.v1';
 /** Optional evidence for refining a local reference by sentences. */
 export function validLocalSentenceOptions(pair){
-  const {sentenceAnchors,precedingTranslationSentences}=pair;
+  const {sentenceAnchors,precedingTranslationSentences,sourceClauseStarts,targetClauseStarts}=pair;
   if(precedingTranslationSentences!==undefined&&
     (!Number.isInteger(precedingTranslationSentences)||precedingTranslationSentences<1||precedingTranslationSentences>3||!sentenceAnchors))return false;
-  if(sentenceAnchors===undefined)return true;
   const keywords=words=>Array.isArray(words)&&words.length>=1&&words.length<=8&&
     words.every(word=>typeof word==='string'&&word.length<=64&&/^\p{L}[\p{L}\p{M}]*$/u.test(word));
+  for(const starts of [sourceClauseStarts,targetClauseStarts]){
+    if(starts!==undefined&&(!sentenceAnchors||!Array.isArray(starts)||!starts.length||starts.length>8||!starts.every(keywords)))return false;
+  }
+  if(sentenceAnchors===undefined)return true;
   return Array.isArray(sentenceAnchors)&&sentenceAnchors.length>=1&&sentenceAnchors.length<=32&&
     sentenceAnchors.every(anchor=>anchor&&keywords(anchor.source)&&keywords(anchor.target));
 }

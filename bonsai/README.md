@@ -244,6 +244,13 @@ before the printed reference, `precedingTranslationSentences` offers up to three
 sentences from the immediately preceding unit. The receipt records these inputs
 and the result keeps the offsets of each contributing unit.
 
+When an edition joins multiple passages in one sentence, a local pair with
+`sentenceAnchors` may also declare `sourceClauseStarts` or `targetClauseStarts`.
+Each opening is an ordered list of words immediately after a colon, semicolon
+or Greek middle dot. An opening must occur exactly once within the selected
+reference. The same aligner then pairs the resulting clauses and preserves their
+offsets in the original units.
+
 When a translation covers only part of a corpus work, a stand may declare its
 `translation-scopes.json` entry with the source URL, exact original and
 translation versions and text-layer revisions, and first and last original unit IDs. The mechanism checks
