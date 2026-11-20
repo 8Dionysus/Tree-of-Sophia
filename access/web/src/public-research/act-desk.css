@@ -43,3 +43,8 @@
 .dh-code{align-self:flex-start;max-width:100%;height:auto;padding:0;border-radius:6px;background:#fff;image-rendering:pixelated}
 .dh-link{font:13px ui-monospace,monospace}
 @media (max-width:760px){.ad-board{grid-template-columns:minmax(0,1fr)}.ad-body{padding:14px 16px 18px}}
+/* A technical section (technical.mjs, TOS-D-0082): apparatus behind a door the reader opens on purpose. */
+.tech-section{border-top:1px solid var(--ps-line);padding-top:6px;font-size:13px;color:var(--ps-muted)}
+.tech-section>summary{cursor:pointer;width:max-content;color:var(--ps-muted);font:500 12px/1.6 var(--ps-sans);letter-spacing:.06em;text-transform:uppercase;list-style-position:inside}
+.tech-section[open]>summary{margin-bottom:6px;color:var(--ps-text)}
+.tech-section>*:not(summary){margin:4px 0 0}

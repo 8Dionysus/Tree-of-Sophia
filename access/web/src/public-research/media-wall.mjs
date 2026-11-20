@@ -10,6 +10,7 @@ import {loadMedia} from './bonsai.mjs';
 import {captionLinks,fittedSize,imageSources,withoutWrittenStyle,workName} from './media-view.mjs';
 import {formatDating} from '../../../../bonsai/lib/time.mjs';
 import {workWords} from '../../../../bonsai/lib/media.mjs';
+import {technicalSection} from './technical.mjs';
 
 const ADDRESS=/^media:([a-z0-9-]+):([^#\s]+)(?:#(?:xywh=pixel:(\d+),(\d+),(\d+),(\d+)|t=(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)))?$/;
 
@@ -125,7 +126,8 @@ export function mountMediaWall({shell,actionLayer,actDesk=null,space=null,locale
     const caption=el('span','mw-caption'),rights=rightsOf(item);
     // On the scale an image keeps only its years under it; its name, holder and rights are its hint.
     if(compact){node.classList.add('is-compact');caption.append(el('span','',when(item)||t('undated')));node.title=[name,when(item),holderOf(item),rights?.text].filter(Boolean).join(' · ');}
-    else{caption.append(el('strong','',name),el('span','',[when(item)||t('undated'),holderOf(item)].filter(Boolean).join(' · ')));if(rights)caption.append(el('span','mw-rights',rights.text));}
+    // The wall shows what an image is and when; its holder and rights are in its hint and behind the viewer's door (TOS-D-0082).
+    else{caption.append(el('strong','',name),el('span','',when(item)||t('undated')));node.title=[name,when(item),holderOf(item),rights?.text].filter(Boolean).join(' · ');}
     node.append(picture,caption);node.addEventListener('click',()=>onToggle(item));
     return node;
   }
@@ -180,12 +182,15 @@ export function mountMediaWall({shell,actionLayer,actDesk=null,space=null,locale
     for(const item of list){
       const pane=el('section','mw-pane'),top=el('div','mw-pane-top'),stage=el('div','mw-stage'),tools=el('div','ad-row mw-tools'),out=el('div','mw-region');out.hidden=true;
       const name=workName(item,locale()),rights=rightsOf(item);
-      const title=el('p','mw-title');title.append(el('strong','',name.text),el('span','',` · ${[when(item),holderOf(item)].filter(Boolean).join(' · ')}`));
-      if(rights){const link=el('a','mw-rights',`${rights.text} ↗`);link.href=rights.url;link.target='_blank';link.rel='noopener noreferrer';title.append(' ',link);}
+      const title=el('p','mw-title');title.append(el('strong','',name.text));if(when(item))title.append(el('span','',` · ${when(item)}`));
+      // Who holds the work and on what terms the image is shown: behind the door, whole (TOS-D-0082).
+      const record=el('p','');record.append(el('span','',holderOf(item)));if(item.work.record){const link=el('a','',` ${item.work.inventory??''} ↗`);link.href=item.work.record;link.target='_blank';link.rel='noopener noreferrer';record.append(link);}
+      const terms=el('p','');if(rights){const link=el('a','mw-rights',`${rights.text} ↗`);link.href=rights.url;link.target='_blank';link.rel='noopener noreferrer';terms.append(link);}
+      const apparatus=technicalSection(doc,locale,[record,rights?terms:null]);
       const region=button(t('region'),'text-button mw-region-toggle');region.setAttribute('aria-pressed','false');
       const zoomIn=button('+','icon'),zoomOut=button('−','icon'),whole=button('⤢','icon');
       for(const [node,key] of [[zoomIn,'zoomIn'],[zoomOut,'zoomOut'],[whole,'whole']])node.setAttribute('aria-label',t(key));
-      tools.append(region,zoomIn,zoomOut,whole);top.append(title,tools);pane.append(top,stage,out);panes.append(pane);
+      tools.append(region,zoomIn,zoomOut,whole);top.append(title,tools);pane.append(top,stage,out,apparatus);panes.append(pane);
       const state={item,stage,out,osd:null,drawing:false,overlay:null};viewers.push(state);
       if(!OpenSeadragon){stage.append(el('p','ad-muted',t('missing')));continue;}
       const sources=imageSources(item.image);
@@ -226,17 +231,19 @@ export function mountMediaWall({shell,actionLayer,actDesk=null,space=null,locale
     if(state.overlay)state.osd.removeOverlay(state.overlay);
     state.overlay=el('div','mw-overlay');
     state.osd.addOverlay({element:state.overlay,location:state.osd.viewport.imageToViewportRectangle(new OpenSeadragon.Rect(...target.media.region))});
-    const {out}=state;out.hidden=false;out.replaceChildren(el('span','ad-label',t('address')),el('code','mw-address',target.id));
+    const {out}=state;out.hidden=false;out.replaceChildren();
     const row=el('div','ad-row');
-    const copy=button(t('copyAddress'),'text-button');copy.addEventListener('click',()=>void actionLayer?.copy?.(target.id));
     const quote=button(t('quote'),'text-button');quote.addEventListener('click',()=>void actionLayer?.copy?.(quoteOf(target)));
-    row.append(copy,quote);
+    row.append(quote);
     if(actDesk){
       const ticket=button(t('ticket'),'text-button');ticket.addEventListener('click',()=>void actDesk.openTicket(target,{category:'media'}));
       const hand=button(t('handOver'),'text-button');hand.addEventListener('click',()=>void actDesk.openTransfer(target));
       row.append(ticket,hand);
     }
-    out.append(row);state.region=target;return target;
+    // The region's address is apparatus: it stands behind the door with its own copy button.
+    const copy=button(t('copyAddress'),'text-button');copy.addEventListener('click',()=>void actionLayer?.copy?.(target.id));
+    const address=el('div','');address.append(el('span','ad-label',t('address')),el('code','mw-address',target.id),copy);
+    out.append(row,technicalSection(doc,locale,[address]));state.region=target;return target;
   }
   /** A quotation of a region: the work, its date and holder, its rights, the region's address and the holder's record. */
   function quoteOf(target){

@@ -7,6 +7,7 @@ import './act-desk.css';
 import './agent-field.css';
 import {localeText,localeValue,resolveLocale} from './locale.mjs';
 import shapes from '../../../contracts/field-shapes.v1.json' with {type:'json'};
+import {technicalSection} from './technical.mjs';
 
 export const FIELD_SHAPES=Object.freeze(shapes.shapes.map(shape=>shape.name));
 const MAX_MEMBERS=400,MAX_GROUPS=24,MAX_STEPS=40;
@@ -112,10 +113,12 @@ export function mountAgentField({shell,actionLayer,acts,actDesk=null,space=null,
     body.append(el('p','ad-muted',t('lead')));
     if(!field.kinds.length&&!field.others.length){body.append(el('p','ad-muted',t('empty')));return {dialog,field};}
     const section=(title,count)=>{const box=el('section','af-section');box.append(el('h3','ad-minor',`${title} · ${count}`));body.append(box);return box;};
-    const kinds=section(t('kinds'),field.kinds.length);
-    for(const kind of field.kinds){const row=el('div','af-kind');row.append(el('code','',kind.name),el('span','',kind.description),el('span','ad-muted',[kind.shape?`${t('shape')}: ${kind.shape}`:'',`${t('acts')}: ${kind.acts}`,who(kind.author)].filter(Boolean).join(' · ')));kinds.append(row);}
-    for(const name of field.undeclared){const row=el('div','af-kind');row.append(el('code','',name),el('span','ad-muted',t('undeclared')));kinds.append(row);}
-    const card=(item,title,lines)=>{const node=el('article','ad-group af-item');node.dataset.shape=item.shape??'';node.append(el('h3','',title));for(const line of lines.filter(Boolean))node.append(el('p','',line));node.append(el('p','ad-muted',`${item.kind} · ${who(item.author)}`));const row=el('div','ad-row');node.append(row);return {node,row};};
+    // The kinds agents declared are the field's apparatus: whole, behind the door (TOS-D-0082).
+    const kindRows=[];
+    for(const kind of field.kinds){const row=el('div','af-kind');row.append(el('code','',kind.name),el('span','',kind.description),el('span','ad-muted',[kind.shape?`${t('shape')}: ${kind.shape}`:'',`${t('acts')}: ${kind.acts}`,who(kind.author)].filter(Boolean).join(' · ')));kindRows.push(row);}
+    for(const name of field.undeclared){const row=el('div','af-kind');row.append(el('code','',name),el('span','ad-muted',t('undeclared')));kindRows.push(row);}
+    body.append(technicalSection(doc,locale,kindRows,{label:`${t('kinds')} · ${kindRows.length}`}));
+    const card=(item,title,lines)=>{const node=el('article','ad-group af-item');node.dataset.shape=item.shape??'';node.title=item.kind;node.append(el('h3','',title));for(const line of lines.filter(Boolean))node.append(el('p','',line));node.append(el('p','ad-muted',who(item.author)));const row=el('div','ad-row');node.append(row);return {node,row};};
     const thoughts=field.items.filter(item=>item.shape==='thought'||item.shape==='link');
     if(thoughts.length){const box=section(t('thoughts'),thoughts.length);for(const item of thoughts){
       const {node,row}=item.shape==='link'?card(item,`${nameOf(item.from)} — ${item.verb} — ${nameOf(item.to)}`,[item.text]):card(item,item.title,[item.text,item.targets.map(nameOf).join(', ')]);
