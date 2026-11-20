@@ -1,0 +1,100 @@
+{
+ "reader": {
+  "id": "codex-2026-11-12-poetics-more",
+  "model": "gpt-6",
+  "date": "2026-11-12",
+  "reads": "Aristotle, Poetics XIII–XIV in the Greek public corpus, beside the registers’ readings."
+ },
+ "library": {
+  "agents": {
+   "aristotle": {
+    "tree": "tos.agent.aristotle"
+   }
+  },
+  "works": {
+   "aristotle.poetics": {
+    "title": {
+     "ru": "Поэтика",
+     "en": "Poetics"
+    },
+    "original": "grc",
+    "tree": "tos.work.retained-antiquity.poetics"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "aristotle.poetics:tragic-error",
+   "of": [
+    "A:C044",
+    "A:C048",
+    "A:C043",
+    "A:C149"
+   ],
+   "areas": [
+    "AE05"
+   ],
+   "work": "aristotle.poetics",
+   "locus": "XIII, 1453a",
+   "voice": {
+    "ru": "Аристотель",
+    "en": "Aristotle"
+   },
+   "formula": [
+    {
+     "unit": "Глава 13",
+     "from": "ὁ μεταξὺ ἄρα",
+     "to": "τῶν τοιούτων γενῶν ἐπιφανεῖς ἄνδρες."
+    }
+   ],
+   "thesis": {
+    "ru": "Аристотель называет подходящим для трагедии человека между крайностями, который переходит к несчастью из-за некоторой ошибки, и приводит в пример Эдипа и Фиеста.",
+    "en": "Aristotle names as fitting for tragedy a person between the extremes who falls into misfortune through some error, and gives Oedipus and Thyestes as examples."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E077",
+    "A:E090"
+   ],
+   "note": "The passage names Oedipus as an example of the intermediate figure; the register also connects him to recognition in chapter XI, which this formula does not quote."
+  },
+  {
+   "id": "aristotle.poetics:tragic-pleasure-and-plot",
+   "of": [
+    "A:C058",
+    "A:C005",
+    "A:C146",
+    "A:C147"
+   ],
+   "areas": [
+    "AE05",
+    "AE07"
+   ],
+   "work": "aristotle.poetics",
+   "locus": "XIV, 1453b",
+   "voice": {
+    "ru": "Аристотель",
+    "en": "Aristotle"
+   },
+   "formula": [
+    {
+     "unit": "Глава 14",
+     "from": "ἔστιν μὲν οὖν τὸ φοβερὸν",
+     "to": "τοῦτο ἐν τοῖς πράγμασιν ἐμποιητέον."
+    }
+   ],
+   "thesis": {
+    "ru": "Страх и сострадание могут возникать из самого построения действия; поэт должен создавать через подражание свойственное трагедии удовольствие, а не просто показывать чудовищное.",
+    "en": "Fear and pity can arise from the construction of the action itself; through imitation the poet should produce the pleasure proper to tragedy, not merely display the monstrous."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E079"
+   ],
+   "note": "The Russian corpus witness renders the listener as a reader and τὸ τερατῶδες as чудесное; the thesis follows the Greek, and those translation choices remain visible in the counterpart."
+  }
+ ],
+ "links": []
+}
