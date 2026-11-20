@@ -38,19 +38,29 @@ PACKETS=os.path.join(HERE,'packets');HOME=os.path.join(ROOT,'bonsai','aesthetics
 CACHE=os.environ.get('TOS_PLANTING_CACHE') or os.path.join(os.path.expanduser('~'),'.cache','tos-planting')   # fetched files stay outside the checkout
 # Queue classifications are leads, never a rights determination: edition and every hand
 # must still be established at the gate. Unknown war participation uses the longer term.
+def death_year(person):
+    """The year a personal term runs from: the recorded death, or, for a hand of antiquity or the Middle Ages
+    whose death is known only approximately, the documented upper bound of it (`died_before` with `death_bound`)."""
+    if type(person.get('died')) is int:return person['died']
+    bound=person.get('death_bound')
+    if person.get('died') is None and type(person.get('died_before')) is int and person['died_before']<=BOUND_BEFORE and isinstance(bound,dict) and bound.get('from'):return person['died_before']
+    return None
+
 def public_domain_by_dates(persons,published,year=None):
     year = year if year is not None else datetime.date.today().year
-    valid = bool(persons) and all(type(p.get('died')) is int for p in persons)
+    valid = bool(persons) and all(type(death_year(p)) is int for p in persons)
     def russian(person):
-        died = person['died']
+        died = death_year(person)
         rehabilitation = person.get('rehabilitated')
         if rehabilitation is not None:
             return type(rehabilitation) is int and rehabilitation <= year - (75 if person.get('wartime') is not False else 71)
         return died < 1943 or died <= year - (75 if person.get('wartime') is not False else 71)
     return {'russia':valid and all(russian(p) for p in persons),
             'usa':type(published) is int and published <= year - 96,
-            'eu':valid and all(p['died'] <= year - 71 for p in persons)}
+            'eu':valid and all(death_year(p) <= year - 71 for p in persons)}
 
+BOUND_BEFORE=1800                                   # an upper bound of a death stands in for the year only for a hand this old
+LONGEST_LIFE=122                                    # the longest attested human life: one alive in a year has died within this many years
 BASES={'public-domain','public-domain+licence','licensed','short-quotation','locator-only'}
 JURISDICTIONS=('russia','usa','eu')
 LONGEST=2400                                         # a place is a formula, not a page
@@ -244,8 +254,16 @@ class MediaWikiPlain(Plain):
     def handle_data(self,data):
         if self.active:super().handle_data(data)
 
+def declared_charset(raw):
+    """The character set an HTML page declares in its first bytes, if any."""
+    head=raw[:4096].decode('ascii',errors='ignore')
+    m=re.search(r'<meta[^>]+charset\s*=\s*["\']?([A-Za-z0-9_.:-]+)',head,re.I)
+    return m.group(1).lower() if m else None
+
 def plain(raw,name):
-    text=raw.decode('utf-8',errors='replace')
+    charset=declared_charset(raw) if re.search(r'\.x?html?$',name) or re.match(rb'\s*<(!doctype|html)',raw[:300],re.I) else None
+    try:text=raw.decode(charset,errors='strict') if charset and charset not in ('utf-8','utf8') else raw.decode('utf-8',errors='replace')
+    except (LookupError,UnicodeDecodeError):text=raw.decode('utf-8',errors='replace')
     if re.search(r'\.x?html?$',name) or re.match(r'\s*<(!doctype|html)',text[:300],re.I):
         parser=MediaWikiPlain();parser.feed(text)
         if not parser.found:parser=Plain();parser.feed(text)
@@ -495,7 +513,7 @@ def in_transcription(text,source,dropped=None):
     first=next(block for block in match.get_matching_blocks() if block.size)
     before=source[max(0,words[start+first.b][1]-240):words[start+first.b][1]]
     opened=bool(re.search(r'\n\s*\n[\s"“„«‘\'(\[_*]*$',before)) or not before.strip()
-    before=re.sub(r'(\[[^\]]{0,12}\]|\(\d+\)|[\d*†‡§]+)\s*$','',re.sub(r'[\s"“„«‘\'(\[_*]+$','',before))
+    before=re.sub(r'(\[[^\]]{0,12}\]|\(\d+\)|\d{1,4}\)|[⁰¹²³⁴⁵⁶⁷⁸⁹]+\)?|[\d*†‡§]+)\s*$','',re.sub(r'[\s"“„«‘\'(\[_*]+$','',before))
     before=re.sub(r'[\s"”»’\')\]_*]+$','',re.sub(r'[\s—–-]+$','',re.sub(r'[\s"”»’\')\]_*]+$','',before)))   # «… kommen. — Eben jene …»: the dash after a full stop opens a sentence
     if not opened and before and before[-1] not in '.!?:…。！？؟।॥' and not (before[-1]==';' and re.search(r'[\u0370-\u03ff\u1f00-\u1fff]',text)):return f'it opens inside a sentence of the transcription (after «…{before[-40:]}»)'
     blocks=[block for block in match.get_matching_blocks() if block.size];a=words[start+blocks[0].b][1];last=words[start+blocks[-1].b+blocks[-1].size-1];z=last[1]+len(last[0])
@@ -569,13 +587,14 @@ def cmd_cut(args):
 
 OPENING='"“„«‚‘「『\'([—–- ';CLOSING='"”“»’‘」』\')] '        # the marks of speech and brackets a sentence may stand in: a quoted sentence is a whole sentence
 
-def sentences(text,limit=LONGEST):
+def sentences(text,limit=LONGEST,language=None):
     problems=[]
     if text!=unicodedata.normalize('NFC',text):problems.append('the text is not NFC')
     if text!=text.strip() or '  ' in text or '\t' in text:problems.append('stray whitespace')
     first=text.lstrip(OPENING)[:1]
     greek_initial=bool(first and re.fullmatch(r'[\u0370-\u03ff\u1f00-\u1fff]',first))
-    if not first or not first.isalpha() or (first.lower()!=first.upper() and not first.isupper() and not greek_initial):problems.append(f'it does not open with a capital letter or uncased sentence initial («{text[:24]}»)')
+    latin_initial=language=='la' and first.isalpha()       # Latin editions open a sentence in lower case; the transcription boundary is checked apart
+    if not first or not first.isalpha() or (first.lower()!=first.upper() and not first.isupper() and not greek_initial and not latin_initial):problems.append(f'it does not open with a capital letter or uncased sentence initial («{text[:24]}»)')
     ending=text.rstrip(CLOSING)[-1:]
     greek_question=ending==';' and re.search(r'[\u0370-\u03ff\u1f00-\u1fff]',text)
     if ending not in '.!?…。！？؟।॥' and not greek_question:problems.append(f'it does not close a sentence («{text[-24:]}»)')
@@ -692,6 +711,43 @@ def entity_year(entity,property_):
     years={int(value['time'][:5]) for value in values}
     return next(iter(years)) if len(years)==1 else None
 
+def death_bound(entity):
+    """A conservative upper bound of a death from Wikidata: the latest year a claim of death (P570) allows by its
+    precision, its «circa» qualifier and its latest-date qualifier. Without a claim of death, a floruit (P1317) or an
+    end of working period (P2032) shows the person alive in its latest year, so the bound is that year plus the
+    longest attested human life. None when no claim bounds the death before BOUND_BEFORE; an exact year is never
+    invented from it."""
+    spans={11:0,10:0,9:0,8:10,7:100,6:1000}
+    def year_of(value):
+        m=re.match(r'^([+-])(\d+)-',str((value or {}).get('time','')))
+        return None if not m else int(m.group(2))*(-1 if m.group(1)=='-' else 1)
+    units={11:1/365,10:1/12,9:1,8:10,7:100,6:1000}       # Wikibase counts «after» in units of the value's precision
+    def upper_of(value):                              # the last year a time value allows by its precision and its «after»
+        y=year_of(value);precision=(value or {}).get('precision')
+        if y is None or precision not in spans:return None
+        julian=str((value or {}).get('calendarmodel','')).endswith('/Q1985786')   # the end of a Julian interval may fall in the next Gregorian year
+        return y+spans[precision]+math.ceil(units[precision]*int((value or {}).get('after') or 0))+(1 if julian else 0)
+    death=[c for c in entity.get('claims',{}).get('P570',[]) if c.get('rank')!='deprecated']
+    claims=[(prop,c) for prop in ('P570','P1317','P2032') for c in entity.get('claims',{}).get(prop,[]) if c.get('rank')!='deprecated' and (prop=='P570' or not death)]
+    uppers=[];used=[]
+    for prop,claim in claims:
+        value=((claim.get('mainsnak') or {}).get('datavalue') or {}).get('value') or {}
+        y=year_of(value);precision=value.get('precision')
+        if y is None or precision not in spans:return None
+        qualifiers=claim.get('qualifiers') or {}
+        latest_values=[((q.get('datavalue') or {}).get('value')) or {} for q in qualifiers.get('P1326') or []]
+        latest=[upper_of(v) for v in latest_values]
+        if any(v is None for v in latest):return None   # a latest date of unknown precision bounds nothing
+        circa=any(((q.get('datavalue') or {}).get('value') or {}).get('id')=='Q5727902' for q in qualifiers.get('P1480') or [])
+        earliest=[year_of(((q.get('datavalue') or {}).get('value'))) for q in qualifiers.get('P1319') or []]
+        if any(v is not None for v in earliest) and not any(v is not None for v in latest):return None   # «not before» alone leaves the death open
+        if any(((q.get('datavalue') or {}).get('value') or {}).get('id')!='Q5727902' for q in qualifiers.get('P1480') or []):return None   # presumed or disputed: a reference decides
+        upper=min(v for v in latest if v is not None) if any(v is not None for v in latest) else upper_of(value)+(LONGEST_LIFE if circa else 0)   # «circa» has no width: alive about then, dead within the longest life
+        if prop!='P570':upper+=LONGEST_LIFE           # alive then: dead within the longest life after it
+        uppers.append(upper);used.append({'property':prop,'time':value.get('time'),'precision':precision,'after':int(value.get('after') or 0),'circa':circa,'latest':[{'time':v.get('time'),'precision':v.get('precision'),'upper':u} for v,u in zip(latest_values,latest)],'earliest':[v for v in earliest if v is not None],**({'alive_until':upper-LONGEST_LIFE,'longest_life':LONGEST_LIFE} if prop!='P570' else {})})
+    if not uppers or max(uppers)>BOUND_BEFORE:return None
+    return {'year':max(uppers),'from':'wikidata','claims':used}
+
 def cmd_person(args):
     """A hand in the text, by its Wikidata item: the kit reads the name and the year of death there, so that no date is typed."""
     path=packet(args.packet);ev=evidence(path)
@@ -706,6 +762,22 @@ def cmd_person(args):
         year=lambda prop:entity_year(entity,prop)
         died=year('P570');print(f"{args.qid}: {label('en')} / {label('ru')} — {(entity.get('descriptions',{}).get('en') or {}).get('value')}; born {year('P569')}, died {died}")
         person={'qid':args.qid,'name':{'en':label('en'),'ru':label('ru') or label('en')},'role':args.role,'born':year('P569'),'died':died,'source':f'https://www.wikidata.org/wiki/{args.qid}'}
+        if died is None and getattr(args,'bounded',False):
+            bound=death_bound(entity)
+            if bound is None:die(f'{args.qid}: no claim of death, floruit or working period bounds the death before {BOUND_BEFORE}; record the person without --bounded, or with --died-before and a trusted reference')
+            person.update({'died_before':bound['year'],'death_bound':bound});print(f"died no later than {bound['year']} by the Wikidata claims")
+    elif getattr(args,'died_before',None) is not None:
+        # A hand without an item or without a precise year: the upper bound of the death is the reference's, never typed from memory.
+        if not(args.name and trusted(args.source)):die('--died-before needs --name and --source on a trusted site: '+', '.join(TRUSTED))
+        if args.died is not None:die('--died and --died-before exclude each other')
+        if args.died_before>BOUND_BEFORE:die(f'an upper bound stands in for a death only for a hand who died before {BOUND_BEFORE}')
+        if len(str(getattr(args,'bound_note',None) or ''))<30:die('--bound-note: what the reference says that bounds the death (at least 30 characters), for the second reader to check')
+        raw=get(args.source);content=plain(raw,'person.html').casefold()
+        if args.name.casefold() not in content:die('the reference does not contain the stated name')
+        filename='person-'+hashlib.sha256(raw).hexdigest()+'.html';Path(cache(path,filename)).write_bytes(raw)
+        person={'name':{'en':args.name,'ru':args.ru or args.name},'role':args.role,'died':None,'died_before':args.died_before,'source':args.source,
+                'death_bound':{'year':args.died_before,'from':args.source,'note':getattr(args,'bound_note',None)},'identity_evidence':{'file':filename,'url':args.source,'sha256':hashlib.sha256(raw).hexdigest()}}
+        if getattr(args,'anonymous',False):person['anonymous']=True
     else:
         if not(args.name and lawful_url(args.source)):die('without an item: --name NAME --source HTTPS-URL, and --died YEAR only when supported by a trusted reference')
         if args.died is not None and not trusted(args.source):die('a stated death year requires a trusted reference: '+', '.join(TRUSTED))
@@ -723,7 +795,7 @@ def cmd_person(args):
         if not trusted(args.rehabilitation_source):die('--rehabilitated requires --rehabilitation-source on a trusted site')
         person['rehabilitated']=args.rehabilitated;person['rehabilitation_source']=args.rehabilitation_source
     ev['persons']=[other for other in ev['persons'] if isinstance(other.get('name'),dict) and not(other.get('role')==args.role and other['name']==person['name'])]+[person]   # a record of an older shape is entered again, not kept
-    save(os.path.join(path,'evidence.json'),ev);write_rights(path,ev);print(f"{person['name']['en']} ({args.role}) died {person['died']}")
+    save(os.path.join(path,'evidence.json'),ev);write_rights(path,ev);print(f"{person['name']['en']} ({args.role}) died {person['died'] if person.get('died') is not None or person.get('died_before') is None else 'no later than '+str(person['died_before'])}")
 
 ROLES={'author':('автор','author'),'editor':('редактор текста','editor of the text'),'translator':('переводчик','translator')}
 def legacy_rights_lines(ev):
@@ -1203,13 +1275,14 @@ def gate(path,second=False,offline=False):
         sound=True
         for person in persons:
             identity=person.get('identity_evidence') or {}
-            reference=(person.get('died') is None and lawful_url(person.get('source')) and identity.get('url')==person.get('source') and bool(re.fullmatch(r'[a-f0-9]{64}',str(identity.get('sha256','')))))
+            reference=(person.get('died') is None and lawful_url(person.get('source')) and (person.get('died_before') is None or trusted(person.get('source')) or person.get('qid')) and identity.get('url')==person.get('source') and bool(re.fullmatch(r'[a-f0-9]{64}',str(identity.get('sha256','')))))
             if reference and not offline:
                 try:
                     raw=Path(cache(path,identity['file'])).read_bytes()
                     name=(person.get('name') or {}).get('en','')
                     reference=bool(name) and hashlib.sha256(raw).hexdigest()==identity['sha256'] and name.casefold() in plain(raw,identity['file']).casefold()
                 except (OSError,KeyError,TypeError):reference=False
+            if person.get('died_before') is not None and death_year(person) is None:sound=False;add(f"evidence.persons {person.get('name')}: an upper bound of the death needs died_before ≤ {BOUND_BEFORE}, no died, and death_bound with its source")
             if (person.get('died') is not None and type(person.get('died')) is not int) or not isinstance(person.get('name'),dict) or not(person.get('qid') or (not identity and trusted(person.get('source'))) or reference):sound=False;add(f"evidence.persons {person.get('name')}: enter the person again with kit.py person ROLE QID or a source for the unknown-dated hand")
             if person.get('wartime') is not None and (type(person['wartime']) is not bool or not trusted(person.get('wartime_source'))):sound=False;add('wartime status requires a trusted source')
             if person.get('rehabilitated') is not None and (type(person['rehabilitated']) is not int or not trusted(person.get('rehabilitation_source'))):sound=False;add('rehabilitation requires a year and a trusted source')
@@ -1251,7 +1324,7 @@ def gate(path,second=False,offline=False):
         witness_rights=((entry.get('witnesses') or {}).get(original) or {}).get('rights') or {}
         if any(isinstance(witness_rights.get(country),dict) and witness_rights[country].get('basis')=='locator-only' for country in JURISDICTIONS):add(f'{at}: text cannot be distributed while a jurisdiction permits a locator only')
         quoted=any(isinstance(witness_rights.get(country),dict) and witness_rights[country].get('basis')=='short-quotation' for country in JURISDICTIONS)
-        for problem in sentences(text,limit=None if quoted else LONGEST):add(f'{at}: {problem}')
+        for problem in sentences(text,limit=None if quoted else LONGEST,language=original):add(f'{at}: {problem}')
         if quoted:
             problems.extend(quotation_problems(loc,text,(ev.get('places',{}).get(loc) or {}).get('quotation'),ev,second=second,path=path,offline=offline))
         if not str((place.get('links') or {}).get(original,'')).startswith('https://'):add(f'{at}: links.{original} wants the address of the page of the scan')
@@ -1808,8 +1881,20 @@ def cmd_witness_rights(args):
     data['review']={};save(witness_file(path,args.language),data)
     print('jurisdictional rights updated; a new second reading is required')
 
+LICENCE_NAMES={'creativecommons.org/licenses/by/4.0':'CC BY 4.0','creativecommons.org/licenses/by-sa/4.0':'CC BY-SA 4.0','creativecommons.org/licenses/by-nc/4.0':'CC BY-NC 4.0',
+               'creativecommons.org/licenses/by-nc-sa/4.0':'CC BY-NC-SA 4.0','creativecommons.org/licenses/by-nd/4.0':'CC BY-ND 4.0','creativecommons.org/licenses/by-nc-nd/4.0':'CC BY-NC-ND 4.0',
+               'creativecommons.org/publicdomain/zero/1.0':'CC0 1.0'}
+def pdf_layer(raw,first=1,last=3):
+    """The text layer of the first pages of a PDF, read by pdftotext; empty when there is none."""
+    try:return subprocess.run(['pdftotext','-f',str(first),'-l',str(last),'-layout','-','-'],input=raw,capture_output=True,timeout=60).stdout.decode('utf-8',errors='replace')
+    except (OSError,subprocess.SubprocessError):return ''
+
 def source_names_licence(raw,url):
-    return url.encode() in raw or url.replace('https://','http://',1).encode() in raw
+    if url.encode() in raw or url.replace('https://','http://',1).encode() in raw:return True
+    if not raw.startswith(b'%PDF'):return False
+    text=re.sub(r'\s+',' ',pdf_layer(raw)).casefold();key=re.sub(r'^https?://|/+$','',url.casefold())
+    name=LICENCE_NAMES.get(key)
+    return key in text or bool(name and re.search(re.escape(name.casefold()).replace(r'\ ',r'[\s-]*'),text))
 
 def license_problems(witness,sources,local_file,review,maker,second=False,offline=False):
     rights=witness.get('rights') or {}
@@ -1912,6 +1997,10 @@ def cmd_witness_person(args):
     filename=f'wikidata-{args.qid}.json'
     with open(witness_cache(path,args.language,filename),'wb') as file:file.write(raw)
     person={'role':args.role,'qid':args.qid,'name':name,'born':year('P569'),'died':died,'source':f'https://www.wikidata.org/wiki/{args.qid}','evidence':{'file':filename,'sha256':hashlib.sha256(raw).hexdigest(),'url':url}}
+    if died is None and getattr(args,'bounded',False):
+        bound=death_bound(entity)
+        if bound is None:die(f'{args.qid}: no claim bounds the death before {BOUND_BEFORE}')
+        person.update({'died_before':bound['year'],'death_bound':bound})
     people=data['witness'].setdefault('persons',[])
     data['witness']['persons']=[p for p in people if not(p.get('qid')==args.qid and p.get('role')==args.role)]+[person]
     data['review']={};save(witness_file(path,args.language),data)
@@ -2196,6 +2285,7 @@ def witness_problems(path,lang,data,second=False,offline=False):
                     entity=json.loads(raw)['entities'][qid]
                     for field,prop in (('born','P569'),('died','P570')):
                         if person.get(field)!=entity_year(entity,prop):add(f'{qid}: {field} year differs from the fetched entity or is not precise enough')
+                    if person.get('died_before') is not None and (death_bound(entity) or {}).get('year')!=person['died_before']:add(f'{qid}: the upper bound of the death differs from the fetched entity')
                     labels={value.get('value','').casefold() for value in entity.get('labels',{}).values()}
                     if not any(str(value).casefold() in labels for value in (person.get('name') or {}).values() if value):add(f'{qid}: name differs from the fetched entity')
             except (OSError,KeyError,ValueError,TypeError):add(f'{qid or person.get("name")}: person evidence is missing or invalid')
@@ -2327,7 +2417,7 @@ def main():
     sub('witness-anonymous-review',cmd_witness_anonymous_review,P,(('language',),{}),(('assessment',),{}));
     sub('witness-anonymous-clear',cmd_witness_anonymous_clear,P,(('language',),{}));
     sub('witness-candidate',cmd_witness_candidate,P,(('language',),{}),(('file',),{}));
-    sub('witness-person',cmd_witness_person,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}));
+    sub('witness-person',cmd_witness_person,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}),(('--bounded',),{'action':'store_true'}));
     sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));sub('witness-person-remove',cmd_witness_person_remove,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}),(('--reason',),{'required':True}))
     sub('witness-fetch',cmd_witness_fetch,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}))
     sub('witness-image',cmd_witness_image,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}),(('--by',),{'choices':['maker','second'],'default':'maker'}))
@@ -2347,7 +2437,7 @@ def main():
     sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}));sub('scan',cmd_scan,P,(('item',),{'nargs':'?'}));sub('scan-withdraw',cmd_scan_withdraw,P,(('item',),{}),(('--reason',),{'required':True}))
     sub('image',cmd_image,P,(('n',),{'type':int}),(('--loc',),{}),(('--width',),{'type':int,'default':1100}),(('--by',),{'choices':['maker','second'],'default':'maker'}),(('--file',),{}),(('--scan',),{'help':'the Archive item, where the packet reads several scans'}),(('--zoom',),{'help':'TOP-BOTTOM in percent of the page height: the lines of a correction, enlarged'}))
     sub('offset',cmd_offset,P,(('k',),{'type':int}),(('--scan',),{}))
-    sub('person',cmd_person,P,(('role',),{'choices':list(ROLES)}),(('qid',),{'nargs':'?'}),(('--name',),{}),(('--ru',),{}),(('--died',),{'type':int}),(('--source',),{}),(('--wartime',),{'choices':['yes','no']}),(('--wartime-source',),{}),(('--rehabilitated',),{'type':int}),(('--rehabilitation-source',),{}),(('--remove',),{'action':'store_true','help':'take this hand out of the record again (another edition was chosen)'}));sub('printed',cmd_printed,P,(('year',),{'type':int}))
+    sub('person',cmd_person,P,(('role',),{'choices':list(ROLES)}),(('qid',),{'nargs':'?'}),(('--name',),{}),(('--ru',),{}),(('--died',),{'type':int}),(('--source',),{}),(('--wartime',),{'choices':['yes','no']}),(('--wartime-source',),{}),(('--rehabilitated',),{'type':int}),(('--rehabilitation-source',),{}),(('--remove',),{'action':'store_true','help':'take this hand out of the record again (another edition was chosen)'}),(('--bounded',),{'action':'store_true','help':'an ancient or medieval hand: the death is bounded by the Wikidata claims, the year is not invented'}),(('--died-before',),{'type':int,'help':'the upper bound of the death a trusted reference gives (with --name, --source, --bound-note)'}),(('--bound-note',),{}),(('--anonymous',),{'action':'store_true','help':'the author is unknown; --name is the name the work goes under'}));sub('printed',cmd_printed,P,(('year',),{'type':int}))
     sub('rights',cmd_rights,P,(('--jurisdiction',),{'choices':JURISDICTIONS}),(('--basis',),{'choices':sorted(BASES)}),(('--law',),{}));sub('why',cmd_why,P,(('file',),{}),(('reason',),{}));sub('stamp',cmd_stamp,P,(('role',),{'choices':['maker','second']}),(('model',),{}),(('effort',),{}))
     sub('cut',cmd_cut,P,(('file',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--lang',),{}),(('--nth',),{'type':int}),(('--drop',),{'action':'append','help':'a regular expression of what the transcriber added inside the run (a figure mark, a page mark); may be given more than once'}))
     sub('address',cmd_address,P,(('loc',),{}),(('kind',),{'choices':ADDRESS_KINDS}),(('value',),{}),(('url',),{}));
