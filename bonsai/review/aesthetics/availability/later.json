@@ -1846,7 +1846,63 @@
       "areas": [
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "ru",
+      "people": [
+        {
+          "name": "Михаил Михайлович Бахтин",
+          "role": "author",
+          "birth": 1895,
+          "death": 1975,
+          "evidence": [
+            "https://d-nb.info/gnd/118505653"
+          ]
+        },
+        {
+          "name": "Caryl Emerson",
+          "role": "English translator",
+          "birth": 1944,
+          "evidence": [
+            "https://d-nb.info/gnd/128581328"
+          ]
+        },
+        {
+          "name": "Michael Holquist",
+          "role": "English translator and collection editor",
+          "birth": 1935,
+          "evidence": [
+            "https://d-nb.info/gnd/134107659"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "«Слово в романе», written 1934–1935; in Вопросы литературы и эстетики, 1975",
+          "url": "https://openlibrary.org/works/OL2390862W",
+          "status": "Catalog evidence. Authorized original copy, editors and exact printed pages not checked."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "The Dialogic Imagination: Four Essays, University of Texas Press, 1981; translated Caryl Emerson and Michael Holquist, edited Holquist",
+          "url": "https://openlibrary.org/books/OL4100997M",
+          "status": "Google Books indexed snippets indicate I078 pp.261–262, I076 p.362 and I077 p.364; complete sentences and lawful copy still require checking."
+        }
+      ],
+      "searches": [
+        {
+          "source": "Google Books SearchWithinVolume, English translation",
+          "url": "https://books.google.com/books?jscmd=SearchWithinVolume&vid=UpyJYtPSJo8C&q=%22novel%20as%20a%20whole%22",
+          "result": "Index snippets for this edition, not full-page images or a license."
+        },
+        {
+          "source": "Open Library, NDL, RSL",
+          "url": "https://openlibrary.org/works/OL2390862W",
+          "result": "Limited catalog searches; NDL returned 429 and Russian State Library 403. No absence inferred."
+        }
+      ],
+      "remaining": "Inspect authorized 1975 Russian pages and full English sentences; identify actual German, Spanish and simplified Chinese translations, search mandatory routes and assess rights for each contributor and jurisdiction."
     },
     {
       "work": "mircea-eliade.the-sacred-and-the-profane",
@@ -2018,7 +2074,77 @@
       "areas": [
         "AE32"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Susan Sontag",
+          "role": "author",
+          "birth": 1933,
+          "death": 2004,
+          "evidence": [
+            "https://d-nb.info/gnd/118751506"
+          ]
+        },
+        {
+          "name": "Виктор Голышев",
+          "role": "Russian translator",
+          "birth": 1937,
+          "evidence": [
+            "https://admarginem.ru/product/smotrim-na-chuzhie-stradaniya-vtoroe-izdanie/"
+          ]
+        },
+        {
+          "name": "Aurelio Major",
+          "role": "Spanish translator",
+          "birth": 1963,
+          "evidence": [
+            "https://openlibrary.org/books/OL9137681M"
+          ]
+        },
+        {
+          "name": "Reinhard Kaiser",
+          "role": "German translator",
+          "birth": 1950,
+          "death": 2025,
+          "evidence": [
+            "https://lobid.org/resources/990220449510206441"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Regarding the Pain of Others, Farrar, Straus and Giroux, 2003",
+          "url": "https://openlibrary.org/books/OL3578925M",
+          "status": "Book catalog; exact book pages and sentences for requested places not yet verified."
+        },
+        {
+          "edition": "Looking at War, The New Yorker, December 2002",
+          "url": "https://www.newyorker.com/magazine/2002/12/09/looking-at-war",
+          "status": "Earlier magazine text by Sontag discusses Goya; not established identical to the book. Reading access does not confer republication rights."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "ru",
+          "edition": "Смотрим на чужие страдания, translated Виктор Голышев; Ad Marginem 2014 and 2023 editions",
+          "url": "https://admarginem.ru/product/smotrim-na-chuzhie-stradaniya-vtoroe-izdanie/",
+          "status": "Publisher confirms translation and links reading services; target passages and pagination unchecked."
+        },
+        {
+          "language": "es",
+          "edition": "Ante el dolor de los demás, translated Aurelio Major, Alfaguara, 2003",
+          "url": "https://openlibrary.org/books/OL9137681M",
+          "status": "Catalog record; target passages unchecked."
+        },
+        {
+          "language": "de",
+          "edition": "Das Leiden anderer betrachten, translated Reinhard Kaiser, Fischer Taschenbuch, 2017",
+          "url": "https://lobid.org/resources/990220449510206441",
+          "status": "Library catalog record; target passages unchecked."
+        }
+      ],
+      "remaining": "Verify complete target sentences and pages in lawful original and translation copies; find Chinese edition and mandatory search routes; independently determine original, translators and third-party rights."
     },
     {
       "work": "umberto-eco.opera-aperta",
@@ -2406,7 +2532,48 @@
         "AE22",
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Ernst Hans Gombrich",
+          "role": "author",
+          "birth": 1909,
+          "death": 2001,
+          "evidence": [
+            "https://d-nb.info/gnd/118540637"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Art and Illusion: A Study in the Psychology of Pictorial Representation, Pantheon/Bollingen, 1960",
+          "url": "https://openlibrary.org/books/OL5775338M",
+          "status": "Catalog evidence; IA copy restricted. Exact pages and sentences in authorized copy remain unchecked."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Arte e ilusión, Gustavo Gili, 1982",
+          "url": "https://openlibrary.org/books/OL47173757M",
+          "status": "Catalog evidence; translator and target passages require verification."
+        },
+        {
+          "language": "de",
+          "edition": "Kunst und Illusion, Belser, 1978",
+          "url": "https://lobid.org/resources/990001264680206441",
+          "status": "Library catalog record; translator and target passages require verification."
+        }
+      ],
+      "searches": [
+        {
+          "source": "Google Books SearchWithinVolume",
+          "url": "https://books.google.com/books?vid=ISBN9780691017501",
+          "result": "Limited title-specific target phrase searches produced no snippets; not evidence of absence."
+        }
+      ],
+      "remaining": "Inspect lawful original edition and exact pages; identify Russian and simplified Chinese editions and verify Spanish and German translators and passages. Assess original, translation and illustration rights separately in each jurisdiction."
     },
     {
       "work": "e-h-gombrich.illusion-and-art",
