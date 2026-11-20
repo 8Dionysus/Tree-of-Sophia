@@ -59,11 +59,16 @@ const LOADERS=Object.freeze({
     ]).then(([manifest,concepts,figures,links,chains,proposed,voices,placeRelations,semanticUses])=>({manifest:json(manifest),concepts:json(concepts),figures:json(figures),links:json(links),chains:json(chains),proposed:json(proposed),voices:json(voices),placeRelations:json(placeRelations),semanticUses:json(semanticUses)})),
     renderingsOf('zarathustra'),
   ]).then(([chronology,places,identities,basemap,core,renderings])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core,renderings})),
+  // The Population stand reads its members and their lives; the graft map stays with the export.
+  population:()=>Promise.all([
+    import('../../../../bonsai/population/population.json'),
+    import('../../../../bonsai/population/chronology.json'),
+  ]).then(([population,chronology])=>({population:json(population),chronology:json(chronology)})),
 });
 const BONSAI={
   aesthetics:Object.freeze({manifest:aestheticsManifest}),
   antiquity:Object.freeze({manifest:antiquityManifest}),
-  // Planted before its stand opens: the manifest is here, the modules come with the stand.
+  // Its stand is a page of its own (src/population/), not the research space: it loads the modules itself.
   population:Object.freeze({manifest:populationManifest}),
   zarathustra:Object.freeze({manifest:zarathustraManifest}),
 };

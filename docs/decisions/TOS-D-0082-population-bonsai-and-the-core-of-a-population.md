@@ -72,9 +72,16 @@ register said.
 The skeleton plants the corpus authors with their kinds, names and lives in the
 registers' words; every member's verdict stays `undecided`. The identity
 questions, and the queues of kinds, dates, Latin names and living status, go to
-the reading line under `bonsai/review/population/line/`. The stand opens later;
-until then the site carries the manifest alone, while merging publishes the
-register layer to R2 and the site copy.
+the reading line under `bonsai/review/population/line/`.
+
+The stand is a page of its own at `/population/`, outside the research space
+the other stands share, since its material is people rather than texts. A reader
+finds a member by any of its names, its kind or the century of its life, and
+reads its names, its years in the registers' words and the register rows it
+grew from, each batch linked to the site's copy of its register. It joins the
+site's choice of bonsai with its own tree: a banyan, whose aerial roots reach
+the ground and become trunks, one tree standing as a grove. Merging publishes
+the register layer to R2 and the site copy.
 
 ## Source Surfaces
 
@@ -82,7 +89,12 @@ register layer to R2 and the site copy.
 - `bonsai/population/`
 - `bonsai/review/population/`
 - `bonsai/CORE.md`, `bonsai/README.md`
-- `access/web/src/public-research/bonsai.mjs`
+- `access/web/src/public-research/bonsai.mjs`, `access/web/src/public-research/stands.mjs`
+- `access/web/population/index.html`, `access/web/src/population/`
+- `access/web/src/home/`, `access/web/home/index.html`, `access/web/public/trees/population.svg`,
+  `access/web/public/cosmos.js`, `access/web/public/cosmos.css`
+- `access/deploy/cloudflare-worker/src/public-prototypes.ts`,
+  `access/deploy/cloudflare-worker/src/public-head.ts`
 
 ## Validation
 
@@ -92,3 +104,7 @@ tiers, the control cases and the equality of the stored files with what the
 tools give. `node bonsai/lib/cli.mjs check population` checks the module, its
 export and the review folder: every register row in exactly one member or left
 out with a reason, every member ID in the ledger, every control case held.
+`population-model.test.mjs` covers the stand's reading of the bonsai: years and
+centuries in each language of the site, open and approximate spans, search,
+order, merged IDs and the register addresses; the stands' tests require its
+tree, its sky and its page.
