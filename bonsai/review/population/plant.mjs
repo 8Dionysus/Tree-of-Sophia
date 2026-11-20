@@ -137,7 +137,13 @@ export function plant({review=HERE,root=ROOT,files=null}={}){
   const ambiguousRows=new Set(core.names.flatMap(name=>(name.ambiguous??[]).flatMap(item=>item.rows)));
   const queued=new Set(queue.flatMap(item=>[item.a.member,item.b.member]));
   const batches={};
-  for(const row of rows.values()){batches[row.batch]??={rows:0,core_rows:0};batches[row.batch].rows++;}
+  // Each batch names its register as the site's copy keeps it, so a reader can open the rows a member grew from.
+  const register=batch=>{
+    const path=`registry/${batch}/agents.jsonl`;
+    if(!digests.has(path))throw new Error(`plant: layers.json has no digest for ${path}`);
+    return `${SITE}${digests.get(path)}`;
+  };
+  for(const row of rows.values()){batches[row.batch]??={rows:0,core_rows:0,register:register(row.batch)};batches[row.batch].rows++;}
   const members={},situations={},lives={},sources={},agents={},organizations={};
   const treeAgents=join(root,'ToS','source-witnesses','agents');
   const planted=[...memberRows].filter(([,list])=>list.some(row=>coreRows.has(row))).sort(([a],[b])=>byKey(a,b));

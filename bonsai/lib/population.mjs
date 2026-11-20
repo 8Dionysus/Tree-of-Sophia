@@ -68,6 +68,7 @@ export function populationIssues(module,{chronology=null,identities=null,registr
   for(const [batch,entry] of Object.entries(batches)){
     if(!/^(?:A\d{2}|T[23]-\d{2})$/.test(batch))problems.push(`batch ${batch}: not a batch name`);
     if(!Number.isInteger(entry?.rows)||entry.rows<0)problems.push(`batch ${batch}: rows is not a count`);
+    if(entry?.register!==undefined&&!/^https:\/\/treeofsophia\.com\/__research\/layers\/sha256\/[0-9a-f]{64}$/.test(entry.register))problems.push(`batch ${batch}: register is not a layer address of the site`);
   }
   for(const [from,to] of Object.entries(module.redirects??{})){
     if(!MEMBER_ID.test(from))problems.push(`redirect ${from}: not a member ID`);
