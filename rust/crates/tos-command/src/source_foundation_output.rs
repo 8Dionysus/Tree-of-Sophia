@@ -67,8 +67,8 @@ pub(crate) enum SourceFoundationOutputOutcome {
 }
 
 pub(crate) struct AssembledSourceFoundationOutput {
-    /// Maintained order: Labs → Records → Goldsets → Discovery → Closure →
-    /// generated catalog producer → persisted catalog tail.
+    /// Labs → Records → Goldsets → Discovery → Closure → Bibliographic
+    /// Claims → generated catalog producer → persisted catalog.
     pub issues: Vec<Issue>,
     pub rules: SourceFoundationRulesOutputEvidence,
     pub bibliography: FoundationBiblioEvidence,
@@ -222,6 +222,15 @@ pub(crate) fn assemble_default(
     issues.extend(goldset_issues);
     issues.extend(discovery_issues);
     issues.extend(closure_issues);
+    if let FoundationBiblioEvidence::Complete { report, .. } = &bibliography {
+        issues.extend(
+            report
+                .shadow
+                .issues
+                .iter()
+                .map(|issue| (issue.location.clone(), issue.code.to_owned())),
+        );
+    }
 
     let catalog = match catalog {
         FoundationCatalogOutcome::Complete(result) => {
@@ -310,14 +319,11 @@ pub(crate) fn assemble_default(
 fn collect_gaps(evidence: &FinalizedFoundationDefaultInputs) -> Vec<SourceFoundationOutputGap> {
     let owner = &evidence.rules.owner_report;
     let mut gaps = Vec::new();
-    // Exact Claim findings remain retained. Until their maintained CLI mapping
-    // is connected, a negative/truncated report cannot become empty success.
+    // A truncated Claim traversal cannot become a complete negative result.
     if match &evidence.bibliography {
         FoundationBiblioEvidence::NotSelected => false,
         FoundationBiblioEvidence::RecordsIncomplete => true,
-        FoundationBiblioEvidence::Complete { report, .. } => {
-            report.shadow.issue_sink_truncated || !report.shadow.issues.is_empty()
-        }
+        FoundationBiblioEvidence::Complete { report, .. } => report.shadow.issue_sink_truncated,
     } {
         gaps.push(SourceFoundationOutputGap::BibliographicClaims);
     }
@@ -535,6 +541,22 @@ fn preflight(
             return None;
         }
     }
+    let bibliographic_issue_bytes =
+        if let FoundationBiblioEvidence::Complete { report, .. } = &evidence.bibliography {
+            issue_count = issue_count.checked_add(report.shadow.issues.len())?;
+            report
+                .shadow
+                .issues
+                .iter()
+                .try_fold(0usize, |bytes, issue| {
+                    bytes
+                        .checked_add(issue.location.len())?
+                        .checked_add(issue.code.len())
+                })?
+        } else {
+            0
+        };
+    direct_issue_bytes = direct_issue_bytes.checked_add(bibliographic_issue_bytes)?;
     let catalog_direct = match &evidence.catalog {
         FoundationCatalogOutcome::Complete(result) => &result.issues,
         FoundationCatalogOutcome::SchemaRejected { catalog_issues, .. } => catalog_issues,
@@ -568,6 +590,7 @@ fn preflight(
     let state_upper = output_slots
         .checked_add(staged_schema_slots)?
         .checked_add(schema_bytes_upper)?
+        .checked_add(bibliographic_issue_bytes)?
         .checked_add(mapped_temporary)?
         .checked_add(lab_slots)?
         .checked_add(size_of::<AssembledSourceFoundationOutput>())?
