@@ -29,7 +29,8 @@ export default defineConfig(({ mode }) => {
   },
   build: {
     chunkSizeWarningLimit: 900,
-    manifest: false,
+    // The build's own list of its files: a stand saved for working offline keeps every file its page may load.
+    manifest: "asset-manifest.json",
     outDir: publicResearch ? "../deploy/cloudflare-worker/dist-public-research" : "dist",
     emptyOutDir: true,
     rollupOptions: {
