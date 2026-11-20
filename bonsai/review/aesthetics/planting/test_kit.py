@@ -1331,6 +1331,12 @@ class AncientBoundTest(unittest.TestCase):
         coarse['claims']['P570'][0]['qualifiers'] = {'P1326': [{'datavalue': {'value': {'time': '+1700-00-00T00:00:00Z', 'precision': 7}}}]}
         self.assertEqual(kit.death_bound(coarse)['year'], 1800)                        # a latest century runs to its last year
         self.assertEqual(kit.death_bound(coarse)['claims'][0]['latest'][0]['precision'], 7)
+        uncertain = {'claims': {'P570': [self.claim('+1700-00-00T00:00:00Z', 9)]}}
+        uncertain['claims']['P570'][0]['mainsnak']['datavalue']['value']['after'] = 300
+        self.assertIsNone(kit.death_bound(uncertain))                                  # 1700 or up to three centuries later
+        uncertain['claims']['P570'][0]['mainsnak']['datavalue']['value']['after'] = 20
+        self.assertEqual(kit.death_bound(uncertain)['year'], 1720)
+        self.assertEqual(kit.death_bound(uncertain)['claims'][0]['after'], 20)
         latest = {'claims': {'P570': [self.claim('+1050-00-00T00:00:00Z', 7, latest='+1070-00-00T00:00:00Z')]}}
         self.assertEqual(kit.death_bound(latest)['year'], 1070)
 
