@@ -4980,6 +4980,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let scoped = self.scope.is_scoped();
         let matches_event_path = |path: &str| {
             path.ends_with(PROVISION_EVENT_BASENAME)
+                || path == crate::biblio_rules::RHETORIC_TOPOLOGY_PROVENANCE
                 || scoped
                     && (selection.as_ref().is_some_and(|selection| {
                         selection

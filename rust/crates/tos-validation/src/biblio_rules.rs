@@ -39,7 +39,7 @@ const LEGACY_TOPOLOGY: [&str; 3] = [
 const RHETORIC_TOPOLOGY_HOME: &str =
     "ToS/source-witnesses/works/aristotle/rhetoric/topology/retained-2026-11-19/";
 const RHETORIC_TOPOLOGY_EVENT: &str = "tos.event.annotation.rhetoric-topology.retained-2026-11-19";
-const RHETORIC_TOPOLOGY_PROVENANCE: &str = concat!(
+pub(crate) const RHETORIC_TOPOLOGY_PROVENANCE: &str = concat!(
     "ToS/source-witnesses/works/aristotle/rhetoric/topology/retained-2026-11-19/",
     "provenance.jsonl",
 );
