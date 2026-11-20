@@ -622,6 +622,14 @@ class LivingAuthorChronologyTest(unittest.TestCase):
             self.assertEqual(life['dating']['kind'],'unknown-date')
             self.assertIn('born',life['dating']['source_wording']['text'])
             self.assertIn('no death year recorded',life['dating']['source_wording']['text'])
+            library=json.loads((home/'library.json').read_text())
+            library['works']['plato.symposium']['agents'].append('immanuel-kant')
+            (home/'library.json').write_text(json.dumps(library,ensure_ascii=False))
+            subprocess.run(['node',str(review/'chronology.mjs')],check=True,capture_output=True,text=True)
+            result=json.loads((home/'chronology.json').read_text())
+            work=result['situations'][result['compositions']['works']['plato.symposium']]
+            self.assertEqual(work['dating']['kind'],'unknown-date')
+            self.assertNotIn('within the life',work['statement']['en'])
             lives['immanuel-kant']['died']=[{'time':'+1804-01-01T00:00:00Z','precision':9,'approximate':True,'qualifiers':['Q5727902']}]
             lives['immanuel-kant']['born'][0].update({'time':'+1720-01-01T00:00:00Z','precision':8})
             lives['immanuel-kant']['born'][0]['bounds']={'earliest':[{'time':'+1723-01-01T00:00:00Z','precision':9}],'latest':[{'time':'+1725-01-01T00:00:00Z','precision':9}]}
