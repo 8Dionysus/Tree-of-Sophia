@@ -14,6 +14,7 @@ use tos_foundation::{
 };
 
 mod army;
+mod review_index;
 mod snapshot;
 pub use army::{AGENT_TIERS, PERSON_ONLY_KINDS, PROPOSING_KINDS, utc_iso};
 
@@ -472,7 +473,20 @@ pub struct ActJournal {
     agent_last: HashMap<u32, u32>,
     open_count: std::cell::Cell<Option<usize>>,
     squad_counts_dirty: std::cell::Cell<bool>,
+    review_index: std::cell::RefCell<review_index::ReviewIndex>,
+    tally: Tally,
     unknown_kinds: HashMap<u32, u64>,
+}
+
+/// The journal's counts for its summary, kept as acts are appended.
+#[derive(Default)]
+struct Tally {
+    by_kind: HashMap<u32, u64>,
+    human: u64,
+    agent: u64,
+    mixed: u64,
+    agents: HashSet<u32>,
+    models: HashSet<u32>,
 }
 
 /// What one squad did, kept as its acts are appended: the army's console reads
@@ -603,6 +617,8 @@ impl ActJournal {
             agent_last: HashMap::new(),
             open_count: std::cell::Cell::new(Some(0)),
             squad_counts_dirty: std::cell::Cell::new(false),
+            review_index: std::cell::RefCell::new(review_index::ReviewIndex::default()),
+            tally: Tally::default(),
             unknown_kinds: HashMap::new(),
         })
     }
@@ -1075,7 +1091,7 @@ impl ActJournal {
         if let Some((decision, moves)) = &moves {
             let to = self.decision_slot(Some(*decision));
             for (proposal, before) in moves {
-                let from = self.decision_slot(*before);
+                let from = self.decision_slot(before.map(|(_, decision)| decision));
                 if let Some(track) = self.acts[*proposal as usize]
                     .squad
                     .and_then(|squad| self.squad_tracks.get(&squad))
@@ -1188,6 +1204,19 @@ impl ActJournal {
                 }
             }
             Extra::None => {}
+        }
+        self.keep_review_index(index, moves.as_ref());
+        *self.tally.by_kind.entry(kind).or_default() += 1;
+        match author_type {
+            AuthorType::Human => self.tally.human += 1,
+            AuthorType::Agent => {
+                self.tally.agent += 1;
+                self.tally.agents.insert(author);
+                if let Some(model) = model {
+                    self.tally.models.insert(model);
+                }
+            }
+            AuthorType::Mixed => self.tally.mixed += 1,
         }
         if !known {
             *self.unknown_kinds.entry(kind).or_default() += 1;
@@ -1455,25 +1484,10 @@ impl ActJournal {
     }
 
     fn summary(&self) -> JsonValue {
-        let mut by_kind: HashMap<u32, u64> = HashMap::new();
-        let (mut human, mut agent, mut mixed) = (0u64, 0u64, 0u64);
-        let mut agents = HashSet::new();
-        let mut models = HashSet::new();
-        for act in &self.acts {
-            *by_kind.entry(act.kind).or_default() += 1;
-            match act.author_type {
-                AuthorType::Human => human += 1,
-                AuthorType::Agent => {
-                    agent += 1;
-                    agents.insert(act.author);
-                    if let Some(model) = act.model {
-                        models.insert(model);
-                    }
-                }
-                AuthorType::Mixed => mixed += 1,
-            }
-        }
-        let mut kinds: Vec<(u32, u64)> = by_kind.into_iter().collect();
+        let tally = &self.tally;
+        let (human, agent, mixed) = (tally.human, tally.agent, tally.mixed);
+        let (agents, models) = (&tally.agents, &tally.models);
+        let mut kinds: Vec<(u32, u64)> = tally.by_kind.iter().map(|(k, v)| (*k, *v)).collect();
         kinds.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
         let mut unknown: Vec<(u32, u64)> =
             self.unknown_kinds.iter().map(|(k, v)| (*k, *v)).collect();
@@ -1651,178 +1665,6 @@ impl ActJournal {
                 ),
             ),
             ("tickets", array(items)),
-        ])
-    }
-
-    fn review(&self, limit: usize) -> JsonValue {
-        struct Group {
-            address: u32,
-            category: u32,
-            open: Vec<u32>,
-            deferred: u64,
-            decided: HashMap<u32, u64>,
-            targets: HashSet<u32>,
-            authors: HashSet<u32>,
-            models: HashSet<u32>,
-            humans: bool,
-            first_seq: u64,
-        }
-        let mut groups = Vec::new();
-        let (mut open_total, mut deferred_total) = (0u64, 0u64);
-        for address in &self.group_order {
-            let members = &self.group_members[address];
-            let mut group = Group {
-                address: *address,
-                category: 0,
-                open: Vec::new(),
-                deferred: 0,
-                decided: HashMap::new(),
-                targets: HashSet::new(),
-                authors: HashSet::new(),
-                models: HashSet::new(),
-                humans: false,
-                first_seq: u64::MAX,
-            };
-            for proposal in members {
-                if !self.live(*proposal) {
-                    continue;
-                }
-                let act = &self.acts[*proposal as usize];
-                if let Extra::Proposal { category, .. } = act.extra {
-                    group.category = category;
-                }
-                match self.decision(*proposal) {
-                    Some((_, decision)) if self.strings.text(decision) == "defer" => {
-                        group.deferred += 1
-                    }
-                    Some((_, decision)) => *group.decided.entry(decision).or_default() += 1,
-                    None => {
-                        group.open.push(*proposal);
-                        group.first_seq = group.first_seq.min(act.seq);
-                        group.targets.extend(act.targets.iter().copied());
-                        group.authors.insert(act.author);
-                        match (act.author_type, act.model) {
-                            (AuthorType::Agent, Some(model)) => {
-                                group.models.insert(model);
-                            }
-                            _ => group.humans = true,
-                        }
-                    }
-                }
-            }
-            open_total += group.open.len() as u64;
-            deferred_total += group.deferred;
-            if !group.open.is_empty() || group.deferred > 0 {
-                groups.push(group);
-            }
-        }
-        // Most open proposals first, then the oldest.
-        groups.sort_by(|a, b| {
-            b.open
-                .len()
-                .cmp(&a.open.len())
-                .then(a.first_seq.cmp(&b.first_seq))
-        });
-        let rows = groups
-            .iter()
-            .take(limit)
-            .map(|group| {
-                let independent = group.models.len() + usize::from(group.humans);
-                object(vec![
-                    ("group", string(self.strings.text(group.address))),
-                    ("category", string(self.strings.text(group.category))),
-                    ("open_count", int(group.open.len() as i128)),
-                    ("deferred_count", int(group.deferred as i128)),
-                    (
-                        "decided_count",
-                        int(group.decided.values().sum::<u64>() as i128),
-                    ),
-                    ("targets_count", int(group.targets.len() as i128)),
-                    ("authors_count", int(group.authors.len() as i128)),
-                    ("independent_count", int(independent as i128)),
-                    (
-                        "models",
-                        array(
-                            group
-                                .models
-                                .iter()
-                                .map(|m| string(self.strings.text(*m)))
-                                .collect(),
-                        ),
-                    ),
-                    (
-                        "open",
-                        array(
-                            group
-                                .open
-                                .iter()
-                                .take(32)
-                                .map(|p| string(self.ids.text(*p)))
-                                .collect(),
-                        ),
-                    ),
-                ])
-            })
-            .collect();
-        object(vec![
-            ("open_total", int(open_total as i128)),
-            ("deferred_total", int(deferred_total as i128)),
-            ("groups_total", int(groups.len() as i128)),
-            ("groups", array(rows)),
-        ])
-    }
-
-    /// Proposals the person accepted, newest decision first, each with its review and
-    /// whether a live change packet already names it.
-    fn decided(&self, limit: usize) -> JsonValue {
-        let mut rows: Vec<(u64, u32, u32, u32)> = Vec::new();
-        for address in &self.group_order {
-            for proposal in &self.group_members[address] {
-                if !self.live(*proposal) {
-                    continue;
-                }
-                if let Some((review, decision)) = self.decision(*proposal) {
-                    let word = self.strings.text(decision);
-                    if word == "accept" || word == "accept-with-edit" {
-                        rows.push((self.acts[review as usize].seq, *proposal, review, decision));
-                    }
-                }
-            }
-        }
-        rows.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));
-        let packed = |proposal: u32| {
-            let address = format!("act:{}", self.ids.text(proposal));
-            self.strings
-                .find(&address)
-                .and_then(|t| self.by_target.get(&t))
-                .is_some_and(|items| {
-                    items.iter().any(|i| {
-                        self.strings.text(self.acts[*i as usize].kind) == "change-packet"
-                            && self.live(*i)
-                    })
-                })
-        };
-        let total = rows.len();
-        let unpacked = rows.iter().filter(|row| !packed(row.1)).count();
-        object(vec![
-            ("total", int(total as i128)),
-            ("unpacked", int(unpacked as i128)),
-            (
-                "proposals",
-                array(
-                    rows.iter()
-                        .take(limit)
-                        .map(|(_, proposal, review, decision)| {
-                            object(vec![
-                                ("proposal", string(self.ids.text(*proposal))),
-                                ("review", string(self.ids.text(*review))),
-                                ("decision", string(self.strings.text(*decision))),
-                                ("packed", boolean(packed(*proposal))),
-                            ])
-                        })
-                        .collect(),
-                ),
-            ),
         ])
     }
 
@@ -2940,5 +2782,100 @@ mod tests {
         );
         step(&mut j, proposal("p5", "ребёнок"));
         step(&mut j, review("r4", &format!(r#""{address}""#), "accept"));
+    }
+
+    #[test]
+    fn the_review_index_follows_decisions_packets_and_withdrawals_like_a_full_count() {
+        let mut j = journal();
+        let proposal = |id: &str, to: &str, author: &str| {
+            record(
+                id,
+                "proposal",
+                &format!(
+                    r#"{author},"targets":["link:{id}","link:shared"],"grounds":["place:{id}"],"body":{{"category":"translation","change":{{"field":"verb","from":"дитя","to":"{to}","term":"child","to_lemma":"{to}"}}}},"parents":[]"#
+                ),
+            )
+        };
+        let review = |id: &str, targets: &str, decision: &str| {
+            record(
+                id,
+                "review",
+                &format!(
+                    r#"{HUMAN},"targets":[{targets}],"grounds":[],"body":{{"decision":"{decision}","reason":"r"}},"parents":[]"#
+                ),
+            )
+        };
+        let views = [
+            r#"{"view":"review","limit":50}"#,
+            r#"{"view":"decided","limit":100}"#,
+        ];
+        let mut step = |j: &mut ActJournal, raw: String| {
+            j.append(raw.as_bytes()).unwrap();
+            let kept: Vec<Vec<u8>> = views
+                .iter()
+                .map(|v| j.query(v.as_bytes()).unwrap())
+                .collect();
+            j.recount_reviews();
+            let counted: Vec<Vec<u8>> = views
+                .iter()
+                .map(|v| j.query(v.as_bytes()).unwrap())
+                .collect();
+            assert_eq!(kept, counted, "{raw}");
+        };
+        for n in 0..4 {
+            step(
+                &mut j,
+                proposal(
+                    &format!("p{n}"),
+                    "ребёнок",
+                    &agent(&format!("a{n}"), if n % 2 == 0 { "m1" } else { "m2" }),
+                ),
+            );
+        }
+        step(&mut j, proposal("q0", "чадо", HUMAN));
+        let group = query(&j, r#"{"view":"review"}"#);
+        let address = get(
+            &get(&group, "groups").unwrap().as_array().unwrap()[0],
+            "group",
+        )
+        .and_then(JsonValue::as_str)
+        .unwrap()
+        .to_owned();
+        step(&mut j, review("r0", r#""act:p0""#, "accept"));
+        step(&mut j, review("r1", r#""act:p0","act:p1""#, "reject"));
+        step(&mut j, review("r2", &format!(r#""{address}""#), "defer"));
+        step(&mut j, review("r3", r#""act:q0","act:p2""#, "accept"));
+        step(
+            &mut j,
+            record(
+                "cp",
+                "change-packet",
+                &format!(
+                    r#"{HUMAN},"targets":["act:q0"],"grounds":[],"body":{{"changes":[{{"proposal":"q0"}}]}},"parents":["r3"]"#
+                ),
+            ),
+        );
+        step(&mut j, proposal("p5", "ребёнок", &agent("a5", "m3")));
+        step(&mut j, review("r4", &format!(r#""{address}""#), "accept"));
+        step(
+            &mut j,
+            record(
+                "w0",
+                "withdrawal",
+                &format!(r#"{HUMAN},"targets":["act:cp"],"grounds":[],"body":{{}},"parents":[]"#),
+            ),
+        );
+        step(&mut j, review("r5", r#""act:p5""#, "defer"));
+        step(
+            &mut j,
+            record(
+                "w1",
+                "withdrawal",
+                &format!(r#"{HUMAN},"targets":["act:r4"],"grounds":[],"body":{{}},"parents":[]"#),
+            ),
+        );
+        step(&mut j, proposal("p6", "ребёнок", &agent("a6", "m1")));
+        let decided = query(&j, r#"{"view":"decided"}"#);
+        assert!(num(&decided, "total") >= 1);
     }
 }

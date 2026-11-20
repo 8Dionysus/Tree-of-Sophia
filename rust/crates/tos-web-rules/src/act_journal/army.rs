@@ -194,16 +194,13 @@ impl ActJournal {
     /// The live proposals the review at `review` decides, each with the decision
     /// it had before. Read before the review enters the indexes: afterwards the
     /// review is the decision of every one of them.
-    pub(super) fn review_moves(&self, review: u32) -> Vec<(u32, Option<u32>)> {
+    pub(super) fn review_moves(&self, review: u32) -> Vec<(u32, Option<(u32, u32)>)> {
         let act = &self.acts[review as usize];
         let mut seen = HashSet::new();
         let mut moves = Vec::new();
-        let mut take = |proposal: u32, moves: &mut Vec<(u32, Option<u32>)>| {
+        let mut take = |proposal: u32, moves: &mut Vec<(u32, Option<(u32, u32)>)>| {
             if self.live(proposal) && seen.insert(proposal) {
-                moves.push((
-                    proposal,
-                    self.decision(proposal).map(|(_, decision)| decision),
-                ));
+                moves.push((proposal, self.decision(proposal)));
             }
         };
         for target in act.targets.iter() {
