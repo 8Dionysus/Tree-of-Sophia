@@ -1524,6 +1524,7 @@ def cmd_reopen(args):
     """Withdraw an unplanted acceptance with its independent finding and predecessor."""
     path=packet(args.packet);work=work_of(path);accepted=part(path,'accepted.json')
     if not accepted:die('an accepted packet is required')
+    if accepted.get('page_number_reviews') or accepted.get('text_correction_reviews'):die('the acceptance holds correction receipts; preserve them and use a separately reviewed correction route')
     if packet_selector(path)!=work:die('reopening extensions requires a separately reviewed route')
     w=world();fragments=w['fragments'];reading=part(path,'reading.json') or {};review=part(path,'review.json') or {}
     reader=(review.get('reader') or {}).get('id');maker=(reading.get('reader') or {}).get('id')

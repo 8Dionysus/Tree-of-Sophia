@@ -987,6 +987,11 @@ class ReopenUnplantedTest(unittest.TestCase):
             self.assertEqual(json.loads((path/'review.json').read_text()),{})
             self.assertEqual(json.loads((path/'reopen-history.json').read_text())[0]['predecessor'],original)
             (path/'accepted.json').write_text(json.dumps(original['accepted.json']))
+            (path/'review.json').write_text(json.dumps(original['review.json']))
+            (path/'accepted.json').write_text(json.dumps({'by':'operator','page_number_reviews':[{'sha256':'a'*64}]}))
+            with patch.object(kit,'world',return_value=world),self.assertRaises(SystemExit):kit.cmd_reopen(args)
+            self.assertTrue((path/'accepted.json').exists())
+            (path/'accepted.json').write_text(json.dumps(original['accepted.json']))
             world['fragments']['works']['work']={}
             with patch.object(kit,'world',return_value=world),self.assertRaises(SystemExit):kit.cmd_reopen(args)
             self.assertTrue((path/'accepted.json').exists())

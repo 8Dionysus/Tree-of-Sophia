@@ -412,7 +412,7 @@ planted, `K reopen . --reader ID --finding 'The specific error seen on the
 page …'` withdraws the acceptance, retains the complete predecessor and
 clears the second reading. Correct the reading through the kit and obtain a
 new independent review. This route refuses already planted works and packets
-with accepted translation witnesses.
+with accepted translation witnesses or correction receipts.
 
 For a work already in `fragments.json` that predates the line and has no
 packet, run `K witness-parent WORK` first. It creates a witness-only parent;
