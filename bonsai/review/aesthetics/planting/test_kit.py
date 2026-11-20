@@ -1316,7 +1316,9 @@ class AncientBoundTest(unittest.TestCase):
 
     def test_floruit_and_latest_date_bound_the_death(self):
         floruit = {'claims': {'P1317': [self.claim('+1000-00-00T00:00:00Z', 7)]}}
-        self.assertEqual(kit.death_bound(floruit)['year'], 1100)
+        self.assertEqual(kit.death_bound(floruit)['year'], 1100 + kit.LONGEST_LIFE)   # alive then, dead within the longest life
+        active = {'claims': {'P1317': [self.claim('+1750-00-00T00:00:00Z', 9)]}}
+        self.assertIsNone(kit.death_bound(active))                                     # an activity year is no death year
         latest = {'claims': {'P570': [self.claim('+1050-00-00T00:00:00Z', 7, latest='+1070-00-00T00:00:00Z')]}}
         self.assertEqual(kit.death_bound(latest)['year'], 1070)
 
@@ -1377,4 +1379,17 @@ class PdfAndDriverTest(unittest.TestCase):
         first = until.call_args_list[0]
         self.assertEqual(first.args[1], 'maker')
         self.assertIn('owes rights.mexico', first.args[2])
-        self.assertTrue(first.kwargs.get('clear_owes'))
+
+    def test_a_maker_does_not_hand_on_a_packet_that_owes(self):
+        import drive
+        gates = iter([(1, 'gate: shut\n- place missing'), (0, 'gate: open, owes 1\n- owes ru search'), (0, 'gate: open')])
+        calls = []
+        def fake_kit(*args):
+            calls.append(args)
+            return next(gates) if args[0] == 'gate' else (0, '')
+        with patch.object(drive, 'kit', side_effect=fake_kit), patch.object(drive, 'codex', return_value=('t', None)), \
+             patch.object(drive, 'have', return_value=False):
+            thread, got = drive.until_open('work-x', 'maker', 'first', '{gate}', 5)
+        self.assertEqual(got, 'open')
+        self.assertEqual(sum(1 for c in calls if c[0] == 'gate'), 3)
+        self.assertEqual(sum(1 for c in calls if c[0] == 'stamp'), 1)

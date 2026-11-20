@@ -60,6 +60,7 @@ def public_domain_by_dates(persons,published,year=None):
             'eu':valid and all(death_year(p) <= year - 71 for p in persons)}
 
 BOUND_BEFORE=1800                                   # an upper bound of a death stands in for the year only for a hand this old
+LONGEST_LIFE=122                                    # the longest attested human life: one alive in a year has died within this many years
 BASES={'public-domain','public-domain+licence','licensed','short-quotation','locator-only'}
 JURISDICTIONS=('russia','usa','eu')
 LONGEST=2400                                         # a place is a formula, not a page
@@ -711,9 +712,11 @@ def entity_year(entity,property_):
     return next(iter(years)) if len(years)==1 else None
 
 def death_bound(entity):
-    """A conservative upper bound of a death from Wikidata: the latest year a claim of death (P570), floruit (P1317)
-    or end of working period (P2032) allows by its precision, its «circa» qualifier and its latest-date qualifier.
-    None when no claim bounds the death before BOUND_BEFORE; an exact year is never invented from it."""
+    """A conservative upper bound of a death from Wikidata: the latest year a claim of death (P570) allows by its
+    precision, its «circa» qualifier and its latest-date qualifier. Without a claim of death, a floruit (P1317) or an
+    end of working period (P2032) shows the person alive in its latest year, so the bound is that year plus the
+    longest attested human life. None when no claim bounds the death before BOUND_BEFORE; an exact year is never
+    invented from it."""
     spans={11:0,10:0,9:0,8:10,7:100,6:1000}
     def year_of(value):
         m=re.match(r'^([+-])(\d+)-',str((value or {}).get('time','')))
@@ -729,7 +732,8 @@ def death_bound(entity):
         latest=[year_of(((q.get('datavalue') or {}).get('value'))) for q in qualifiers.get('P1326') or []]
         circa=any(((q.get('datavalue') or {}).get('value') or {}).get('id')=='Q5727902' for q in qualifiers.get('P1480') or [])
         upper=min(v for v in latest if v is not None) if any(v is not None for v in latest) else y+spans[precision]*(1+int(value.get('after') or 0))+(50 if circa else 0)
-        uppers.append(upper);used.append({'property':prop,'time':value.get('time'),'precision':precision,'circa':circa,'latest':[v for v in latest if v is not None]})
+        if prop!='P570':upper+=LONGEST_LIFE           # alive then: dead within the longest life after it
+        uppers.append(upper);used.append({'property':prop,'time':value.get('time'),'precision':precision,'circa':circa,'latest':[v for v in latest if v is not None],**({'alive_until':upper-LONGEST_LIFE,'longest_life':LONGEST_LIFE} if prop!='P570' else {})})
     if not uppers or max(uppers)>BOUND_BEFORE:return None
     return {'year':max(uppers),'from':'wikidata','claims':used}
 

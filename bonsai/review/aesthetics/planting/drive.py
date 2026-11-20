@@ -88,7 +88,7 @@ Settle each line as ../../SECOND-READER.md says, then run `python3 ../../kit.py 
 def have(work,name):return os.path.exists(os.path.join(PACKETS,work,name))
 OUTSIDE=('limit','line-broken')          # ends that say nothing about the packet: it goes on from where it stands
 
-def until_open(work,role,first,again,turns,second=False,thread=None,clear_owes=False):
+def until_open(work,role,first,again,turns,second=False,thread=None):
     """Turns of one reader until the gate opens, a blocked.json appears, the turns run out or the usage limit ends them."""
     prompt=first
     for turn in range(turns):
@@ -98,7 +98,7 @@ def until_open(work,role,first,again,turns,second=False,thread=None,clear_owes=F
         if code==3:BROKEN.set();return thread,'line-broken'       # the checkout fails, not the packet: no reader can mend it
         if not second and have(work,'blocked.json'):
             if code==0:return thread,'blocked'                    # a block the gate does not accept goes back like any shut gate
-        elif code==0 and not(clear_owes and re.search(r'gate: open, owes [1-9]',text)):kit('stamp',os.path.join(PACKETS,work),'second' if second else 'maker',MODEL,EFFORT);return thread,'open'
+        elif code==0 and (second or not re.search(r'gate: open, owes [1-9]',text)):kit('stamp',os.path.join(PACKETS,work),'second' if second else 'maker',MODEL,EFFORT);return thread,'open'   # a maker hands on a packet that owes nothing
         prompt=again.format(gate='\n'.join(text.splitlines()[:60]))
     return thread,'stuck'
 
@@ -128,7 +128,7 @@ def run(work,retake=False):
         owes=not shut and bool(re.search(r'gate: open, owes [1-9]',gate_text))
         if (retake and disputed(work)) or shut or owes:          # an open gate without owes goes straight to its second reader
             first=MAKER.format(work=work)+('\n\n'+RETAKE if retake and disputed(work) else '')+('\n\n'+OWES.format(gate='\n'.join(gate_text.splitlines()[:60])) if owes else '')
-            maker,got=until_open(work,'maker',first,MAKER_ON,MAKER_TURNS,clear_owes=owes)
+            maker,got=until_open(work,'maker',first,MAKER_ON,MAKER_TURNS)
             if got=='blocked':return run(work)                   # the block gets its second look
             if got!='open':return end(got if got in OUTSIDE else 'maker-stuck')
     for round_ in range(1,RETURNS+2):
