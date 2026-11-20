@@ -721,6 +721,9 @@ def death_bound(entity):
     def year_of(value):
         m=re.match(r'^([+-])(\d+)-',str((value or {}).get('time','')))
         return None if not m else int(m.group(2))*(-1 if m.group(1)=='-' else 1)
+    def upper_of(value):                              # the last year a time value allows by its precision
+        y=year_of(value);precision=(value or {}).get('precision')
+        return None if y is None or precision not in spans else y+spans[precision]*(1+int((value or {}).get('after') or 0))
     death=[c for c in entity.get('claims',{}).get('P570',[]) if c.get('rank')!='deprecated']
     claims=[(prop,c) for prop in ('P570','P1317','P2032') for c in entity.get('claims',{}).get(prop,[]) if c.get('rank')!='deprecated' and (prop=='P570' or not death)]
     uppers=[];used=[]
@@ -729,14 +732,16 @@ def death_bound(entity):
         y=year_of(value);precision=value.get('precision')
         if y is None or precision not in spans:return None
         qualifiers=claim.get('qualifiers') or {}
-        latest=[year_of(((q.get('datavalue') or {}).get('value'))) for q in qualifiers.get('P1326') or []]
+        latest_values=[((q.get('datavalue') or {}).get('value')) or {} for q in qualifiers.get('P1326') or []]
+        latest=[upper_of(v) for v in latest_values]
+        if any(v is None for v in latest):return None   # a latest date of unknown precision bounds nothing
         circa=any(((q.get('datavalue') or {}).get('value') or {}).get('id')=='Q5727902' for q in qualifiers.get('P1480') or [])
         earliest=[year_of(((q.get('datavalue') or {}).get('value'))) for q in qualifiers.get('P1319') or []]
         if any(v is not None for v in earliest) and not any(v is not None for v in latest):return None   # «not before» alone leaves the death open
         if any(((q.get('datavalue') or {}).get('value') or {}).get('id')!='Q5727902' for q in qualifiers.get('P1480') or []):return None   # presumed or disputed: a reference decides
         upper=min(v for v in latest if v is not None) if any(v is not None for v in latest) else y+spans[precision]*(1+int(value.get('after') or 0))+(50 if circa else 0)
         if prop!='P570':upper+=LONGEST_LIFE           # alive then: dead within the longest life after it
-        uppers.append(upper);used.append({'property':prop,'time':value.get('time'),'precision':precision,'circa':circa,'latest':[v for v in latest if v is not None],'earliest':[v for v in earliest if v is not None],**({'alive_until':upper-LONGEST_LIFE,'longest_life':LONGEST_LIFE} if prop!='P570' else {})})
+        uppers.append(upper);used.append({'property':prop,'time':value.get('time'),'precision':precision,'circa':circa,'latest':[{'time':v.get('time'),'precision':v.get('precision'),'upper':u} for v,u in zip(latest_values,latest)],'earliest':[v for v in earliest if v is not None],**({'alive_until':upper-LONGEST_LIFE,'longest_life':LONGEST_LIFE} if prop!='P570' else {})})
     if not uppers or max(uppers)>BOUND_BEFORE:return None
     return {'year':max(uppers),'from':'wikidata','claims':used}
 

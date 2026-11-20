@@ -1327,6 +1327,10 @@ class AncientBoundTest(unittest.TestCase):
         presumed = {'claims': {'P570': [self.claim('+1050-00-00T00:00:00Z', 9)]}}
         presumed['claims']['P570'][0]['qualifiers'] = {'P1480': [{'datavalue': {'value': {'id': 'Q18122778'}}}]}
         self.assertIsNone(kit.death_bound(presumed))                                   # a presumed date leaves the bound to a reference
+        coarse = {'claims': {'P570': [self.claim('+1700-00-00T00:00:00Z', 7)]}}
+        coarse['claims']['P570'][0]['qualifiers'] = {'P1326': [{'datavalue': {'value': {'time': '+1700-00-00T00:00:00Z', 'precision': 7}}}]}
+        self.assertEqual(kit.death_bound(coarse)['year'], 1800)                        # a latest century runs to its last year
+        self.assertEqual(kit.death_bound(coarse)['claims'][0]['latest'][0]['precision'], 7)
         latest = {'claims': {'P570': [self.claim('+1050-00-00T00:00:00Z', 7, latest='+1070-00-00T00:00:00Z')]}}
         self.assertEqual(kit.death_bound(latest)['year'], 1070)
 
