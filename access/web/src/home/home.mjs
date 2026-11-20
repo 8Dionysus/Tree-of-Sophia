@@ -31,6 +31,10 @@ const BONSAI={
     title:{es:'Antigüedad',de:'Antike','zh-Hans':'古代'},
     description:{ru:'Философия Древней Греции и Рима',en:'The philosophy of ancient Greece and Rome',es:'La filosofía de la Grecia y la Roma antiguas',de:'Die Philosophie des alten Griechenlands und Roms','zh-Hans':'古希腊与古罗马的哲学'},
   },
+  population:{
+    title:{es:'Población',de:'Population','zh-Hans':'人物'},
+    description:{ru:'Авторы корпуса Древа: люди, традиции и голоса из реестров лиц',en:'The authors of the Tree’s corpus: people, traditions and voices from its registers of persons',es:'Los autores del corpus del Árbol: personas, tradiciones y voces de sus registros de personas',de:'Die Autoren des Korpus des Baums: Menschen, Traditionen und Stimmen aus seinen Personenregistern','zh-Hans':'智慧之树语料的作者：人物登记册中的人、传统与声音'},
+  },
 };
 
 const make=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
