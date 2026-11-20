@@ -85,3 +85,17 @@ inserts replacement characters. It is a separate edition whose rights and
 alignment still require review. The line needs source-byte-preserving handling
 of declared encodings and verifiable page or publisher-API licence evidence;
 converting bytes and claiming they were fetched unchanged is not a solution.
+
+## A Latin sentence beginning in lowercase
+
+In Mayhoff's 1897 Pliny XXXV.145, a period on the printed page precedes the
+lowercase opening `illud`; the maker and a second reader observed the page
+https://archive.org/details/cplinisecundina19plingoog/page/n299/mode/1up .
+The kit and the shared whole-sentence helper reject it solely on initial case.
+Another edition has an uppercase opening and is being evaluated separately.
+
+Please support such a source-verified lowercase Latin sentence in a way that
+uses the actual language and preserves the normal capital-initial check for
+modern translations; the source text and independent page reading still need to
+establish the boundary. The call from `plant.mjs` is owned by the line. A
+blanket exemption for every Latin-script translation would weaken the check.
