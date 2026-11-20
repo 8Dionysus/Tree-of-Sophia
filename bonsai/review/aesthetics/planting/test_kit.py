@@ -1337,6 +1337,9 @@ class AncientBoundTest(unittest.TestCase):
         uncertain['claims']['P570'][0]['mainsnak']['datavalue']['value']['after'] = 20
         self.assertEqual(kit.death_bound(uncertain)['year'], 1720)
         self.assertEqual(kit.death_bound(uncertain)['claims'][0]['after'], 20)
+        julian = {'claims': {'P570': [self.claim('+1700-12-25T00:00:00Z', 11)]}}
+        julian['claims']['P570'][0]['mainsnak']['datavalue']['value']['calendarmodel'] = 'http://www.wikidata.org/entity/Q1985786'
+        self.assertEqual(kit.death_bound(julian)['year'], 1701)                        # 25 December 1700 (Julian) is 5 January 1701
         latest = {'claims': {'P570': [self.claim('+1050-00-00T00:00:00Z', 7, latest='+1070-00-00T00:00:00Z')]}}
         self.assertEqual(kit.death_bound(latest)['year'], 1070)
 

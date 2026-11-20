@@ -725,7 +725,8 @@ def death_bound(entity):
     def upper_of(value):                              # the last year a time value allows by its precision and its «after»
         y=year_of(value);precision=(value or {}).get('precision')
         if y is None or precision not in spans:return None
-        return y+spans[precision]+math.ceil(units[precision]*int((value or {}).get('after') or 0))
+        julian=precision>=10 and str((value or {}).get('calendarmodel','')).endswith('/Q1985786')   # a Julian day may fall in the next Gregorian year
+        return y+spans[precision]+math.ceil(units[precision]*int((value or {}).get('after') or 0))+(1 if julian else 0)
     death=[c for c in entity.get('claims',{}).get('P570',[]) if c.get('rank')!='deprecated']
     claims=[(prop,c) for prop in ('P570','P1317','P2032') for c in entity.get('claims',{}).get(prop,[]) if c.get('rank')!='deprecated' and (prop=='P570' or not death)]
     uppers=[];used=[]
