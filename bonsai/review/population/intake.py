@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bring the ToS research registers of persons into the Population bonsai's review folder.
+"""Bring the ToS registers of persons and works into the Population bonsai's review folder.
 
     python3 -I bonsai/review/population/intake.py --mirror <mirror> [--table <authors table>] [--check]
 
@@ -320,7 +320,7 @@ def build(mirror, table_path):
     provenance = {
         'made': 'bonsai/review/population/intake.py',
         'posture': {
-            'ru': 'Файлы, из которых собран слой реестров лиц. Сами книги в репозитории не хранятся: здесь их путь в зеркале реестров, размер и SHA-256.',
+            'ru': 'Файлы, из которых собран слой реестров персон. Сами книги в репозитории не хранятся: здесь их путь в зеркале реестров, размер и SHA-256.',
             'en': 'The files the persons register layer is built from. The workbooks are not kept here: only their path in the registers mirror, size and SHA-256.',
         },
         'mirror': {'manifest': manifest_file, 'identity_workbooks': len(read)},

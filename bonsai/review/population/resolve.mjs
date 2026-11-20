@@ -345,7 +345,7 @@ function bindCore(review,rows){
   return {
     made:'bonsai/review/population/resolve.mjs',
     posture:{
-      ru:'Имена таблицы авторов философского корпуса и строки реестров лиц, которые они называют. Имя привязывается через свои произведения: строки ответственности произведения называют лица, и среди них берётся строка с этим именем, иначе строка с общим ключом, иначе единственный автор произведения. Только имя, чьи произведения не дали строки, ищется по форме в партиях таблицы. Произведение, оставляющее несколько строк, — неоднозначность для читателя.',
+      ru:'Имена таблицы авторов философского корпуса и строки реестров персон, которые они называют. Имя привязывается через свои произведения: строки ответственности произведения называют лица, и среди них берётся строка с этим именем, иначе строка с общим ключом, иначе единственный автор произведения. Только имя, чьи произведения не дали строки, ищется по форме в партиях таблицы. Произведение, оставляющее несколько строк, — неоднозначность для читателя.',
       en:'The names of the authors table of the philosophical corpus and the persons register rows they name. A name is bound through its works: a work\'s responsibility lines name agents, and among them the row bearing the name is taken, else the row sharing a key with it, else the work\'s single author. Only a name whose works give no row is looked for by its form in the batches the table names. A work that leaves several rows is an ambiguity for a reader.'
     },
     counts,

@@ -1,7 +1,7 @@
 # Population: the persons registers and their resolution
 
-The Population bonsai grows from the Tree's research registers of persons and
-works, made outside the repository batch by batch: antiquity (`A01`–`A48`), the
+The Population bonsai grows from the Tree's registers of persons and works,
+made outside the repository batch by batch: antiquity (`A01`–`A48`), the
 middle ages (`T2-01`–`T2-58`) and modern times (`T3-01`–`T3-85`). Each batch has
 an Identity workbook whose `agents` sheet lists the people, pseudonymous authors,
 traditional identities and collectives its research met. This folder keeps those

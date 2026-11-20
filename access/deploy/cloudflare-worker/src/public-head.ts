@@ -57,12 +57,12 @@ export const HEADS: Record<string, Record<"en" | "ru", Head>> = {
     en: {
       title: "Population · Tree of Sophia",
       og: "Population · Tree of Sophia",
-      description: "The authors of the Tree of Sophia's corpus: people, traditions and voices, as its research registers of persons name them.",
+      description: "Everyone whose texts are in the Tree of Sophia's corpus, from the sages of antiquity to philosophers writing today.",
     },
     ru: {
       title: "Популяция · Древо Софии",
       og: "Популяция · Древо Софии",
-      description: "Авторы корпуса Древа Софии: люди, традиции и голоса, какими их называют исследовательские реестры лиц.",
+      description: "Все, чьи тексты есть в корпусе Древа Софии: от древних мудрецов до философов, которые пишут сегодня.",
     },
   },
 };

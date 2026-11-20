@@ -33,7 +33,7 @@ const BONSAI={
   },
   population:{
     title:{es:'Población',de:'Population','zh-Hans':'人物'},
-    description:{ru:'Авторы корпуса Древа: люди, традиции и голоса из реестров лиц',en:'The authors of the Tree’s corpus: people, traditions and voices from its registers of persons',es:'Los autores del corpus del Árbol: personas, tradiciones y voces de sus registros de personas',de:'Die Autoren des Korpus des Baums: Menschen, Traditionen und Stimmen aus seinen Personenregistern','zh-Hans':'智慧之树语料的作者：人物登记册中的人、传统与声音'},
+    description:{ru:'Все авторы корпуса Древа, от древности до наших дней',en:'Every author in the Tree’s corpus, from antiquity to our day',es:'Todos los autores del corpus del Árbol, de la Antigüedad a nuestros días',de:'Alle Autoren im Korpus des Baums, von der Antike bis heute','zh-Hans':'智慧之树语料中的全部作者，从古代到今天'},
   },
 };
 

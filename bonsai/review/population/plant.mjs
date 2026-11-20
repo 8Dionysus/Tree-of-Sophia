@@ -273,8 +273,8 @@ export function plant({review=HERE,root=ROOT,files=null}={}){
     schema:'tos.bonsai.population.v1',
     bonsai:STAND,
     posture:{
-      ru:'Ядро популяции: авторы философского корпуса Древа, какими их называют исследовательские реестры лиц. Каждый член вырос из строк реестров, которые склейка идентичностей соединила; его вид, имена, даты и пробелы — слова реестров, а решение читателя пока не принято. Всё здесь — предложение стенда.',
-      en:'The core of a population: the authors of the Tree\'s philosophical corpus as the persons research registers name them. Each member grew from the register rows the identity resolution joined; its kind, names, dates and gaps are the registers\' words, and no reader has decided on it yet. Everything here is the stand\'s proposal.'
+      ru:'Ядро популяции: авторы философского корпуса Древа по реестрам персон и произведений. Каждый член вырос из строк реестров, которые соединила склейка идентичностей; его вид, имена, годы и пробелы — слова реестров или решения двух читателей линии, сверенные с источниками. Вердикта о приёме в Древо пока нет. Всё здесь — предложение стенда.',
+      en:'The core of a population: the authors of the Tree\'s philosophical corpus, from the registers of persons and works. Each member grew from the register rows the identity resolution joined; its kind, names, years and gaps are the registers\' words or the decisions of two readers of the line, checked against sources. No verdict admits it to the Tree yet. Everything here is the stand\'s proposal.'
     },
     grew_from:{provenance:'bonsai/review/population/provenance.json',keys:'bonsai/review/population/keys.jsonl',ledger:'bonsai/review/population/ids.jsonl',core:'bonsai/review/population/core.json'},
     kinds:KINDS,
@@ -287,8 +287,8 @@ export function plant({review=HERE,root=ROOT,files=null}={}){
     bonsai:STAND,
     checked:date,
     posture:{
-      ru:'Годы жизни и деятельности авторов корпуса словами реестров лиц: каждая датировка — значение реестра в формах, которые разбор читает механически, с исходной строкой реестра. Основание низкое: реестр — непроверенное исследование.',
-      en:'The years of life and activity of the corpus authors in the persons registers\' words: each dating is a register value in a form the parser reads mechanically, with the register\'s own line. The footing is low: a register is unreviewed research.'
+      ru:'Годы жизни и деятельности авторов корпуса: значения реестров персон в формах, которые разбор читает механически, с исходной строкой реестра, и годы, которые дали два читателя линии. Основание низкое: реестр — непроверенное исследование; у годов читателей с источником по ссылке оно среднее.',
+      en:'The years of life and activity of the corpus authors: the persons registers\' values in forms the parser reads mechanically, with the register\'s own line, and the years two readers of the line gave. The footing is low, a register being unreviewed research; it is medium for readers\' years with a linked source.'
     },
     numbering:{year_numbering:'astronomical',calendar:null,note:{ru:'Годы астрономические (1 г. до н. э. = 0); календарь не утверждается — даты взяты, как их пишет реестр.',en:'Years are astronomical (1 BCE = 0); no calendar is asserted: dates are taken as the register writes them.'}},
     sources:Object.fromEntries(Object.entries(sources).sort(([a],[b])=>byKey(a,b))),
