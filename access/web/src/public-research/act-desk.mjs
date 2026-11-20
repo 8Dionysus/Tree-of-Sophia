@@ -144,7 +144,7 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
   const nameOfAddress=address=>titleOf(index()?.get?.(address))??address;
 
   // ------------------------------------------------------------ ticket (B2) with checks (B3)
-  /** `preset` may choose the category and begin the observation, as the frontier does for its places. */
+  /** `preset` may choose the category, begin the observation and name the acts the ticket grows from (`parents`). */
   async function openTicket(target,preset={}){
     const {dialog,body}=sheet(t('ticket'));
     const kinds=await acts.query({view:'kinds'});
@@ -229,7 +229,7 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
       const value=draft();save.disabled=true;
       try{
         const firstLine=value.observation.split(/\n/)[0];
-        const ticket=await acts.act({kind:'ticket',targets:[address],grounds,intent:firstLine,body:{category:value.category,...(value.variant?{variant:value.variant}:{}),observation:value.observation}});
+        const ticket=await acts.act({kind:'ticket',targets:[address],grounds,...(preset.parents?.length?{parents:preset.parents.slice(0,32)}:{}),intent:firstLine,body:{category:value.category,...(value.variant?{variant:value.variant}:{}),observation:value.observation}});
         if(value.change){
           const intent=value.change.from?`«${value.change.from}» → «${value.change.to}»`:value.change.statement??firstLine;
           await acts.act({kind:'proposal',targets:[address],grounds,parents:[ticket.record.id],intent,body:{category:value.category,...(value.variant?{variant:value.variant}:{}),change:value.change}});

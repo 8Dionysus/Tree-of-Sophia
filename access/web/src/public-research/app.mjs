@@ -15,6 +15,7 @@ import {mountResearchTrail} from './research-trail.mjs';
 import {mountMediaWall} from './media-wall.mjs';
 import {mountWorkplaces} from './workplaces.mjs';
 import {mountDeviceHandoff} from './device-handoff.mjs';
+import {mountCollect} from './collect.mjs';
 import {loadResearchVersion,retainedResearchVersions} from './research-history.mjs';
 import {createControlPrefs} from './control-prefs.mjs';
 // How this device steers the stand: one set of preferences for the space, its keys and the reading size.
@@ -151,6 +152,7 @@ let researchTrail;
 let mediaWall;
 let workplaces;
 let deviceHandoff;
+let collector;
 let stopWorkspaceMirror;
 let appDisposed=false;
 let saveTimer = null;
@@ -538,6 +540,7 @@ async function start() {
   mediaWall=mountMediaWall({shell:spaceView.root,actionLayer,actDesk,space:spaceView,locale:()=>locale,profile});
   workplaces=mountWorkplaces({shell:spaceView.root,actionLayer,space:spaceView,experience,registry:pageAgent.registry,locale:()=>locale,profile});
   deviceHandoff=mountDeviceHandoff({shell:spaceView.root,actionLayer,acts:actJournal,exportWork:()=>workspaceView?.exportAll?.(),locale:()=>locale});
+  collector=mountCollect({shell:spaceView.root,actionLayer,acts:actJournal,actDesk,space:spaceView,locale:()=>locale,profile});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && corpusInfo) {
@@ -568,6 +571,7 @@ function disposeApp() {
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
+  collector?.destroy();
   deviceHandoff?.destroy();
   workplaces?.destroy();
   mediaWall?.destroy();
