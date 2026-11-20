@@ -46,7 +46,7 @@ pub(crate) const RHETORIC_TOPOLOGY_PROVENANCE: &str = concat!(
 const RHETORIC_TOPOLOGY_PROVENANCE_SHA256: &str =
     "b5d6b5102e2de1aa72863b136fe45dc13323241e7b5953648a5efba3bebe15d5";
 
-fn rhetoric_topology_reconciliation(path: &str) -> bool {
+pub(crate) fn rhetoric_topology_reconciliation(path: &str) -> bool {
     path.strip_prefix(RHETORIC_TOPOLOGY_HOME)
         .is_some_and(|basename| LEGACY_TOPOLOGY.contains(&basename))
 }
