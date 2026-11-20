@@ -415,8 +415,11 @@ export function resolve({review=HERE,root=ROOT,tolerance=yearTolerance}={}){
   const clusters=new Clusters(rows);
   const accepted=[],blocked=[];
   for(const [a,b,by] of same){
-    const refusal=tolerated(rows,clusters,a,b,new Set(),()=>Number.MAX_SAFE_INTEGER);
-    if(refusal==='same-batch'||refusal==='decided-different')throw new Error(`resolve: decision ${by} joins rows that ${refusal}`);
+    if(clusters.find(a)===clusters.find(b)){accepted.push({a,b,tier:'decision',by});continue;}
+    // Readers' decisions may join rows of one batch (a register can list one person twice). Only a reader's
+    // `different` or `related` between the two sides refuses the join; the pair then goes back to readers.
+    const left=clusters.members.get(clusters.find(a)),right=clusters.members.get(clusters.find(b));
+    if(left.some(x=>right.some(y=>cannot.has(`${Math.min(x,y)}|${Math.max(x,y)}`)))){queued.push({a,b,shared:[],reason:'decision-conflict'});continue;}
     clusters.union(a,b);accepted.push({a,b,tier:'decision',by});
   }
   for(const edge of auto){
@@ -484,9 +487,10 @@ export function resolve({review=HERE,root=ROOT,tolerance=yearTolerance}={}){
     members.push({id,root:r,rows:ids});
   }
   const alive=new Set(members.map(member=>member.id));
+  const merged=new Set(additions.filter(entry=>entry.state==='redirect').map(entry=>entry.id));
   for(const id of order){
     const entry=ledger.get(id);
-    if(entry.state||alive.has(id))continue;
+    if(entry.state||alive.has(id)||merged.has(id))continue;
     additions.push({id,state:'retired',by:'resolve:no-rows',run:run+1});
   }
 
@@ -504,13 +508,13 @@ export function resolve({review=HERE,root=ROOT,tolerance=yearTolerance}={}){
   });
 
   // The queue: one item per pair of members, with its strongest reason.
-  const REASONS=['blocked:date-conflict','blocked:kind','id-conflict','id-with-date-conflict','kind','disputed','date-conflict','strong-undated','short-partial','short-conflict','short-only','contained','blocked:same-batch','blocked:decided-different'];
+  const REASONS=['decision-conflict','blocked:date-conflict','blocked:kind','id-conflict','id-with-date-conflict','kind','disputed','date-conflict','strong-undated','short-partial','short-conflict','short-only','contained','blocked:same-batch','blocked:decided-different'];
   const items=new Map();
   const answered=new Set(settled.map(([x,y])=>{const mx=memberOf.get(x)?.id,my=memberOf.get(y)?.id;return [mx,my].sort().join('|');}));
   for(const pair of [...queued,...blocked]){
     const ma=memberOf.get(pair.a),mb=memberOf.get(pair.b);
     if(!ma||!mb||ma===mb)continue;
-    if(answered.has([ma.id,mb.id].sort().join('|')))continue;
+    if(answered.has([ma.id,mb.id].sort().join('|'))&&pair.reason!=='decision-conflict')continue;
     if(pair.reason==='blocked:same-batch'||pair.reason==='blocked:decided-different')continue;
     const [first,second]=ma.rows[0]<mb.rows[0]?[ma,mb]:[mb,ma];
     const id=`${first.id}|${second.id}`;

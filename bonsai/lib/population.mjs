@@ -119,8 +119,13 @@ export function populationReviewIssues(root,{population=null}={}){
   const keysPath=join(review,'keys.jsonl'),idsPath=join(review,'ids.jsonl');
   if(!existsSync(keysPath)||!existsSync(idsPath))return ['keys.jsonl or ids.jsonl is missing'];
   const keys=readJsonl(keysPath);
-  const ledger=new Map();
-  for(const line of readJsonl(idsPath))ledger.set(line.id,{...(ledger.get(line.id)??{}),...line});
+  const ledger=new Map(),merged=new Set();
+  for(const line of readJsonl(idsPath)){
+    // A merged ID keeps leading to its member: retiring it afterwards would lose the way there.
+    if(line.state==='retired'&&merged.has(line.id))problems.push(`ledger: ${line.id} was merged and then retired`);
+    if(line.state==='redirect')merged.add(line.id);
+    ledger.set(line.id,{...(ledger.get(line.id)??{}),...line});
+  }
   const live=new Set([...ledger].filter(([,entry])=>!entry.state).map(([id])=>id));
   const seen=new Set(),byMember=new Map();
   for(const line of keys){
