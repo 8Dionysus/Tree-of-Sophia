@@ -115,3 +115,19 @@ trailing footnote marker after sentence punctuation without treating arbitrary
 words as footnotes or weakening the whole-sentence rule. Preserve the original
 source bytes and the independent page-reading requirement. Other language
 searches are incomplete; this is not a missing-translation finding.
+
+## Repairing provisional witness participants
+
+In the Pliny packet, the English witness was opened with three preliminary
+string-valued participant names without evidence; `witness-person` then added
+the same author and translators with QIDs and fetched evidence, leaving the
+original unsupported entries in place. The gate correctly rejects those
+entries, while `witness-info` protects persons and the witness commands offer
+no removal or replacement. See the packet's `blocked.json` and `witnesses/en`
+for the exact records. The prepared English text, page images and proper person
+evidence should be retained.
+
+Please provide a supported, audited way to remove or replace an erroneous
+provisional witness participant, invalidating the second review as needed.
+Do not silently equate names or suppress unsupported participants; the maker's
+error and every identity still require review.
