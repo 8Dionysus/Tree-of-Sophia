@@ -2682,6 +2682,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     addMeasureBlock:render=>{measureBlocks.add(render);if(measureOpen)reflect();return ()=>{measureBlocks.delete(render);};},openMeasure:()=>openMeasure(),
     showChapter:key=>fragments.showChapter(key).catch(()=>notify(t('unavailable'))),
     routes:()=>[...routes,...journeyList].map(item=>({id:item.id,source:item.source??'atlas',title:item.title,steps:item.steps?.length??0})),
+    // A device's turn (sky-window.mjs) turns the space as the arrows do.
+    turnBy:(dx,dy)=>sky?.turnBy?.(dx,dy),
     setTrialLens:spec=>setTrialLens(spec),trialLens:()=>trialLens?{title:trialLens.title,members:trialLens.members.size}:null,setAgentRoutes:list=>setAgentRoutes(list),
     setOwnSkyState:value=>{ownSky=value?{known:new Set(value.known??[]),found:new Set(value.found??[])}:null;if(ownSkyOn)refreshSky();},
     ownSky:()=>({available:Boolean(ownSky?.known.size),on:ownSkyOn,opened:ownSky?.known.size??0}),toggleOwnSky:force=>setOwnSky(force??!ownSkyOn),

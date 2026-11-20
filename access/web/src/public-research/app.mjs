@@ -19,6 +19,7 @@ import {mountCollect} from './collect.mjs';
 import {mountAgentsBoard} from './agents-board.mjs';
 import {mountOffline} from './offline.mjs';
 import {mountAgentField} from './agent-field.mjs';
+import {mountSkyWindow} from './sky-window.mjs';
 import {loadResearchVersion,retainedResearchVersions} from './research-history.mjs';
 import {createControlPrefs} from './control-prefs.mjs';
 // How this device steers the stand: one set of preferences for the space, its keys and the reading size.
@@ -159,6 +160,7 @@ let collector;
 let agentsBoard;
 let offline;
 let agentField;
+let skyWindow;
 let stopWorkspaceMirror;
 let appDisposed=false;
 let saveTimer = null;
@@ -550,6 +552,7 @@ async function start() {
   agentsBoard=mountAgentsBoard({shell:spaceView.root,actionLayer,acts:actJournal,space:spaceView,locale:()=>locale});
   offline=mountOffline({shell:spaceView.root,actionLayer,locale:()=>locale,profile});
   agentField=mountAgentField({shell:spaceView.root,actionLayer,acts:actJournal,actDesk,space:spaceView,registry:pageAgent.registry,locale:()=>locale});
+  skyWindow=mountSkyWindow({shell:spaceView.root,actionLayer,space:spaceView,locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && corpusInfo) {
@@ -580,6 +583,7 @@ function disposeApp() {
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
+  skyWindow?.destroy();
   agentField?.destroy();
   offline?.destroy();
   agentsBoard?.destroy();
