@@ -1,4 +1,5 @@
 import {createPageCommandRegistry} from '../page-commands.ts';
+import {actJournalTools} from '../act-journal/agent-tools.mjs';
 import {createWebMCPAdapter} from '../webmcp.ts';
 import {runResearchOperation} from './research-operations.mjs';
 import {localeValue} from './locale.mjs';
@@ -48,7 +49,7 @@ export async function readResearchSource({index,provider,fragments},input,{signa
 }
 
 /** Public stands expose their existing owners through the shared page registry. */
-export function connectResearchPage({index,space,experience,session,api,workspace,locale,targetDocument=document}){
+export function connectResearchPage({index,space,experience,session,api,workspace,acts=null,actTier=()=>'propose',locale,targetDocument=document}){
   const summary=()=>workspace.summary();
   const selectedState=()=>{const state=experience.getState();return {...state,id:state.id??space.selection()?.id,revision:state.revision??index.revision};};
   const versionContext=(input={})=>experience.versionContext(input.revision??selectedState().revision);
@@ -97,6 +98,8 @@ export function connectResearchPage({index,space,experience,session,api,workspac
     tool('tos.bonsai.session-respond','tos.page.cognitive-action','Return an attributed question, hint, finding or feedback into the learning panel. Bind all revisions from the event; source_ids must resolve in the same research index. Repeated identical delivery is idempotent.',schema({session_id:str,event_id:str,question_revision:integer,index_revision:str,actor:str,kind:{type:'string',enum:['question','hint','finding','feedback']},body:{type:'string',maxLength:12000},source_ids:{type:'array',items:str,maxItems:32},next_step:{type:'string',maxLength:2000}},['event_id','question_revision','index_revision','body']),input=>({...input,action:'respond'})),
     tool('tos.bonsai.session-pause','tos.page.cognitive-action','Pause processing while retaining every action and response.',schema({session_id:str}),input=>({...input,action:'pause'})),
   ];
+  // Addressed act commands sit beside the pointing ones: they name their targets and never cancel each other.
+  if(acts)extra.push(...actJournalTools(acts,{tier:actTier}));
   const allowed=new Set(['tos.page.context','tos.page.cancel',...Object.keys(handlers)]);
   const adapter=createWebMCPAdapter(registry,targetDocument,allowed,extra);
   void adapter.start();

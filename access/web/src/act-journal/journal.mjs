@@ -21,15 +21,17 @@ export class ActJournalError extends Error{
 const failure=error=>new ActJournalError(String(error?.message??error),String(error?.message??error));
 
 /**
- * `store` is an act store (store.mjs or the bridge's). `registry` defaults to the base kinds. `name` keys the lock
- * and the cross-tab channel. Call `ready` before the first query.
+ * `store` is an act store (store.mjs or the bridge's) or a promise of one, so a page can create the journal before
+ * its database has opened. `registry` defaults to the base kinds. `name` keys the lock and the cross-tab channel.
+ * Every method waits for `ready`, which reads the stored records in the background.
  */
 export function createActJournal({store,registry=ACT_KINDS,name='tos-act-journal-v1',locks=globalThis.navigator?.locks,channel=globalThis.BroadcastChannel}={}){
   if(!JournalRules)throw new ActJournalError('act_rules_unavailable','The act journal rules are unavailable.');
   if(!store)throw new ActJournalError('act_store_unavailable','The act store is unavailable.');
   const machine=new JournalRules(bytes(registry));
   const listeners=new Set();
-  const status={loaded:0,damaged:null,persistent:Boolean(store.persistent),warning:store.warning??null};
+  const status={loaded:0,damaged:null,persistent:false,warning:null};
+  const opened=Promise.resolve(store).then(value=>{store=value;status.persistent=Boolean(value.persistent);status.warning=value.warning??null;});
   let known=0,disposed=false;
   const broadcast=channel?new channel(name):null;
 
@@ -52,7 +54,7 @@ export function createActJournal({store,registry=ACT_KINDS,name='tos-act-journal
   const serialize=task=>locks?locks.request(name,task):task();
   const notify=detail=>{for(const listener of listeners){try{listener(detail);}catch(error){console.error('Act journal listener',error);}}};
 
-  const ready=serialize(sync).then(()=>{notify({type:'ready',loaded:known});return status;});
+  const ready=opened.then(()=>serialize(sync)).then(()=>{notify({type:'ready',loaded:known});return status;});
   if(broadcast)broadcast.onmessage=()=>{void serialize(sync).then(added=>{if(added)notify({type:'remote',added});});};
 
   /** Append drafts in order. Returns the stored records with their sequence numbers and lease collisions. */
@@ -90,11 +92,11 @@ export function createActJournal({store,registry=ACT_KINDS,name='tos-act-journal
     /** A fold: summary, act, target, board, review, leases, presence, history or kinds. */
     query:async request=>{await ready;try{return parse(machine.query(bytes(request)));}catch(error){throw failure(error);}},
     /** The whole stored record of an act. */
-    record:async id=>(await store.getById(id))?.record??null,
+    record:async id=>{await ready;return (await store.getById(id))?.record??null;},
     /** Stored records, newest first, before a sequence number. */
-    recent:async({before=Number.MAX_SAFE_INTEGER,limit=100}={})=>(await store.readBefore(before,limit)).map(row=>({seq:row.seq,record:row.record})),
+    recent:async({before=Number.MAX_SAFE_INTEGER,limit=100}={})=>{await ready;return (await store.readBefore(before,limit)).map(row=>({seq:row.seq,record:row.record}));},
     get size(){return known;},
     subscribe(listener){listeners.add(listener);return ()=>listeners.delete(listener);},
-    dispose(){disposed=true;listeners.clear();broadcast?.close();machine.free?.();store.close?.();},
+    dispose(){disposed=true;listeners.clear();broadcast?.close();void opened.then(()=>{machine.free?.();store.close?.();});},
   };
 }

@@ -9,6 +9,9 @@ import {mountResearchExperience} from './experience-view.mjs';
 import {mountCognitiveSession} from './cognitive-session.mjs';
 import {mountKnowing} from './knowing-map.mjs';
 import {connectResearchPage} from './page-agent.mjs';
+import {createActJournal} from '../act-journal/journal.mjs';
+import {openActStore} from '../act-journal/store.mjs';
+import {mirrorWorkspace} from '../act-journal/workspace-mirror.mjs';
 import {mountPublicAgentBridge} from './agent-bridge.mjs';
 import {createPublicResearchOwners, mountPublicWorkspaceView} from './workspace-view.mjs';
 import {initializePublicReaderRules} from './bootstrap.mjs';
@@ -129,6 +132,10 @@ let experience;
 let cognitive;
 let knowing;
 let pageAgent;
+// One act journal per browser: tickets, proposals and agent acts across every stand. It reads its records in the
+// background after the first view.
+let actJournal;
+let stopWorkspaceMirror;
 let appDisposed=false;
 let saveTimer = null;
 let questionTouched = false;
@@ -479,7 +486,8 @@ async function start() {
   const narrowReader=readerRoot.querySelector('.corpus-open-narrow');if(narrowReader)narrowReader.disabled=true;
   window.tosPublicResearch = Object.freeze({profile, getQuestion: () => question.value, setQuestion, ensureCurrentQuestion,
     refreshQuestion, subscribeQuestion(listener) { questionListeners.add(listener); return () => questionListeners.delete(listener); },
-    open: openAddress, openLibrary:()=>entry.open(), reader: entry.reader, provider, notebook: entry.notebook});
+    open: openAddress, openLibrary:()=>entry.open(), reader: entry.reader, provider, notebook: entry.notebook,
+    get acts(){return actJournal;}});
   publicOwners = createPublicResearchOwners();
   const publicSpace = await createPublicSpace({profile,provider});
   if(appDisposed)return;
@@ -503,7 +511,9 @@ async function start() {
     onOpenReference:id=>{experience.open(id);experience.setMode('reference');},onOpenSpace:id=>{experience.open(id);experience.setMode('original');}}):null;
   if(knowing)spaceView.markTerms?.(experience.cognitiveRoot);
   cognitive=mountCognitiveSession({root:knowing?.agentRoot??experience.cognitiveRoot,notebook:entry.notebook,index:publicSpace.index,api:window.tosPublicResearch,locale:()=>locale,profile,workspace:publicOwners.workspace,onHelpChange:value=>knowing?.setHelpLevel(value),getSelection:()=>experience.getState(),versionContext:experience.versionContext,isActive:()=>experience.getState().mode==='cognitive',onOpen:(id,options)=>experience.open(id,options)});
-  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,locale:()=>locale});
+  actJournal=createActJournal({store:openActStore()});
+  stopWorkspaceMirror=publicOwners.workspace?mirrorWorkspace(publicOwners.workspace,actJournal,{sessionId:'local'}):null;
+  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && corpusInfo) {
@@ -535,6 +545,8 @@ function disposeApp() {
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
   pageAgent?.destroy();
+  void stopWorkspaceMirror?.();
+  actJournal?.dispose();
   cognitive?.destroy();
   knowing?.destroy();knowing=null;
   experience?.destroy();
