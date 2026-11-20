@@ -147,5 +147,176 @@
     ],
     "legal_limit": "Unknown authorship on a title page does not alone establish the conditions for an anonymous-work term in all jurisdictions. Identity research and independent rights review remain open."
   },
-  "research_update": "A separate research reader checked all seven places against German 1801 and Dole 1902 scans on 19 November; this is not formal kit review. XV p172a has the emphasis problem described in its note, and German nicht bloßes Leben und nicht bloße Gestalt becomes not only be life and form. XX p215a differs on determinability and conjunctions as noted. XIV p160, XV p164, XV p171, XV p172a and XX p215a span two German pages; make both original images available to a kit reader. In XXIII p236a maker and research reader found and restored the printed it. Wabash College calls the Bohn series translation anonymous: https://persweb.wabash.edu/facstaff/helmang/phi220-0910S/phi220handouts/Schillerhandout.pdf, but this alone does not determine the anonymous term or Dole text identity in all territories. Translator and rights remain open."
+  "research_update": "A separate research reader checked all seven places against German 1801 and Dole 1902 scans on 19 November; this is not formal kit review. XV p172a has the emphasis problem described in its note, and German nicht bloßes Leben und nicht bloße Gestalt becomes not only be life and form. XX p215a differs on determinability and conjunctions as noted. XIV p160, XV p164, XV p171, XV p172a and XX p215a span two German pages; make both original images available to a kit reader. In XXIII p236a maker and research reader found and restored the printed it. Wabash College calls the Bohn series translation anonymous: https://persweb.wabash.edu/facstaff/helmang/phi220-0910S/phi220handouts/Schillerhandout.pdf, but this alone does not determine the anonymous term or Dole text identity in all territories. Translator and rights remain open.",
+  "weiss_1845_research_followup": {
+    "status": "research only; three places were not accepted after independent reading; PR #489 covers two other places",
+    "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy",
+    "items": [
+      {
+        "loc": "XIV p160",
+        "german": "Der sinnliche Trieb will, daß Veränderung sey, daß die Zeit einen Inhalt habe; der Formtrieb will, daß die Zeit aufgehoben, daß keine Veränderung sey. Derjenige Trieb also, in welchem beyde verbunden wirken, (es sey mir einstweilen, bis ich diese Benennung gerechtfertigt haben werde, vergönnt, ihn Spieltrieb zu nennen) der Spieltrieb also würde dahin gerichtet seyn, die Zeit in der Zeit aufzuheben, Werden mit absolutem Seyn, Veränderung mit Identität zu vereinbaren.",
+        "german_page": "Kleinere prosaische Schriften, vol. 3 (1801), pp. 160–161",
+        "german_url": "https://archive.org/details/10119231bsb/page/n169/mode/1up",
+        "weiss_candidate": {
+          "text": "The sensuous impulse will have mutation, that time may have contents; the form-impulse will have time abolished, that there may be no mutation. Then that impulse, in which both act united, (I may be allowed to call it Play-impulse, till I have justified the appellation,) the play-impulse, will aim at abolishing time in time (or actual mode) and at reconciling Becoming with absolute existence, mutation with identity.",
+          "source": "weiss-1845-ocr.txt",
+          "page": "p. 65",
+          "url": "https://archive.org/download/stheticletterses01schi/page/n106.jpg",
+          "image_sha256": "70d5f8e13a00b3dbc505e94451017e8ac4688b99e4f7a6f81ffa429764351a75",
+          "alignment": "German pp. 160–161: the sensuous impulse calls for change and time with content, form for abolition of time and change, play for abolishing time in time and reconciling becoming with absolute being. Weiss adds the parenthesis (or actual mode), an interpretation with no literal German equivalent; abolishing does not exhaust aufheben. First Play-impulse and in time are italicized in print.",
+          "corrections": [
+            {
+              "from": "Play 'impulse",
+              "to": "Play-impulse",
+              "offset": 219,
+              "reason": "p. 65 n106 prints the lexical hyphen in Play-impulse.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n106.jpg",
+              "page": "p. 65",
+              "image_sha256": "70d5f8e13a00b3dbc505e94451017e8ac4688b99e4f7a6f81ffa429764351a75"
+            },
+            {
+              "from": "appella- tion",
+              "to": "appellation",
+              "offset": 259,
+              "reason": "p. 65 n106 divides appellation at the line end.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n106.jpg",
+              "page": "p. 65",
+              "image_sha256": "70d5f8e13a00b3dbc505e94451017e8ac4688b99e4f7a6f81ffa429764351a75"
+            },
+            {
+              "from": "contents ;",
+              "to": "contents;",
+              "offset": 60,
+              "reason": "p. 65 n106: normalize spacing before printed semicolon.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n106.jpg",
+              "page": "p. 65",
+              "image_sha256": "70d5f8e13a00b3dbc505e94451017e8ac4688b99e4f7a6f81ffa429764351a75"
+            }
+          ]
+        },
+        "disagreement": "Parenthetical “(or actual mode)” has no literal counterpart in the German, altering how time in time is interpreted.",
+        "research_action": "Seek an independently sourced translation without this addition, compare exact edition and pages; preserve Weiss as a research candidate, not a confirmed witness.",
+        "status": "deferred_unaccepted"
+      },
+      {
+        "loc": "XV p171",
+        "german": "Die wirklich vorhandene Schönheit ist des wirklich vorhandenen Spieltriebes werth; aber durch das Ideal der Schönheit, welches die Vernunft aufstellt, ist auch ein Ideal des Spieltriebes aufgegeben, das der Mensch in allen seinen Spielen vor Augen haben soll.",
+        "german_page": "Kleinere prosaische Schriften, vol. 3 (1801), pp. 171–172",
+        "german_url": "https://archive.org/details/10119231bsb/page/n180/mode/1up",
+        "weiss_candidate": {
+          "text": "Actually existing Beauty is worthy of an actually existing play-impulse; but through the ideal of Beauty, which the reason exhibits, an ideal of the play-impulse is also manifested, which man should have before his eyes in all his sports.",
+          "source": "weiss-1845-ocr.txt",
+          "page": "p. 72",
+          "url": "https://archive.org/download/stheticletterses01schi/page/n113.jpg",
+          "image_sha256": "43c795fbf1a464d714f779e68149e32cfb44af25e47a465b8ecee19f0a3341a9",
+          "alignment": "German pp. 171–172: actual beauty corresponds to actual play-impulse; the ideal of beauty offered by reason entails an ideal of play that man should keep in view. Weiss is also manifested weakens aufgegeben as a task set; the following should have before his eyes preserves its normative direction. The word ideal before Beauty is italicized in print.",
+          "corrections": [
+            {
+              "from": "ac- tually",
+              "to": "actually",
+              "offset": 41,
+              "reason": "p. 72 n113 divides actually at the line end.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n113.jpg",
+              "page": "p. 72",
+              "image_sha256": "43c795fbf1a464d714f779e68149e32cfb44af25e47a465b8ecee19f0a3341a9"
+            },
+            {
+              "from": "play- impulse",
+              "to": "play-impulse",
+              "offset": 150,
+              "reason": "p. 72 n113 divides the lexical compound at its hyphen.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n113.jpg",
+              "page": "p. 72",
+              "image_sha256": "43c795fbf1a464d714f779e68149e32cfb44af25e47a465b8ecee19f0a3341a9"
+            },
+            {
+              "from": "be- fore",
+              "to": "before",
+              "offset": 205,
+              "reason": "p. 72 n113 divides before at the line end.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n113.jpg",
+              "page": "p. 72",
+              "image_sha256": "43c795fbf1a464d714f779e68149e32cfb44af25e47a465b8ecee19f0a3341a9"
+            },
+            {
+              "from": "play-impulse ;",
+              "to": "play-impulse;",
+              "offset": 59,
+              "reason": "p. 72 n113: normalize spacing before printed semicolon.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n113.jpg",
+              "page": "p. 72",
+              "image_sha256": "43c795fbf1a464d714f779e68149e32cfb44af25e47a465b8ecee19f0a3341a9"
+            }
+          ]
+        },
+        "disagreement": "Weiss “is also manifested” renders “aufgegeben” and weakens the sense of a task set; subsequent “should have before his eyes” does not remove this difference.",
+        "research_action": "Compare an alternative source against the German and check whether it preserves the normative force of aufgegeben.",
+        "status": "deferred_unaccepted"
+      },
+      {
+        "loc": "XX p215a",
+        "german": "Das Gemüth geht also von der Empfindung zum Gedanken durch eine mittlere Stimmung über, in welcher Sinnlichkeit und Vernunft zugleich thätig sind, eben deswegen aber ihre bestimmende Gewalt gegenseitig aufheben, und durch eine Entgegensetzung eine Negation bewirken. Diese mittlere Stimmung, in welcher das Gemüth weder physisch noch moralisch genöthigt, und doch auf beyde Art thätig ist, verdient vorzugsweise eine freye Stimmung zu heißen, und wenn man den Zustand sinnlicher Bestimmung den physischen, den Zustand vernünftiger Bestimmung aber den logischen und moralischen nennt, so muß man diesen Zustand der realen und aktiven Bestimmbarkeit den ästhetischen heißen.",
+        "german_page": "Kleinere prosaische Schriften, vol. 3 (1801), pp. 215–216",
+        "german_url": "https://archive.org/details/10119231bsb/page/n224/mode/1up",
+        "weiss_candidate": {
+          "text": "Thus the mind passes from perception to reflection by an intermediate inclination (Stimmung), in which sensuousness and reason are active at the same time, but for this reason mutually destroy their determining power, and effect a negation through an opposition. This intermediate inclination, in which the mind is neither physically nor morally constrained, and yet is active in both ways, preëminently deserves to be called a free inclination; and if we call the condition of sensuous determination the physical, but that of reflective determination the logical and moral condition, we must call this condition of real and active determinableness, the æsthetic condition.",
+          "source": "weiss-1845-ocr.txt",
+          "page": "p. 96",
+          "url": "https://archive.org/download/stheticletterses01schi/page/n137.jpg",
+          "image_sha256": "6ef4c8c6d0321130c8b3782107b2ead9b36c2abf7fbe60555c3ceb730793de52",
+          "alignment": "German pp. 215–216: the intermediate free Stimmung unites simultaneous sensible and rational activity whose determining powers cancel, a condition of real active determinability. Inclination is Weiss’s interpretive choice, narrower than state or disposition; the original Stimmung is retained in his parentheses. Printed footnote marker 1 after æsthetic is omitted from running text, not the note itself; Stimmung and the same time are italicized.",
+          "corrections": [
+            {
+              "from": "preeminently",
+              "to": "preëminently",
+              "offset": 391,
+              "reason": "p. 96 n137 prints a diaeresis over the second e.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n137.jpg",
+              "page": "p. 96",
+              "image_sha256": "6ef4c8c6d0321130c8b3782107b2ead9b36c2abf7fbe60555c3ceb730793de52"
+            },
+            {
+              "from": "sen- suous",
+              "to": "sensuous",
+              "offset": 479,
+              "reason": "p. 96 n137 divides sensuous at the line end.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n137.jpg",
+              "page": "p. 96",
+              "image_sha256": "6ef4c8c6d0321130c8b3782107b2ead9b36c2abf7fbe60555c3ceb730793de52"
+            },
+            {
+              "from": "determina- bleness",
+              "to": "determinableness",
+              "offset": 633,
+              "reason": "p. 96 n137 divides determinableness at the line end.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n137.jpg",
+              "page": "p. 96",
+              "image_sha256": "6ef4c8c6d0321130c8b3782107b2ead9b36c2abf7fbe60555c3ceb730793de52"
+            },
+            {
+              "from": "aesthetic 1 condition",
+              "to": "æsthetic condition",
+              "offset": 655,
+              "reason": "p. 96 n137 prints æ ligature and superscript footnote marker 1; marker omitted from running text, noted in alignment.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n137.jpg",
+              "page": "p. 96",
+              "image_sha256": "6ef4c8c6d0321130c8b3782107b2ead9b36c2abf7fbe60555c3ceb730793de52"
+            },
+            {
+              "from": "inclination ;",
+              "to": "inclination;",
+              "offset": 433,
+              "reason": "p. 96 n137: normalize spacing before printed semicolon.",
+              "url": "https://archive.org/download/stheticletterses01schi/page/n137.jpg",
+              "page": "p. 96",
+              "image_sha256": "6ef4c8c6d0321130c8b3782107b2ead9b36c2abf7fbe60555c3ceb730793de52"
+            }
+          ]
+        },
+        "disagreement": "Weiss “inclination” for Stimmung risks narrowing the intermediate condition to inclination.",
+        "research_action": "Seek an independently sourced rendering of Stimmung as state or disposition and assess its fidelity against both printed pages.",
+        "status": "deferred_unaccepted"
+      }
+    ]
+  }
 }

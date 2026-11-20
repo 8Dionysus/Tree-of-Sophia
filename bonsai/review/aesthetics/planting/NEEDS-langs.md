@@ -125,3 +125,16 @@ short-quotation bases. PR #432 `c32662da89` defines `JURISDICTIONS` as
 identify the owner-approved way to record and review the Mexico quotation
 assessment for a witness before public display, or extend the route if needed.
 This note does not assume the duration or outcome of Mexican copyright law.
+
+## Anonymous translator and publication-based term
+
+A Bell 1875 English translation of Schiller's *Über die tragische Kunst*
+contains a closer reading of III p163 than Weiss 1845; Clark's 1918 anthology
+[labels the translation anonymous](https://archive.org/download/europeantheories00claruoft/page/n332.jpg).
+The translator's identity, lawful publication and any later disclosure remain
+under research. The current witness gate requires a translator and, for
+public-domain claims in Russia and the EU, death years. Please identify the
+owner-reviewed route for a translation genuinely published anonymously, when
+its identity and applicable publication-based terms are actually established.
+This request does not claim the legal conditions are already satisfied and does
+not propose inventing a person, date of death or licence.
