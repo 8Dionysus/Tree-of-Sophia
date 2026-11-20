@@ -1,0 +1,15 @@
+/* The board "Agents", in the stand or in a window of its own (agents-board.mjs). */
+.ab-sheet{width:min(900px,calc(100vw - 24px))}
+.ab-section{display:flex;flex-direction:column;gap:6px}
+.ab-agents{display:flex;flex-direction:column;gap:2px;max-height:46vh;overflow:auto}
+.ab-agent{display:grid;grid-template-columns:minmax(120px,1.2fr) minmax(0,1.4fr) auto minmax(0,1.6fr) auto;gap:4px 12px;align-items:baseline;padding:5px 8px;border-bottom:1px solid var(--ps-line);font-size:13.5px}
+.ab-agent strong{font-weight:500;color:var(--ps-ink);overflow-wrap:anywhere}
+.ab-meta,.ab-where,.ab-when{color:var(--ps-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ab-count{color:var(--ps-gold);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ab-line{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,60%);gap:12px;margin:0;font-size:13.5px}
+.ab-line>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ab-line .ab-count{text-align:right}
+.ab-line[data-clash=true] .ab-count{color:#ef8c62}
+body.ab-window{margin:0;padding:16px 20px;background:#0b1626;color:var(--ps-text,#d6dfeb);font-family:var(--ps-sans,system-ui,sans-serif)}
+body.ab-window h2{margin:0 0 8px;font:500 21px var(--ps-serif,Georgia,serif);color:var(--ps-ink,#eef0f3)}
+@media (max-width:760px){.ab-agent{grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:'name count when' 'meta meta meta' 'where where where';gap:0 10px}.ab-agent strong{grid-area:name}.ab-agent .ab-count{grid-area:count}.ab-agent .ab-when{grid-area:when}.ab-agent .ab-meta{grid-area:meta;font-size:12.5px}.ab-agent .ab-where{grid-area:where;font-size:12.5px}}
