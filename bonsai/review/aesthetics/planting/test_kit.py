@@ -1319,6 +1319,14 @@ class AncientBoundTest(unittest.TestCase):
         self.assertEqual(kit.death_bound(floruit)['year'], 1100 + kit.LONGEST_LIFE)   # alive then, dead within the longest life
         active = {'claims': {'P1317': [self.claim('+1750-00-00T00:00:00Z', 9)]}}
         self.assertIsNone(kit.death_bound(active))                                     # an activity year is no death year
+        earliest = {'claims': {'P570': [self.claim('+1700-00-00T00:00:00Z', 9)]}}
+        earliest['claims']['P570'][0]['qualifiers'] = {'P1319': [{'datavalue': {'value': {'time': '+1700-00-00T00:00:00Z', 'precision': 9}}}]}
+        self.assertIsNone(kit.death_bound(earliest))                                   # «not before 1700» bounds nothing above
+        earliest['claims']['P570'][0]['qualifiers']['P1326'] = [{'datavalue': {'value': {'time': '+1720-00-00T00:00:00Z', 'precision': 9}}}]
+        self.assertEqual(kit.death_bound(earliest)['year'], 1720)
+        presumed = {'claims': {'P570': [self.claim('+1050-00-00T00:00:00Z', 9)]}}
+        presumed['claims']['P570'][0]['qualifiers'] = {'P1480': [{'datavalue': {'value': {'id': 'Q18122778'}}}]}
+        self.assertIsNone(kit.death_bound(presumed))                                   # a presumed date leaves the bound to a reference
         latest = {'claims': {'P570': [self.claim('+1050-00-00T00:00:00Z', 7, latest='+1070-00-00T00:00:00Z')]}}
         self.assertEqual(kit.death_bound(latest)['year'], 1070)
 

@@ -731,9 +731,12 @@ def death_bound(entity):
         qualifiers=claim.get('qualifiers') or {}
         latest=[year_of(((q.get('datavalue') or {}).get('value'))) for q in qualifiers.get('P1326') or []]
         circa=any(((q.get('datavalue') or {}).get('value') or {}).get('id')=='Q5727902' for q in qualifiers.get('P1480') or [])
+        earliest=[year_of(((q.get('datavalue') or {}).get('value'))) for q in qualifiers.get('P1319') or []]
+        if any(v is not None for v in earliest) and not any(v is not None for v in latest):return None   # «not before» alone leaves the death open
+        if any(((q.get('datavalue') or {}).get('value') or {}).get('id')!='Q5727902' for q in qualifiers.get('P1480') or []):return None   # presumed or disputed: a reference decides
         upper=min(v for v in latest if v is not None) if any(v is not None for v in latest) else y+spans[precision]*(1+int(value.get('after') or 0))+(50 if circa else 0)
         if prop!='P570':upper+=LONGEST_LIFE           # alive then: dead within the longest life after it
-        uppers.append(upper);used.append({'property':prop,'time':value.get('time'),'precision':precision,'circa':circa,'latest':[v for v in latest if v is not None],**({'alive_until':upper-LONGEST_LIFE,'longest_life':LONGEST_LIFE} if prop!='P570' else {})})
+        uppers.append(upper);used.append({'property':prop,'time':value.get('time'),'precision':precision,'circa':circa,'latest':[v for v in latest if v is not None],'earliest':[v for v in earliest if v is not None],**({'alive_until':upper-LONGEST_LIFE,'longest_life':LONGEST_LIFE} if prop!='P570' else {})})
     if not uppers or max(uppers)>BOUND_BEFORE:return None
     return {'year':max(uppers),'from':'wikidata','claims':used}
 
