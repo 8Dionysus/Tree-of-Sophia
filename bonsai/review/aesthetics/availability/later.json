@@ -423,6 +423,7 @@
           "result": "Printed p446 quotes an abbreviated Chinese passage resembling the opening of A:E128, without establishing the complete sentence. Its bibliography p449 cites 死灵之书, translated by 竹子 and others, Beijing, 2018. The article does not establish the book page, exact source passage or rights in that translation; verify the primary edition independently."
         }
       ],
+      "russian_quotation_candidate": {"url":"https://cyberleninka.ru/article/n/zhivye-mertvetsy-v-fantasticheskih-novellah-serebryanogoveka-ten-fillidy-m-kuzmina-lyubov-silnee-smerti-d-merezhkovskogo/pdf", "edition":"S. Yu. Chvertko, Siberian Philological Journal, 2014 no. 4, p162", "status":"Personally inspected image of journal p162 quotes complete A:E128 passage and cites Lovecraft 2000 pp372–373. Attribution of this exact rendering to L. Volodarskaya is a separate bibliographic candidate; a dissertation attribution has a differing word, so the cited book itself, exact page split, source edition and translation rights remain unverified. Journal access or licence is not a licence for the translation."},
       "remaining": "Find and verify target ru/es/zh-Hans passages and participants; choose and independently align short German quotation from publisher preview; establish editorial role and complete required source search. No conclusion of absence has been made.",
       "translation_candidates": [
         {
@@ -1039,9 +1040,14 @@
           "source": "RSL browser, exact full Russian name",
           "url": "https://search.rsl.ru/ru/search#q=%22%D0%94%D0%B5%20%D0%92%D0%B8%D1%82%D1%82%20%D0%9F%D0%B0%D1%80%D0%BA%D0%B5%D1%80%22",
           "result": "One indexed 2013 musicology dissertation quotes a different sentence attributed to Parker; not a discovered translation of this book. Broad Parker/aesthetics query returned 5,373 mostly unrelated matches; does not establish absence."
+        },
+        {
+          "source": "Internet Archive advancedsearch and Open Library",
+          "url": "https://archive.org/advancedsearch.php?q=title%3A%28%22the+principles+of+aesthetics%22%29+AND+creator%3A%28parker%29&output=json",
+          "result": "English title/author search returned 18 records including distinct 1920 and 1946 editions. Limited Chinese and Spanish title/author queries returned zero; Open Library Chinese title/author queries returned zero, Google Books API 429. These do not establish absence: a 2001 Chinese edition has separately been found in HKU. Verify source edition and target pages."
         }
       ],
-      "remaining": "Search mandatory catalogs and actual translations for ru, es, de and zh-Hans, verify rights and independent semantic review. C:A-I041 rapid plot claim is not established by pp.83–84; no absence inferred.",
+      "remaining": "Search mandatory catalogs and actual translations for ru, es, de and zh-Hans, verify rights and independent semantic review. C:A-I041 rapid plot claim is not established by pp.83–84; p92 does discuss a plot ending too simply and quickly and loss of interest. Determine the scope of this connection independently; no absence inferred.",
       "original_places": [
         {
           "reading": "C:A-I040",
@@ -1057,7 +1063,7 @@
             "https://archive.org/download/principlesofaest00parkiala/page/n93_w1400.jpg",
             "https://archive.org/download/principlesofaest00parkiala/page/n101_w1400.jpg"
           ],
-          "status": "personally inspected as contextual candidates; the register explicitly says plot complexity, exact sentence selection needs independent reading"
+          "status": "p92 image n101 personally reinspected: the complete sentence names a tortuous development and an end reached too simply and quickly, followed by loss of interest. It is stronger evidence for the register theme than pp83–84, while its specific causal framing needs independent semantic reading."
         },
         {
           "reading": "C:A-I042",
@@ -1329,7 +1335,12 @@
         "AE32",
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi_candidate": "10.1017/CBO9780511663888.007",
+      "original_candidates": [{"url": "https://www.cambridge.org/core/books/abs/aesthetics-and-ethics/ethical-criticism-of-art/94AF6362728D57D9459FA36049E03436", "status": "Cambridge chapter in Levinson ed., 1998, pp182–203. Google Books search snippets place target arguments at pp182–183 and 194–195; exact original sentences require verification."}],
+      "translation_candidates": [{"language": "es", "url": "https://www.filosoficas.unam.mx/docs/556/files/GAUT%20Critica%20Etica.pdf", "status": "UNAM-hosted Spanish scan: pp286–287 personally inspected; independent researcher located target discussions on pp285–287 and 310–312. Translator, exact edition and rights remain unverified."}],
+      "remaining": "Verify exact source sentences, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "catherine-z-elgin.art-in-the-advancement-of-understanding",
@@ -1840,7 +1851,63 @@
       "areas": [
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "ru",
+      "people": [
+        {
+          "name": "Михаил Михайлович Бахтин",
+          "role": "author",
+          "birth": 1895,
+          "death": 1975,
+          "evidence": [
+            "https://d-nb.info/gnd/118505653"
+          ]
+        },
+        {
+          "name": "Caryl Emerson",
+          "role": "English translator",
+          "birth": 1944,
+          "evidence": [
+            "https://d-nb.info/gnd/128581328"
+          ]
+        },
+        {
+          "name": "Michael Holquist",
+          "role": "English translator and collection editor",
+          "birth": 1935,
+          "evidence": [
+            "https://d-nb.info/gnd/134107659"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "«Слово в романе», written 1934–1935; in Вопросы литературы и эстетики, 1975",
+          "url": "https://openlibrary.org/works/OL2390862W",
+          "status": "Catalog evidence. Authorized original copy, editors and exact printed pages not checked."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "The Dialogic Imagination: Four Essays, University of Texas Press, 1981; translated Caryl Emerson and Michael Holquist, edited Holquist",
+          "url": "https://openlibrary.org/books/OL4100997M",
+          "status": "Google Books indexed snippets indicate I078 pp.261–262, I076 p.362 and I077 p.364; complete sentences and lawful copy still require checking."
+        }
+      ],
+      "searches": [
+        {
+          "source": "Google Books SearchWithinVolume, English translation",
+          "url": "https://books.google.com/books?jscmd=SearchWithinVolume&vid=UpyJYtPSJo8C&q=%22novel%20as%20a%20whole%22",
+          "result": "Index snippets for this edition, not full-page images or a license."
+        },
+        {
+          "source": "Open Library, NDL, RSL",
+          "url": "https://openlibrary.org/works/OL2390862W",
+          "result": "Limited catalog searches; NDL returned 429 and Russian State Library 403. No absence inferred."
+        }
+      ],
+      "remaining": "Inspect authorized 1975 Russian pages and full English sentences; identify actual German, Spanish and simplified Chinese translations, search mandatory routes and assess rights for each contributor and jurisdiction."
     },
     {
       "work": "mircea-eliade.the-sacred-and-the-profane",
@@ -2012,7 +2079,84 @@
       "areas": [
         "AE32"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Susan Sontag",
+          "role": "author",
+          "birth": 1933,
+          "death": 2004,
+          "evidence": [
+            "https://d-nb.info/gnd/118751506"
+          ]
+        },
+        {
+          "name": "Виктор Голышев",
+          "role": "Russian translator",
+          "birth": 1937,
+          "evidence": [
+            "https://admarginem.ru/product/smotrim-na-chuzhie-stradaniya-vtoroe-izdanie/"
+          ]
+        },
+        {
+          "name": "Aurelio Major",
+          "role": "Spanish translator",
+          "birth": 1963,
+          "evidence": [
+            "https://openlibrary.org/books/OL9137681M"
+          ]
+        },
+        {
+          "name": "Reinhard Kaiser",
+          "role": "German translator",
+          "birth": 1950,
+          "death": 2025,
+          "evidence": [
+            "https://lobid.org/resources/990220449510206441"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Regarding the Pain of Others, Farrar, Straus and Giroux, 2003",
+          "url": "https://openlibrary.org/books/OL3578925M",
+          "status": "Book catalog; exact book pages and sentences for requested places not yet verified."
+        },
+        {
+          "edition": "Looking at War, The New Yorker, December 2002",
+          "url": "https://www.newyorker.com/magazine/2002/12/09/looking-at-war",
+          "status": "Earlier magazine text by Sontag discusses Goya; not established identical to the book. Reading access does not confer republication rights."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "ru",
+          "edition": "Смотрим на чужие страдания, translated Виктор Голышев; Ad Marginem 2014 and 2023 editions",
+          "url": "https://admarginem.ru/product/smotrim-na-chuzhie-stradaniya-vtoroe-izdanie/",
+          "status": "Publisher confirms translation and links reading services; target passages and pagination unchecked."
+        },
+        {
+          "language": "es",
+          "edition": "Ante el dolor de los demás, translated Aurelio Major, Alfaguara, 2003",
+          "url": "https://openlibrary.org/books/OL9137681M",
+          "status": "Catalog record; target passages unchecked."
+        },
+        {
+          "language": "de",
+          "edition": "Das Leiden anderer betrachten, translated Reinhard Kaiser, Fischer Taschenbuch, 2017",
+          "url": "https://lobid.org/resources/990220449510206441",
+          "status": "Library catalog record; target passages unchecked."
+        }
+      ],
+      "remaining": "Verify complete target sentences and pages in lawful original and translation copies; find Chinese edition and mandatory search routes; independently determine original, translators and third-party rights.",
+      "searches": [
+        {
+          "source": "Ad Marginem, LitRes and Yandex Books",
+          "url": "https://admarginem.ru/product/smotrim-na-chuzhie-stradaniya-vtoroe-izdanie/",
+          "result": "Publisher personally checked: identifies Golyshev translation in 2014 and 2023 editions. Linked LitRes card returned 200 but displayed not for sale; linked Bookmate redirected to Yandex Books 404, and direct read-online also returned 404. Neither supplied the required passages; other lawful copies remain to search."
+        }
+      ]
     },
     {
       "work": "umberto-eco.opera-aperta",
@@ -2378,7 +2522,10 @@
       "areas": [
         "AE31"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [{"url": "https://faculty.washington.edu/ewebb/R504/Geertz.pdf", "status": "University-hosted scan of The Interpretation of Cultures 1973, p90 personally inspected for D:B-I011; independent research inspected pp113–114 for D:B-I012. These are 1973 reprint pages, not pagination of the 1966 first publication. Geertz is author; distinguish cited ethnographers and third-party material."}],
+      "remaining": "Verify exact sentences and all contributors, territorial quotation rights and lawful copy; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "colin-radford.how-can-we-be-moved-by-the-fate-of-anna-karenina",
@@ -2397,7 +2544,48 @@
         "AE22",
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Ernst Hans Gombrich",
+          "role": "author",
+          "birth": 1909,
+          "death": 2001,
+          "evidence": [
+            "https://d-nb.info/gnd/118540637"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Art and Illusion: A Study in the Psychology of Pictorial Representation, Pantheon/Bollingen, 1960",
+          "url": "https://openlibrary.org/books/OL5775338M",
+          "status": "Catalog evidence; IA copy restricted. Exact pages and sentences in authorized copy remain unchecked."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Arte e ilusión, Gustavo Gili, 1982",
+          "url": "https://openlibrary.org/books/OL47173757M",
+          "status": "Catalog evidence; translator and target passages require verification."
+        },
+        {
+          "language": "de",
+          "edition": "Kunst und Illusion, Belser, 1978",
+          "url": "https://lobid.org/resources/990001264680206441",
+          "status": "Library catalog record; translator and target passages require verification."
+        }
+      ],
+      "searches": [
+        {
+          "source": "Google Books SearchWithinVolume",
+          "url": "https://books.google.com/books?vid=ISBN9780691017501",
+          "result": "Limited title-specific target phrase searches produced no snippets; not evidence of absence."
+        }
+      ],
+      "remaining": "Inspect lawful original edition and exact pages; identify Russian and simplified Chinese editions and verify Spanish and German translators and passages. Assess original, translation and illustration rights separately in each jurisdiction."
     },
     {
       "work": "e-h-gombrich.illusion-and-art",
@@ -2424,7 +2612,11 @@
       "areas": [
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi_candidate": "10.64590/s2p",
+      "original_candidates": [{"url": "https://sites.duke.edu/criticaltheory/files/2020/01/Jameson-1984-Postmodernism-or-The-Cultural-Logic-of-Late-Capitalism-New-Left-Review-146-Jul-Aug-1984.pdf", "status": "Duke-hosted scan of New Left Review 1984 pp53–92: p64 personally inspected and p65 independently inspected for C:A-I065/I066. Original publisher preview does not expose these pages; 1991 book is a separate expanded edition. No general reuse licence established."}],
+      "remaining": "Verify exact source sentences, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "frits-staal.the-meaninglessness-of-ritual",
@@ -2617,7 +2809,10 @@
       "areas": [
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [{"url": "https://archive.org/details/postmoderncultur0000unse", "status": "1983 Bay Press collection is catalogued but the prior source URL returned 404 and restricted IA has not exposed target pages; identify editor/foreword separately and obtain lawful text."}],
+      "remaining": "Verify exact source sentences, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "hans-belting.bild-und-kult",
@@ -2763,7 +2958,12 @@
       "areas": [
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi_candidate": "10.2307/468422",
+      "original_candidates": [{"url": "https://www.cambridge.org/core/books/abs/expression-and-meaning/logical-status-of-fictional-discourse/AA057D7B205A6DA2EE8586023B09F316", "status": "1975 journal article and 1979 Cambridge chapter have distinct DOIs and pagination; official chapter preview does not cover target pp64–67."}],
+      "translation_candidates": [{"language": "de", "url": "https://lobid.org/resources/990125198510206441", "status": "Catalogue identifies Andreas Kemmerling translation of book; inclusion and pages of this chapter remain unverified."}],
+      "remaining": "Verify exact source sentences, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "marieke-rohde.the-rubber-hand-illusion",
@@ -2905,7 +3105,11 @@
       "areas": [
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [{"url": "https://archive.org/details/artscognition0000unse", "status": "Catalogued 1977 first collection is access restricted; 1978 Ways of Worldmaking chapter is a separate edition, compare before transferring pagination."}],
+      "translation_candidates": [{"language": "es", "url": "https://ddooss.org/uploads/files/actividad/editor/nelson_goodman.pdf", "status": "Spanish version credits C. E. Feiling; independent researcher located candidate text pp5–6. Source host permission and relation of editions need review."}, {"language": "de", "url": "https://lobid.org/resources/990223809430206441", "status": "University catalogue identifies Max Looser translation, Suhrkamp 2017; table of contents places Wann ist Kunst? pp76–91. Exact text and rights unverified."}, {"language": "zh-Hans", "url": "https://book.douban.com/subject/3033691/", "status": "Secondary table of contents and university catalogue identify 2008 Chinese book with translated chapter; exact text, pages, contributors and rights remain to verify."}],
+      "remaining": "Verify exact source sentences, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "nick-zangwill.aesthetic-judgment",
@@ -3082,7 +3286,12 @@
         "AE04",
         "AE09"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi_candidate": "10.2307/2024942",
+      "original_candidates": [{"url": "https://philosophy.as.uky.edu/sites/default/files/The%20Absurd%20-%20Thomas%20Nagel.pdf", "status": "University-hosted journal scan 1971 pp716–727; independent researcher located target sections at pp716–719. Publisher licence and exact sentence alignment remain to check."}],
+      "translation_candidates": [{"language": "ru", "url": "https://philosophy.hse.ru/ru/article/view/11880", "status": "HSE publisher identifies Elena V. Kosilova as translator, introduction and notes; PDF p281 personally inspected, independent researcher located target sections at pp281–285. Site states CC BY-NC 4.0; scope for original rights and intended use needs review. Publisher HTML DOI repeats its prefix; verify DOI against Crossref and PDF."}],
+      "remaining": "Verify exact source sentences, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "tzvetan-todorov.introduction-a-la-litterature-fantastique",
@@ -3214,7 +3423,11 @@
       "areas": [
         "AE32"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "fr",
+      "original_candidates": [{"url": "https://www.nobelprize.org/prizes/literature/1957/camus/25232-banquet-speech-french/", "status": "Nobel Foundation hosts French banquet speech, 10 December 1957; personally verified target paragraph beginning Je ne puis vivre personnellement sans mon art. Source page credits copyright to Éditions Gallimard; no general republication or translation licence established."}],
+      "translation_candidates": [{"language": "en", "url": "https://www.nobelprize.org/prizes/literature/1957/camus/speech/", "status": "Nobel Foundation English version personally checked at the two D:B-I035 target paragraphs; translator and reuse rights still to establish."}],
+      "remaining": "Determine all contributors and territorial quotation grounds; find, compare and document ru, es, de and zh-Hans translations and required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "alexander-pope.peri-bathous-or-the-art-of-sinking-in-poetry",
@@ -3356,7 +3569,92 @@
       "areas": [
         "AE15"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Audre Lorde",
+          "role": "author",
+          "birth": 1934,
+          "death": 1992,
+          "evidence": [
+            "https://openlibrary.org/authors/OL278850A.json"
+          ]
+        },
+        {
+          "name": "Renate Stendhal",
+          "role": "German translator, 1986 collection candidate",
+          "birth": 1944,
+          "evidence": [
+            "https://d-nb.info/gnd/121289273",
+            "https://pure.uva.nl/ws/files/6646760/Huegel_AOETh_1.pdf"
+          ],
+          "verification": "University article footnote attributes the 1986 collection to her; verify the target essay and exact text in the book."
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Uses of the Erotic: The Erotic as Power, in Sister Outsider, The Crossing Press; exact printing of this institutional scan not established",
+          "url": "https://medialibrary.uantwerpen.be/oldcontent/container2607/files/Lorde%20-%20Uses%20of%20the%20Erotic.pdf",
+          "page": "printed pp56–57, PDF page 4 (two-page spread)",
+          "status": "Institution-hosted scan with copyright notice; pages 56–57 personally inspected. Contains discussion of embodied knowledge, joy and varied creative work; exact short quotation and boundaries need independent review. Access does not establish open licence."
+        }
+      ],
+      "requested_places": [
+        "B:A-I041, embodied feeling, knowledge and creativity; pp56–57 candidate"
+      ],
+      "searches": [
+        {
+          "source": "Open Library",
+          "url": "https://openlibrary.org/search.json?title=Sister%20Outsider&author=Audre%20Lorde",
+          "result": "Collection record reports first publication 1984; the scan itself does not establish its printing date. PDF footnote dates the conference paper 25 August 1978 and notes a pamphlet; publication events remain distinct."
+        },
+        {
+          "source": "Google Books",
+          "url": "https://books.google.com/books?vid=ISBN9788487715938",
+          "result": "Metadata identifies the Spanish collection. SearchWithinVolume id 0lyuAAAACAAJ for erótico, erótica and poder returned 0; no readable target excerpt obtained. This is not proof that the essay is absent."
+        },
+        {
+          "source": "OpenAlex and University of Coimbra repository",
+          "url": "https://doi.org/10.23899/relacult.v6i6.1822",
+          "result": "OpenAlex locates journal PDF (403), and a University of Coimbra PDF (accessible, article p8 visually inspected). Metadata on OA licences varies by location; independently assess article and separately quoted source/translation."
+        }
+      ],
+      "remaining": "Check complete source sentences, edition identity and rights per jurisdiction; find and align ru, es, de and zh-Hans translations through required routes. Search and independent reader review remain incomplete.",
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "La hermana, la extranjera: artículos y conferencias, Horas y Horas, ISBN 9788487715938; translation María Corniero Fernández",
+          "url": "https://www.traficantes.net/libros/la-hermana-la-extranjera",
+          "status": "Bookseller identifies author and translator, but does not establish inclusion of the target essay or its pages; Google Books metadata for the ISBN gives 2004 and 260 pages while the bookseller lists 210. Verify exact edition, contents, translation text and rights."
+        },
+        {
+          "language": "es",
+          "edition": "Antoni Aguiló, “Lo erótico como epistemología del Sur”, RELACult 2020, article p8; cites Lorde, La hermana, la extranjera, Horas y Horas, 2003, pp41–42",
+          "url": "https://estudogeral.uc.pt/bitstream/10316/100438/1/Lo%20erotico%20como%20epistemologia%20del%20Sur.pdf",
+          "status": "University-hosted article page image personally inspected: cites Spanish sentences corresponding to English pp56–57, including embodied joy and creative activity. The 2003 book and pages 41–42 were not personally inspected; relation to catalogued 2004 ISBN and translator María Corniero Fernández requires direct edition verification. Article reuse terms do not establish rights in the embedded translation."
+        },
+        {
+          "language": "de",
+          "edition": "Sister Outsider, Carl Hanser Verlag, 2021, ISBN 9783446269712; translators Eva Bonné and Marion Kraft",
+          "url": "https://lobid.org/resources/99370734609406441",
+          "contents": "https://digitale-objekte.hbz-nrw.de/storage2/2021/08/12/file_11/9057348.pdf",
+          "status": "Library record identifies both translators; table of contents image personally inspected: “Vom Nutzen der Erotik: Erotik als Macht” begins p51, next essay p61. The exact passage, responsible translator and rights remain unverified. Google Books indexed searches for Erotik, Freude and Wissen gave zero snippets, not evidence of absence."
+        },
+        {
+          "language": "de",
+          "edition": "Sister Outsider, btb / Penguin Random House, licensed 2023 paperback, ISBN 9783442771653",
+          "url": "https://www.penguin.de/content/edition/excerpts_extended/Leseprobe_978-3-442-77165-3.pdf",
+          "status": "Publisher sample title/copyright and contents identify Eva Bonné and Marion Kraft as translators of collection and confirm essay starts p51; available sample does not reach target. Notice reserves text and data mining under §44b UrhG; original, German translation and possible quotation rights require separate assessment."
+        },
+        {
+          "language": "de",
+          "edition": "Vom Nutzen der Erotik: Erotik als Macht, in Dagmar Schultz ed., Macht und Sinnlichkeit, 2nd ed., Orlanda Frauenverlag, Berlin, 1986, pp187–194; translated Renate Stendhal",
+          "url": "https://digitale-objekte.hbz-nrw.de/storage2/2018/04/26/file_1/7627235.pdf",
+          "secondary_citation": "https://pure.uva.nl/ws/files/6646760/Huegel_AOETh_1.pdf",
+          "status": "Institutional article footnote cites this edition, pages and translator; library table of contents independently lists the essay starting p187 and translator note p12. Exact passage not personally read; article text paraphrases and must not be presented as a verbatim source quote. Separate rights inquiry remains."
+        }
+      ]
     },
     {
       "work": "bence-nanay.aesthetic-attention",
@@ -3439,7 +3737,10 @@
       "areas": [
         "AE31"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [{"url": "https://users.iit.demokritos.gr/~k.palaiologos/thymeli/pdf_files/Catherine%20Bell%20Ritual%20Theory%2C%20Ritual%20Practice-Oxford-University-Press-USA-2009.pdf", "status": "Institution-hosted Oxford 2009 edition; independent researcher inspected pp74 and 90 and reports chapter 4 title Action and Practice. The author text is copyright 1992 and foreword is a separate 2009 contribution; confirm exact sentence, use and contributors."}],
+      "remaining": "Verify exact sentences and all contributors, territorial quotation rights and lawful copy; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "chen-crystal-chen.what-is-being-there-an-ontology-of-the-immersive",
@@ -4060,7 +4361,7 @@
       "status": "research-in-progress",
       "original_language": "en",
       "doi": "10.1007/s11406-020-00290-7",
-      "original_candidates": [{"url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8550780/", "status": "Publisher version available at PMC, CC BY 4.0; existing corrections layer records attribution to Thonhauser. Exact places and translated witnesses need review."}],
+      "original_candidates": [{"url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8550780/", "status": "Publisher version available at PMC under CC BY 4.0. Existing corrections layer records attribution to Thonhauser. The author’s abstract and introduction personally checked in PMC HTML; publisher PDF images pp1248 and 1250 personally inspected, while an independent researcher also inspected pp1248–1250 and located candidate whole sentences for B:B-I024. Quoted Spitzer text is a separate source. Exact sentence selection and translated witnesses require review."}],
       "remaining": "Verify exact source sentences, participants and territorial rights; search and align ru, es, de and zh-Hans witnesses. Search incomplete; no absence inferred."
     },
     {
@@ -4073,7 +4374,8 @@
       "status": "research-in-progress",
       "original_language": "en",
       "doi_candidate": "10.1515/9780804767149",
-      "original_candidates": [{"url": "https://openlibrary.org/isbn/9785867934590", "status": "Russian NLO 2006 bibliographic record identifies S. Zenkin as translator; exact aligned text, translator identity and rights remain unverified. UCSB scan p xv has candidate place, hosting permission not established."}],
+      "original_candidates": [{"url": "https://openlibrary.org/isbn/9785867934590", "status": "Russian NLO 2006 bibliographic record identifies S. Zenkin as translator; its exact pagination remains unverified. The NLO 2024 publisher preview identifies Sergey Zenkin and supplies a separately checked aligned passage. Publisher Stanford UP / De Gruyter Brill User’s Manual (https://www.degruyterbrill.com/document/doi/10.1515/9780804767149-002/html) publicly displays the target B:A-I046 paragraph on p xv; © 2022, no general reuse or translation licence established. Universidad Iberoamericana catalogue confirms its 2005 Spanish edition and identifies Aldo Mazzucchelli as translator: https://biblio.ibero.mx/cgi-bin/koha/opac-detail.pl?biblionumber=449748. Exact aligned page and title-page confirmation remain unverified."}],
+      "translation_candidates": [{"language":"ru", "edition":"НЛО, second edition, 2024; translation by Sergey Zenkin", "url":"https://nlobooks.ru/upload/iblock/806/hhotcfv5bhbha27nizt591jysab11m3p.pdf", "status":"Publisher preview p12 (PDF page 7) personally inspected and aligns to B:A-I046 at English p xv; p10 aligns to p xiii. Confirm territorial quotation rights. This is not the unverified 2006 pagination."}, {"language":"de", "edition":"Suhrkamp, 2004, Diesseits der Hermeneutik; translated by Joachim Schulte", "url":"https://res.cloudinary.com/suhrkamp/images/q_auto/v1742120650/37564/diesseits-der-hermeneutik_9783518123645_leseprobe.pdf", "status":"Publisher preview p12 (PDF page 13) personally inspected and aligns to B:A-I046 at English p xv; pp10–11 align to p xiii. All rights reserved; confirm translator dates and territorial quotation rights."}],
       "remaining": "Verify exact source, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses. Search incomplete; no absence inferred."
     },
     {
@@ -4202,10 +4504,16 @@
           "status": "RSL catalog confirms 1930 Academia, translation A. A. Frankovsky, introduction R. Pelshe; target page and title scan not yet checked"
         },
         {
+          "language": "ru",
+          "edition": "Основные понятия истории искусств, translation Adrian Frankovsky, revised edition, Азбука, 2023",
+          "preview": "https://books.yandex.ru/books/zlx1UDWc/read-online",
+          "status": "Publisher online preview personally inspected via direct HTML: the corresponding complete sentence for C:A-I086 appears in text at paragraph djyils1t40sx. The edition identifies translator Adrian Frankovsky and scholarly editor Polina Zapadalova and describes a revised translation. Google Books returns electronic position PT58, not a verified print page. Editor identity and contribution, image, print page and legal reuse/quotation basis require review; this is not assumed to be the exact 1930 wording."
+        },
+        {
           "language": "es",
           "edition": "Conceptos fundamentales en la Historia del Arte, translation attributed José Moreno Villa, 1924",
           "catalogue": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991011245469708606&context=L&vid=34BNE_INST:CATALOGO",
-          "status": "BNE identifies 1924 candidate and 2014 Austral translation by José Moreno Villa (1887–1955); 2014 text restricted to BNE or conservation centers, target page unverified"
+          "status": "BNE and San Fernando academy catalogue identify José Moreno Villa (1887–1955) as translator. Google Books SearchWithinVolume for the 1924 Calpe edition returns the complete corresponding sentence at p70 (https://books.google.com.mx/books?id=_xsorJiDiaUC&jscmd=SearchWithinVolume&q=%22se%20puede%20contemplar%22&scoring=n); personally checked as OCR snippet only, page image and rights remain unverified. A 1945 p72 snippet differs and is not assumed identical."
         }
       ],
       "requested_places": [
@@ -4255,6 +4563,11 @@
           "query": "Вельфлин основные понятия",
           "result": "1930 Academia catalogue names A. A. Frankovsky and R. Pelshe; pages not viewed",
           "url": "https://search.rsl.ru/ru/record/01009016593"
+        },
+        {
+          "source": "Internet Archive advancedsearch and metadata; Open Library",
+          "url": "https://archive.org/metadata/in.ernet.dli.2015.282622",
+          "result": "Title/author search returned Spanish and English records. The 1997 Spanish item conceptosfundame0000hein is access-restricted; the user-uploaded 1952 scan has unverified authority despite its CC label. English DLI item claims 1922; OCR title names M. D. Hottinger and includes prefaces to sixth and seventh editions, while library records OL50564753M and OL6280423M date Hottinger translations to 1932. Do not rely on 1922 or the uploader public-domain claim without title and rights verification."
         }
       ],
       "remaining": "View and compare 1915/1917/1943 source pages; identify lawful target pages and contributors of all translation witnesses; search remaining required catalogues. No conclusion of absence has been made."
@@ -4683,7 +4996,10 @@
       "areas": [
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [{"url": "https://doi.org/10.26913/70102016.0111.0003", "status": "Kostka 2016 article is a secondary witness quoting Hutcheon 1985 p32 and references pp55–57; it is not the original book. OpenAlex locations report conflicting licences, requiring source/version review."}],
+      "remaining": "Verify exact source sentences, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "lothar-pikulik.aesthetik-des-interessanten",
@@ -4765,7 +5081,10 @@
       "areas": [
         "AE35"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [{"url": "https://plato.stanford.edu/archives/fall2026/entries/schiller/#LettAestEduc", "status": "Independent researcher checked SEP archive §2.4 for O-I009; SEP is a secondary witness and cited print pages belong to other publications. SEP author copyright and translation rights require review."}],
+      "remaining": "Verify exact source sentences, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "maria-eugenia-panero.does-reading-a-single-passage-of-literary",
@@ -5130,7 +5449,10 @@
       "areas": [
         "AE17"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [{"url": "https://plato.stanford.edu/archives/fall2026/entries/aesthetics-18th-german/", "status": "Independent researcher checked SEP archive §4.1 Mendelssohn and §8.1 Kant/Schiller for A:E052 and C-I068. Printed pages cited there belong to works discussed, not the SEP HTML. SEP terms and translation rights require review."}],
+      "remaining": "Verify exact source sentences, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "paul-j-silvia.cognitive-appraisals-and-interest-in-visual-art",
@@ -5345,7 +5667,11 @@
       "areas": [
         "AE17"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "doi_candidate": "10.1111/papq.12375",
+      "original_candidates": [{"url": "https://api.crossref.org/works/10.1111/papq.12375", "status": "Journal metadata and publisher abstract identified; Wiley and Academia returned 403, so full text and target §1 pages are not verified. No general open licence established."}],
+      "remaining": "Verify exact source sentences, all contributors and territorial rights; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "samuel-beckett.en-attendant-godot",
@@ -5618,7 +5944,36 @@
       "areas": [
         "AE15"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "U.S. National Library of Medicine",
+          "role": "institution responsible for MeSH",
+          "evidence": [
+            "https://www.nlm.nih.gov/databases/download/mesh.html"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Medical Subject Headings, 2026 RDF release, descriptor D011434 and preferred concept M0017778",
+          "url": "https://id.nlm.nih.gov/mesh/2026/D011434.json",
+          "scope_note": "https://id.nlm.nih.gov/mesh/2026/M0017778.json",
+          "status": "NLM machine-readable release personally inspected: descriptor is Proprioception, introduced 1973, lastUpdated 2020-06-09; its linked preferred concept provides the two-sentence scope note on proprioceptive receptors, position and movement. This is a versioned digital locus, not a print page."
+        }
+      ],
+      "searches": [
+        {
+          "source": "NLM MeSH data terms",
+          "url": "https://www.nlm.nih.gov/databases/download/terms_and_conditions_mesh.html",
+          "result": "NLM states that MeSH data are freely provided, prescribes source acknowledgment and version/currentness information for redistribution, and explicitly excludes MeSH Translation files from these MeSH data terms. Review scope and obligations before use; no blanket rights conclusion for third-party translations."
+        }
+      ],
+      "requested_places": [
+        "B:A-I033: D011434 preferred concept M0017778 scope note"
+      ],
+      "remaining": "Verify provenance and reuse conditions for the 2026 scope note and find independently licensed ru, es, de, zh-Hans aligned translations; all required searches and independent review remain open."
     },
     {
       "work": "victor-turner.the-forest-of-symbols",
@@ -5627,7 +5982,10 @@
       "areas": [
         "AE31"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [{"url": "https://public.gettysburg.edu/~dperry/Class%20Readings%20Scanned%20Documents/Theory%20Scans/Turner.PDF", "status": "Institution-hosted excerpt of Cornell 1967; independent researcher inspected pp27–30 for D:B-I009. Differentiate author text, quoted Sapir and the Ndembu participants; confirm exact sentence and quotation basis."}],
+      "remaining": "Verify exact sentences and all contributors, territorial quotation rights and lawful copy; search and align ru, es, de and zh-Hans witnesses in required catalogues. Search incomplete; no absence inferred."
     },
     {
       "work": "viktor-v-bychkov.bezobraznoe",
