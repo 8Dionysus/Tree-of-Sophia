@@ -587,8 +587,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   }
   // A name comes and goes softly. A new one stands once it has had its room for a moment, so that a turn or a zoom
   // passing over it does not make it flicker; a name that leaves fades where it stood, and one that moves to another of
-  // its places slides there. A name already standing keeps its place while that place stays clear.
-  const APPEAR_MS=110,GLIDE='opacity .25s,color .25s,left .24s cubic-bezier(.2,.7,.2,1),top .24s cubic-bezier(.2,.7,.2,1)';
+  // its places slides there. A name already standing keeps its place while that place stays clear. A name that has
+  // faded out leaves the page's painting with the end of its fade (style.css), so the browser lays out its layers
+  // from the names that show.
+  const APPEAR_MS=110,GLIDE='opacity .25s,color .25s,visibility .25s,left .24s cubic-bezier(.2,.7,.2,1),top .24s cubic-bezier(.2,.7,.2,1)';
   // A group's name that yields stands over at most this many stars.
   const GROUP_CROWD=3;
   // A group's name stands at one of five places above and below its stars.
