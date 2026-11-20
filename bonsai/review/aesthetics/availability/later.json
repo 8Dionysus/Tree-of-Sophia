@@ -2149,7 +2149,14 @@
           "status": "Library catalog record; target passages unchecked."
         }
       ],
-      "remaining": "Verify complete target sentences and pages in lawful original and translation copies; find Chinese edition and mandatory search routes; independently determine original, translators and third-party rights."
+      "remaining": "Verify complete target sentences and pages in lawful original and translation copies; find Chinese edition and mandatory search routes; independently determine original, translators and third-party rights.",
+      "searches": [
+        {
+          "source": "Ad Marginem, LitRes and Yandex Books",
+          "url": "https://admarginem.ru/product/smotrim-na-chuzhie-stradaniya-vtoroe-izdanie/",
+          "result": "Publisher personally checked: identifies Golyshev translation in 2014 and 2023 editions. Linked LitRes card returned 200 but displayed not for sale; linked Bookmate redirected to Yandex Books 404, and direct read-online also returned 404. Neither supplied the required passages; other lawful copies remain to search."
+        }
+      ]
     },
     {
       "work": "umberto-eco.opera-aperta",
@@ -3562,7 +3569,38 @@
       "areas": [
         "AE15"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Audre Lorde",
+          "role": "author",
+          "birth": 1934,
+          "death": 1992,
+          "evidence": [
+            "https://openlibrary.org/authors/OL278850A.json"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Uses of the Erotic: The Erotic as Power, in Sister Outsider, The Crossing Press; exact printing of this institutional scan not established",
+          "url": "https://medialibrary.uantwerpen.be/oldcontent/container2607/files/Lorde%20-%20Uses%20of%20the%20Erotic.pdf",
+          "page": "printed pp56–57, PDF page 4 (two-page spread)",
+          "status": "Institution-hosted scan with copyright notice; pages 56–57 personally inspected. Contains discussion of embodied knowledge, joy and varied creative work; exact short quotation and boundaries need independent review. Access does not establish open licence."
+        }
+      ],
+      "requested_places": [
+        "B:A-I041, embodied feeling, knowledge and creativity; pp56–57 candidate"
+      ],
+      "searches": [
+        {
+          "source": "Open Library",
+          "url": "https://openlibrary.org/search.json?title=Sister%20Outsider&author=Audre%20Lorde",
+          "result": "Collection record reports first publication 1984; the scan itself does not establish its printing date. PDF footnote dates the conference paper 25 August 1978 and notes a pamphlet; publication events remain distinct."
+        }
+      ],
+      "remaining": "Check complete source sentences, edition identity and rights per jurisdiction; find and align ru, es, de and zh-Hans translations through required routes. Search and independent reader review remain incomplete."
     },
     {
       "work": "bence-nanay.aesthetic-attention",
