@@ -17,7 +17,9 @@ use std::mem::size_of;
 use tos_compiler::source_witness_catalog::ColdSourceCatalogReceipt;
 use tos_validation::executor::schema_diagnostics::PathSegment;
 use tos_validation::source_cut::CutSchemaEvidence;
-use tos_validation::source_foundation_default_rules::SourceFoundationDefaultRulesReport;
+use tos_validation::source_foundation_default_rules::{
+    SourceFoundationDefaultRulesReport, records_direct_issue_count,
+};
 use tos_validation::source_foundation_labs::SourceFoundationLab;
 use tos_validation::source_foundation_records::SourceFoundationRecordsOwnerIssue;
 use tos_validation::source_foundation_schema::{
@@ -402,11 +404,9 @@ fn rules_diagnostics_complete(rules: &EvaluatedSourceFoundationRules) -> bool {
 
 fn owner_rule_bindings(rules: &EvaluatedSourceFoundationRules) -> bool {
     let owner = &rules.owner_report;
-    let direct_issue_count = owner
-        .labs
-        .ordered_issues
-        .len()
-        .checked_add(owner.records.ordered_issues.len())
+    let direct_issue_count = records_direct_issue_count(&owner.records)
+        .ok()
+        .and_then(|n| n.checked_add(owner.labs.ordered_issues.len()))
         .and_then(|n| n.checked_add(owner.goldsets.ordered_issues.len()))
         .and_then(|n| n.checked_add(owner.discovery.issues.len()))
         .and_then(|n| n.checked_add(owner.closure.issues.len()));

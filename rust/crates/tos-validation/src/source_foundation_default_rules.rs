@@ -2184,8 +2184,8 @@ fn check_current_paths(
     Ok(())
 }
 
-#[cfg(feature = "research")]
-fn records_direct_issue_count(
+/// Count the retained Records, Item and ordered owner issue streams.
+pub fn records_direct_issue_count(
     records: &SourceFoundationRecordsReport,
 ) -> Result<usize, ItemRefusal> {
     let mut count = records
