@@ -1309,7 +1309,7 @@ class AncientBoundTest(unittest.TestCase):
         entity = {'claims': {'P570': [self.claim('-0015-00-00T00:00:00Z', 9, circa=True)]}}
         self.assertIsNone(kit.entity_year(entity, 'P570'))
         bound = kit.death_bound(entity)
-        self.assertEqual(bound['year'], 35)
+        self.assertEqual(bound['year'], -15 + kit.LONGEST_LIFE)
         person = {'died': None, 'died_before': bound['year'], 'death_bound': bound}
         dates = kit.public_domain_by_dates([person, {'died': 1916}], 1899, year=2026)
         self.assertEqual(dates, {'russia': True, 'usa': True, 'eu': True})

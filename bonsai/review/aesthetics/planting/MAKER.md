@@ -411,8 +411,8 @@ unknown and cannot establish public domain by dates.
 An ancient or medieval hand whose death is known within bounds is entered with
 `K person . author QID --bounded` (and `witness-person . LANG translator QID
 --bounded` for a witness). The kit reads the Wikidata date of death with its
-precision (year, decade, century, millennium), a `circa` qualifier or a latest
-date. Without a date of death, a floruit or the end of a working period shows
+precision (year, decade, century, millennium) and its latest date; a date of
+death marked `circa` counts as alive about then. Without a date of death, a floruit or the end of a working period shows
 the person alive then, and the bound is that year plus the longest attested
 human life (122 years). The kit records `died_before` with the claims it rests
 on. A bound before 1800 establishes the
