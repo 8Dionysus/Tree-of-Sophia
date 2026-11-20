@@ -85,7 +85,8 @@ if(args.has('--refresh-qualifiers')){
         if(!batch.includes(life.item))continue;
         const entity=entities[life.item];if(!entity||entity.missing!==undefined)continue;
         const times=property=>{const claims=(entity.claims?.[property]??[]).filter(claim=>claim.rank!=='deprecated'&&claim.mainsnak.datavalue),preferred=claims.filter(claim=>claim.rank==='preferred');return (preferred.length?preferred:claims).map(timeRecord);};
-        life.born=times('P569');life.died=times('P570');life.fetched=new Date().toISOString().slice(0,10);
+        // A documented cross-source conflict stays unresolved until explicitly reviewed.
+        life.born=life.date_conflict?.field==='born'?[]:times('P569');life.died=life.date_conflict?.field==='died'?[]:times('P570');life.fetched=new Date().toISOString().slice(0,10);
         if([...life.born,...life.died].some(date=>date.approximate))qualified++;
         count++;
       }
@@ -529,10 +530,10 @@ for(const [work,entry] of Object.entries(library.works)){
   const year=record.year,found=/(\d{4})\s*[–-]\s*(\d{4})/.exec(wording),span=found&&Number(found[1])===year?found:null;
   const when=span?{kind:'interval-assertion',...dating({certainty:wording.trim()===span[0]?'exact':'approximate',interval:{start:span[1],end:span[2]},source_wording:{text:wording,language:'ru'}})}
     :Number.isInteger(year)?{kind:'date-assertion',...dating({certainty:wording.trim()===String(year)?'exact':'approximate',value:lexeme(year),source_wording:{text:wording,language:'ru'}})}
-    :situations[lifeOf[agent]]?.dating?.kind==='unknown-date'?{kind:'unknown-date',...dating({certainty:'unknown',source_wording:{text:wording||'Date not recorded',language:'ru'}})}
+    :entry.agents.length!==1||situations[lifeOf[agent]]?.dating?.kind==='unknown-date'?{kind:'unknown-date',...dating({certainty:'unknown',source_wording:{text:wording||'Date not recorded',language:'ru'}})}
     :{kind:'relative-order',role:'historical-time',calendar:null,year_numbering:null,certainty:'approximate',relative:{relation:'during',anchor_ref:lifeOf[agent]},source_wording:{text:wording,language:'ru'}};
   const title={ru:entry.title.ru,en:entry.title.en??entry.title.original??entry.title.ru};
-  const said=span?`${span[1]}–${span[2]}`:Number.isInteger(year)?String(year):`within the life of ${library.agents[agent].name.en}`;
+  const said=span?`${span[1]}–${span[2]}`:Number.isInteger(year)?String(year):when.kind==='relative-order'?`within the life of ${library.agents[agent].name.en}`:`as ${wording||'unknown'}`;
   const id=`tos.historical-process.${work}-dating`;
   situations[id]={type:'historical-process',work,label:{ru:`Датировка: «${title.ru}»`,en:`Dating: ${title.en}`},dating:when,
     statement:{ru:`Реестр бонсая датирует произведение: ${wording}. Источник реестра: ${cited.title}.`,en:`The bonsai’s register dates the work ${said}. The register’s source: ${cited.title}.`},
