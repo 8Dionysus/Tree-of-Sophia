@@ -772,6 +772,7 @@ def cmd_correct(args):
 def cmd_accepted_text_correct(args):
     """Record a new, independently reviewed correction without replacing the original acceptance."""
     path=packet(args.packet);accepted=part(path,'accepted.json') or die('an accepted packet is required')
+    if not isinstance(args.to,str) or not args.to:die('the replacement cannot be empty; include surrounding context to record a deletion')
     ev=evidence(path);entry=(ev.get('places') or {}).get(args.loc) or die('no evidence for this place')
     scan=scan_of(ev,entry)
     if args.n not in (entry.get('images') or []) or args.url!=f"https://archive.org/download/{scan.get('item')}/page/n{args.n}.jpg":die('the URL must be the recorded scan page for this place')

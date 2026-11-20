@@ -731,6 +731,12 @@ class AcceptedPageNumberTest(unittest.TestCase):
             (path/'evidence.json').write_text(json.dumps({'scan':{'item':'book'},'places':{'loc':{'images':[3]}}}))
             image=Path(tmp)/'page.png';image.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='))
             args=argparse.Namespace(packet=str(path),loc='loc',to='autoritatem',n=3,url='https://archive.org/download/book/page/n3.jpg',by='maker',second='reader',second_model='model',assessment='The page reads autoritatem without the letter c.',file=str(image),**{'from':'auctoritatem'})
+            prior_places=(path/'places.json').read_bytes();prior_accept=(path/'accepted.json').read_bytes()
+            args.to=''
+            with self.assertRaises(SystemExit):kit.cmd_accepted_text_correct(args)
+            self.assertEqual((path/'places.json').read_bytes(),prior_places)
+            self.assertEqual((path/'accepted.json').read_bytes(),prior_accept)
+            args.to='autoritatem'
             with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_accepted_text_correct(args)
             places=json.loads((path/'places.json').read_text());accepted=json.loads((path/'accepted.json').read_text());correction=places['corrections'][0]
             self.assertEqual(places['places']['loc']['texts']['la'],'gratiam autoritatem vendicat')
