@@ -963,6 +963,21 @@ class ScanRegistrationTest(unittest.TestCase):
             self.assertEqual(record['scans'],{})
             self.assertEqual(record['withdrawn_scans'][0]['scan'],scan)
 
+class UnknownParticipantTest(unittest.TestCase):
+    def test_source_backed_unknown_death_does_not_establish_personal_term(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'packet';path.mkdir()
+            args=argparse.Namespace(packet=str(path),role='author',qid=None,name='Rebecca Journey',ru=None,died=None,source='https://example.org/article',remove=False,wartime=None,rehabilitated=None)
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')),patch.object(kit,'get',return_value=b'<html><body>Rebecca Journey</body></html>'):
+                kit.cmd_person(args)
+                person=json.loads((path/'evidence.json').read_text())['persons'][0]
+                self.assertIsNone(person['died'])
+                self.assertEqual(person['identity_evidence']['url'],args.source)
+                self.assertFalse(kit.public_domain_by_dates([person],2025)['eu'])
+                self.assertFalse(kit.public_domain_by_dates([person],2025)['russia'])
+
 class InterfaceCoverageGateTest(unittest.TestCase):
     def test_new_work_requires_evidence_and_old_work_records_debt(self):
         import tempfile

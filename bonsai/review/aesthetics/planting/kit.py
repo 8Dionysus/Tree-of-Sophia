@@ -647,8 +647,15 @@ def cmd_person(args):
         died=year('P570');print(f"{args.qid}: {label('en')} / {label('ru')} — {(entity.get('descriptions',{}).get('en') or {}).get('value')}; born {year('P569')}, died {died}")
         person={'qid':args.qid,'name':{'en':label('en'),'ru':label('ru') or label('en')},'role':args.role,'born':year('P569'),'died':died,'source':f'https://www.wikidata.org/wiki/{args.qid}'}
     else:
-        if not(args.name and args.died is not None and trusted(args.source)):die('without an item: --name NAME --died YEAR --source URL, the URL on one of: '+', '.join(TRUSTED))
+        if not(args.name and lawful_url(args.source)):die('without an item: --name NAME --source HTTPS-URL, and --died YEAR only when supported by a trusted reference')
+        if args.died is not None and not trusted(args.source):die('a stated death year requires a trusted reference: '+', '.join(TRUSTED))
         person={'name':{'en':args.name,'ru':args.ru or args.name},'role':args.role,'died':args.died,'source':args.source}
+        if args.died is None:
+            raw=get(args.source)
+            if args.name.casefold() not in plain(raw,'person.html').casefold():die('the source does not contain the stated name')
+            filename='person-'+hashlib.sha256(args.source.encode()).hexdigest()[:16]+'.html'
+            Path(cache(path,filename)).write_bytes(raw)
+            person['identity_evidence']={'file':filename,'url':args.source,'sha256':hashlib.sha256(raw).hexdigest()}
     if args.wartime is not None:
         if not trusted(args.wartime_source):die('--wartime requires --wartime-source on a trusted site')
         person['wartime']=args.wartime=='yes';person['wartime_source']=args.wartime_source
@@ -1126,7 +1133,15 @@ def gate(path,second=False,offline=False):
         if not any(person.get('role')=='author' for person in persons):add('evidence.persons wants the author with the year of death and the page that gives it')
         sound=True
         for person in persons:
-            if (person.get('died') is not None and type(person.get('died')) is not int) or not isinstance(person.get('name'),dict) or not(person.get('qid') or trusted(person.get('source'))):sound=False;add(f"evidence.persons {person.get('name')}: enter the person again with kit.py person ROLE QID")
+            identity=person.get('identity_evidence') or {}
+            reference=(person.get('died') is None and lawful_url(person.get('source')) and identity.get('url')==person.get('source') and bool(re.fullmatch(r'[a-f0-9]{64}',str(identity.get('sha256','')))))
+            if reference and not offline:
+                try:
+                    raw=Path(cache(path,identity['file'])).read_bytes()
+                    name=(person.get('name') or {}).get('en','')
+                    reference=bool(name) and hashlib.sha256(raw).hexdigest()==identity['sha256'] and name.casefold() in plain(raw,identity['file']).casefold()
+                except (OSError,KeyError,TypeError):reference=False
+            if (person.get('died') is not None and type(person.get('died')) is not int) or not isinstance(person.get('name'),dict) or not(person.get('qid') or (not identity and trusted(person.get('source'))) or reference):sound=False;add(f"evidence.persons {person.get('name')}: enter the person again with kit.py person ROLE QID or a source for the unknown-dated hand")
             if person.get('wartime') is not None and (type(person['wartime']) is not bool or not trusted(person.get('wartime_source'))):sound=False;add('wartime status requires a trusted source')
             if person.get('rehabilitated') is not None and (type(person['rehabilitated']) is not int or not trusted(person.get('rehabilitation_source'))):sound=False;add('rehabilitation requires a year and a trusted source')
         if sound and persons:
