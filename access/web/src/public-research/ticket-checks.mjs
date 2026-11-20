@@ -24,6 +24,8 @@ export function checkTicket({target,draft,grounds=[],known=()=>false,similar=[],
   const out=[];
   if(target.type==='star'||target.type==='link')out.push({id:'address',level:known(target.id)?'ok':'block'});
   else if(target.type==='passage')out.push({id:'address',level:target.passage?.reference||target.stand?'ok':'block'});
+  // A region of an image or a segment of a recording is addressed by its media fragment (media-wall.mjs).
+  else if(target.type==='region')out.push({id:'address',level:/^media:[a-z0-9-]+:[^#\s]+#(xywh|t)=/.test(target.id??'')?'ok':'block'});
   else out.push({id:'address',level:'block'});
   if(!String(draft.observation??'').trim())out.push({id:'observation',level:'block'});
   const change=draft.change;

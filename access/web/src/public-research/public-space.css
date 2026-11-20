@@ -784,6 +784,10 @@
 .ps-parallel-cell.is-absent{min-height:1.5em;background:repeating-linear-gradient(135deg,transparent 0 7px,#8296b214 7px 8px);border-radius:3px}
 .ps-parallel mark{background:#d6c59c33;color:#f1e7cb;border-radius:2px;padding:0 1px}
 .ps-parallel-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:10px 22px 14px;border-top:1px solid #8296b22b}
+.ps-parallel-nav .ps-parallel-pace{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:0 6px;color:#d6c59c;font:13px/1 var(--ps-sans,system-ui,sans-serif)}
+.ps-parallel-voice{margin:0;padding:6px 22px;border-top:1px solid #8296b22b;color:#b9c6d4;font:12.5px/1.4 var(--ps-sans,system-ui,sans-serif)}
+::highlight(tos-voice){background-color:#dcc6905c;color:inherit}
+.ps-parallel-cell p.is-voiced{background:#dcc69024;box-shadow:-6px 0 0 #dcc69024,6px 0 0 #dcc69024;border-radius:2px}
 .ps-parallel-foot .text-button{min-height:32px;color:#d6c59c;font:12.5px/1.3 var(--ps-sans,system-ui,sans-serif)}
 .ps-parallel-credit{flex:1 1 320px;min-width:0;margin:0;color:#7f93ab;font:11px/1.5 var(--ps-sans,system-ui,sans-serif);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;border-radius:3px}
 .ps-parallel-credit.is-open{display:block}

@@ -135,7 +135,7 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
   }
   function groundsOf(target){
     const address=addressOf(target);
-    if(target.type==='passage')return address?[address]:[];
+    if(target.type==='passage'||target.type==='region')return address?[address]:[];
     const record=target.item?.record;if(!record)return [];
     const places=Array.isArray(record.grounds)&&record.grounds.length?record.grounds:citedPlaces(record);
     const out=[];for(const cite of places.slice(0,16)){try{out.push(citationId(cite));}catch{}}
@@ -362,14 +362,15 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
     const address=addressOf(target),link=actionLayer?.linkTo?.(target)??'';
     const record=target.item?.record,ground=Array.isArray(record?.grounds)?record.grounds[0]:null;
     const quote=target.passage?.quote??target.quote??ground?.q??null;
-    const place=target.passage?[target.passage.title,target.passage.versionLabel].filter(Boolean).join(', '):target.stand?target.stand.chapter:ground?`${ground.w} ${ground.c??''}`.trim():'';
+    const place=target.passage?[target.passage.title,target.passage.versionLabel].filter(Boolean).join(', '):target.stand?target.stand.chapter:target.media?[target.media.holder,target.media.record].filter(Boolean).join(', '):ground?`${ground.w} ${ground.c??''}`.trim():'';
     const grounds=groundsOf(target);
     const out=[];
-    out.push({id:'markdown',label:'formatMarkdown',text:[`### ${target.label}`,'',`[${address}](${link})`,...(quote?['',`> ${quote}`,`> — ${place}`]:[]),...(grounds.length?['',...grounds.map(ground=>`- \`${ground}\``)]:[])].join('\n')});
+    const media=target.media?['',`${target.media.title}${target.media.date?` (${target.media.date})`:''} — ${place}`,...(target.media.rights?[`${target.media.rights.text}: ${target.media.rights.url}`]:[])]:[];
+    out.push({id:'markdown',label:'formatMarkdown',text:[`### ${target.label}`,'',`[${address}](${link})`,...media,...(quote?['',`> ${quote}`,`> — ${place}`]:[]),...(grounds.length?['',...grounds.map(ground=>`- \`${ground}\``)]:[])].join('\n')});
     if(quote)out.push({id:'quote',label:'formatQuote',text:`«${String(quote).replace(/^[«"“]+|[»"”]+$/gu,'')}» — ${place}${link?`\n${link}`:''}`});
     let packet=null;
     if(target.id&&registry){try{packet=await registry.invoke('tos.page.research-item',{id:target.id});}catch{packet=null;}}
-    out.push({id:'json',label:'formatJson',text:JSON.stringify(packet??{address,label:target.label,quote,place,grounds,...(target.passage?{reference:target.passage.reference}:{}),...(target.stand?{place:target.stand}:{})},null,2)});
+    out.push({id:'json',label:'formatJson',text:JSON.stringify(packet??{address,label:target.label,quote,place,grounds,...(target.passage?{reference:target.passage.reference}:{}),...(target.stand?{place:target.stand}:{}),...(target.media?{media:target.media}:{})},null,2)});
     const question=api?.getQuestion?.()?.trim();
     out.push({id:'agent',label:'formatAgent',text:[
       `Subject: ${target.label} (${address})`,link?`Open: ${link}`:'',question?`Question: ${question}`:'',
