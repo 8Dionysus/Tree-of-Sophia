@@ -747,7 +747,7 @@ export function mountPublicWorkspaceView({root, api, notebook, workspace, shelf,
   const unsubscribeWorkspace = workspace.subscribe(() => { render(); section.open=true; });
   let destroyed = false;
   const refreshLocale = () => { title.textContent=t().heading; intro.textContent=t().intro; undo.textContent=t().undo; redo.textContent=t().redo; addSource.textContent=t().add; exportButton.textContent=t().export; draftExportButton.textContent=t().exportDraft; exportFormButton.textContent=t().exportForm; importFormButton.textContent=t().importForm; importButton.textContent=t().import; render(); if (pendingImport) renderImportPreview(pendingImport); else message(''); };
-  return {workspace, shelf, connectAgentBridge: subscribeSourceList, render, refreshLocale, hasUnsavedDraft, destroy() {
+  return {workspace, shelf, connectAgentBridge: subscribeSourceList, render, refreshLocale, hasUnsavedDraft, exportAll: () => exportPacket(), destroy() {
     if (destroyed) return;
     destroyed = true; unsubscribeQuestion?.(); unsubSources?.(); unsubscribeWorkspace(); section.remove(); workspace.dispose(); void shelf.close();
   }};

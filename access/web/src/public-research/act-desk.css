@@ -38,4 +38,8 @@
 .ad-pre{margin:0;max-height:46vh;overflow:auto;padding:12px;border:1px solid var(--ps-line);border-radius:8px;background:#070f1b;color:var(--ps-ink);font:12.5px/1.5 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
 .ad-tab[aria-pressed=true]{color:var(--ps-gold);text-decoration:underline;text-underline-offset:4px}
 .ad-tiers{display:flex;flex-direction:column;gap:6px}
+.wp-key{padding:2px 7px;border:1px solid var(--ps-line-strong);border-bottom-width:2px;border-radius:4px;color:var(--ps-gold);font:600 12px var(--ps-sans)}
+.wp-name{flex:1 1 220px;width:auto}
+.dh-code{align-self:flex-start;max-width:100%;height:auto;padding:0;border-radius:6px;background:#fff;image-rendering:pixelated}
+.dh-link{font:13px ui-monospace,monospace}
 @media (max-width:760px){.ad-board{grid-template-columns:minmax(0,1fr)}.ad-body{padding:14px 16px 18px}}

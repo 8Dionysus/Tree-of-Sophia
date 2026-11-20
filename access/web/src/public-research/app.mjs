@@ -13,6 +13,8 @@ import {mountActionLayer} from './action-layer.mjs';
 import {mountActDesk} from './act-desk.mjs';
 import {mountResearchTrail} from './research-trail.mjs';
 import {mountMediaWall} from './media-wall.mjs';
+import {mountWorkplaces} from './workplaces.mjs';
+import {mountDeviceHandoff} from './device-handoff.mjs';
 import {loadResearchVersion,retainedResearchVersions} from './research-history.mjs';
 import {createControlPrefs} from './control-prefs.mjs';
 // How this device steers the stand: one set of preferences for the space, its keys and the reading size.
@@ -147,6 +149,8 @@ let actionLayer;
 let actDesk;
 let researchTrail;
 let mediaWall;
+let workplaces;
+let deviceHandoff;
 let stopWorkspaceMirror;
 let appDisposed=false;
 let saveTimer = null;
@@ -532,6 +536,8 @@ async function start() {
   researchTrail=mountResearchTrail({shell:spaceView.root,actionLayer,space:spaceView,acts:actJournal,actDesk,experience,registry:pageAgent.registry,locale:()=>locale,profile,
     versions:profile==='zarathustra'?{list:retainedResearchVersions,load:loadResearchVersion}:null});
   mediaWall=mountMediaWall({shell:spaceView.root,actionLayer,actDesk,space:spaceView,locale:()=>locale,profile});
+  workplaces=mountWorkplaces({shell:spaceView.root,actionLayer,space:spaceView,experience,registry:pageAgent.registry,locale:()=>locale,profile});
+  deviceHandoff=mountDeviceHandoff({shell:spaceView.root,actionLayer,acts:actJournal,exportWork:()=>workspaceView?.exportAll?.(),locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && corpusInfo) {
@@ -562,6 +568,8 @@ function disposeApp() {
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
+  deviceHandoff?.destroy();
+  workplaces?.destroy();
   mediaWall?.destroy();
   researchTrail?.destroy();
   actDesk?.destroy();

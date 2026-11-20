@@ -118,12 +118,14 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
     layerGroup.setAttribute('aria-label',t('layer'));
     for(const b of layerButtons){const id=b.dataset.layer;b.setAttribute('aria-checked',String(id===layer));b.querySelector('.al-layer-name').textContent=t(id);}
   }
-  function setLayer(next,{write=true}={}){
+  // A person's change of layer supersedes what agents were about to do; a page command that sets the layer is that
+  // change itself, and the registry counts it when the command completes (notify:false).
+  function setLayer(next,{write=true,notify=true}={}){
     next=validLayer(next);if(next===layer){paintLayer();return layer;}
     layer=next;paintLayer();
     if(write){const url=new URL(view.location.href);if(layer==='reading')url.searchParams.delete(LAYER_PARAM);else url.searchParams.set(LAYER_PARAM,layer);view.history.replaceState(view.history.state,'',url);}
     shell.dispatchEvent(new view.CustomEvent('public-research-layer',{bubbles:true,detail:{layer}}));
-    registry?.notifyStateChange?.();
+    if(notify)registry?.notifyStateChange?.();
     return layer;
   }
   const tools=header?.querySelector('.main-tools');
