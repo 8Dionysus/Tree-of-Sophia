@@ -2032,7 +2032,81 @@
    "william-gilpin.three-essays",
    "william-james.the-principles-of-psychology",
    "william-morris.the-decorative-arts"
-  ]
+  ],
+  "translation_packets": {
+   "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "XV p164",
+       "from": "play-im- pulse",
+       "to": "play-impulse",
+       "offset": 18,
+       "reason": "p. 68 n109 divides impulse at the line end; preserve the lexical hyphen.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n109.jpg",
+       "page": "p. 68",
+       "image_sha256": "9d75c77f302fdcaa6bb592ba05137e717fd6d91495f8540902ea3e57b1816be9"
+      },
+      {
+       "loc": "XV p164",
+       "from": "aesthetic",
+       "to": "æsthetic",
+       "offset": 138,
+       "reason": "p. 68 n109 prints the æ ligature.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n109.jpg",
+       "page": "p. 68",
+       "image_sha256": "9d75c77f302fdcaa6bb592ba05137e717fd6d91495f8540902ea3e57b1816be9"
+      },
+      {
+       "loc": "XXIII p236a",
+       "from": "per- ception",
+       "to": "perception",
+       "offset": 47,
+       "reason": "p. 108 n149 divides perception at the line end.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+       "page": "p. 108",
+       "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+      },
+      {
+       "loc": "XXIII p236a",
+       "from": "aes- thetic",
+       "to": "æsthetic",
+       "offset": 153,
+       "reason": "p. 108 n149 divides æsthetic at the line end and prints æ ligature.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+       "page": "p. 108",
+       "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+      },
+      {
+       "loc": "XXIII p236a",
+       "from": "disposi- tions",
+       "to": "dispositions",
+       "offset": 256,
+       "reason": "p. 108 n149 divides dispositions at the line end.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+       "page": "p. 108",
+       "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+      },
+      {
+       "loc": "XXIII p236a",
+       "from": "judg- ment",
+       "to": "judgment",
+       "offset": 419,
+       "reason": "p. 108 n149 divides judgment at the line end.",
+       "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+       "page": "p. 108",
+       "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+      }
+     ]
+    }
+   }
+  }
  },
  "works": {
   "immanuel-kant.kritik-der-urteilskraft": {
@@ -2557,6 +2631,106 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy",
+     "year": 1845,
+     "url": "https://archive.org/details/stheticletterses01schi",
+     "licence": "Public-domain 1845 translation and book; Internet Archive machine OCR of Duke University Libraries copy corrected against its page images, with line-wrap hyphens removed. No separate OCR licence is asserted.",
+     "maker": "codex-2026-11-19-education-weiss-maker",
+     "attribution": "Friedrich Schiller, The Æsthetic Letters, translated by John Weiss, in The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller (Boston, 1845), pp. 68 and 108; IA OCR of Duke copy compared and corrected against the page images.",
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: Шиллер умер в 1805, переводчик Вейсс в 1879, сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "US copyright: translation published in the United States in 1845, before 1931, and is in the public domain."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC art. 1: author died 1805 and translator died 1879; the ordinary life plus 70 years terms have expired."
+      }
+     },
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q6263392",
+       "name": {
+        "en": "John Weiss",
+        "ru": "Джон Уайсс"
+       },
+       "born": 1818,
+       "died": 1879,
+       "source": "https://www.wikidata.org/wiki/Q6263392",
+       "evidence": {
+        "file": "wikidata-Q6263392.json",
+        "sha256": "a0bd8ec47bc32753a296951c8154c2d461dc8eb5fb6abbde1a2326f0d13118be",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q6263392.json"
+       }
+      }
+     ],
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "John Weiss",
+        "ru": "Джон Уайсс"
+       },
+       "qid": "Q6263392",
+       "source": "https://www.wikidata.org/wiki/Q6263392",
+       "born": [
+        {
+         "time": "+1818-06-28T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1879-03-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -2564,10 +2738,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -8843,15 +9013,21 @@
      "en": "Letter XV, pp. 164–165"
     },
     "texts": {
-     "de": "Der Gegenstand des Spieltriebes, in einem allgemeinen Schema vorgestellt, wird also lebende Gestalt heißen können; ein Begriff, der allen ästhetischen Beschaffenheiten der Erscheinungen, und mit einem Worte dem, was man in weitester Bedeutung Schönheit nennt, zur Bezeichnung dient."
+     "de": "Der Gegenstand des Spieltriebes, in einem allgemeinen Schema vorgestellt, wird also lebende Gestalt heißen können; ein Begriff, der allen ästhetischen Beschaffenheiten der Erscheinungen, und mit einem Worte dem, was man in weitester Bedeutung Schönheit nennt, zur Bezeichnung dient.",
+     "en": "The object of the play-impulse, expressed in a general proposition, can then be called living shape, an idea which serves to indicate all æsthetic qualities of phenomena, and in a word, what in its widest signification we call Beauty."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n174/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n174/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n109.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, vol. 3 (1801), pp. 164–165"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, p. 68"
      ]
     ]
    },
@@ -8861,15 +9037,21 @@
      "en": "Letter XXIII, p. 236"
     },
     "texts": {
-     "de": "Der Uebergang von dem leidenden Zustande des Empfindens zu dem thätigen des Denkens und Wollens geschieht also nicht anders, als durch einen mittleren Zustand ästhetischer Freyheit, und obgleich dieser Zustand an sich selbst weder für unsere Einsichten, noch Gesinnungen etwas entscheidet, mithin unsern intellektuellen und moralischen Werth ganz und gar problematisch läßt, so ist er doch die nothwendige Bedingung, unter welcher allein wir zu einer Einsicht und zu einer Gesinnung gelangen können."
+     "de": "Der Uebergang von dem leidenden Zustande des Empfindens zu dem thätigen des Denkens und Wollens geschieht also nicht anders, als durch einen mittleren Zustand ästhetischer Freyheit, und obgleich dieser Zustand an sich selbst weder für unsere Einsichten, noch Gesinnungen etwas entscheidet, mithin unsern intellektuellen und moralischen Werth ganz und gar problematisch läßt, so ist er doch die nothwendige Bedingung, unter welcher allein wir zu einer Einsicht und zu einer Gesinnung gelangen können.",
+     "en": "Then the passage from the passive condition of perception to the active one of reflection and volition, is only effected by an intermediate condition of æsthetic freedom, and although this condition determines of itself nothing either for our judgments or dispositions, consequently leaving our intellectual and moral worth entirely problematical, yet it is the necessary stipulation, by which alone we can attain to a judgment and a disposition."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n245/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n245/mode/1up",
+     "en": "https://archive.org/download/stheticletterses01schi/page/n149.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, vol. 3 (1801), p. 236"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, p. 108"
      ]
     ]
    },
