@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
 use std::{collections::BTreeSet, io::Write};
 use tos_foundation::{Digest256Hasher, JsonLimits, JsonMode, parse_json};
 
-const MAX_SOURCE_ROW_BYTES: usize = 8 * 1024 * 1024;
+pub(crate) const MAX_SOURCE_ROW_BYTES: usize = 8 * 1024 * 1024;
 const MAX_JSON_VISITS: usize = 1_000_000;
 const MAX_JSON_DEPTH: usize = 96;
 const MAX_INTEGER_DIGITS: usize = 4096;
