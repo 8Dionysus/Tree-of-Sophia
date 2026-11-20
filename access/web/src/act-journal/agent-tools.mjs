@@ -3,6 +3,7 @@
 // another. What an agent may append is bounded here; the journal's Rust rules check every record.
 import actCommands from '../../../contracts/act-commands.v1.json' with {type:'json'};
 import pageCommands from '../../../contracts/page-commands.v1.json' with {type:'json'};
+import fieldShapes from '../../../contracts/field-shapes.v1.json' with {type:'json'};
 import {draftAct} from './drafts.mjs';
 
 export const MAX_AGENT_BATCH=100;
@@ -30,6 +31,8 @@ export async function actManifest(journal,{tier='propose'}={}){
     addressed_commands:actCommands.commands,
     pointing_commands:pageCommands.commands.map(({command_id,availability,effect})=>({command_id,availability,effect})),
     permission_tiers:actCommands.permission_tiers,
+    // The shapes the interface draws for a declared kind: thoughts, links, trial lenses and routes of the field.
+    field_shapes:fieldShapes,
   };
 }
 

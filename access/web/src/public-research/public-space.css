@@ -991,3 +991,7 @@
 #tree .ps-near-title{margin:0;color:#d9c9a6;font:500 12px/1.4 var(--ps-sans);letter-spacing:.06em;text-transform:uppercase}
 @keyframes ps-near-in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){#tree .ps-near{animation:none}}
+
+/* An agent's trial lens (L3): a chip at the top of the free map names it until it is taken off. */
+#tree .ps-trial-lens{position:absolute;top:66px;left:50%;z-index:14;display:flex;align-items:center;gap:10px;transform:translateX(-50%);padding:6px 8px 6px 14px;border:1px dashed #dcc690aa;border-radius:999px;background:#08111ff0;color:#e9dcc0;font:500 13px/1.3 var(--ps-sans);box-shadow:0 8px 24px #0009}
+#tree .ps-trial-lens[hidden]{display:none}

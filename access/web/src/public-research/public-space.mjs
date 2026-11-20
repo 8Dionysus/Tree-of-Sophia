@@ -103,8 +103,8 @@ Object.assign(extraTranslations.en,{kind_era:'Era',kind_branch:'Branch',kind_pat
 Object.assign(extraTranslations.ru,{'media_author-portrait':'Портрет автора','media_book-response':'Отклик на книгу',media_motif:'Совпадение мотива',mediaPublicDomain:'Общественное достояние',mediaCommonsPublicDomain:'Общественное достояние · Wikimedia Commons',mediaOpenAccess:'Открытый доступ','media_era-material':'Материал эпохи','media_object-of-analysis':'Предмет анализа',media_comparison:'Для сравнения',mediaOpen:'Открыть изображение во всех подробностях',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм',mediaMissing:'Изображение не загрузилось с сервиса держателя.',mediaZoomIn:'Приблизить',mediaZoomOut:'Отдалить',mediaWhole:'Показать целиком'});
 // The keyboard's way through the sky (F2) and the actions a star's hint names (A6).
 // Listening to the original in the chapter window (H2).
-Object.assign(extraTranslations.ru,{nearReading:'Чтение вблизи',nearSentence:'место, на котором стоит звезда',nearPlaces:'её места',voiceListen:'Слушать оригинал',voicePause:'Пауза',voiceResume:'Продолжить чтение',voiceRate:'Скорость чтения',voiceSentence:'Предложение {0} из {1}',voiceSilent:'немецкого голоса в этом браузере нет: свет идёт в темпе чтения'});
-Object.assign(extraTranslations.en,{nearReading:'Reading up close',nearSentence:'the place the star rests on',nearPlaces:'its places',voiceListen:'Listen to the original',voicePause:'Pause',voiceResume:'Resume reading',voiceRate:'Pace of reading',voiceSentence:'Sentence {0} of {1}',voiceSilent:'this browser has no German voice: the light moves at the pace of reading'});
+Object.assign(extraTranslations.ru,{agentRoute:'Маршрут предложен агентом',trialLens:'Пробная линза агента',trialLensOff:'Снять',nearReading:'Чтение вблизи',nearSentence:'место, на котором стоит звезда',nearPlaces:'её места',voiceListen:'Слушать оригинал',voicePause:'Пауза',voiceResume:'Продолжить чтение',voiceRate:'Скорость чтения',voiceSentence:'Предложение {0} из {1}',voiceSilent:'немецкого голоса в этом браузере нет: свет идёт в темпе чтения'});
+Object.assign(extraTranslations.en,{agentRoute:'A route an agent proposed',trialLens:'An agent\'s trial lens',trialLensOff:'Take off',nearReading:'Reading up close',nearSentence:'the place the star rests on',nearPlaces:'its places',voiceListen:'Listen to the original',voicePause:'Pause',voiceResume:'Resume reading',voiceRate:'Pace of reading',voiceSentence:'Sentence {0} of {1}',voiceSilent:'this browser has no German voice: the light moves at the pace of reading'});
 Object.assign(extraTranslations.ru,{ownSkyOn:'Моё небо: открытое в познании выделено',ownSkyOff:'Моё небо скрыто',compareWith:'Сравнить с другой звездой',connectWith:'Связать с другой мыслью',hintCard:'карточка',hintActions:'все действия',hintLinks:'связи звезды',hintClick:'Щелчок',noLinksHere:'У этой звезды на карте нет связей',walkLink:'Связь {0} из {1}'});
 Object.assign(extraTranslations.en,{ownSkyOn:'My sky: what learning opened stands out',ownSkyOff:'My sky is hidden',compareWith:'Compare with another star',connectWith:'Link with another thought',hintCard:'card',hintActions:'every action',hintLinks:'links of the star',hintClick:'Click',noLinksHere:'This star has no links on the map',walkLink:'Link {0} of {1}'});
 Object.assign(extraTranslations.en,{'media_author-portrait':'Portrait of the author','media_book-response':'A response to the book',media_motif:'A shared motif',mediaPublicDomain:'Public domain',mediaCommonsPublicDomain:'Public domain · Wikimedia Commons',mediaOpenAccess:'Open access','media_era-material':'Material of the era','media_object-of-analysis':'Object of analysis',media_comparison:'For comparison',mediaOpen:'Open the image in full detail',mediaInscribed:'Inscribed on the object',mediaSeries:'Series',mediaSize:'{0} × {1} mm',mediaMissing:'The image did not load from the holder’s service.',mediaZoomIn:'Zoom in',mediaZoomOut:'Zoom out',mediaWhole:'Show whole'});
@@ -1205,16 +1205,37 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     return {...view,nodes:view.nodes.map(node=>mine(node)?{...node,prominent:true,dim:false}:{...node,dim:true,prominent:false}),
       edges:view.edges.map(edge=>ownSky.found.has(edge.coreRecord?.id)?{...edge,highlight:true}:edge)};
   }
+  // An agent's trial lens (L3): its members stand out, the rest steps back, and a chip names the lens until it is taken off.
+  let trialLens=null;
+  const trialChip=el('div','ps-trial-lens');trialChip.hidden=true;
+  function withTrialLens(view){
+    if(!trialLens||!view)return view;
+    const mine=node=>trialLens.members.has(node.materialId)||trialLens.members.has(String(node.id).replace(/^material:/,''))||trialLens.members.has(node.coreId);
+    return {...view,nodes:view.nodes.map(node=>mine(node)?{...node,prominent:true,dim:false}:{...node,dim:true,prominent:false})};
+  }
+  function setTrialLens(spec){
+    trialLens=spec?{title:spec.title,members:new Set((spec.members??[]).flatMap(id=>[id,coreMaterial(id)].filter(Boolean)))}:null;
+    if(!trialChip.isConnected)shell.append(trialChip);
+    trialChip.hidden=!trialLens;trialChip.replaceChildren();
+    if(trialLens){const off=button(t('trialLensOff'),'text-button');off.addEventListener('click',()=>setTrialLens(null));trialChip.append(el('span','ps-trial-name',`${t('trialLens')}: ${spec.title}`),off);}
+    refreshSky();return Boolean(trialLens);
+  }
+  // An agent's routes (L4) join the stand's own and are walked by the same walker; each is the agent's proposal.
+  function setAgentRoutes(list){
+    for(let i=routes.length-1;i>=0;i--)if(routes[i].agent)routes.splice(i,1);
+    for(const item of list??[])routes.push({...item,source:'atlas',agent:true,steps:(item.steps??[]).map(step=>({...step,nodeId:coreMaterial(step.nodeId)??step.nodeId}))});
+    if(browsingRoutes||route)renderRoutes();return routes.filter(item=>item.agent).length;
+  }
   function setOwnSky(on){ownSkyOn=Boolean(on);try{localStorage.setItem(OWN_SKY_KEY,ownSkyOn?'on':'off');}catch{}shell.dataset.ownSky=String(ownSkyOn);notify(t(ownSkyOn?'ownSkyOn':'ownSkyOff'));refreshSky();}
   function refreshSky(){
     sky?.setCloseIn?.(treeView()||gatherView());sky?.setZoomCeiling?.(treeView()||gatherView()?14:4);
-    if(!sky)return;shownView=withOwnSky(visibleState());sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
+    if(!sky)return;shownView=withTrialLens(withOwnSky(visibleState()));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
     // An aspect is framed whole once, when its choice is made: the chosen star or link and the rows beside it.
     const key=aspect?`${aspect.kind}:${aspect.focus.join('|')}`:'';
     if(key!==aspectKey){const was=aspectKey;aspectKey=key;aspectOpen={};
       // An aspect is read straight on; letting it go returns the space to its resting turn.
       if(aspect)sky.faceFront();else if(was)sky.turnToRest();
-      if(aspect){shownView=withOwnSky(visibleState());sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
+      if(aspect){shownView=withTrialLens(withOwnSky(visibleState()));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
     sky.refresh();
   }
   function reflect(){
@@ -2225,6 +2246,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const current=routes.find(item=>item.id===route.id),steps=current?.steps??[],item={...current,source:'atlas'};
     const head=el('div','ps-walk-head');head.append(el('span','ps-card-kicker',`${routeWord(item)} · ${routeSize(item,steps.length)}`),el('h2','ps-route-title',tr(current?.title,locale())));
     if(current?.question)head.append(el('p','ps-route-question',tr(current.question,locale())));
+    // An agent's route says whose proposal it is (agent-field.mjs).
+    if(current?.byAgent)head.append(el('p','ps-card-voices',`${t('agentRoute')}: ${current.byAgent}`));
     const voices=routeVoicesFor(item);if(voices.length)head.append(el('p','ps-card-voices',voices.join(' · ')));
     deck.append(head);
     const list=el('ol','ps-steps');
@@ -2659,6 +2682,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     addMeasureBlock:render=>{measureBlocks.add(render);if(measureOpen)reflect();return ()=>{measureBlocks.delete(render);};},openMeasure:()=>openMeasure(),
     showChapter:key=>fragments.showChapter(key).catch(()=>notify(t('unavailable'))),
     routes:()=>[...routes,...journeyList].map(item=>({id:item.id,source:item.source??'atlas',title:item.title,steps:item.steps?.length??0})),
+    setTrialLens:spec=>setTrialLens(spec),trialLens:()=>trialLens?{title:trialLens.title,members:trialLens.members.size}:null,setAgentRoutes:list=>setAgentRoutes(list),
     setOwnSkyState:value=>{ownSky=value?{known:new Set(value.known??[]),found:new Set(value.found??[])}:null;if(ownSkyOn)refreshSky();},
     ownSky:()=>({available:Boolean(ownSky?.known.size),on:ownSkyOn,opened:ownSky?.known.size??0}),toggleOwnSky:force=>setOwnSky(force??!ownSkyOn),
     connectFrom:id=>{beginConnect(graphIdForMaterial(index?.get(id)?.materialId??id));return true;},
