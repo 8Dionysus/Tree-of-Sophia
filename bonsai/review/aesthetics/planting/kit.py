@@ -320,7 +320,9 @@ def cmd_ia(args):
     path=packet(args.packet);item=args.item;wanted={'ocr':'_hocr_searchtext.txt.gz','index':'_hocr_pageindex.json.gz','pages':'_page_numbers.json'}
     if args.dir:names={role:os.path.join(args.dir,file) for role,file in zip(wanted,args.files.split(','))}
     else:
-        files=[entry['name'] for entry in json.loads(get(f'https://archive.org/metadata/{item}')).get('files',[])]
+        metadata=json.loads(get(f'https://archive.org/metadata/{item}'))
+        if (metadata.get('metadata') or {}).get('identifier')!=item:die(f'{item}: Archive metadata does not establish this item; no scan registered')
+        files=[entry['name'] for entry in metadata.get('files',[])]
         names={role:next((name for name in files if name.endswith(tail)),None) for role,tail in wanted.items()}
     ev=evidence(path);was=scans(ev).get(item) or {}
     if not names['ocr'] or not names['index']:
@@ -336,6 +338,19 @@ def cmd_ia(args):
     save(os.path.join(path,'evidence.json'),ev);o=ocr(path,ev)
     if len(ev['scans'])>1:print(f"the packet reads {len(ev['scans'])} scans; this one is the scan the next commands work on (kit.py scan lists them and switches)")
     print(f"{item}: OCR of {len(o['starts'])} leaves, {len(o['words'])} words; printed page numbers {'given' if o['printed'] else 'not given'} by the Archive")
+
+def cmd_scan_withdraw(args):
+    path=packet(args.packet);ev=evidence(path);available=scans(ev)
+    if part(path,'accepted.json') is not None:die('an accepted packet cannot withdraw its scan')
+    if args.item not in available:die('no such scan is registered')
+    if len(args.reason.strip())<30:die('give a reason in a full sentence')
+    if any(scan_of(ev,place).get('item')==args.item for place in (ev.get('places') or {}).values()):die('the scan is already used by a place; preserve the evidence and correct that place first')
+    scan=available.pop(args.item)
+    ev.setdefault('withdrawn_scans',[]).append({'scan':scan,'reason':args.reason,'date':today()})
+    ev['scans']=available
+    if (ev.get('scan') or {}).get('item')==args.item:ev['scan']={}
+    save(os.path.join(path,'evidence.json'),ev)
+    print(f'{args.item}: withdrawn; prior record and sources preserved')
 
 # ---- words ---------------------------------------------------------------------------------------------------------
 
@@ -1023,16 +1038,17 @@ def language_coverage(path,entry,original,legacy_work=False,held=False,second=Fa
             continue
         if os.path.isfile(file):
             marker=file+'.accepted'
-            if legacy_work and not os.path.isfile(marker):continue
+            if legacy_work and not os.path.isfile(marker):
+                debts.append(f'{lang}: witness is research until independently accepted')
+                continue
             raw=Path(file).read_bytes()
             if os.path.isfile(marker) and load(marker).get('sha256')!=hashlib.sha256(raw).hexdigest():problems.append(f'{lang}: witness changed since acceptance');continue
             data=json.loads(raw)
             problems.extend(f'{lang}: {issue}' for issue in witness_problems(path,lang,data,second=second,offline=offline))
-            if not legacy_work:
-                places=(part(path,'places.json') or {}).get('places') or {}
-                for loc in sorted(set(places)-set(data.get('places') or {})):
-                    gaps=data.get('missing_places') or {}
-                    problems.extend(f'{lang} {loc}: {issue}' for issue in missing_language_problems(gaps.get(loc)))
+            places=(part(path,'places.json') or {}).get('places') or {}
+            for loc in sorted(set(places)-set(data.get('places') or {})):
+                gaps=data.get('missing_places') or {}
+                (debts if legacy_work else problems).extend(f'{lang} {loc}: {issue}' for issue in missing_language_problems(gaps.get(loc)))
         else:
             issues=missing_language_problems(missing_by_lang.get(lang))
             (debts if legacy_work else problems).extend(f'{lang}: {issue}' for issue in issues)
@@ -2209,7 +2225,7 @@ def main():
     sub('queue',cmd_queue);sub('open',cmd_open,(('work',),{}));sub('task',cmd_task,P);sub('status',cmd_status);sub('ready',cmd_ready)
     sub('fetch',cmd_fetch,P,(('role',),{'choices':['transcription','other']}),(('url',),{}),(('--name',),{}),(('--file',),{'help':'take the bytes from a local file already fetched from URL'}))
     sub('ia',cmd_ia,P,(('item',),{}),(('--long-s',),{'action':'store_true','help':'the print sets the long s, which the OCR reads as f'}),(('--dir',),{}),(('--files',),{}))
-    sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}));sub('scan',cmd_scan,P,(('item',),{'nargs':'?'}))
+    sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}));sub('scan',cmd_scan,P,(('item',),{'nargs':'?'}));sub('scan-withdraw',cmd_scan_withdraw,P,(('item',),{}),(('--reason',),{'required':True}))
     sub('image',cmd_image,P,(('n',),{'type':int}),(('--loc',),{}),(('--width',),{'type':int,'default':1100}),(('--by',),{'choices':['maker','second'],'default':'maker'}),(('--file',),{}),(('--scan',),{'help':'the Archive item, where the packet reads several scans'}),(('--zoom',),{'help':'TOP-BOTTOM in percent of the page height: the lines of a correction, enlarged'}))
     sub('offset',cmd_offset,P,(('k',),{'type':int}),(('--scan',),{}))
     sub('person',cmd_person,P,(('role',),{'choices':list(ROLES)}),(('qid',),{'nargs':'?'}),(('--name',),{}),(('--ru',),{}),(('--died',),{'type':int}),(('--source',),{}),(('--wartime',),{'choices':['yes','no']}),(('--wartime-source',),{}),(('--rehabilitated',),{'type':int}),(('--rehabilitation-source',),{}),(('--remove',),{'action':'store_true','help':'take this hand out of the record again (another edition was chosen)'}));sub('printed',cmd_printed,P,(('year',),{'type':int}))

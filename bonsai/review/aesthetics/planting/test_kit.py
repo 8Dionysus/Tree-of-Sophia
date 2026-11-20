@@ -946,6 +946,23 @@ class LanguageCoverageTest(unittest.TestCase):
                 with self.assertRaises(SystemExit):kit.cmd_accept(args)
                 self.assertTrue(gate.call_args.kwargs['second'])
 
+class ScanRegistrationTest(unittest.TestCase):
+    def test_missing_archive_item_is_not_registered_and_unused_scan_can_be_withdrawn(self):
+        import argparse, json, tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)
+            args=argparse.Namespace(packet=tmp,item='missing',dir=None,files=None,long_s=False)
+            with patch.object(kit,'get',return_value=b'{}'):
+                with self.assertRaises(SystemExit):kit.cmd_ia(args)
+            self.assertFalse((path/'evidence.json').exists())
+            scan={'item':'missing','ocr':False}
+            (path/'evidence.json').write_text(json.dumps({'scan':scan,'scans':{'missing':scan},'places':{},'sources':[]}))
+            kit.cmd_scan_withdraw(argparse.Namespace(packet=tmp,item='missing',reason='The Archive metadata does not identify this item.'))
+            record=json.loads((path/'evidence.json').read_text())
+            self.assertEqual(record['scans'],{})
+            self.assertEqual(record['withdrawn_scans'][0]['scan'],scan)
+
 class InterfaceCoverageGateTest(unittest.TestCase):
     def test_new_work_requires_evidence_and_old_work_records_debt(self):
         import tempfile
@@ -978,8 +995,14 @@ class PartialWitnessCoverageTest(unittest.TestCase):
                 problems,_=kit.language_coverage(str(path),entry,'en')
                 self.assertFalse(any(p.startswith('ru p2:') for p in problems))
                 witness.pop('missing_places');file.write_text(json.dumps(witness))
-                problems,_=kit.language_coverage(str(path),entry,'en',legacy_work=True)
-                self.assertFalse(any(p.startswith('ru p2:') for p in problems))
+                problems,debts=kit.language_coverage(str(path),entry,'en',legacy_work=True)
+                self.assertFalse(problems)
+                self.assertTrue(any(p.startswith('ru: witness is research') for p in debts))
+                import hashlib
+                (path/'witnesses/ru.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(file.read_bytes()).hexdigest()}))
+                problems,debts=kit.language_coverage(str(path),entry,'en',legacy_work=True)
+                self.assertFalse(problems)
+                self.assertIn('ru p2: no search record',debts)
 
 class CoauthorIdentityTest(unittest.TestCase):
     def test_distinct_qids_cannot_be_collapsed_by_matching_names(self):
