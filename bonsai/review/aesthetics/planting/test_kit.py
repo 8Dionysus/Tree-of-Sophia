@@ -990,6 +990,15 @@ class InterfaceCoverageGateTest(unittest.TestCase):
             entry={'absent':[],'witnesses':{'ru':{}}}
             problems,debts=kit.language_coverage(path,entry,'en',legacy_work=True,held=True)
             self.assertEqual(problems,[]);self.assertFalse(any(item.startswith('ru:') for item in debts))
+            import json
+            from pathlib import Path
+            (Path(path)/'places.json').write_text(json.dumps({'places':{'old':{},'new':{}}}))
+            held={'fragments':{'places':{Path(path).name:{'old':{'texts':{'ru':'перевод'}}}}}}
+            with patch.object(kit,'world',return_value=held):
+                problems,debts=kit.language_coverage(path,entry,'en',legacy_work=True,held=True)
+            self.assertEqual(problems,[])
+            self.assertTrue(any(item.startswith('ru new:') for item in debts))
+            self.assertFalse(any(item.startswith('ru old:') for item in debts))
 
 class PartialWitnessCoverageTest(unittest.TestCase):
     def test_new_work_accounts_for_every_missing_translated_place(self):

@@ -1035,9 +1035,16 @@ def language_coverage(path,entry,original,legacy_work=False,held=False,second=Fa
     problems=[];debts=[]
     missing_by_lang={item.get('language'):item for item in entry.get('absent') or [] if isinstance(item,dict)}
     for lang in ('ru','en','es','de','zh-Hans'):
-        if lang==original or (held and lang in (entry.get('witnesses') or {})):continue
+        if lang==original:continue
         file=witness_file(path,lang)
         search=language_search_file(path,lang)
+        if held and lang in (entry.get('witnesses') or {}) and not os.path.isfile(file):
+            places=(part(path,'places.json') or {}).get('places') or {}
+            if places:
+                existing=world()['fragments'].get('places',{}).get(work_of(path),{})
+                for loc in sorted(places):
+                    if not (existing.get(loc,{}).get('texts') or {}).get(lang):debts.append(f'{lang} {loc}: no accepted translation or documented search for this place')
+            continue
         if not os.path.isfile(file) and os.path.isfile(search) and (not legacy_work or os.path.isfile(search+'.accepted')):
             raw=Path(search).read_bytes()
             if os.path.isfile(search+'.accepted') and load(search+'.accepted').get('sha256')!=hashlib.sha256(raw).hexdigest():problems.append(f'{lang}: search changed since acceptance');continue
