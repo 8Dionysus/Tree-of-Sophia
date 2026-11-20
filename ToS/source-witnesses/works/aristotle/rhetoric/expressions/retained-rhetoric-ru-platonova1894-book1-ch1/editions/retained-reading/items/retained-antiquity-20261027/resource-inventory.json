@@ -190,14 +190,39 @@
           }
         }
       ]
+    },
+    {
+      "file_id": "tos.file.sha256.a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "file_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "media_type": "text/plain",
+      "profile": "plain_text_v1",
+      "summary": {
+        "resource_count": 1
+      },
+      "resources": [
+        {
+          "resource_id": "plain-text-file",
+          "resource_kind": "plain_text_file",
+          "locator": {
+            "container_order": 1
+          },
+          "structural_role": "member",
+          "content_fingerprint": {
+            "algorithm": "sha256",
+            "normalization": "unicode-codepoints-preserved",
+            "sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+            "character_count": 400917
+          }
+        }
+      ]
     }
   ],
   "generator": {
     "name": "build_source_resource_inventories.py",
     "version": "2"
   },
-  "provenance_event_ref": "tos.event.inventory.rhetoric.ru-platonova1894-book1-ch1.output-role.20261120",
-  "inventory_version": 2,
-  "supersedes_inventory_ref": "ToS/source-witnesses/works/aristotle/rhetoric/topology/retained-2026-11-19/before/resource-inventory-ru-platonova1894-book1-ch1-v1.json",
+  "provenance_event_ref": "tos.event.inventory.rhetoric-platonova-full.20261120",
+  "inventory_version": 3,
+  "supersedes_inventory_ref": "ToS/source-witnesses/works/aristotle/rhetoric/topology/retained-2026-11-19/before/resource-inventory-ru-platonova1894-book1-ch1-v2.json",
   "authority_boundary": "This inventory records resource enumeration, geometry, ordering, counts and one-way fingerprints for the selected source."
 }

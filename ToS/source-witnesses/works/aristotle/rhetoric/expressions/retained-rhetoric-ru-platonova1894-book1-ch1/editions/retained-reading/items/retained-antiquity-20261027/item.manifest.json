@@ -31,6 +31,15 @@
       "byte_size": 20020,
       "sha256": "3cde1877832e5d62d7c0499bbdeb8531a1ce16dba0379a34d545137c390f9801",
       "fixity_verified_at": "2026-11-12T23:09:19+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "relative_path": "payload/reading-layer-full.txt",
+      "original_basename": "reading-layer-full.txt",
+      "media_type": "text/plain",
+      "byte_size": 728590,
+      "sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "fixity_verified_at": "2026-11-20T04:44:30Z"
     }
   ],
   "acquisition_event_ref": "tos.event.retained-acquisition.rhetoric-ru-platonova1894-book1-ch1.20261027",
@@ -39,8 +48,9 @@
   "forensic_report_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
   "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
   "visibility": "public_payload",
-  "manifest_version": 1,
+  "manifest_version": 2,
   "source_record_refs": [
-    "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+    "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json",
+    "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/reading-full-source-metadata.json"
   ]
 }

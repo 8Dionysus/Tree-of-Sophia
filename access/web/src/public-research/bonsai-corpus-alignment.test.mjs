@@ -337,6 +337,26 @@ describe('the corpus alignment of the stands',()=>{
       if(unit!==chapter&&item.w==='rhetoric')expect(item.t[id]).toBeUndefined();
     }
   });
+  it.skipIf(!corpusFetched)('reads all three books of Platonova and locates the variant at 1356a',()=>{
+    const module=json('bonsai/antiquity/alignment.json');
+    const id='retained-rhetoric-ru-platonova1894';
+    const work=read('tos.work.retained-antiquity.rhetoric');
+    const translation=work.versions.find(version=>version.id===id);
+    expect(translation.units).toHaveLength(60);
+    expect(translation.units[0].text.trimEnd()).toBe(work.versions.find(version=>version.id===id+'-book1-ch1').units[0].text);
+    expect(translation.units.at(-1).reference).toBe('Книга 3 · Глава 19');
+    const topics=translation.units.find(unit=>unit.reference==='Книга 2 · Глава 23');
+    expect(topics.text).toMatch(/нуждались въ соли[\s\S]+изобличительный/u);
+    const chapter='tos.text-unit.sid-21124aa20d3042b9b92de1e1bb81d740';
+    const alignment=module.units[chapter].t[id];
+    const excerpt=alignment.pairs.filter(([from])=>from.some(([start,end])=>start<1520&&1008<end))
+      .flatMap(([,to])=>to.map(([i,start,end])=>Array.from(translation.units.find(unit=>unit.id===alignment.u[i]).text).slice(start,end).join('')))
+      .join(' ');
+    expect(excerpt).toContain('честность оратора');
+    const original=work.versions.find(version=>version.id===module.works.rhetoric.original.versionId);
+    const originalChapter=original.units.find(unit=>unit.id===chapter);
+    expect(Array.from(originalChapter.text).slice(1008,1520).join('')).toContain('κυριωτάτην ἔχει πίστιν τὸ ἦθος');
+  });
   for(const stand of ['zarathustra','antiquity'])it.skipIf(!corpusFetched)(`${stand}: holds every cited unit except places outside all translation scopes`,()=>{
     const module=json(`bonsai/${stand}/alignment.json`),works=worksOf(stand);
     const scopes=stand==='antiquity'?json('bonsai/antiquity/translation-scopes.json').scopes:[];
