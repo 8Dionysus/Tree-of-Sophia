@@ -7,6 +7,7 @@
 
 import aestheticsManifest from '../../../../bonsai/aesthetics/bonsai.json' with {type:'json'};
 import antiquityManifest from '../../../../bonsai/antiquity/bonsai.json' with {type:'json'};
+import populationManifest from '../../../../bonsai/population/bonsai.json' with {type:'json'};
 import zarathustraManifest from '../../../../bonsai/zarathustra/bonsai.json' with {type:'json'};
 import {readMedia} from '../../../../bonsai/lib/media.mjs';
 
@@ -62,6 +63,8 @@ const LOADERS=Object.freeze({
 const BONSAI={
   aesthetics:Object.freeze({manifest:aestheticsManifest}),
   antiquity:Object.freeze({manifest:antiquityManifest}),
+  // Planted before its stand opens: the manifest is here, the modules come with the stand.
+  population:Object.freeze({manifest:populationManifest}),
   zarathustra:Object.freeze({manifest:zarathustraManifest}),
 };
 const loading=new Map();
