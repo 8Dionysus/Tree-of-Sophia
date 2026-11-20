@@ -1570,34 +1570,22 @@ impl ActJournal {
         if self.withdrawn(ticket) {
             return "withdrawn";
         }
-        let children = self
-            .children
-            .get(&ticket)
-            .map(Vec::as_slice)
-            .unwrap_or_default();
-        let live_children: Vec<u32> = children
-            .iter()
-            .copied()
-            .filter(|c| !self.withdrawn(*c))
-            .collect();
-        let address = format!("act:{}", self.ids.text(ticket));
-        let reviewed_directly = self
-            .strings
-            .find(&address)
-            .and_then(|t| self.by_target.get(&t))
-            .is_some_and(|items| {
-                items.iter().any(|i| {
-                    matches!(self.acts[*i as usize].extra, Extra::Review { .. })
-                        && !self.withdrawn(*i)
-                })
-            });
-        let decided = live_children.iter().any(|child| {
-            self.decision(*child)
+        // A review names proposals or their groups only (the journal refuses any other act
+        // target), so a ticket is reviewed through the proposals that answer it.
+        let mut answered = false;
+        for child in self.children.get(&ticket).into_iter().flatten() {
+            if self.withdrawn(*child) {
+                continue;
+            }
+            answered = true;
+            if self
+                .decision(*child)
                 .is_some_and(|(_, decision)| self.strings.text(decision) != "defer")
-        });
-        if reviewed_directly || decided {
-            "reviewed"
-        } else if !live_children.is_empty() {
+            {
+                return "reviewed";
+            }
+        }
+        if answered {
             "returned"
         } else if self
             .assignments
