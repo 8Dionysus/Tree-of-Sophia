@@ -2188,7 +2188,6 @@
   "m-kc376absmz": "tos.biographical-phase.david-kellogg-lewis.lifetime",
   "m-kcgbb57wzi": "tos.biographical-phase.rodrigo-sara-kcgbb.activity",
   "m-kdf2z52ubw": "tos.biographical-phase.geraud-de-cordemoy.lifetime",
-  "m-kdmkwti2n7": "tos.biographical-phase.moses-mendelssohn-1729.lifetime",
   "m-kdog6xpwmk": "tos.biographical-phase.yajnapati-upadhyaya.lifetime",
   "m-kdp3calmac": "tos.biographical-phase.xianglong-zhang.lifetime",
   "m-kdr343qgkn": "tos.biographical-phase.abd-al-rahman-b-abd-allah-al-suwaydi.lifetime",
@@ -2833,6 +2832,7 @@
   "m-rk3jdwwzd2": "tos.biographical-phase.kanada-rk3jd.lifetime",
   "m-rkd66pyps3": "tos.biographical-phase.pythagoras.lifetime",
   "m-rkjrybrxzm": "tos.biographical-phase.gunamati.activity",
+  "m-rkqsfmmtdi": "tos.biographical-phase.moses-mendelssohn.lifetime",
   "m-rl3gslvihg": "tos.biographical-phase.bhavananda-siddhantavagisa.lifetime",
   "m-rl3mdya5o5": "tos.biographical-phase.jnanottama-misra.lifetime",
   "m-rldt2tjoda": "tos.biographical-phase.choe-namson.lifetime",
@@ -61449,9 +61449,9 @@
    "footing": "low",
    "epistemic": "reported"
   },
-  "tos.biographical-phase.moses-mendelssohn-1729.lifetime": {
+  "tos.biographical-phase.moses-mendelssohn.lifetime": {
    "type": "biographical-phase",
-   "subject": "m-kdmkwti2n7",
+   "subject": "m-rkqsfmmtdi",
    "label": {
     "ru": "Мозес Мендельсон: годы жизни",
     "en": "Moses Mendelssohn: lifetime"
@@ -61477,37 +61477,6 @@
    },
    "sources": [
     "register-t3-33"
-   ],
-   "footing": "low",
-   "epistemic": "reported"
-  },
-  "tos.biographical-phase.moses-mendelssohn.lifetime": {
-   "type": "biographical-phase",
-   "subject": "m-rkqsfmmtdi",
-   "label": {
-    "ru": "Мозес Мендельсон: годы жизни",
-    "en": "Moses Mendelssohn: lifetime"
-   },
-   "dating": {
-    "kind": "interval-assertion",
-    "role": "historical-time",
-    "calendar": null,
-    "year_numbering": "astronomical",
-    "certainty": "exact",
-    "interval": {
-     "end": "1786-01-04"
-    },
-    "source_wording": {
-     "text": "смерть; 1786-01-04; день; н. э.; [MPOT]",
-     "language": "ru"
-    }
-   },
-   "statement": {
-    "ru": "Реестр T3-08, строка T3-08-A007: смерть — «1786-01-04».",
-    "en": "Register T3-08, row T3-08-A007: death “1786-01-04”."
-   },
-   "sources": [
-    "register-t3-08"
    ],
    "footing": "low",
    "epistemic": "reported"

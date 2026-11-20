@@ -105,7 +105,9 @@ function rowIds(row){
   const ids=new Map();
   const add=(scheme,value)=>{if(!ids.has(scheme))ids.set(scheme,new Set());ids.get(scheme).add(value);};
   for(const item of row.ids??[])if(item.valid!==false)add(item.scheme,item.value);
-  for(const value of row.existing??[])add(value.startsWith('tos.agent.')?'tos-agent':'tos-node',value);
+  // Only a Tree agent ID names a person; `table-…-node-…` and `candidate-node:…` point at a node of the row's
+  // own batch, which differs between batches for one person and would make every such pair a conflict.
+  for(const value of row.existing??[])if(value.startsWith('tos.agent.'))add('tos-agent',value);
   return ids;
 }
 
