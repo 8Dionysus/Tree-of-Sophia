@@ -1334,12 +1334,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(row.childElementCount)parent.append(row);
   }
   // A star's images live in the bonsai that owns it: a subject of the Antiquity collection in Antiquity's, on either stand
-  // that shows it, a star of Zarathustra in Zarathustra's, named by its core record or, without one, by its own id.
+  // that shows it, a star of Zarathustra in Zarathustra's, named by its core record or, without one, by its own id, and a
+  // record of the Aesthetics field in Aesthetics': an area, a concept, an author, a work or a reading.
   // They come after the card has drawn, into the place kept for them; a card that has moved on by then takes none.
   function mediaOwner(material){
     const id=material?.id;if(typeof id!=='string')return null;
     if(id.startsWith('antiquity:catalog:'))return {profile:'antiquity',subject:material.legacyId??id.slice('antiquity:catalog:'.length)};
     if(id.startsWith('antiquity:'))return null;
+    const field=/^aesthetics:(catalog|route|reading):(.+)$/.exec(id);
+    if(field)return {profile:'aesthetics',subject:material.legacyId??field[2]};
+    if(id.startsWith('aesthetics:'))return null;
     return profile==='zarathustra'?{profile:'zarathustra',subject:material.coreId??id}:null;
   }
   function appendMedia(parent,material){
