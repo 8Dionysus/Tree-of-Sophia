@@ -20,6 +20,8 @@ import {mountAgentsBoard} from './agents-board.mjs';
 import {mountOffline} from './offline.mjs';
 import {mountAgentField} from './agent-field.mjs';
 import {mountSkyWindow} from './sky-window.mjs';
+import {mountHeld} from './held-view.mjs';
+import {mountHighlight} from './highlight-categories.mjs';
 import {loadResearchVersion,retainedResearchVersions} from './research-history.mjs';
 import {createControlPrefs} from './control-prefs.mjs';
 // How this device steers the stand: one set of preferences for the space, its keys and the reading size.
@@ -161,6 +163,8 @@ let agentsBoard;
 let offline;
 let agentField;
 let skyWindow;
+let heldView;
+let highlight;
 let stopWorkspaceMirror;
 let appDisposed=false;
 let saveTimer = null;
@@ -553,6 +557,8 @@ async function start() {
   offline=mountOffline({shell:spaceView.root,actionLayer,locale:()=>locale,profile});
   agentField=mountAgentField({shell:spaceView.root,actionLayer,acts:actJournal,actDesk,space:spaceView,registry:pageAgent.registry,locale:()=>locale});
   skyWindow=mountSkyWindow({shell:spaceView.root,actionLayer,space:spaceView,locale:()=>locale});
+  heldView=mountHeld({shell:spaceView.root,actionLayer,space:spaceView,locale:()=>locale,profile});
+  highlight=mountHighlight({actionLayer,acts:actJournal,space:spaceView,locale:()=>locale});
   workspaceView?.render();
   spaceView.refreshLocale();
   if (manifest && corpusInfo) {
@@ -583,6 +589,8 @@ function disposeApp() {
   question.removeEventListener('input',scheduleQuestionSave);
   window.removeEventListener('pagehide',onPageHide);
   window.removeEventListener('beforeunload',onBeforeUnload);
+  highlight?.destroy();
+  heldView?.destroy();
   skyWindow?.destroy();
   agentField?.destroy();
   offline?.destroy();

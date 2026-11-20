@@ -284,6 +284,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const relationBar=el('section','relation-bar ps-relations');
   const relationToggle=button(t('filter'),'relation-toggle');
   const relationChips=el('div','relation-chips'),statusLegend=el('div','ps-status-legend');relationBar.append(relationToggle,relationChips,statusLegend);
+  // The research layer's highlight categories name their channel here (highlight-categories.mjs, TOS-D-0082).
+  const highlightLegend=el('div','ps-highlight-legend');highlightLegend.hidden=true;relationBar.append(highlightLegend);
   const footer=el('footer','footer ps-footer');
   const footerTools=el('div','footer-tools');
   // The footer speaks only when something happened: a saved change, an error.
@@ -1226,16 +1228,30 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     for(const item of list??[])routes.push({...item,source:'atlas',agent:true,steps:(item.steps??[]).map(step=>({...step,nodeId:coreMaterial(step.nodeId)??step.nodeId}))});
     if(browsingRoutes||route)renderRoutes();return routes.filter(item=>item.agent).length;
   }
+  // One highlight category at a time (A2): its links take brightness and line weight, the stars at their ends and its own
+  // stars stand out, the rest steps back. The legend names what the channel shows.
+  let highlight=null;
+  function withHighlight(view){
+    if(!highlight||!view)return view;
+    const edges=view.edges.map(edge=>highlight.edges.has(edge.coreRecord?.id)||highlight.edges.has(edge.id)?{...edge,highlight:true}:edge);
+    const ends=new Set(edges.filter(edge=>edge.highlight&&(highlight.edges.has(edge.coreRecord?.id)||highlight.edges.has(edge.id))).flatMap(edge=>[edge.from,edge.to]));
+    const own=node=>ends.has(node.id)||highlight.nodes.has(node.materialId)||highlight.nodes.has(String(node.id).replace(/^material:/,''))||highlight.nodes.has(node.coreId);
+    return {...view,edges,nodes:view.nodes.map(node=>own(node)?{...node,prominent:true,dim:false}:{...node,dim:true,prominent:false})};
+  }
+  function setHighlight(value){
+    highlight=value?{edges:new Set(value.edges??[]),nodes:new Set([...(value.nodes??[])].flatMap(id=>[id,coreMaterial(id)].filter(Boolean)))}:null;
+    refreshSky();return Boolean(highlight);
+  }
   function setOwnSky(on){ownSkyOn=Boolean(on);try{localStorage.setItem(OWN_SKY_KEY,ownSkyOn?'on':'off');}catch{}shell.dataset.ownSky=String(ownSkyOn);notify(t(ownSkyOn?'ownSkyOn':'ownSkyOff'));refreshSky();}
   function refreshSky(){
     sky?.setCloseIn?.(treeView()||gatherView());sky?.setZoomCeiling?.(treeView()||gatherView()?14:4);
-    if(!sky)return;shownView=withTrialLens(withOwnSky(visibleState()));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
+    if(!sky)return;shownView=withHighlight(withTrialLens(withOwnSky(visibleState())));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
     // An aspect is framed whole once, when its choice is made: the chosen star or link and the rows beside it.
     const key=aspect?`${aspect.kind}:${aspect.focus.join('|')}`:'';
     if(key!==aspectKey){const was=aspectKey;aspectKey=key;aspectOpen={};
       // An aspect is read straight on; letting it go returns the space to its resting turn.
       if(aspect)sky.faceFront();else if(was)sky.turnToRest();
-      if(aspect){shownView=withTrialLens(withOwnSky(visibleState()));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
+      if(aspect){shownView=withHighlight(withTrialLens(withOwnSky(visibleState())));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
     sky.refresh();
   }
   function reflect(){
@@ -2684,7 +2700,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     routes:()=>[...routes,...journeyList].map(item=>({id:item.id,source:item.source??'atlas',title:item.title,steps:item.steps?.length??0})),
     // A device's turn (sky-window.mjs) turns the space as the arrows do.
     turnBy:(dx,dy)=>sky?.turnBy?.(dx,dy),
-    setTrialLens:spec=>setTrialLens(spec),trialLens:()=>trialLens?{title:trialLens.title,members:trialLens.members.size}:null,setAgentRoutes:list=>setAgentRoutes(list),
+    setTrialLens:spec=>setTrialLens(spec),setHighlight:value=>setHighlight(value),highlightLegend:()=>highlightLegend,trialLens:()=>trialLens?{title:trialLens.title,members:trialLens.members.size}:null,setAgentRoutes:list=>setAgentRoutes(list),
     setOwnSkyState:value=>{ownSky=value?{known:new Set(value.known??[]),found:new Set(value.found??[])}:null;if(ownSkyOn)refreshSky();},
     ownSky:()=>({available:Boolean(ownSky?.known.size),on:ownSkyOn,opened:ownSky?.known.size??0}),toggleOwnSky:force=>setOwnSky(force??!ownSkyOn),
     connectFrom:id=>{beginConnect(graphIdForMaterial(index?.get(id)?.materialId??id));return true;},
