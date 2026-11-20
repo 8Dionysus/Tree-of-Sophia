@@ -191,50 +191,46 @@ impl ActJournal {
         open
     }
 
-    /// The live proposals the review at `review` decides that no earlier live
-    /// review had decided: they leave the open queue. Counted before the review
-    /// enters the indexes.
-    pub(super) fn newly_decided(&self, review: u32) -> usize {
+    /// The live proposals the review at `review` decides, each with the decision
+    /// it had before. Read before the review enters the indexes: afterwards the
+    /// review is the decision of every one of them.
+    pub(super) fn review_moves(&self, review: u32) -> Vec<(u32, Option<u32>)> {
         let act = &self.acts[review as usize];
-        let earlier = |proposal: u32| {
-            let at = &self.acts[proposal as usize];
-            let Extra::Proposal { group, .. } = at.extra else {
-                return true;
-            };
-            self.direct_reviews
-                .get(&proposal)
-                .into_iter()
-                .flatten()
-                .any(|r| !self.withdrawn(*r))
-                || self
-                    .group_reviews
-                    .get(&group)
-                    .into_iter()
-                    .flatten()
-                    .any(|r| self.acts[*r as usize].seq > at.seq && !self.withdrawn(*r))
+        let mut seen = HashSet::new();
+        let mut moves = Vec::new();
+        let mut take = |proposal: u32, moves: &mut Vec<(u32, Option<u32>)>| {
+            if self.live(proposal) && seen.insert(proposal) {
+                moves.push((
+                    proposal,
+                    self.decision(proposal).map(|(_, decision)| decision),
+                ));
+            }
         };
-        let mut decided = HashSet::new();
         for target in act.targets.iter() {
             let text = self.strings.text(*target);
             if let Some(proposal) = self.act_address(text) {
-                if matches!(self.acts[proposal as usize].extra, Extra::Proposal { .. })
-                    && self.live(proposal)
-                    && !earlier(proposal)
-                {
-                    decided.insert(proposal);
+                if matches!(self.acts[proposal as usize].extra, Extra::Proposal { .. }) {
+                    take(proposal, &mut moves);
                 }
             } else if text.starts_with("group:") {
                 for member in self.group_members.get(target).into_iter().flatten() {
-                    if self.acts[*member as usize].seq < act.seq
-                        && self.live(*member)
-                        && !earlier(*member)
-                    {
-                        decided.insert(*member);
+                    if self.acts[*member as usize].seq < act.seq {
+                        take(*member, &mut moves);
                     }
                 }
             }
         }
-        decided.len()
+        moves
+    }
+
+    /// The place of a decision among a squad's counts: open, accepted, rejected, deferred.
+    pub(super) fn decision_slot(&self, decision: Option<u32>) -> usize {
+        match decision.map(|decision| self.strings.text(decision)) {
+            None => 0,
+            Some("reject") => 2,
+            Some("defer") => 3,
+            Some(_) => 1,
+        }
     }
 
     /// The army by squad: each squad's declaration (role, act budget), its agents and how many
@@ -261,30 +257,32 @@ impl ActJournal {
         let mut rows: HashMap<u32, Row> = HashMap::new();
         let mut order: Vec<u32> = Vec::new();
         // What each squad did, kept as acts were appended: its acts, agents, models, proposals and assignments.
+        // A withdrawal or a replacement may have changed decisions anywhere: the counts are read again once.
+        if self.squad_counts_dirty.get() {
+            for track in self.squad_tracks.values() {
+                let mut counts = [0u64; 4];
+                for proposal in track.proposals.iter().filter(|p| self.live(**p)) {
+                    counts[self.decision_slot(self.decision(*proposal).map(|(_, d)| d))] += 1;
+                }
+                track.decisions.set(counts);
+            }
+            self.squad_counts_dirty.set(false);
+        }
         for (name, track) in &self.squad_tracks {
             order.push(*name);
-            let mut row = Row {
+            let [open, accepted, rejected, deferred] = track.decisions.get();
+            let row = Row {
                 acts: track.acts,
                 agents: track.agents.len(),
                 models: track.models.iter().copied().collect(),
                 last_ms: track.last_ms,
                 assigned: track.assignments.iter().filter(|i| self.live(**i)).count() as u64,
+                open,
+                accepted,
+                rejected,
+                deferred,
                 ..Row::default()
             };
-            for proposal in &track.proposals {
-                if !self.live(*proposal) {
-                    continue;
-                }
-                match self
-                    .decision(*proposal)
-                    .map(|(_, decision)| self.strings.text(decision))
-                {
-                    None => row.open += 1,
-                    Some("defer") => row.deferred += 1,
-                    Some("reject") => row.rejected += 1,
-                    Some(_) => row.accepted += 1,
-                }
-            }
             rows.insert(*name, row);
         }
         for index in &self.squads {

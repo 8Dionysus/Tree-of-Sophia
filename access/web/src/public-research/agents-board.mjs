@@ -123,11 +123,14 @@ export function mountAgentsBoard({shell,actionLayer,acts,actDesk=null,space=null
     return route;
   }
 
-  // The board follows the journal: a new act repaints it, at most twice a second; the clock repaints it every 10 s.
+  // The board follows the journal: a new act repaints it, at most twice a second and never more often than four times
+  // its own cost allows, so a long journal at the bridge is not held by its own console; the clock repaints it every 10 s.
   function follow(root,win=view){
-    let timer=0,stopped=false;
-    const paint=()=>{if(stopped||!root.isConnected)return;void render(root).catch(()=>{});};
-    const soon=()=>{if(timer)return;timer=win.setTimeout(()=>{timer=0;paint();},500);};
+    let timer=0,stopped=false,busy=false,cost=0;
+    const now=()=>win.performance?.now?.()??Date.now();
+    const paint=()=>{if(stopped||!root.isConnected||busy)return;busy=true;const started=now();
+      void render(root).catch(()=>{}).finally(()=>{cost=now()-started;busy=false;});};
+    const soon=()=>{if(timer)return;timer=win.setTimeout(()=>{timer=0;paint();},Math.max(500,cost*4));};
     const stop=acts.subscribe?.(soon)??(()=>{});const clock=win.setInterval(paint,10000);
     const entry={stop(){stopped=true;stop();win.clearTimeout(timer);win.clearInterval(clock);live.delete(entry);}};live.add(entry);
     paint();return entry;

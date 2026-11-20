@@ -471,6 +471,7 @@ pub struct ActJournal {
     squad_tracks: HashMap<u32, SquadTrack>,
     agent_last: HashMap<u32, u32>,
     open_count: std::cell::Cell<Option<usize>>,
+    squad_counts_dirty: std::cell::Cell<bool>,
     unknown_kinds: HashMap<u32, u64>,
 }
 
@@ -484,6 +485,8 @@ struct SquadTrack {
     proposals: Vec<u32>,
     assignments: Vec<u32>,
     last_ms: Option<i64>,
+    /// Its live proposals by decision: open, accepted, rejected, deferred.
+    decisions: std::cell::Cell<[u64; 4]>,
 }
 
 /// One author's leases and releases on one target, in append order.
@@ -599,6 +602,7 @@ impl ActJournal {
             squad_tracks: HashMap::new(),
             agent_last: HashMap::new(),
             open_count: std::cell::Cell::new(Some(0)),
+            squad_counts_dirty: std::cell::Cell::new(false),
             unknown_kinds: HashMap::new(),
         })
     }
@@ -1045,15 +1049,43 @@ impl ActJournal {
         let (targets, parents, replaces) = (act.targets.clone(), act.parents.clone(), act.replaces);
         let extra = act.extra.clone();
         let (author_type, model, squad, at_ms) = (act.author_type, act.model, act.squad, act.at_ms);
+        // A review moves the proposals it decides from their earlier decision to its own.
+        let moves = match extra {
+            Extra::Review { decision } => Some((decision, self.review_moves(index))),
+            _ => None,
+        };
         // The open review queue follows the append; a withdrawal or a replacement counts it again.
         if let Some(open) = self.open_count.get() {
-            self.open_count.set(match extra {
+            self.open_count.set(match &extra {
                 _ if replaces.is_some() => None,
                 Extra::Withdrawal { .. } => None,
                 Extra::Proposal { .. } => Some(open + 1),
-                Extra::Review { .. } => Some(open.saturating_sub(self.newly_decided(index))),
+                Extra::Review { .. } => {
+                    let first = moves.as_ref().map_or(0, |(_, moves)| {
+                        moves.iter().filter(|(_, before)| before.is_none()).count()
+                    });
+                    Some(open.saturating_sub(first))
+                }
                 _ => Some(open),
             });
+        }
+        if replaces.is_some() || matches!(extra, Extra::Withdrawal { .. }) {
+            self.squad_counts_dirty.set(true);
+        }
+        if let Some((decision, moves)) = &moves {
+            let to = self.decision_slot(Some(*decision));
+            for (proposal, before) in moves {
+                let from = self.decision_slot(*before);
+                if let Some(track) = self.acts[*proposal as usize]
+                    .squad
+                    .and_then(|squad| self.squad_tracks.get(&squad))
+                {
+                    let mut counts = track.decisions.get();
+                    counts[from] = counts[from].saturating_sub(1);
+                    counts[to] += 1;
+                    track.decisions.set(counts);
+                }
+            }
         }
         if author_type != AuthorType::Human {
             self.agent_last.insert(author, index);
@@ -1068,6 +1100,9 @@ impl ActJournal {
             track.last_ms = Some(track.last_ms.map_or(at_ms, |last| last.max(at_ms)));
             if matches!(extra, Extra::Proposal { .. }) {
                 track.proposals.push(index);
+                let mut counts = track.decisions.get();
+                counts[0] += 1;
+                track.decisions.set(counts);
             }
         }
         if let Extra::Assignment { assignee } = extra
@@ -2844,5 +2879,66 @@ mod tests {
         // A snapshot keeps the count in step as it indexes the acts again.
         let restored = ActJournal::from_snapshot(REGISTRY, &j.snapshot()).unwrap();
         assert_eq!(restored.open_proposals(), recount(&j));
+    }
+
+    #[test]
+    fn squad_decisions_follow_reviews_like_a_full_count() {
+        let mut j = journal();
+        let member = r#""author":{"type":"agent","id":"a1","model":"m","squad":"lab"}"#;
+        let proposal = |id: &str, to: &str| {
+            record(
+                id,
+                "proposal",
+                &format!(
+                    r#"{member},"targets":["link:{id}"],"grounds":["place:{id}"],"body":{{"category":"translation","change":{{"field":"verb","from":"дитя","to":"{to}","term":"child","to_lemma":"{to}"}}}},"parents":[]"#
+                ),
+            )
+        };
+        let review = |id: &str, targets: &str, decision: &str| {
+            record(
+                id,
+                "review",
+                &format!(
+                    r#"{HUMAN},"targets":[{targets}],"grounds":[],"body":{{"decision":"{decision}","reason":"r"}},"parents":[]"#
+                ),
+            )
+        };
+        let view = r#"{"view":"squads","now_ms":1795168810000,"window_ms":60000}"#;
+        let mut step = |j: &mut ActJournal, raw: String| {
+            j.append(raw.as_bytes()).unwrap();
+            let kept = j.query(view.as_bytes()).unwrap();
+            j.squad_counts_dirty.set(true);
+            assert_eq!(kept, j.query(view.as_bytes()).unwrap(), "{raw}");
+        };
+        for n in 0..4 {
+            step(&mut j, proposal(&format!("p{n}"), "ребёнок"));
+        }
+        step(&mut j, proposal("q0", "чадо"));
+        let group = query(&j, r#"{"view":"review"}"#);
+        let address = get(
+            &get(&group, "groups").unwrap().as_array().unwrap()[0],
+            "group",
+        )
+        .and_then(JsonValue::as_str)
+        .unwrap()
+        .to_owned();
+        step(&mut j, review("r0", r#""act:p0""#, "accept"));
+        step(&mut j, review("r1", r#""act:p0","act:p1""#, "reject"));
+        step(&mut j, review("r2", &format!(r#""{address}""#), "defer"));
+        step(
+            &mut j,
+            review("r3", r#""act:q0""#, "accept-with-edit")
+                .replace(r#""reason":"r""#, r#""reason":"r","edit":"дитё""#),
+        );
+        step(
+            &mut j,
+            record(
+                "w0",
+                "withdrawal",
+                &format!(r#"{HUMAN},"targets":["act:r2"],"grounds":[],"body":{{}},"parents":[]"#),
+            ),
+        );
+        step(&mut j, proposal("p5", "ребёнок"));
+        step(&mut j, review("r4", &format!(r#""{address}""#), "accept"));
     }
 }
