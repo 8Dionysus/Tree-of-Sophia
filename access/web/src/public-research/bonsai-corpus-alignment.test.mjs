@@ -345,6 +345,8 @@ describe('the corpus alignment of the stands',()=>{
     expect(translation.units).toHaveLength(60);
     expect(translation.units[0].text.trimEnd()).toBe(work.versions.find(version=>version.id===id+'-book1-ch1').units[0].text);
     expect(translation.units.at(-1).reference).toBe('Книга 3 · Глава 19');
+    const topics=translation.units.find(unit=>unit.reference==='Книга 2 · Глава 23');
+    expect(topics.text).toMatch(/нуждались въ соли[\s\S]+изобличительный/u);
     const chapter='tos.text-unit.sid-21124aa20d3042b9b92de1e1bb81d740';
     const alignment=module.units[chapter].t[id];
     const excerpt=alignment.pairs.filter(([from])=>from.some(([start,end])=>start<1520&&1008<end))
