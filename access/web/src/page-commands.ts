@@ -82,6 +82,11 @@ export type PageCommandId =
   | "tos.page.workspace-export"
   | "tos.page.workspace-import"
   | "tos.page.clear-focus"
+  | "tos.page.set-lens"
+  | "tos.page.set-layer"
+  | "tos.page.start-route"
+  | "tos.page.lay-on-bench"
+  | "tos.page.compare"
   | "tos.page.cancel";
 
 export type HandledPageCommandId = Exclude<PageCommandId, "tos.page.context" | "tos.page.cancel">;

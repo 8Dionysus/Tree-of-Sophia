@@ -494,6 +494,26 @@ impl SourceFoundationSchemaSet {
         self.catalog_claim_entry_schema_present
     }
 
+    /// Bind the authenticated selection to the currently reserved evaluation
+    /// envelope. Resource identity and the original deadline stay fixed.
+    pub fn bind_evaluation_limits(
+        &mut self,
+        limits: SourceFoundationSchemaLimits,
+    ) -> Result<(), SourceFoundationSchemaLoadFailure> {
+        if !limits.validate()
+            || self.resources.len() > limits.max_schema_resources
+            || self.schema_bytes > limits.max_total_schema_bytes
+            || self
+                .resources
+                .iter()
+                .any(|resource| resource.raw.len() > limits.max_schema_resource_bytes)
+        {
+            return Err(SourceFoundationSchemaLoadFailure::InvalidLimits);
+        }
+        self.limits_sha256 = limits.digest();
+        Ok(())
+    }
+
     pub fn limits_sha256(&self) -> Digest256 {
         self.limits_sha256
     }

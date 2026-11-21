@@ -85,11 +85,16 @@ describe('the Aesthetics field',()=>{
     const read=termPlaceReader(root,alignment,fragments,{corpus:'absent'}),cites=fieldCites(field).filter(({cite})=>cite.loc);
     expect(cites.length).toBeGreaterThan(40);
     for(const {conception,cite} of cites){
-      const place=read(cite,fragments.works[cite.w].original);
+      const work=fragments.works[cite.w],record=fragments.places[cite.w][cite.loc],texts=record.texts;
+      const original=texts[work.original],rights=work.witnesses[work.original].rights;
+      if(!original){
+        expect(['russia','usa','eu'].every(country=>rights[country]?.basis==='locator-only')).toBe(true);
+        expect(record.url).toMatch(/^https:\/\//);continue;
+      }
+      const place=read(cite,work.original);
       expect(place.error,`${conception} ${cite.loc}`).toBeUndefined();
-      const texts=fragments.places[cite.w][cite.loc].texts;
-      expect(texts[fragments.works[cite.w].original],cite.loc).toMatch(/^["“„«‚‘'([—–-]*\p{Lu}[^]*[.!?]["”“»’‘')\]]*$/u);
-      for(const text of Object.values(texts))expect(text,cite.loc).toMatch(/^["“„«‚‘'([—–-]*\p{Lu}/u);
+      expect(original,cite.loc).toMatch(/^["“„«‚‘'([—–-]*\p{L}[^]*[.!?。！？؟…]["”“»’‘')\]]*$/u);
+      for(const text of Object.values(texts))if(text!==null)expect(text,cite.loc).toMatch(/^["“„«‚‘'([—–-]*\p{L}/u);
     }
     // Every place the module holds is the formula of a conception: the bonsai keeps no text it does not cite.
     for(const work of Object.keys(fragments.places))expect(new Set(cites.filter(({cite})=>cite.w===work).map(({cite})=>cite.loc)),work).toEqual(new Set(Object.keys(fragments.places[work])));
@@ -101,11 +106,23 @@ describe('the Aesthetics field',()=>{
   });
   it('keeps the words of the printed page where a transcription differs from it',()=>{
     expect(fragments.provenance.corrections.map(correction=>correction.to)).toEqual(expect.arrayContaining(['unterliegen müßte. Auf solche Weise','Angenehm heißt Jemandem das','smoothness; a quality so essential']));
-    for(const {from,to,lang,place} of fragments.provenance.corrections){
-      const work=Object.keys(fragments.places).find(id=>place.startsWith(`${id} `)),text=fragments.places[work][place.slice(work.length+1)].texts[lang];
+    const corrections=fragments.provenance.corrections;
+    for(const [index,{from,to,lang,place}] of corrections.entries()){
+      const work=Object.keys(fragments.places).find(id=>place.startsWith(`${id} `));
+      let text=fragments.places[work][place.slice(work.length+1)].texts[lang];
+      // Later reviewed edits can refine an earlier correction; inspect the earlier state.
+      for(const later of corrections.slice(index+1).reverse())if(later.place===place&&later.lang===lang&&later.review){
+        expect(Number.isInteger(later.offset),place).toBe(true);
+        const chars=Array.from(text),end=later.offset+Array.from(later.to).length;
+        expect(chars.slice(later.offset,end).join(''),place).toBe(later.to);
+        text=[...chars.slice(0,later.offset),...Array.from(later.from),...chars.slice(end)].join('');
+      }
       expect(text,place).toContain(to);expect(text,place).not.toContain(from);
     }
-    for(const work of Object.values(fragments.works))for(const witness of Object.values(work.witnesses))expect(witness.rights.basis).toBe('public-domain');
+    for(const work of Object.values(fragments.works))for(const witness of Object.values(work.witnesses))for(const country of ['russia','usa','eu']){
+      expect(['public-domain','public-domain+licence','short-quotation','locator-only']).toContain(witness.rights[country]?.basis);
+      expect(witness.rights[country]?.law).toBeTruthy();
+    }
   });
   it('holds back what its own reader made until another reader has read the place',()=>{
     const read=readField(field),division=field.conceptions.find(conception=>conception.id===`${KANT}:division-of-the-sublime`);
@@ -142,8 +159,8 @@ describe('the Aesthetics field',()=>{
     const out=execFileSync(process.execPath,[join(root,'bonsai/review/aesthetics/chronology.mjs'),'--check'],{encoding:'utf8'});
     expect(out).toBe('chronology: as the layer gives it\n');
     const reader=readChronology(modules.chronology);
-    for(const agent of Object.keys(library.agents))expect(reader.span(reader.lifeOf(agent)),agent).toBeTruthy();
-    for(const work of Object.keys(library.works))expect(reader.span(reader.compositionOf({workId:work})),work).toBeTruthy();
+    for(const agent of Object.keys(library.agents)){const id=reader.lifeOf(agent);expect(reader.span(id)||reader.situation(id)?.dating?.kind==='unknown-date',agent).toBeTruthy();}
+    for(const work of Object.keys(library.works)){const id=reader.compositionOf({workId:work});expect(reader.span(id)||reader.situation(id)?.dating?.kind==='unknown-date',work).toBeTruthy();}
   });
   it('keeps every concept and conception traceable to the research layer',()=>{
     const layer=name=>JSON.parse(readFileSync(join(root,'bonsai/review/aesthetics/layer',`${name}.json`),'utf8'));

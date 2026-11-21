@@ -543,6 +543,57 @@ impl ExportsProfile {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+/// The person's local bridge (`tos bridge`, TOS-D-0083).
+pub struct BridgeProfile {
+    pub max_connections: u64,
+    pub max_event_streams: u64,
+    pub max_body_bytes: u64,
+    pub max_window_records: u64,
+    pub review_queue_soft: u64,
+    pub review_queue_max: u64,
+    pub pace_step_ms: u64,
+    pub pace_max_ms: u64,
+    pub snapshot_every_records: u64,
+}
+impl BridgeProfile {
+    fn read(value: &JsonValue, default: &JsonValue) -> Result<Self> {
+        let object = object(
+            value,
+            &[
+                "max_connections",
+                "max_event_streams",
+                "max_body_bytes",
+                "max_window_records",
+                "review_queue_soft",
+                "review_queue_max",
+                "pace_step_ms",
+                "pace_max_ms",
+                "snapshot_every_records",
+            ],
+        )?;
+        let defaults = object_unchecked(default)?;
+        let field = |name: &str| {
+            number(
+                member(object, name).unwrap_or(member(defaults, name).unwrap()),
+                name,
+                1,
+            )
+        };
+        Ok(Self {
+            max_connections: field("max_connections")?,
+            max_event_streams: field("max_event_streams")?,
+            max_body_bytes: field("max_body_bytes")?,
+            max_window_records: field("max_window_records")?,
+            review_queue_soft: field("review_queue_soft")?,
+            review_queue_max: field("review_queue_max")?,
+            pace_step_ms: field("pace_step_ms")?,
+            pace_max_ms: field("pace_max_ms")?,
+            snapshot_every_records: field("snapshot_every_records")?,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeploymentProfile {
     pub schema_version: String,
     pub transport: TransportProfile,
@@ -551,6 +602,7 @@ pub struct DeploymentProfile {
     pub admission: AdmissionProfile,
     pub archive_install: ArchiveInstallProfile,
     pub exports: ExportsProfile,
+    pub bridge: BridgeProfile,
 }
 impl DeploymentProfile {
     fn read(value: &JsonValue, default: &JsonValue) -> Result<Self> {
@@ -563,6 +615,7 @@ impl DeploymentProfile {
                 "admission",
                 "archive_install",
                 "exports",
+                "bridge",
                 "schema_version",
             ],
         )?;
@@ -597,6 +650,10 @@ impl DeploymentProfile {
                 member(object, "exports").unwrap_or(member(defaults, "exports").unwrap()),
                 member(defaults, "exports").unwrap(),
             )?,
+            bridge: BridgeProfile::read(
+                member(object, "bridge").unwrap_or(member(defaults, "bridge").unwrap()),
+                member(defaults, "bridge").unwrap(),
+            )?,
         })
     }
 }
@@ -620,6 +677,13 @@ mod tests {
         );
         assert_eq!(default.archive_install.max_members, Some(4_096));
         assert_eq!(default.archive_install.max_metadata_bytes, Some(4_194_304));
+        assert_eq!(default.bridge.review_queue_soft, 200);
+        let bridge = parse_deployment_profile(
+            br#"{"schema_version":"tos_deployment_profile_v1","bridge":{"pace_max_ms":1000}}"#,
+        )
+        .unwrap()
+        .bridge;
+        assert_eq!((bridge.pace_max_ms, bridge.max_connections), (1000, 256));
         let changed = parse_deployment_profile(br#"{"schema_version":"tos_deployment_profile_v1","archive_install":{"max_members":123}}"#).unwrap();
         assert_eq!(changed.archive_install.max_members, Some(123));
         assert_eq!(changed.transport, default.transport);

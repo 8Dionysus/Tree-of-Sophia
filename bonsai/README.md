@@ -180,12 +180,14 @@ manifest's receipt describes the original run.
 neither a witness nor in the public corpus, in the original and in
 translations, each witness with its edition, the URL its text was taken from,
 licence, attribution and rights basis: public domain, public domain with a
-licence of the digital copy, a short quotation of a protected work under the
+licence of the digital copy, a licensed protected edition, a short quotation of a protected work under the
 quotation right, or the locator alone where no exact text can be shown
-lawfully. The rights record names the law of each jurisdiction (`russia`,
-`usa`, `eu`) and the reasoning. A place may link its own page in a witness
+lawfully. A licensed edition records the licence URL, the precise edition, the source URL and digest, and an explanation; its independent review stays in the packet. The rights record names a separate `{basis, law}` for each jurisdiction (`russia`, `usa`, `eu`) and the reasoning. Older witnesses carry a shared `basis` and jurisdictional statements. With no jurisdiction signal the reader shows text only when all three bases permit text. A place may link its own page in a witness
 (`links`, by language) or a page where a work cited by locator alone can be
-found (`url`), and a link says what it opens (`opens`: the whole work, the
+found (`url`); an unpaginated source can identify its exact section, chapter,
+paragraph, folio, leaf, verse or manuscript under `address` (original) or
+`addresses` (by translation language). The address carries its kind, value
+and the same source URL. A link says what it opens (`opens`: the whole work, the
 page a quotation is taken from, or where the book can be found). A place may
 take a language from another witness of the work (`witness`, by language), as
 where the usual translation lacks the book the place is in; a work names the languages it has no witness in and why
@@ -230,6 +232,24 @@ statistics separately. Shared numbers alone do not establish textual
 correspondence, and a sentence may include adjacent material: the candidate
 still needs source review. Original and translation texts and their offsets
 remain in the unchanged corpus.
+
+A local pair may add `sentenceAnchors` when length and automatically learned
+word links select the wrong sentence. Each anchor lists exact keywords in the
+original and in the translation, as checked in the two specified revisions.
+The aligner compares Unicode-normalized, case-insensitive words and requires one
+shortest matching group of up to three consecutive sentences on each side.
+Matches must occur in the same order and may not overlap. The ordinary sentence
+aligner fills the intervals between them. If a translation sentence starts
+before the printed reference, `precedingTranslationSentences` offers up to three
+sentences from the immediately preceding unit. The receipt records these inputs
+and the result keeps the offsets of each contributing unit.
+
+When an edition joins multiple passages in one sentence, a local pair with
+`sentenceAnchors` may also declare `sourceClauseStarts` or `targetClauseStarts`.
+Each opening is an ordered list of words immediately after a colon, semicolon
+or Greek middle dot. An opening must occur exactly once within the selected
+reference. The same aligner then pairs the resulting clauses and preserves their
+offsets in the original units.
 
 When a translation covers only part of a corpus work, a stand may declare its
 `translation-scopes.json` entry with the source URL, exact original and

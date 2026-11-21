@@ -18,6 +18,20 @@
 export const FRAGMENTS_SCHEMA='tos.bonsai.fragments.v1';
 export const CORPUS_ALIGNMENT_SCHEMA='tos.bonsai.corpus-alignment.v1';
 export const TRANSLATION_SCOPES_SCHEMA='tos.bonsai.translation-scopes.v1';
+/** Optional evidence for refining a local reference by sentences. */
+export function validLocalSentenceOptions(pair){
+  const {sentenceAnchors,precedingTranslationSentences,sourceClauseStarts,targetClauseStarts}=pair;
+  if(precedingTranslationSentences!==undefined&&
+    (!Number.isInteger(precedingTranslationSentences)||precedingTranslationSentences<1||precedingTranslationSentences>3||!sentenceAnchors))return false;
+  const keywords=words=>Array.isArray(words)&&words.length>=1&&words.length<=8&&
+    words.every(word=>typeof word==='string'&&word.length<=64&&/^\p{L}[\p{L}\p{M}]*$/u.test(word));
+  for(const starts of [sourceClauseStarts,targetClauseStarts]){
+    if(starts!==undefined&&(!sentenceAnchors||!Array.isArray(starts)||!starts.length||starts.length>8||!starts.every(keywords)))return false;
+  }
+  if(sentenceAnchors===undefined)return true;
+  return Array.isArray(sentenceAnchors)&&sentenceAnchors.length>=1&&sentenceAnchors.length<=32&&
+    sentenceAnchors.every(anchor=>anchor&&keywords(anchor.source)&&keywords(anchor.target));
+}
 /** Shape of explicit original ranges for partial translations. */
 export function translationScopesIssues(module){
   const issues=[];
@@ -31,8 +45,8 @@ export function translationScopesIssues(module){
     if(scope.maxSourceSentences!==undefined&&(!Number.isInteger(scope.maxSourceSentences)||scope.maxSourceSentences<4||scope.maxSourceSentences>6))issues.push('maxSourceSentences');
     if(scope.translationStart!==undefined&&(typeof scope.translationStart?.unitId!=='string'||!scope.translationStart.unitId.trim()||!Number.isInteger(scope.translationStart?.offset)||scope.translationStart.offset<1))issues.push('translationStart');
     if(scope.handoverUnitIds!==undefined&&(!Array.isArray(scope.handoverUnitIds)||!scope.handoverUnitIds.length||scope.handoverUnitIds.some(id=>typeof id!=='string'||!id.trim())||new Set(scope.handoverUnitIds).size!==scope.handoverUnitIds.length))issues.push('handoverUnitIds');
-    if(scope.localReferencePairs!==undefined&&(!Array.isArray(scope.localReferencePairs)||!scope.localReferencePairs.length||scope.localReferencePairs.some(pair=>!pair||typeof pair.originalUnitId!=='string'||!pair.originalUnitId.trim()||typeof pair.translationUnitId!=='string'||!pair.translationUnitId.trim()||(pair.includeFollowingContinuation!==undefined&&pair.includeFollowingContinuation!==true))||new Set(scope.localReferencePairs.map(pair=>pair?.originalUnitId)).size!==scope.localReferencePairs.length||new Set(scope.localReferencePairs.map(pair=>pair?.translationUnitId)).size!==scope.localReferencePairs.length))issues.push('localReferencePairs');
-    if(scope.completePreviousUnitIds!==undefined&&(!Array.isArray(scope.completePreviousUnitIds)||!scope.completePreviousUnitIds.length||!Array.isArray(scope.handoverUnitIds)||scope.localReferencePairs!==undefined||new Set(scope.completePreviousUnitIds).size!==scope.completePreviousUnitIds.length||scope.completePreviousUnitIds.some(id=>typeof id!=='string'||!scope.handoverUnitIds.includes(id))))issues.push('completePreviousUnitIds');
+    if(scope.localReferencePairs!==undefined&&(!Array.isArray(scope.localReferencePairs)||!scope.localReferencePairs.length||scope.localReferencePairs.some(pair=>!pair||typeof pair.originalUnitId!=='string'||!pair.originalUnitId.trim()||typeof pair.translationUnitId!=='string'||!pair.translationUnitId.trim()||(pair.includeFollowingContinuation!==undefined&&pair.includeFollowingContinuation!==true)||!validLocalSentenceOptions(pair))||new Set(scope.localReferencePairs.map(pair=>pair?.originalUnitId)).size!==scope.localReferencePairs.length||new Set(scope.localReferencePairs.map(pair=>pair?.translationUnitId)).size!==scope.localReferencePairs.length))issues.push('localReferencePairs');
+    if(scope.completePreviousUnitIds!==undefined&&(!Array.isArray(scope.completePreviousUnitIds)||!scope.completePreviousUnitIds.length||!Array.isArray(scope.handoverUnitIds)||new Set(scope.completePreviousUnitIds).size!==scope.completePreviousUnitIds.length||scope.completePreviousUnitIds.some(id=>typeof id!=='string'||(!scope.handoverUnitIds.includes(id)||(Array.isArray(scope.localReferencePairs)&&scope.localReferencePairs.some(pair=>pair?.originalUnitId===id))))))issues.push('completePreviousUnitIds');
     if(scope.withheld!==undefined&&scope.withheld!==true)issues.push('withheld');
     if(scope.withheld&&(scope.maxSourceSentences!==undefined||scope.translationStart!==undefined||scope.handoverUnitIds!==undefined||scope.localReferencePairs!==undefined||scope.completePreviousUnitIds!==undefined))issues.push('withheld options');
     if(!/^https:\/\//.test(scope.source??''))issues.push('source');
@@ -40,7 +54,40 @@ export function translationScopesIssues(module){
   }
   return issues;
 }
-const BASES=['public-domain','public-domain+licence','short-quotation','locator-only'];
+const BASES=['public-domain','public-domain+licence','licensed','short-quotation','locator-only'];
+const JURISDICTIONS=['russia','usa','eu'];
+// Legacy witnesses predate territorial records; newer records must be complete.
+export function rightsBases(rights){
+  const entries=JURISDICTIONS.map(country=>rights?.[country]);
+  if(!entries.some(entry=>entry&&typeof entry==='object')&&BASES.includes(rights?.basis))return [rights.basis];
+  if(entries.some(entry=>!BASES.includes(entry?.basis)||typeof entry?.law!=='string'||!entry.law.trim()))return [];
+  return entries.map(entry=>entry.basis);
+}
+// A licence is specific to the edition and to the source that states it.
+const licensedEvidence=witness=>{
+  const proof=witness?.licence_evidence,source=proof?.source;
+  return proof?.edition===witness?.edition && /^https:\/\//.test(proof?.licence_url??'') &&
+    /^https:\/\//.test(source?.url??'') && /^[a-f0-9]{64}$/.test(source?.sha256??'') &&
+    typeof source?.file==='string' && !!source.file && String(proof?.explanation??'').trim().length>=40;
+};
+// Without a jurisdiction signal use the intersection of the three permissions.
+export function fragmentMayShow(witness){
+  const bases=rightsBases(witness?.rights);
+  return bases.length>0&&!bases.includes('locator-only')&&(!bases.includes('licensed')||licensedEvidence(witness));
+}
+// Sentence boundaries are shared by the original-place builder and its tests.
+export function wholeExternalSentence(text,language){
+  const start=String(text??'').trim().replace(/^[\s"“„«‚‘「『'([—–-]+/u,'');
+  const first=Array.from(start)[0]??'';
+  // Editions of Greek verse can start a speaker's sentence in lower case.
+  // The source and page review still determine the actual sentence boundary.
+  const greek=/^\p{Script=Greek}$/u.test(first);
+  // A Latin edition opens a sentence in lower case after a printed full stop; the kit checks the boundary in the source.
+  const latin=language==='la'&&/^\p{Script=Latin}$/u.test(first);
+  const sentenceInitial=/^\p{L}$/u.test(first)&&(greek||latin||first.toLowerCase()===first.toUpperCase()||first===first.toUpperCase());
+  const end=String(text??'').trimEnd();
+  return sentenceInitial&&(/[.!?…。！？؟।॥][”»’」』"')\]]*$/u.test(end)||(greek&&/;[”»’」』"')\]]*$/u.test(end)));
+}
 // What a link opens: the whole work, the page a quotation is taken from, or where a book can be found.
 const OPENS=['work','quotation','book'];
 const bilingual=value=>typeof value?.ru==='string'&&value.ru.trim()&&typeof value?.en==='string'&&value.en.trim();
@@ -55,8 +102,10 @@ export function externalPlacesIssues(module){
     if(typeof work.original!=='string'||!work.original)problems.push(`work ${id} names no original language`);
     for(const [language,witness] of Object.entries(work.witnesses??{})){
       for(const field of ['edition','attribution'])if(!witness?.[field])problems.push(`work ${id} ${language} witness has no ${field}`);
-      if(!BASES.includes(witness?.rights?.basis))problems.push(`work ${id} ${language} witness has no rights basis`);
-      if(witness?.rights?.basis!=='locator-only'&&!/^https:\/\//.test(witness?.url??''))problems.push(`work ${id} ${language} witness has no source URL`);
+      const bases=rightsBases(witness?.rights);
+      if(!bases.length)problems.push(`work ${id} ${language} witness has no rights basis`);
+      if(bases.includes('licensed')&&!licensedEvidence(witness))problems.push(`work ${id} ${language} witness lacks licence evidence for this edition`);
+      if(bases.some(basis=>basis!=='locator-only')&&!/^https:\/\//.test(witness?.url??''))problems.push(`work ${id} ${language} witness has no source URL`);
       if(witness?.opens!==undefined&&!OPENS.includes(witness.opens))problems.push(`work ${id} ${language} witness opens ${witness.opens}`);
     }
   }
@@ -70,15 +119,20 @@ export function externalPlacesIssues(module){
       const witnessOf=language=>work.witnesses?.[place.witness?.[language]??language];
       for(const [language,name] of Object.entries(place.witness??{}))if(!work.witnesses?.[name])problems.push(`${id} ${loc} names an unknown ${language} witness ${name}`);
       for(const [language,url] of Object.entries(place.links??{}))if(!witnessOf(language)||!/^https:\/\//.test(url??''))problems.push(`${id} ${loc} links ${language} without a witness or a https URL`);
+      const validAddress=address=>['section','chapter','paragraph','folio','leaf','verse','manuscript'].includes(address?.kind)&&typeof address?.value==='string'&&address.value.trim()&&/^https:\/\//.test(address?.url??'');
+      if(place.address!==undefined&&(!validAddress(place.address)||place.links?.[work.original]!==place.address.url))problems.push(`${id} ${loc} has an invalid original source address`);
+      for(const [language,address] of Object.entries(place.addresses??{}))if(!witnessOf(language)||!validAddress(address)||place.links?.[language]!==address.url)problems.push(`${id} ${loc} has an invalid ${language} source address`);
       if(place.url!==undefined&&!/^https:\/\//.test(place.url))problems.push(`${id} ${loc} has a URL that is not https`);
       if(place.opens!==undefined&&!OPENS.includes(place.opens))problems.push(`${id} ${loc} opens ${place.opens}`);
       for(const [language,text] of Object.entries(place.texts??{})){
         if(text===null)continue;
         if(typeof text!=='string'||!text.trim())problems.push(`${id} ${loc} ${language} text is empty`);
-        const basis=witnessOf(language)?.rights?.basis;
-        if(!basis)problems.push(`${id} ${loc} has ${language} text without a witness`);
-        if(basis==='locator-only')problems.push(`${id} ${loc} shows ${language} text of a work cited by locator only`);
-        if(basis==='short-quotation'&&text.length>900)problems.push(`${id} ${loc} ${language} quotation is longer than a short quotation`);
+        const bases=rightsBases(witnessOf(language)?.rights);
+        if(!bases.length)problems.push(`${id} ${loc} has ${language} text without a witness`);
+        if(bases.includes('locator-only'))problems.push(`${id} ${loc} shows ${language} text of a work cited by locator only`);
+        const territorial=['russia','usa','eu'].some(country=>typeof witnessOf(language)?.rights?.[country]==='object');
+        const tooLong=Array.from(text).length>900||(territorial&&(text.match(/(?:[.!?…]+[”»’」』"')\]]*(?=\s|$)|[。！？؟]+[”»’」』"')\]]*)/gu)??[]).length>3);
+        if(bases.includes('short-quotation')&&tooLong&&(!territorial||String(place.quotation_justification?.[language]??'').trim().length<30))problems.push(`${id} ${loc} ${language} quotation is longer than a short quotation`);
       }
     }
   }

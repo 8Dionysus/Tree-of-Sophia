@@ -416,9 +416,9 @@ fn run_selected(
                 }
             }
         }
-        SourceFoundationOutputOutcome::Incomplete { .. } => {
-            Err(Error::Unsupported("foundation owner evaluation incomplete"))
-        }
+        SourceFoundationOutputOutcome::Incomplete { gaps, .. } => Err(Error::DeniedWithReason(
+            format!("foundation owner evaluation incomplete: {gaps:?}"),
+        )),
         SourceFoundationOutputOutcome::Refused { reason, .. } => Err(Error::Denied(reason)),
     }
 }

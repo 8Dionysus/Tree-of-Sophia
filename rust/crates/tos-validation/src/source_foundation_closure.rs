@@ -4980,6 +4980,7 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         let scoped = self.scope.is_scoped();
         let matches_event_path = |path: &str| {
             path.ends_with(PROVISION_EVENT_BASENAME)
+                || path == crate::biblio_rules::RHETORIC_TOPOLOGY_PROVENANCE
                 || scoped
                     && (selection.as_ref().is_some_and(|selection| {
                         selection
@@ -5637,7 +5638,10 @@ impl<'a, 'link, 'schema, S: LayerFamilySource + ?Sized> ClosureRules<'a, 'link, 
         for (path, predicate, subject_kind, object_kind, backref, role) in TOPOLOGY_ROUTES {
             let suffix = path.rsplit('/').next().unwrap_or(path);
             let actual_paths = self.collect_current_paths(
-                |candidate| candidate.ends_with(suffix),
+                |candidate| {
+                    candidate.ends_with(suffix)
+                        && !crate::biblio_rules::rhetoric_topology_reconciliation(candidate)
+                },
                 "source-foundation closure topology path index",
             )?;
             if actual_paths.len() != 1 || actual_paths.first().map(String::as_str) != Some(path) {
