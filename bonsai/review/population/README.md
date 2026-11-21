@@ -112,3 +112,9 @@ Nothing here is admitted to the bonsai's verdicts or to the Tree. A register's
 `verified` is its own statement; a member stays `undecided` until readers have
 read its rows. The layer keeps every row; corrections come as new versions of
 the workbooks, never as edits of a row.
+
+`registry/` and `layer/` are this bonsai's research layer
+([TOS-D-0083](../../../docs/decisions/TOS-D-0083-research-registers-memory-layer-and-claims.md)):
+a research packet, published beside the bonsai so that each claim can be
+traced to its row, never a source witness and never canon. The workbooks
+themselves stay in the operator's memory; `provenance.json` pins them.
