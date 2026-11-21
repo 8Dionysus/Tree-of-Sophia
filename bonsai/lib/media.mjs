@@ -220,8 +220,9 @@ function datingOf(dating){
   // "In or after 1868" opens the interval forward, "in or before 1868" backward, whatever years the record states with it.
   if(/\b(?:in )?or (?:after|later)\b|\bafter\b/i.test(statement)&&Number.isInteger(begin))return {kind:'interval-assertion',...base,interval:{start:yearLexeme(begin)}};
   if(/\b(?:in )?or (?:before|earlier)\b|\bbefore\b/i.test(statement)&&Number.isInteger(end))return {kind:'interval-assertion',...base,interval:{end:yearLexeme(end)}};
-  // An approximate dating keeps the years its words state ("ca. 1819–23"), where the record widens them (1814–1828).
-  const stated=certainty==='approximate'?/(\d{3,4})(?:\s*[–-]\s*(\d{1,4}))?/.exec(statement):null;
+  // An approximate dating keeps the years its words state ("ca. 1819–23", "c. 1792 - c. 1808"), where the record
+  // widens them (1814–1828).
+  const stated=certainty==='approximate'?/(\d{3,4})(?:\s*[–-]\s*(?:(?:c|ca|circa)\b\.?\s*)?(\d{1,4}))?/i.exec(statement):null;
   if(stated){
     const first=Number(stated[1]),tail=stated[2],last=tail?Number(tail.length<stated[1].length?stated[1].slice(0,stated[1].length-tail.length)+tail:tail):first;
     if(first<=last&&(!Number.isInteger(begin)||begin<=first)&&(!Number.isInteger(end)||last<=end)){begin=first;end=last;}

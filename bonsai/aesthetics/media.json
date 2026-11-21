@@ -220,7 +220,7 @@
         }
       ],
       "dating": {
-        "kind": "date-assertion",
+        "kind": "interval-assertion",
         "role": "historical-time",
         "calendar": null,
         "year_numbering": "astronomical",
@@ -229,7 +229,10 @@
           "text": "c. 1792 - c. 1808",
           "language": null
         },
-        "value": "1792"
+        "interval": {
+          "start": "1792",
+          "end": "1808"
+        }
       },
       "classification": [
         "print"
@@ -1189,7 +1192,7 @@
         }
       ],
       "dating": {
-        "kind": "date-assertion",
+        "kind": "interval-assertion",
         "role": "historical-time",
         "calendar": null,
         "year_numbering": "astronomical",
@@ -1198,7 +1201,10 @@
           "text": "c. 1828 - c. 1850",
           "language": null
         },
-        "value": "1828"
+        "interval": {
+          "start": "1828",
+          "end": "1850"
+        }
       },
       "classification": [
         "print"

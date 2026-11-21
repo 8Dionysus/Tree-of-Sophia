@@ -81,6 +81,8 @@ describe('a media module',()=>{
     expect(several.work.dating).toMatchObject({kind:'interval-assertion',interval:{start:'1606',end:'1613'},source_wording:{text:'1606; 1613'}});
     const about=mediaFromObservation(observation({object:{...observation().object,dating:{statement:'ca. 1825–30',begin_year:1825,end_year:1830}}}));
     expect(about.work.dating.certainty).toBe('approximate');
+    const bothAbout=mediaFromObservation(observation({object:{...observation().object,dating:{statement:'c. 1792 - c. 1808',begin_year:1792,end_year:1808}}}));
+    expect(bothAbout.work.dating).toMatchObject({kind:'interval-assertion',certainty:'approximate',interval:{start:'1792',end:'1808'},source_wording:{text:'c. 1792 - c. 1808'}});
     const none=mediaFromObservation(observation({object:{...observation().object,dating:{statement:null,begin_year:1566,end_year:1566}}}));
     expect(none.work.dating).toBeNull();
   });
