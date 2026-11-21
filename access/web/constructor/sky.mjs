@@ -1,4 +1,5 @@
 import { SophiaGpuCanvas } from '../src/observatory/gpu-canvas.js';
+import {AGENT_NEAR_ZOOM,agentTextImages,drawAgentMarks} from './sky-agent-marks.mjs';
 import {validateSkyPose} from './sky-pose.mjs';
 import {scaleLabelClear} from './scale-labels.mjs';
 
@@ -14,8 +15,6 @@ import {scaleLabelClear} from './scale-labels.mjs';
 // depthCue dims what lies further back; planarMoves keeps a moved star in its
 // own depth; onPose hears every turn of the view. Such a space may lay its
 // stars on named planes of depth (state.planes), shown while it turns.
-// Agents at work (C7): their marks' colour, and the zoom from which a ring names their roles.
-const AGENT_COLOR='#7fd0c4',AGENT_NEAR_ZOOM=2.6;
 export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, onBackground=null, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null, onThreadSelect=null, threadsFor=null, obstacles=null, controls=null}) {
   // The device's own steering (turn and zoom speed, coasting, inversion), read at every gesture.
   const steer=()=>controls?.()??{};
@@ -125,6 +124,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // where up would flip. A return to a pose takes the shorter way round.
   const PITCH=[-1.45,1.45],TURN=Math.PI*2;
   const nearestTurn=(target,from)=>target+TURN*Math.round((from-target)/TURN);
+  // The agents' role lines, painted once per line and pixel ratio.
+  const agentText=agentTextImages();
   let w=1,h=1,dpr=1,base=1,skyTime=0,yaw=restYaw,pitch=restPitch,zoom=1;
   let tyaw=restYaw,tpitch=restPitch,tzoom=1,pan={x:0,y:0},tpan={x:0,y:0},eye={x:0,y:0},calm=0,revealId=null,stretchY=1,tstretchY=1,measured=null;
   // The fit the framing chose for the space seen from the front, and the pose and layout the turned fit was last worked out for.
@@ -997,15 +998,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.75,radius*.32),0,Math.PI*2);ctx.fill();}
       else ring(p.x,p.y,radius+.9,color,n.form==='personal',warm);
       // Agents at work on this star (C7): one agent is a small mark beside it, several a ring whose size grows with
-      // their number; near enough, the ring names their roles. The legend of the agents' sky says so.
+      // their number; near enough, the ring names their roles. The legend of the agents' sky says so; both painters
+      // draw them (sky-agent-marks.mjs).
       if(n.agents?.count&&!n.el.hidden){
-        const count=n.agents.count;ctx.strokeStyle=ctx.fillStyle=AGENT_COLOR;
-        if(count===1){const dx=radius+6,dy=-(radius+6);ctx.globalAlpha=.9*fade;ctx.beginPath();ctx.moveTo(p.x+dx,p.y+dy-3.2);ctx.lineTo(p.x+dx+3.2,p.y+dy);ctx.lineTo(p.x+dx,p.y+dy+3.2);ctx.lineTo(p.x+dx-3.2,p.y+dy);ctx.closePath();ctx.fill();}
-        else{const around=radius+5+3.2*Math.log2(count);ctx.globalAlpha=.75*fade;ctx.lineWidth=1.3;ctx.setLineDash([2.5,2.5]);ctx.beginPath();ctx.arc(p.x,p.y,around,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
-        if(zoom>=AGENT_NEAR_ZOOM&&n.agents.roles?.length){
-          ctx.globalAlpha=.9*fade;ctx.font='11px system-ui,sans-serif';ctx.textBaseline='middle';
-          ctx.fillText(n.agents.roles.slice(0,3).join(' · ')+(n.agents.roles.length>3?' …':''),p.x+radius+12,p.y+radius+9);
-        }
+        drawAgentMarks(ctx,{x:p.x,y:p.y,radius,count:n.agents.count,roles:n.agents.roles,near:zoom>=AGENT_NEAR_ZOOM,alpha:fade,dpr,textImage:agentText});
         ctx.globalAlpha=starAlpha;
       }
       // Its four rays narrow and fade towards their tips, as a star's light does in the telescope; a faint star far
