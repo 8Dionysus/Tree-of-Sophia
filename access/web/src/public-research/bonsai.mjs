@@ -68,7 +68,6 @@ const LOADERS=Object.freeze({
 const BONSAI={
   aesthetics:Object.freeze({manifest:aestheticsManifest}),
   antiquity:Object.freeze({manifest:antiquityManifest}),
-  // Its stand is a page of its own (src/population/), not the research space: it loads the modules itself.
   population:Object.freeze({manifest:populationManifest}),
   zarathustra:Object.freeze({manifest:zarathustraManifest}),
 };
@@ -119,4 +118,5 @@ export function lensPositions(profile,lensId){
 // manifest only with the next corpus publication. Until `profiles.aesthetics` is published (it is declared in
 // access/public-corpus/selection.v1.json), Aesthetics reads the three corpus works its alignment names through
 // Antiquity's selection, which holds them. Remove this mapping when the manifest carries the profile.
-export const corpusProfile=profile=>profile==='aesthetics'?'antiquity':profile;
+// The Population holds people, not texts: its space reads the corpus through Antiquity's selection as well.
+export const corpusProfile=profile=>profile==='aesthetics'||profile==='population'?'antiquity':profile;

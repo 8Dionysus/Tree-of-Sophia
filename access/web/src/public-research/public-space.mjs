@@ -24,6 +24,7 @@ import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
 import {AREA_TITLES,SCHOOL_ERA,TREE_LABEL_FROM,antiquityTree,treeVia} from './space-tree.mjs';
 import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
+import {populationTree} from './population-tree.mjs';
 import {PART_TITLES,zarathustraTree} from './space-tree-zarathustra.mjs';
 import {antiquityBook,zarathustraBook} from './reference-outline.mjs';
 import {createReferenceBook} from './reference-book.mjs';
@@ -169,7 +170,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // library and core. It is a view; the saved graph keeps its own places.
   const treeLayout=profile==='antiquity'&&bonsai?.collection?antiquityTree({collection:bonsai.collection,chronology:bonsai.chronology,
     materialOf:legacy=>{const id=collectionByLegacyId.get(legacy)?.materialId;return id&&materials.has(id)?id:null;}})
-    :profile==='zarathustra'&&library?.space?.core?zarathustraTree({library}):profile==='aesthetics'&&bonsai?.field?aestheticsTree({library,field:bonsai.field,catalog:bonsai.library,chronology:bonsai.chronology}):null;
+    :profile==='zarathustra'&&library?.space?.core?zarathustraTree({library}):profile==='aesthetics'&&bonsai?.field?aestheticsTree({library,field:bonsai.field,catalog:bonsai.library,chronology:bonsai.chronology})
+    :profile==='population'&&bonsai?.population?populationTree({library}):null;
   // The lens "Space" exists where the bonsai places the material; a star without a sourced place stands apart from the map.
   const geography=bonsai?.places?planeOfPlaces({stars:starIds,placeOf,places:bonsai.places.places}):null;
   // The lens "Proximity" measures from one star by one criterion its bonsai names; its direction groups by branch or circle.
@@ -1065,6 +1067,18 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:name.kind==='group'?{}:{recede:true}),...(name.kind==='path'?{yields:true}:{})}));
     projected.backdrop=treeBackdrop();
     projected.shade=treeShade();
+    // The Population's members are too many for a star each: in the tree they stand as dots on the sky, and a member
+    // gets a star when it is chosen or compared, so its card, its threads and its name come with it.
+    if(profile==='population'){
+      const keep=new Set([selected,...compareIds,...connectIds].filter(Boolean)),dots=[];
+      projected.nodes=projected.nodes.filter(node=>{
+        if(treeLayout.roles.get(node.materialId)!=='passage'||keep.has(node.id))return true;
+        dots.push({id:node.id,position:node.position,kind:node.kind,title:label(matForNode(node)??node)});return false;
+      });
+      const starIds=new Set(projected.nodes.map(node=>node.id));
+      projected.edges=projected.edges.filter(edge=>starIds.has(edge.from)&&starIds.has(edge.to));
+      projected.points=dots;
+    }
   }
   // The tree's ground, where its shadow lies in the day: the centre and radius of its ground circle.
   let treeShadeMemo;
@@ -1760,8 +1774,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // Choosing a star on the map leaves the map where it is. Choosing it from a list,
   // a link or a step brings it into view only if it would otherwise stay hidden.
   function selectActual(id,{reveal=false}={}){const changed=id!==selected;measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;
-    // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it.
-    if(changed&&!measuredLens(lens)&&(core||lens!=='tree'))refreshSky();
+    // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it; on the
+    // Population's tree a chosen member is drawn again as a star, out of the dots.
+    if(changed&&!measuredLens(lens)&&(core||lens!=='tree'||profile==='population'))refreshSky();
     sky?.setCloseIn?.(treeView()||gatherView());sky?.select(id);sky?.selectEdge(null);renderColumn();
     // On the tree a chosen star turns to face the reader, with what grew from it and what it grew from.
     if(changed&&(treeView()||gatherView())){const at=shownView?.nodes?.find(node=>node.id===id)?.position;if(at&&Math.hypot(at[0],at[2])>1)sky?.turnTo?.(Math.atan2(at[0],at[2]));}
@@ -1773,7 +1788,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function openPanel(){columnOpen=true;renderColumn();sky?.refresh();}
   function closePanel(){const leaving=!!selected&&!route;selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);
     // Leaving a chosen star on the tree, the view steps back to the whole tree, turned as the reader left it.
-    if(leaving&&(treeView()||gatherView()))sky?.frame?.();if(!route)columnOpen=false;reflect();sky?.refresh();}
+    if(leaving&&(treeView()||gatherView()))sky?.frame?.();if(!route)columnOpen=false;
+    // A member let go on the Population's tree goes back among the dots.
+    if(leaving&&profile==='population'&&treeView())refreshSky();
+    reflect();sky?.refresh();}
   function togglePersonal(){
     if(!personal.hidden){closePersonal();return;}
     personal.hidden=false;reading.hidden=true;columnTab.hidden=true;shell.dataset.bench='false';shell.dataset.reading='true';shell.dataset.column='personal';shell.dataset.columnOpen='true';
