@@ -99,7 +99,7 @@ export function captionLinks({work,image,names=null},{t=key=>key,locale='en'}={}
 
 // The viewer writes one style element of its own for touch screens; the page admits no style written by a script,
 // so that element stays unattached while the viewer is made, and the stand's stylesheet carries its rule.
-function withoutWrittenStyle(make){
+export function withoutWrittenStyle(make){
   const head=document.head,append=head.appendChild;
   head.appendChild=function(node){return node instanceof HTMLStyleElement&&node.hasAttribute('data-openseadragon-mobile-css')?node:append.call(this,node);};
   try{return make();}finally{delete head.appendChild;}

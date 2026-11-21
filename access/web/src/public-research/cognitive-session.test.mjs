@@ -19,7 +19,8 @@ function fixture(onHelpChange=()=>{}){
   const notebook={getPreference:async key=>copy(saved.get(key)),setPreference:async(key,value,options)=>{if(options&&JSON.stringify(options.expectedValue)!==JSON.stringify(saved.get(key)))throw Object.assign(new Error('conflict'),{code:'conflict'});saved.set(key,copy(value));},exportPacket:async()=>({preferences:[...saved].map(([key,value])=>({key,value:copy(value)}))})};
   let question='Первый вопрос',questionReady=true,saveAllowed=true;
   const api={getQuestion:()=>question,ensureCurrentQuestion:async()=>questionReady,setQuestion:vi.fn(async value=>{if(!saveAllowed)return false;question=value;return true;})};
-  const index={revision:'r1',get:id=>['one','source'].includes(id)?{id,title:{ru:id},kind:id==='source'?'passage':'conception'}:null,inspect:id=>index.get(id)};
+  const counter={ru:'Лев сначала говорит «нет»',en:'The lion first says no',grounds:[{w:'also-sprach-zarathustra',c:'I.02',u:['tos.text-unit.sid-a','tos.text-unit.sid-a']}]};
+  const index={revision:'r1',get:id=>['one','source'].includes(id)?{id,title:{ru:id},kind:id==='source'?'passage':'conception'}:id==='link'?{id,title:{ru:'связь'},kind:'relation',record:{assessment:{verdict:'revise',counter_reading:counter}}}:null,inspect:id=>index.get(id)};
   const mount=(tabApi=api)=>{const root=new Element('div'),session=mountCognitiveSession({root,notebook,index,api:tabApi,profile:'test',getSelection:()=> 'one',onHelpChange});active.push(session);return {root,session};};
   return {saved,api,index,mount,setReady:value=>{questionReady=value;},setSaveAllowed:value=>{saveAllowed=value;}};
 }
@@ -95,4 +96,18 @@ test('propagates assistance selector changes to the learning map',async()=>{
  const onHelpChange=vi.fn(),f=fixture(onHelpChange),{root,session}=f.mount();await session.ready;
  const level=all(root).find(item=>item.tagName==='select');level.value='heavy';level.listeners.change();
  await vi.waitFor(()=>expect(onHelpChange).toHaveBeenCalledWith('heavy'));
+});
+
+test('the agent takes the role the person chooses; an opponent receives the link\'s recorded counter-reading',async()=>{
+  const f=fixture(),{root,session}=f.mount();await session.ready;
+  expect((await session.context({id:'link'})).role.id).toBe('guide');
+  expect((await session.context({id:'link'})).counter_reading).toBeUndefined();
+  const role=all(root).filter(item=>item.tagName==='select')[1];
+  expect(role.children.map(option=>option.value)).toEqual(['guide','opponent']);
+  role.value='opponent';role.listeners.change();
+  await vi.waitFor(async()=>expect((await session.context({id:'link'})).role.id).toBe('opponent'));
+  const context=await session.context({id:'link'});
+  expect(context.counter_reading).toMatchObject({en:'The lion first says no',grounds:[{c:'I.02'}]});
+  expect(context.task).toContain('counter-reading');
+  expect((await session.context({id:'one'})).counter_reading).toBeUndefined();
 });

@@ -1,0 +1,10 @@
+/* The agents' field (agent-field.mjs). */
+.af-sheet{width:min(900px,calc(100vw - 24px))}
+.af-section{display:flex;flex-direction:column;gap:8px}
+.af-kind{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:2px 12px;padding:6px 0;border-bottom:1px solid var(--ps-line);font-size:13.5px}
+.af-kind code{color:var(--ps-gold);font:12.5px ui-monospace,monospace}
+.af-kind .ad-muted{grid-column:2}
+.af-item[data-shape=lens]{border-style:dashed}
+.af-item p{margin:0;font-size:14px;line-height:1.45}
+.af-other{margin:0;font-size:13px;color:var(--ps-text)}
+.af-other code{color:var(--ps-gold);font:12px ui-monospace,monospace}

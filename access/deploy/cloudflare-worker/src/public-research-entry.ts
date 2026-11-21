@@ -16,7 +16,8 @@ function textResponse(message: string, status: number, method: string): Response
 
 // Icons, the crawler files and the link cards live at the root of the research build.
 // The theme script sets the reader's theme before a page paints (web/public/theme.js).
-const ROOT_FILES = new Set(["/favicon.svg", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml", "/theme.js"]);
+// The service worker stands at the root so that its scope covers the stands' pages (web/public/sw.js).
+const ROOT_FILES = new Set(["/favicon.svg", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml", "/theme.js", "/sw.js"]);
 const rootFile = (pathname: string) => ROOT_FILES.has(pathname) || /^\/og\/[a-z-]+\.jpg$/.test(pathname);
 
 async function standPage(env: Env, request: Request, page: string): Promise<Response> {
