@@ -25,6 +25,7 @@ import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
 import {AREA_TITLES,SCHOOL_ERA,TREE_LABEL_FROM,antiquityTree,treeVia} from './space-tree.mjs';
 import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
 import {populationTree} from './population-tree.mjs';
+import {populationEyebrow,renderPopulationCard} from './population-card.mjs';
 import {PART_TITLES,zarathustraTree} from './space-tree-zarathustra.mjs';
 import {antiquityBook,zarathustraBook} from './reference-outline.mjs';
 import {createReferenceBook} from './reference-book.mjs';
@@ -1466,16 +1467,20 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const material=matForNode(node),ownerHyp=(personalState?.hypotheses??[]).find(item=>item.id===node.workspaceHypothesisId||item.id===node.id||materializedHypotheses.get(item.id)===node.id);
     into.replaceChildren();into.dataset.termNode=material?.id??'';
     if(profile==='antiquity')into.dataset.termWorks=termWorks(material);
-    const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});into.append(kindLine(material,node),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
+    // A Population star says what kind of entry it is (an author, a research node, a region), not a step of reading.
+    const peopled=profile==='population'&&!!material;
+    const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});into.append(peopled?populationEyebrow(material,value=>tr(value,locale())):kindLine(material,node),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
     // A move names its author, work and place right under its title.
-    const witness=part&&!material?.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)into.append(el('p','ps-source-line',witness));
-    // An author's portrait stands right under the name; every image a bonsai binds to this subject follows in the order of its role.
-    appendMedia(into,material);
-    // A star names when and where its text was written, in the bonsai's own kinds of dating and with their sources;
-    // on the lens of proximity, how far it stands from the centre and by what.
-    appendDating(into,material?.id);appendPlace(into,material?.id);
+    const witness=part&&!material?.route&&!peopled?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)into.append(el('p','ps-source-line',witness));
+    if(!peopled){
+      // An author's portrait stands right under the name; every image a bonsai binds to this subject follows in the order of its role.
+      appendMedia(into,material);
+      // A star names when and where its text was written, in the bonsai's own kinds of dating and with their sources;
+      // on the lens of proximity, how far it stands from the centre and by what.
+      appendDating(into,material?.id);appendPlace(into,material?.id);
+    }
     if(lens==='proximity'&&proximityLens)appendDistance(into,material?.id);
-    into.append(ladderLine(ladderRung({material,node})));appendPaths(into,material);
+    if(!peopled){into.append(ladderLine(ladderRung({material,node})));appendPaths(into,material);}
     const branchRoute=profile!=='zarathustra'?routeItems().find(item=>item.source==='atlas'&&(item.id===material?.route?.id||`${profile}:route:${item.id}`===material?.id)):null;
     if(branchRoute&&!pane){const walk=button(`${t('walkBranch')} · ${countMoves(branchRoute.steps?.length??0)} →`,'primary ps-walk-branch');walk.addEventListener('click',()=>{closePanel();startRoute(branchRoute);});into.append(walk);}if(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120)into.append(el('p','ps-personal-title',nodeTitle));
     if(node.ownerType==='personal-hypothesis'){
@@ -1485,6 +1490,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       appendPersonalProposals(into,proposals);
     }else if(material?.coreId&&coreView){
       (pane?paneCore(pane):coreView).node(into,material.coreId,{bench:pane?false:bench});appendResearchReferences(into,material.coreId);
+    }else if(peopled&&renderPopulationCard(into,{material,bonsai,tr:value=>tr(value,locale()),open:materialId=>previewMaterial(materialId)})){
+      // The Population's own card: names, years with their sources and footing, the verdict, the register rows.
     }else if(material){
       const source=sourceForMaterial(material,node);
       if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));into.append(open);}
