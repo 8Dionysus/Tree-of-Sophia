@@ -4,8 +4,10 @@ import {citationId} from './research-index.mjs';
 import jgb from '../../../../bonsai/zarathustra/research-operations.json' with {type:'json'};
 import './operation-view.css';
 
-const occurrenceFiles=import.meta.glob('../../../../bonsai/zarathustra/core/occurrences/*.json',{eager:true,import:'default'});
-const occurrences=new Map(Object.values(occurrenceFiles).map(packet=>[packet.concept,packet]));
+// The occurrence sets come when a research panel first opens, as the core view's do, and stay for the page.
+const occurrenceFiles=import.meta.glob('../../../../bonsai/zarathustra/core/occurrences/*.json',{import:'default'});
+let occurrencesLoading=null;
+const loadOccurrences=()=>occurrencesLoading??=Promise.all(Object.values(occurrenceFiles).map(load=>load())).then(packets=>new Map(packets.map(packet=>[packet.concept,packet])),error=>{occurrencesLoading=null;throw error;});
 const PREFIX='tos.public-research.calculation.v1:';
 const labels={
   distribution:['Употребления и распределение','Occurrences and distribution'],directed_path:['Направленный путь','Directed path'],common_grounds:['Общие основания','Common grounds'],interpretation_comparison:['Сопоставление прочтений JGB §21','Compare JGB §21 readings'],reading_distance:['Расстояние прочтений JGB §21','Distance between JGB §21 readings'],commitment_order:['Порядок обязательств JGB §21','JGB §21 commitment order'],argument_structure:['Структура рассуждения','Argument structure'],signed_support:['Поддержка точного утверждения JGB §21','Evidence for an exact JGB §21 claim'],dependency_impact:['Влияние изменения','Dependency impact'],time_place:['Время и место','Time and place']
@@ -20,8 +22,9 @@ const rand=()=>globalThis.crypto?.randomUUID?.()??`${Date.now()}-${Math.random()
 export function mountResearchOperations({root,index,getSelection=()=>null,notebook,locale='ru',onOpen=()=>{},timeOf=()=>null,placeOf=()=>null,current=true}){
   if(!root||!index?.items)throw new TypeError('root and research index required');
   // Occurrence sets are annotated on the present core and are not kept with past revisions: a past revision counts no distributions.
-  const occurrenceSet=current?occurrences:new Map();
+  let occurrenceSet=new Map();
   let last=null,disposed=false,saved=[];
+  if(current)loadOccurrences().then(map=>{if(disposed)return;occurrenceSet=map;if(state.operation==='distribution')renderFields();},()=>{});
   const lang=()=>resolveLocale(typeof locale==='function'?locale():locale);
   const t=(ru,en,values=[])=>localeText(lang()==='ru'?ru:en,lang(),values);
   const make=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
@@ -191,7 +194,11 @@ export function mountResearchOperations({root,index,getSelection=()=>null,notebo
     form.firstChild.firstChild.textContent=t('Операция','Operation');operation.replaceChildren();for(const [id,label]of Object.entries(labels)){if(id==='distribution'&&!current)continue;const opt=make('option',t(...label));opt.value=id;operation.append(opt);}operation.value=state.operation;runButton.textContent=t('Вычислить','Calculate');renderFields();if(last)show(last);renderSaved();
   }
   operation.addEventListener('change',()=>{state.operation=operation.value;state.searchA='';state.searchB='';state.a=idOf(index,selection());state.b='';state.types=[];renderFields();});
-  form.addEventListener('submit',event=>{event.preventDefault();try{run(buildRequest());}catch(error){message.textContent=error.message;}});
+  // A distribution asked for before the occurrence sets have come waits for them and the items they bring.
+  form.addEventListener('submit',async event=>{event.preventDefault();try{
+    if(state.operation==='distribution'&&current&&!occurrenceSet.size){occurrenceSet=await loadOccurrences();if(disposed)return;renderFields();}
+    run(buildRequest());
+  }catch(error){message.textContent=error.message;}});
   render();void loadSaved();
   return {run,getLastResult:()=>last,refreshLocale:render,destroy(){disposed=true;root.replaceChildren();root.classList.remove('research-operations');}};
 }

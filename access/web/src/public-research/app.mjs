@@ -1,4 +1,4 @@
-import {resolveLocale,copyLocale,initialLocale,localeText,localeLabels,localeValue} from './locale.mjs';
+import {resolveLocale,copyLocale,initialLocale,localeText,localeLabels,localeValue,loadLocale} from './locale.mjs';
 import {STANDS} from './stands.mjs';
 import {setUiLanguage} from '../observatory/ui-i18n.mjs';
 import {mountCorpusEntry} from '../corpus-reader/host.mjs';
@@ -48,6 +48,8 @@ const profile = ['antiquity','aesthetics'].includes(root?.dataset.profile) ? roo
 const requestedLocale=new URLSearchParams(location.search).get('lang');
 let savedLocale;try{savedLocale=localStorage.getItem('tos.public-research.locale.v1');}catch{}
 let locale=initialLocale({requested:requestedLocale,saved:savedLocale,system:navigator.languages??[navigator.language]});
+// The page speaks its reader's language from its first word; English and Russian need no catalog.
+try{await loadLocale(locale);}catch{locale=copyLocale(locale);}
 let english=copyLocale(locale)==='en';
 setUiLanguage(locale);
 const copy = {
@@ -390,8 +392,13 @@ async function switchProfiles(event) {
   }
 }
 
-function setLanguage(value,{updateUrl=true}={}){
+// A chosen language speaks once its catalog has come; of several chosen in a row, the last one speaks.
+let languageRequest=0;
+async function setLanguage(value,{updateUrl=true}={}){
   value=resolveLocale(value,null);if(!value||value===locale)return;
+  const request=++languageRequest;
+  try{await loadLocale(value);}catch{return;}
+  if(request!==languageRequest||value===locale)return;
   locale=value;english=copyLocale(locale)==='en';try{localStorage.setItem('tos.public-research.locale.v1',locale);}catch{};strings=stringsFor();document.documentElement.lang=locale;document.title=`${strings.title} · ${english?localeText('Tree of Sophia',locale):'Древо Софии'}`;refreshProviderStatus();
   header.querySelector('.pr-wordmark').textContent=english?localeText('Tree of Sophia',locale):'Древо Софии';
   labelSpaces();

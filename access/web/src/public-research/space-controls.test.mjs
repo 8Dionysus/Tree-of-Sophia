@@ -1,5 +1,9 @@
-import {describe,expect,it} from 'vitest';
+import {beforeAll,describe,expect,it} from 'vitest';
+import {loadLocale} from './locale.mjs';
 import {CONTROLS_KEY,controlsDismissed,controlsFor,controlsShouldOpen,rememberControls} from './space-controls.mjs';
+
+// The languages beyond Russian and English come on demand; these tests speak them all.
+beforeAll(()=>Promise.all(['es','de','zh-Hans'].map(loadLocale)));
 
 const memoryStorage=()=>{const data=new Map();return {getItem:key=>data.has(key)?data.get(key):null,setItem:(key,value)=>data.set(key,String(value)),removeItem:key=>data.delete(key),data};};
 const brokenStorage={getItem(){throw new Error('blocked');},setItem(){throw new Error('blocked');},removeItem(){throw new Error('blocked');}};

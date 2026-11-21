@@ -1,12 +1,14 @@
 import {loadAntiquityCollection,loadBonsai} from './bonsai.mjs';
-import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
+import {loadRetainedMap} from '../corpus-reader/retained-library.mjs';
 import containedReadings from '../../../public-corpus/contained-reading-targets.v1.json' with {type:'json'};
 
 const bi=(ru,en)=>({ru,en});
 const digest=async value=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(value)))),x=>x.toString(16).padStart(2,'0')).join('');
 const publicIds={apology:'tos.work.plato.apology',meno:'tos.work.plato.meno',ethics:'tos.work.aristotle.nicomachean-ethics'};
 // Reading availability is separate from saved material identity.
-const retainedBooks=new Map(retained.books.map(book=>[book.legacyId,book]));
+// The retained library's map comes with the first binding (retained-library.mjs).
+let retainedIndex=null;
+const loadRetainedBooks=async()=>retainedIndex??=new Map((await loadRetainedMap()).books.map(book=>[book.legacyId,book]));
 const periods={classical:bi('Классическая Греция','Classical Greece'),hellenistic:bi('Эллинистический мир','Hellenistic world'),roman:bi('Римский мир','Roman world'),late:bi('Поздняя Античность','Late Antiquity')};
 const modelKinds={author:'figure',school:'tradition',era:'dossier',translator:'figure',translation:'work',original:'work',edition:'work',passage:'fragment'};
 const refs=entry=>(entry.sourceRefs??[]).map(ref=>({...ref,label:ref.label??entry.title}));
@@ -36,6 +38,7 @@ const entries=collection=>[...collection.entities,...collection.eras,...collecti
 
 /** Bind each collection entry to an exact public place where the published or retained structure allows. */
 async function bindEntries(items,{sources,provider,structures,loadStructure,bindings}){
+  const retainedBooks=await loadRetainedBooks();
   const documents=new Map(sources.documents);
   for(const id of Object.values(publicIds))if(!documents.has(id)&&sources.manifest.documents.some(item=>item.id===id))documents.set(id,{document:await provider.document({documentId:id})});
   const sourceStructures=new Map(structures);
@@ -91,7 +94,7 @@ export async function extendPublicCollection(prepared,{profile,sources,provider,
     return prepared;
   }
   const items=await antiquityEntries(context),byId=new Map(library.nodes.map(node=>[node.id,node]));
-  const {collection}=await loadBonsai('antiquity');
+  const [{collection},retainedBooks]=await Promise.all([loadBonsai('antiquity'),loadRetainedBooks()]);
   const predecessor=library.fingerprint;
   const compatibleMaterialIds=library.nodes.map(node=>node.id);
   for(const node of library.nodes){

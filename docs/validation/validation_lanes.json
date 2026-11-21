@@ -1148,6 +1148,14 @@
         ]
       },
       {
+        "label": "check software browser first view",
+        "command": [
+          "node",
+          "access/web/tools/first-view-budget.mjs",
+          "access/web/dist"
+        ]
+      },
+      {
         "label": "run tests: native access package",
         "command": [
           "cargo",

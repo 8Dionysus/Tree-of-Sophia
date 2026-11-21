@@ -2612,6 +2612,21 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // A click on the empty sky lets a chosen star of the tree go.
     onBackground:()=>{if(selected&&(treeView()||gatherView())&&!route)closePanel();}});
   inkTheme();
+  // The reader's page is opaque, and on a narrow screen it covers the whole sky: then the sky rests until any of it shows.
+  const coverage=()=>{
+    const reader=document.querySelector('.corpus-reader'),canvas=shell.querySelector('canvas.tree-sky');let covered=false;
+    if(reader&&reader!==watchedReader){watchedReader=reader;coverWatch?.observe(reader,{attributes:true,attributeFilter:['hidden','data-open']});}
+    if(host.dataset.corpusReading&&reader&&!reader.hidden&&canvas){
+      const page=reader.getBoundingClientRect(),sky=canvas.getBoundingClientRect(),style=getComputedStyle(reader);
+      const left=Math.max(sky.left,0),top=Math.max(sky.top,0),right=Math.min(sky.right,innerWidth),bottom=Math.min(sky.bottom,innerHeight);
+      const ground=/^rgba?\(([^)]+)\)$/.exec(style.backgroundColor)?.[1].split(',').map(Number);
+      covered=page.left<=left&&page.top<=top&&page.right>=right&&page.bottom>=bottom&&ground?.length>=3&&(ground[3]??1)===1&&style.opacity==='1'&&style.visibility==='visible';
+    }
+    sky?.setCovered?.(covered);
+  };
+  // A page without MutationObserver (a test's) keeps its sky drawing under the reader.
+  let watchedReader=null;const coverWatch=typeof MutationObserver==='function'?new MutationObserver(coverage):null;coverWatch?.observe(host,{attributes:true,attributeFilter:['data-corpus-reading']});
+  coverage();window.addEventListener('resize',coverage);
   // One hint answers a pointer that rests on something, or a keyboard that reaches it: a tool says what it does and its key,
   // a star its kind, when and where, a link its kind and what that kind means. Nothing of it stays on the screen by itself.
   const mac=/Mac|iPhone|iPad/.test(globalThis.navigator?.platform??'');
@@ -2733,5 +2748,5 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // A route starts at its beginning, or at a given step (1-based), as a workplace returns it (workplaces.mjs).
     startRoute:(id,step=null)=>{const item=routes.find(entry=>entry.id===id)??journeyList.find(entry=>entry.id===id);if(!item)return false;startRoute(item);const at=Number.isSafeInteger(step)?Math.max(0,Math.min((item.steps?.length??1)-1,step-1)):0;if(at>0){if(item.source==='atlas'||routes.includes(item))goRouteStep(at);else goJourneyStep(at);}return true;},focusSearch:()=>search.focus(),layOnBench:()=>layOnBench(),canLayOnBench:()=>!panelAdd.hidden,columnTools:panelTools};
   return {root:shell,index,selection:researchSelection,actions:actionApi,openBench:()=>benchView?.show(),bench:()=>benchView,setTrail,openResearch,renderResearch,renderContents,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
-    destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();standOrigin?.dispose();api.reader?.setSelectionActions?.([]);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);benchView?.dispose();benchButton?.remove();sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
+    destroy(){if(destroyed)return;destroyed=true;coverWatch?.disconnect();window.removeEventListener('resize',coverage);window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();standOrigin?.dispose();api.reader?.setSelectionActions?.([]);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);benchView?.dispose();benchButton?.remove();sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
 }

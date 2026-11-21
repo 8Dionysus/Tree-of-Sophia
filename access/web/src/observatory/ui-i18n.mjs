@@ -1,4 +1,4 @@
-import {localeText} from '../public-research/locale.mjs';
+import {localeText,loadLocale} from '../public-research/locale.mjs';
 import {UI_CATALOG} from './ui-catalog.mjs';
 
 export const UI_LANGUAGES=['ru','en','es','de','zh-Hans'];
@@ -57,9 +57,14 @@ export function uiHTML(element,markup){
 }
 export function setUiLanguage(value){
   if(!UI_LANGUAGES.includes(value))throw new Error('Unsupported interface language');
+  // A language whose catalog has yet to come speaks it again once it has.
+  void loadLocale(value).then(()=>{if(language===value)rebind();},()=>{});
   if(typeof document!=='undefined'){document.documentElement.lang=value;document.title=value==='ru'?'Древо Софии':UI_CATALOG['Древо Софии']?.[value]||'Tree of Sophia';}
   if(language===value)return;
   language=value;
+  rebind();
+}
+function rebind(){
   for(const ref of targets){const target=ref.deref();if(!target||!target.isConnected){targets.delete(ref);if(target)bindings.delete(target);continue;}
     for(const [key,message]of bindings.get(target)||[]){if(key==='textContent')target.textContent=String(message);else target.setAttribute(key,String(message));}
   }

@@ -119,6 +119,32 @@ test('the space is given the reader’s trail of cards and walks it back and for
   view.destroy();
 });
 
+test('a star closed on the map leaves the address and the saved state, and the next visit opens on the tree',async()=>{
+  const window={history:{replaceState:vi.fn(),pushState:vi.fn(),state:null},addEventListener(){},removeEventListener(){},scrollTo:vi.fn(),scrollY:0};
+  vi.stubGlobal('document',{createElement:tag=>new Element(tag)});vi.stubGlobal('window',window);vi.stubGlobal('location',{href:'http://localhost/?experience=original'});vi.stubGlobal('requestAnimationFrame',fn=>fn());
+  const entries=new Map(['a','b'].map(id=>[id,{id,kind:'conception',title:{en:id.toUpperCase()},dependencies:[]}])),index={revision:'current',items:entries,get:id=>entries.get(id),resolveId:id=>id,search:()=>[],references:()=>[]};
+  const root=new Element('root'),space={root:new Element('space'),renderResearch:vi.fn(),openResearch:vi.fn(),fragments:{},selection:()=>null};root.append(space.root);
+  // The last visit left the star b open.
+  let stored={mode:'original',id:'b',revision:'current',stack:[{id:'a',revision:'current',scroll:0},{id:'b',revision:'current',scroll:0}],cursor:1,pins:[],question:''};
+  const notebook={getPreference:vi.fn(async()=>stored),setPreference:vi.fn(async(_key,value)=>{stored=value;})};
+  const view=mountResearchExperience({root,header:new Element('header'),profile:'test',locale:()=> 'en',index,space,notebook,api:{getQuestion:()=>''}});
+  const select=detail=>root.listeners['public-research-selection']({detail});
+  // The space reports an empty map before the saved star is opened; that leaves the star to be opened.
+  select(null);
+  await vi.waitFor(()=>expect(space.openResearch).toHaveBeenCalledWith('b'));expect(view.getState().id).toBe('b');
+  select({id:'b',kind:'node'});select(null);
+  expect(view.getState()).toMatchObject({id:null,cursor:1});expect(view.getState().stack.map(entry=>entry.id)).toEqual(['a','b']);
+  expect(String(window.history.replaceState.mock.calls.at(-1)[2])).not.toContain('item=');
+  await vi.waitFor(()=>expect(stored.id).toBe(null));
+  view.destroy();
+  // The next visit opens on the tree.
+  space.openResearch.mockClear();
+  const next=mountResearchExperience({root:Object.assign(new Element('root'),{children:[space.root]}),header:new Element('header'),profile:'test',locale:()=> 'en',index,space,notebook,api:{getQuestion:()=>''}});
+  await vi.waitFor(()=>expect(notebook.getPreference).toHaveBeenCalledTimes(2));await new Promise(resolve=>setTimeout(resolve,0));
+  expect(next.getState().id).toBe(null);expect(space.openResearch).not.toHaveBeenCalled();
+  next.destroy();
+});
+
 test('on a wide screen the language and the theme stand first under "more" on every page; on a phone they stand in the bar\'s list',async()=>{
   // Elements that know their parent and find a class among their descendants, as the move under "more" needs.
   class Node extends Element{
