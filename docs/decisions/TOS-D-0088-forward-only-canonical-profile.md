@@ -1,8 +1,8 @@
-# TOS-D-0076 Forward-Only Canonical Profile
+# TOS-D-0088 Forward-Only Canonical Profile
 
 ## Index Metadata
 
-- Decision ID: TOS-D-0076
+- Decision ID: TOS-D-0088
 - Original date: 2026-11-02
 - Surface classes: docs/route-law, ToS/contracts, rust/foundation
 - ToS layers: contracts, docs
