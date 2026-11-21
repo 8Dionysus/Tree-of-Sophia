@@ -1,0 +1,127 @@
+{
+ "language": "en",
+ "witness": {
+  "edition": "Gotthold Ephraim Lessing, Laocoon, translated by Ellen Frothingham (Boston: Roberts Brothers, 1890), Duke University Libraries copy",
+  "year": 1890,
+  "url": "https://archive.org/details/laocoon01less",
+  "licence": "Public-domain historical text and translation; Internet Archive machine OCR from the same Duke University Libraries scan was checked against its page image. No separate rights in the automated OCR are asserted.",
+  "attribution": "Gotthold Ephraim Lessing, Laocoon, translated by Ellen Frothingham (Boston: Roberts Brothers, 1890), p. 91. Internet Archive OCR of this scan, whitespace normalized and explicitly corrected against the page. Preface credits W. T. Brigham for help with classical quotations; these passages contain no such quotation and his participation in them is not established.",
+  "maker": "codex-2026-11-19-lessing-frothingham-maker",
+  "persons": [
+   {
+    "role": "author",
+    "qid": "Q34628",
+    "name": {
+     "en": "Gotthold Ephraim Lessing",
+     "ru": "Готхольд Эфраим Лессинг"
+    },
+    "born": 1729,
+    "died": 1781,
+    "source": "https://www.wikidata.org/wiki/Q34628",
+    "evidence": {
+     "file": "wikidata-Q34628.json",
+     "sha256": "5036574f104f0a331c6f312ff68b32f6c75d0b12c283849757293aaa237bae1d",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q34628.json"
+    }
+   },
+   {
+    "role": "translator",
+    "qid": "Q5364841",
+    "name": {
+     "en": "Ellen Frothingham",
+     "ru": "Ellen Frothingham"
+    },
+    "born": 1835,
+    "died": 1902,
+    "source": "https://www.wikidata.org/wiki/Q5364841",
+    "evidence": {
+     "file": "wikidata-Q5364841.json",
+     "sha256": "8d919a7112aedd9ba5aaffc351ebdd6eabb9d7adf790f07779b47b604da5338f",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q5364841.json"
+    }
+   }
+  ],
+  "rights": {
+   "russia": {
+    "basis": "public-domain",
+    "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: автор умер в 1781, переводчица в 1902; сроки истекли до 1993 года."
+   },
+   "usa": {
+    "basis": "public-domain",
+    "law": "The translation was published in the United States by 1890, before 1931."
+   },
+   "eu": {
+    "basis": "public-domain",
+    "law": "Directive 2006/116/EC Article 1: author died 1781 and translator died 1902; ordinary 70-year terms expired."
+   }
+  }
+ },
+ "sources": [
+  {
+   "file": "lessing-1890-ocr.txt",
+   "url": "https://archive.org/download/laocoon01less/laocoon01less_djvu.txt",
+   "sha256": "5833f0e605bccc7d52ec29514abe046390d6af2bc8aab1e255e6006044e9c098",
+   "fetched": "2026-11-19"
+  }
+ ],
+ "images": [
+  {
+   "file": "lessing-1890-p91.jpg",
+   "url": "https://archive.org/download/laocoon01less/page/n108.jpg",
+   "sha256": "74291587a38deb541c9420f5350ec8344fc2eb21ab5e17658f5a965005cfdb3c",
+   "by": "maker"
+  },
+  {
+   "file": "lessing-1890-p91-second.jpg",
+   "url": "https://archive.org/download/laocoon01less/page/n108.jpg",
+   "sha256": "74291587a38deb541c9420f5350ec8344fc2eb21ab5e17658f5a965005cfdb3c",
+   "by": "second"
+  }
+ ],
+ "places": {
+  "XVI p153a": {
+   "text": "If it be true that painting employs wholly different signs or means of imitation from poetry, — the one using forms and colors in space, the other articulate sounds in time, — and if signs must unquestionably stand in convenient relation with the thing signified, then signs arranged side by side can represent only objects existing side by side, or whose parts so exist, while consecutive signs can express only objects which succeed each other, or whose parts succeed each other, in time.",
+   "source": "lessing-1890-ocr.txt",
+   "page": "p. 91",
+   "url": "https://archive.org/download/laocoon01less/page/n108.jpg",
+   "image_sha256": "74291587a38deb541c9420f5350ec8344fc2eb21ab5e17658f5a965005cfdb3c",
+   "alignment": "The complete conditional and conclusion match the German 1766 p. 153: spatial figures and colors versus successive articulate sounds, and the suitable relation between signs and objects. Frothingham explicitly adds in time to the conclusion, a temporal qualification supported by the preceding premise; the separate preceding I argue thus is outside both selected boundaries."
+  },
+  "XVI p153b": {
+   "text": "Objects which exist side by side, or whose parts so exist, are called bodies. Consequently bodies with their visible properties are the peculiar subjects of painting.\n\nObjects which succeed each other, or whose parts succeed each other in time, are actions. Consequently actions are the peculiar subjects of poetry.",
+   "source": "lessing-1890-ocr.txt",
+   "page": "p. 91",
+   "url": "https://archive.org/download/laocoon01less/page/n108.jpg",
+   "image_sha256": "74291587a38deb541c9420f5350ec8344fc2eb21ab5e17658f5a965005cfdb3c",
+   "alignment": "Four complete sentences correspond to German 1766 pp. 153–154: bodies and visible properties are the peculiar subjects of painting, actions the peculiar subjects of poetry. Frothingham does not separately render überhaupt and adds in time, already grounded in the preceding distinction; the scan separates the two pairs of sentences into paragraphs.",
+   "corrections": [
+    {
+     "from": "Conse- quently",
+     "to": "Consequently",
+     "offset": 258,
+     "reason": "The 1890 scan p. 91 (n108) prints Conse- at the end of one line and quently at the beginning of the next; join the line-divided word.",
+     "url": "https://archive.org/download/laocoon01less/page/n108.jpg",
+     "page": "p. 91",
+     "image_sha256": "74291587a38deb541c9420f5350ec8344fc2eb21ab5e17658f5a965005cfdb3c"
+    }
+   ]
+  }
+ },
+ "review": {
+  "reader": "codex-2026-11-19-lessing-independent-second",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-19",
+  "places": {
+   "XVI p153a": {
+    "reads": "as the packet",
+    "alignment": "Independently reread German first edition p. 153 and Frothingham 1890 p. 91, including full sentence, punctuation and boundaries. Translation preserves the conditional and its conclusion; final in time is an explicit contextual addition. Title identifies Lessing and Frothingham; dates and publication support the stated public-domain grounds.",
+    "image_sha256": "74291587a38deb541c9420f5350ec8344fc2eb21ab5e17658f5a965005cfdb3c"
+   },
+   "XVI p153b": {
+    "reads": "as the packet",
+    "alignment": "Independently reread German first edition pp. 153–154 and Frothingham p. 91: all four sentences and the printed paragraph break correspond. The scan confirms the Conse- quently line-wrap correction. The added in time reflects the distinction in context; überhaupt is not separately expressed. Peculiar means proper or distinctive subjects. The acknowledged assistant for classical quotations is not shown to contribute to these passages.",
+    "image_sha256": "74291587a38deb541c9420f5350ec8344fc2eb21ab5e17658f5a965005cfdb3c"
+   }
+  }
+ }
+}

@@ -1,0 +1,76 @@
+{
+  "schema_version": "tos_act_commands_v1",
+  "owner": "access",
+  "purpose": "Addressed commands over the act journal. Unlike page commands they name their targets explicitly, so they neither depend on what the person has selected nor cancel each other: many agents can use them at once.",
+  "commands": [
+    {
+      "command_id": "tos.act.manifest",
+      "effect": "read",
+      "result": "the journal's effective kinds, categories and decisions, the record invariants and limits, the addressed and pointing commands, and the permission tiers"
+    },
+    {
+      "command_id": "tos.act.query",
+      "effect": "read",
+      "input": {
+        "view": "summary | act | target | board | review | decided | leases | presence | history | kinds"
+      },
+      "result": "one fold of the journal"
+    },
+    {
+      "command_id": "tos.act.record",
+      "effect": "read",
+      "input": {
+        "id": "act id"
+      },
+      "result": "the whole stored record"
+    },
+    {
+      "command_id": "tos.act.append",
+      "effect": "append",
+      "input": {
+        "kind": "kind",
+        "author": "an agent or a mixed author; a human act comes only from the person's own interface",
+        "targets": "addresses",
+        "grounds": "addresses",
+        "intent": "one line",
+        "body": "the kind's fields",
+        "parents": "act ids",
+        "replaces": "act id"
+      },
+      "result": "sequence, id, digest and lease collisions"
+    },
+    {
+      "command_id": "tos.act.append-batch",
+      "effect": "append",
+      "input": {
+        "acts": "up to 100 acts as for tos.act.append"
+      },
+      "result": "the appended acts and the first refusal, if any"
+    }
+  ],
+  "permission_tiers": [
+    {
+      "tier": "read",
+      "allows": [
+        "tos.act.manifest",
+        "tos.act.query",
+        "tos.act.record"
+      ]
+    },
+    {
+      "tier": "draft",
+      "allows": [
+        "the read tier",
+        "tos.act.append of note, reply, lease, release, kind-declaration and declared kinds"
+      ]
+    },
+    {
+      "tier": "propose",
+      "allows": [
+        "the draft tier",
+        "tos.act.append of ticket and proposal"
+      ]
+    }
+  ],
+  "authority_limit": "An act is local personal work. It never writes ToS source, candidate intake, review, rights or canon; a review act is the person's own decision. An agent cannot append a review, an assignment, a withdrawal of another author's act or an act in the person's name."
+}

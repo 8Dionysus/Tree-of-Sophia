@@ -521,6 +521,133 @@
       "source": "https://raw.githubusercontent.com/PerseusDL/canonical-greekLit/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0059/tlg002/tlg0059.tlg002.perseus-eng2.xml",
       "basis": "The automatic alignment returns thirty minas for a Greek citation about one mina. Withhold this reading layer's card alignment; the other retained Fowler layer remains available and gives the corresponding passage.",
       "withheld": true
+    },
+    {
+      "work": "rhetoric",
+      "translationVersionId": "retained-rhetoric-ru-platonova1894-book1-ch1",
+      "originalVersionId": "retained-rhetoric-grc2-029229b79ad7",
+      "originalRevision": "355b9bc81ebe9f4cab5738d392f8bb2e0a2868155d74b312b55e3847ad78e856",
+      "firstUnitId": "tos.text-unit.sid-687a8faa55b74f62963435475ae0781f",
+      "lastUnitId": "tos.text-unit.sid-687a8faa55b74f62963435475ae0781f",
+      "source": "https://archive.org/details/aristotle_rhetoric",
+      "basis": "Only Book I chapter 1, printed pages 1–7, is independently transcribed from Platonova’s 1894 translation; no other chapter is included.",
+      "translationRevision": "a57bba67413605e2dfceb2704df4dafd52f633011ea2150e1def14175015fc75"
+    },
+    {
+      "work": "rhetoric",
+      "translationVersionId": "retained-rhetoric-ru-platonova1894",
+      "translationRevision": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "originalVersionId": "retained-rhetoric-grc2-029229b79ad7",
+      "originalRevision": "355b9bc81ebe9f4cab5738d392f8bb2e0a2868155d74b312b55e3847ad78e856",
+      "firstUnitId": "tos.text-unit.sid-687a8faa55b74f62963435475ae0781f",
+      "lastUnitId": "tos.text-unit.sid-52a7fc05808b40b0a0ebb502744be8ab",
+      "source": "https://archive.org/details/aristotle_rhetoric",
+      "basis": "All three books can be read in the corpus. The five source-checked chapters supply the presently cited ranges. For I.2 at 1356a the 1894 reading is preserved with a note on its difference in meaning.",
+      "localReferencePairs": [
+        {
+          "originalUnitId": "tos.text-unit.sid-21124aa20d3042b9b92de1e1bb81d740",
+          "translationUnitId": "tos.text-unit.sid-e127b457f17e5a2d8dc803c935b0e4fa",
+          "targetClauseStarts": [
+            [
+              "вѣдь",
+              "и",
+              "всѣ",
+              "ораторы"
+            ]
+          ],
+          "sentenceAnchors": [
+            {
+              "source": [
+                "τρία",
+                "εἴδη",
+                "δεικνύναι"
+              ],
+              "target": [
+                "три",
+                "вида",
+                "доказываніи"
+              ]
+            },
+            {
+              "source": [
+                "ἀξιόπιστον",
+                "πιστεύομεν",
+                "προδεδοξάσθαι",
+                "ἐπιείκειαν"
+              ],
+              "target": [
+                "довѣріе",
+                "вѣримъ",
+                "сложившагося",
+                "честность"
+              ]
+            },
+            {
+              "source": [
+                "ἀκροατῶν",
+                "τεχνολογοῦντας"
+              ],
+              "target": [
+                "слушателей",
+                "нынѣшніе",
+                "теоретики"
+              ]
+            },
+            {
+              "source": [
+                "δηλωθήσεται",
+                "φαινόμενον",
+                "παθῶν"
+              ],
+              "target": [
+                "страстяхъ",
+                "кажущуюся",
+                "истину"
+              ]
+            },
+            {
+              "source": [
+                "ἀλλήλας",
+                "παράδειγμα",
+                "φαινόμενος"
+              ],
+              "target": [
+                "отношеніи",
+                "примѣръ",
+                "кажущійся"
+              ]
+            },
+            {
+              "source": [
+                "καλῶ",
+                "ῥητορικὸν",
+                "συλλογισμόν"
+              ],
+              "target": [
+                "называю",
+                "энтимемою",
+                "наведеніе"
+              ]
+            }
+          ]
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-57fff62bf0d24cf898787b87c4d2dcd0",
+          "translationUnitId": "tos.text-unit.sid-4399db0a3b91395820a39a080a9cf02f"
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-75ade1722166424d8083da0cae10753b",
+          "translationUnitId": "tos.text-unit.sid-29815e3d802fc3cc337604e663bbe1bb"
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-52a7fc05808b40b0a0ebb502744be8ab",
+          "translationUnitId": "tos.text-unit.sid-336deea84feb043a49253510283fc8f3"
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-687a8faa55b74f62963435475ae0781f",
+          "translationUnitId": "tos.text-unit.sid-da5ddba69b975bbbfbdeb6becffe9791"
+        }
+      ]
     }
   ]
 }

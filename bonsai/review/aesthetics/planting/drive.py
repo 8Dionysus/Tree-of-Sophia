@@ -2,7 +2,7 @@
 """Runs the readers of the planting line. The operator's tool: a reader never starts it.
 
   drive.py run WORK                 one work from start to accepted, blocked or stuck
-  drive.py line [--max 2] [--works a,b] [--count N] [--wave first]
+  drive.py line [--max 2] [--works a,b] [--count N] [--wave free-all]
                                     works of the queue, several at a time, until the queue, the count or the usage limit ends
 
 One work, one fresh Codex session as the maker; the gate decides whether the maker is done, and while the gate is
@@ -14,7 +14,7 @@ Every session is `codex exec`, never plan mode and never an app-server turn.
 
 Environment: CODEX (binary), TOS_PLANTING_MODEL, TOS_PLANTING_EFFORT, TOS_PLANTING_OUT (logs and state).
 """
-import argparse,concurrent.futures,datetime,json,os,subprocess,sys,threading,time
+import argparse,concurrent.futures,datetime,json,os,re,subprocess,sys,threading,time
 
 HERE=os.path.dirname(os.path.abspath(__file__));KIT=os.path.join(HERE,'kit.py');PACKETS=os.path.join(HERE,'packets');ROOT=os.path.abspath(os.path.join(HERE,'..','..','..','..'))
 CODEX=os.environ.get('CODEX') or os.path.expanduser('~/.local/bin/codex')
@@ -40,6 +40,9 @@ def kit(*args):
 def codex(work,role,prompt,resume=None):
     """One codex exec turn in the packet directory. Returns the thread, whether the usage limit ended it, and its tokens."""
     st=state(work);n=len(st['sessions'])+1;log=out(work,f'{n:02d}-{role}.jsonl');last=out(work,f'{n:02d}-{role}.md')
+    if '/extensions/' in work:
+        prompt=prompt.replace('../../AGENTS.md','../../../../AGENTS.md').replace('../../MAKER.md','../../../../MAKER.md').replace('../../SECOND-READER.md','../../../../SECOND-READER.md').replace('../../kit.py','../../../../kit.py')
+        prompt+='\n\nThis is an extension directory: the K command in the guides means python3 ../../../../kit.py. Read and change this extension only; the accepted parent stays intact.'
     command=[CODEX,'exec']+(['resume',resume] if resume else [])+['--json','-m',MODEL,'-c',f'model_reasoning_effort={EFFORT}','--dangerously-bypass-approvals-and-sandbox','--skip-git-repo-check','-o',last,prompt]
     started=now()
     with open(log,'w') as file:
@@ -61,7 +64,7 @@ def codex(work,role,prompt,resume=None):
     if limit:LIMIT.set()
     return thread,limit
 
-MAKER="""You are the maker of the packet for the work {work} in the planting line of the Aesthetics bonsai. Your working directory is the packet. Read ../../AGENTS.md and ../../MAKER.md now and follow MAKER.md to its end. Stop only when `python3 ../../kit.py gate .` prints `gate: open`, or when you have written blocked.json as the card describes."""
+MAKER="""You are the maker of the packet for the work {work} in the planting line of the Aesthetics bonsai. Your working directory is the packet. Read ../../AGENTS.md and ../../MAKER.md now and follow MAKER.md to its end, including every interface language and source search. Stop only when `python3 ../../kit.py gate .` prints `gate: open`, or when you have written blocked.json as the card describes."""
 MAKER_ON="""You are the maker of the packet in this directory (../../AGENTS.md, ../../MAKER.md). The gate is still shut. These are its lines:
 
 {gate}
@@ -72,7 +75,10 @@ BLOCK="""You are a maker in the planting line of the Aesthetics bonsai; your wor
 
 Read ../../AGENTS.md and ../../MAKER.md, then test that block yourself: look for what it says is missing or failing. If the block does not hold, delete blocked.json and make the packet by MAKER.md to its end (`python3 ../../kit.py gate .` prints `gate: open`). If it holds, leave blocked.json and add under `tried` what you looked at."""
 RETAKE="""This packet has been through the line before. Under `left` in reading.json, an entry marked `disputed` holds a conception or a link that a second reader did not confirm, with the reader's note. Take each of them up again: read the note and the place in the original; where the work bears the reading in a narrower thesis, a longer cut or two conceptions, grow it again by MAKER.md and take the entry out of `left`; where it does not, leave the entry as it is. Leave what is already in the reading as it is unless the gate asks otherwise."""
-SECOND="""You are the second reader of the packet for the work {work} in the planting line of the Aesthetics bonsai. You did not make this packet. Your working directory is the packet. Read ../../AGENTS.md and ../../SECOND-READER.md now and follow SECOND-READER.md to its end. Stop only when `python3 ../../kit.py gate . --second` prints `gate: open`."""
+OWES="""The gate of this packet is open but owes these lines. An `owes` is a debt of the newer line, not readiness: settle each one through kit.py commands (rights for each jurisdiction, recorded searches and witnesses for every reader language, edition locators) before the second reader takes the packet, then run `python3 ../../kit.py gate .` again until it opens without owes or the packet is blocked.
+
+{gate}"""
+SECOND="""You are the second reader of the packet for the work {work} in the planting line of the Aesthetics bonsai. You did not make this packet. Your working directory is the packet. Read ../../AGENTS.md and ../../SECOND-READER.md now and follow SECOND-READER.md to its end, independently reviewing every prepared language witness. Stop only when `python3 ../../kit.py gate . --second` prints `gate: open`."""
 SECOND_ON="""You are the second reader of the packet in this directory (../../AGENTS.md, ../../SECOND-READER.md). The gate is still shut. These are its lines:
 
 {gate}
@@ -92,7 +98,7 @@ def until_open(work,role,first,again,turns,second=False,thread=None):
         if code==3:BROKEN.set();return thread,'line-broken'       # the checkout fails, not the packet: no reader can mend it
         if not second and have(work,'blocked.json'):
             if code==0:return thread,'blocked'                    # a block the gate does not accept goes back like any shut gate
-        elif code==0:kit('stamp',os.path.join(PACKETS,work),'second' if second else 'maker',MODEL,EFFORT);return thread,'open'
+        elif code==0 and (second or not re.search(r'gate: open, owes [1-9]',text)):kit('stamp',os.path.join(PACKETS,work),'second' if second else 'maker',MODEL,EFFORT);return thread,'open'   # a maker hands on a packet that owes nothing
         prompt=again.format(gate='\n'.join(text.splitlines()[:60]))
     return thread,'stuck'
 
@@ -101,6 +107,7 @@ def disputed(work):
 
 def run(work,retake=False):
     if retake:
+        state(work,block_checked=False)                              # a block checked under an older line is looked at again
         for name in('accepted.json',):
             if have(work,name):os.remove(os.path.join(PACKETS,work,name))
     if have(work,'accepted.json'):return 'accepted'
@@ -116,10 +123,12 @@ def run(work,retake=False):
         state(work,block_checked=True);maker,got=until_open(work,'maker',BLOCK.format(work=work,reason=block.get('reason')),MAKER_ON,MAKER_TURNS)
         if got!='open':return end(got if got in OUTSIDE or got=='blocked' else 'maker-stuck')
     else:
-        shut=kit('gate',os.path.join(PACKETS,work))[0]
+        shut,gate_text=kit('gate',os.path.join(PACKETS,work))
         if shut==3:BROKEN.set();return end('line-broken')
-        if (retake and disputed(work)) or shut:                  # a packet whose gate is already open goes straight to its second reader
-            maker,got=until_open(work,'maker',MAKER.format(work=work)+('\n\n'+RETAKE if retake and disputed(work) else ''),MAKER_ON,MAKER_TURNS)
+        owes=not shut and bool(re.search(r'gate: open, owes [1-9]',gate_text))
+        if (retake and disputed(work)) or shut or owes:          # an open gate without owes goes straight to its second reader
+            first=MAKER.format(work=work)+('\n\n'+RETAKE if retake and disputed(work) else '')+('\n\n'+OWES.format(gate='\n'.join(gate_text.splitlines()[:60])) if owes else '')
+            maker,got=until_open(work,'maker',first,MAKER_ON,MAKER_TURNS)
             if got=='blocked':return run(work)                   # the block gets its second look
             if got!='open':return end(got if got in OUTSIDE else 'maker-stuck')
     for round_ in range(1,RETURNS+2):
@@ -150,8 +159,9 @@ def roomy():
         time.sleep(30)
 
 def line(args):
+    if not 1<=args.max<=3:raise SystemExit('--max must be between 1 and 3')
     kit('queue');queue=json.load(open(os.path.join(HERE,'queue.json')))['works']
-    works=args.works.split(',') if args.works else [row['work'] for row in queue if row['wave']==args.wave]
+    works=args.works.split(',') if args.works else [row['work'] for row in queue if row['wave']==args.wave and row.get('status','waiting')=='waiting']
     works=[work for work in works if args.retake or (not have(work,'accepted.json') and not have(work,'blocked.json'))][:args.count or None]
     code,text=kit('ready')                                      # no reader starts in a checkout that cannot plant: each would spend its turns and stop at the same wall
     if code:
@@ -173,7 +183,7 @@ def line(args):
 def main():
     p=argparse.ArgumentParser(description=__doc__,formatter_class=argparse.RawDescriptionHelpFormatter);s=p.add_subparsers(dest='cmd',required=True)
     q=s.add_parser('run');q.add_argument('work');q.add_argument('--retake',action='store_true')
-    q=s.add_parser('line');q.add_argument('--max',type=int,default=2);q.add_argument('--works');q.add_argument('--count',type=int);q.add_argument('--wave',default='first');q.add_argument('--retake',action='store_true',help='run the named works again and take up what was left disputed')
+    q=s.add_parser('line');q.add_argument('--max',type=int,default=2);q.add_argument('--works');q.add_argument('--count',type=int);q.add_argument('--wave',default='free-all');q.add_argument('--retake',action='store_true',help='run the named works again and take up what was left disputed')
     args=p.parse_args()
     if args.cmd=='run':print(run(args.work,retake=args.retake))
     else:line(args)

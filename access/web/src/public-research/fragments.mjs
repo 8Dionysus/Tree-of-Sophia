@@ -11,8 +11,11 @@
 import {benchListens,layOnBench} from './bench/bridge.mjs';
 import {chapterTitle} from './chapter-title.mjs';
 import {readChapter,fragmentOf,displayText} from '../../../../bonsai/lib/witnesses.mjs';
+import {fragmentMayShow} from '../../../../bonsai/lib/fragments.mjs';
 import {readCorpusFragmentRange} from './corpus-fragment-range.mjs';
 import {modernRussian,isPreReform,respell} from './orthography.mjs';
+import {createChapterVoice} from './chapter-voice.mjs';
+import {editionPagesSection} from './edition-pages.mjs';
 import {createLatestFragmentRequest} from './fragment-request.mjs';
 import {copyLocale,localeText,localeValue,resolveLocale,shownLanguages} from './locale.mjs';
 
@@ -47,6 +50,19 @@ export const hasAuthored=(value,locale)=>citesOf(value).length>0||!!localeValue(
  * exactly and offers the original separately; the other stand retains its
  * existing fallback when no witness translates into the interface language.
  */
+/** A range over the shown text of an element, from one character offset to another across its text nodes. */
+export function textRange(element,start,end){
+  const doc=element.ownerDocument,walker=doc.createTreeWalker(element,4);let seen=0,from=null,to=null;
+  for(let node=walker.nextNode();node;node=walker.nextNode()){
+    const length=node.textContent.length;
+    if(!from&&start<=seen+length)from=[node,Math.max(0,start-seen)];
+    if(end<=seen+length){to=[node,Math.max(0,end-seen)];break;}
+    seen+=length;
+  }
+  if(!from||!to||end<=start)return null;
+  const range=doc.createRange();range.setStart(...from);range.setEnd(...to);return range;
+}
+
 export function readingLanguages(locale,original='de',available=['de','en','ru'],{exact=false}={}){
   if(exact){
     const language=resolveLocale(locale),hasOriginal=available.includes(original);
@@ -57,6 +73,11 @@ export function readingLanguages(locale,original='de',available=['de','en','ru']
   if(!translation)return {primary:[original],alternate:null};
   if(translation===resolveLocale(locale))return {primary:[translation],alternate:original};
   return {primary:[original,translation],alternate:null};
+}
+
+/** Aesthetics shows the original and exactly the reader's language. */
+export function aestheticsReadingLanguages(locale,original,available){
+  return [...new Set([original,resolveLocale(locale)])].filter(language=>available.includes(language));
 }
 
 // Chapter titles as the witnesses print them, without numbering or a closing period.
@@ -194,21 +215,52 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const dialog=el('dialog','ps-dialog ps-parallel');
     const head=el('div','dialog-top ps-parallel-top'),titles=el('div','ps-parallel-titles'),nav=el('div','ps-parallel-nav');
     const previous=button('←','icon ps-parallel-step'),next=button('→','icon ps-parallel-step'),close=button('×','icon');
-    nav.append(previous,next,close);head.append(titles,nav);
-    const body=el('div','ps-parallel-body'),foot=el('div','ps-parallel-foot');
-    dialog.append(head,body,foot);
+    // Listening to the original (H2): play and pause, and the pace of reading.
+    const listen=button('▶','icon ps-parallel-listen'),pace=button('1×','text-button ps-parallel-pace');listen.setAttribute('aria-pressed','false');
+    nav.append(listen,pace,previous,next,close);head.append(titles,nav);
+    const body=el('div','ps-parallel-body'),foot=el('div','ps-parallel-foot'),voiceLine=el('p','ps-parallel-voice');voiceLine.hidden=true;voiceLine.setAttribute('aria-live','polite');
+    dialog.append(head,body,voiceLine,foot);
     close.addEventListener('click',()=>dialog.close());
-    dialog.addEventListener('close',()=>chapterRequests.cancel());
+    dialog.addEventListener('close',()=>{chapterRequests.cancel();reader?.voice.stop();});
     (host()??document.body).append(dialog);
-    reader={dialog,titles,body,foot,previous,next,close,current:null};
+    reader={dialog,titles,body,foot,previous,next,close,listen,pace,voiceLine,current:null,data:null,voice:null};
+    reader.voice=createChapterVoice({light:sentence=>lightSentence(reader,sentence),onState:value=>paintVoice(reader,value)});
+    listen.addEventListener('click',()=>reader.voice.toggle());
+    pace.addEventListener('click',()=>{const rates=[1,1.25,1.5,.8],at=rates.indexOf(reader.voice.rate);pace.textContent=`${reader.voice.setRate(rates[(at+1)%rates.length])}×`;});
     previous.addEventListener('click',()=>{const at=CHAPTER_KEYS.indexOf(reader.current?.key);if(at>0)void showChapter(CHAPTER_KEYS[at-1]).catch(error=>onError?.(error));});
     next.addEventListener('click',()=>{const at=CHAPTER_KEYS.indexOf(reader.current?.key);if(at>=0&&at<CHAPTER_KEYS.length-1)void showChapter(CHAPTER_KEYS[at+1]).catch(error=>onError?.(error));});
     return reader;
   }
+  // The sentence being read, and its partner in the translation beside it, are lit; the original keeps in view.
+  function lightSentence(view,sentence){
+    for(const node of view.body.querySelectorAll('.is-voiced'))node.classList.remove('is-voiced');
+    const registry=globalThis.CSS?.highlights,Light=globalThis.Highlight;
+    if(!sentence||!view.data){registry?.delete?.('tos-voice');return;}
+    const ranges=[];let lead=null;
+    const add=(language,parts)=>{for(const {unit,start,end} of parts){
+      const record=view.data.units[language]?.[unit],p=record?view.body.querySelector(`.ps-parallel-cell[lang="${language}"] p[data-unit="${CSS.escape(record.id)}"]`):null;if(!p)continue;
+      lead??=p;
+      const shown=displayText(record.raw,record.kind),map=language==='ru'?respell(shown.text):null,at=offset=>{const value=shown.at(offset);return map?map.toDisplay[value]??value:value;};
+      const range=textRange(p,at(start),at(end));if(range&&registry&&Light)ranges.push(range);else p.classList.add('is-voiced');
+    }};
+    add('de',sentence.source);
+    const partner=[...view.body.querySelectorAll('.ps-parallel-cell[lang]')].map(cell=>cell.lang).find(language=>language!=='de');
+    if(partner&&sentence.target.length)add(partner,sentence.target);
+    else if(partner){const row=view.body.querySelectorAll('.ps-parallel-row')[sentence.row];for(const p of row?.querySelectorAll(`.ps-parallel-cell[lang="${partner}"] p`)??[])p.classList.add('is-voiced');}
+    if(registry&&Light){if(ranges.length)registry.set('tos-voice',new Light(...ranges));else registry.delete('tos-voice');}
+    if(lead){const box=lead.getBoundingClientRect(),frame=view.body.getBoundingClientRect();if(box.top<frame.top+24||box.bottom>frame.bottom-24)lead.scrollIntoView({block:'center',behavior:globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}
+  }
+  function paintVoice(view,{state,index,total,voiced}){
+    const playing=state==='playing';view.listen.textContent=playing?'❚❚':'▶';view.listen.setAttribute('aria-pressed',String(playing));
+    const label=words(playing?'voicePause':state==='paused'?'voiceResume':'voiceListen');view.listen.setAttribute('aria-label',label);hint?.(view.listen,label);
+    view.pace.setAttribute('aria-label',words('voiceRate'));hint?.(view.pace,words('voiceRate'));
+    view.voiceLine.hidden=state==='idle';
+    view.voiceLine.textContent=state==='idle'?'':`${words('voiceSentence').replace('{0}',String(index+1)).replace('{1}',String(total))}${voiced?'':` · ${words('voiceSilent')}`}`;
+  }
   async function showChapter(key,cite=null){
     const view=parallel(),current=chapterRequests.begin(),[data,info]=await Promise.all([chapter(key),witnesses()]);
     if(!current()||reader!==view)return;
-    view.current={key,cite};
+    view.current={key,cite};view.data=data;
     const {primary,alternate}=readingLanguages(locale());
     const columns=[...new Set(['de',...primary.filter(language=>language!=='de'),...(alternate&&alternate!=='de'?[alternate]:[])])].filter(language=>info.witnesses[language]);
     const shownColumns=columns.length>1?columns.slice(0,2):columns;
@@ -246,6 +298,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       grid.append(line);
     });
     view.body.replaceChildren(grid);
+    // Listening starts at the cited place, or at the chapter's beginning.
+    view.voice.load(data,{target:shownColumns.find(language=>language!=='de')??null,start:first?[...grid.children].indexOf(first):0});
     // The book's own words open on their origin, as they do in the cards.
     decorate?.(grid);
     // The editions themselves, in the reader of the corpus, where a place of this chapter stands there too.
@@ -269,6 +323,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const toggleCredit=()=>credit.setAttribute('aria-expanded',String(credit.classList.toggle('is-open')));
     credit.addEventListener('click',toggleCredit);credit.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleCredit();}});
     view.foot.append(credit);
+    // The pages of the editions, where a witness has a page map: behind the technical door (TOS-D-0084).
+    void editionPagesSection(document,locale,{data,languages:shownColumns}).then(section=>{if(section&&view.current?.key===key)view.foot.append(section);}).catch(()=>{});
     if(!view.dialog.open)view.dialog.showModal();
     (first??grid.firstElementChild)?.scrollIntoView({block:first?'center':'start'});
   }
@@ -314,8 +370,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     if(!work||!place)throw new Error(`No place ${cite.w} ${cite.loc}`);
     // A place may give a language from another witness of it (the translation of a book the usual one lacks).
     const witnessOf=language=>work.witnesses?.[place.witness?.[language]??language];
-    const available=Object.keys(place.texts??{}).filter(language=>place.texts[language]);
-    const {primary,alternate}=readingLanguages(locale(),work.original,available,{exact:profile!=='zarathustra'});
+    const available=Object.keys(place.texts??{}).filter(language=>place.texts[language]&&fragmentMayShow(witnessOf(language)));
+    const {primary,alternate}=profile==='aesthetics'?{primary:aestheticsReadingLanguages(locale(),work.original,available),alternate:null}:readingLanguages(locale(),work.original,available,{exact:profile!=='zarathustra'});
     let showing=primary.filter(language=>available.includes(language));
     if(!showing.length&&profile!=='antiquity')showing=[work.original].filter(language=>available.includes(language));
     const paint=()=>{
@@ -336,6 +392,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label),local(witness?.short),language==='ru'&&isPreReform(text)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
       }
+      if(profile==='aesthetics'&&resolveLocale(locale())!==work.original&&!available.includes(resolveLocale(locale())))figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
       const tools=el('div','ps-fragment-tools');
       const other=alternate&&available.includes(alternate)?(showing.includes(alternate)?primary.filter(language=>available.includes(language)):[alternate]):null;
       if(other&&(other.length||profile!=='zarathustra'&&showing.includes(alternate))&&other.join()!==showing.join()){
@@ -500,7 +557,9 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     wrap.append(figure,toggle);return wrap;
   }
   async function placeLabel(cite){const data=await externalPlaces();return localeValue(data.places?.[cite?.w]?.[cite?.loc]?.label,locale());}
-  return {render,fragment,showChapter,sourceSelection,placeLabel,citesOf,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
+  /** Begin loading the chapters these places stand in, so opening them later is immediate. Failures wait for the real read. */
+  function preload(cites=[]){if(profile!=='zarathustra')return;void witnesses().catch(()=>{});for(const key of new Set(cites.map(cite=>cite?.c).filter(value=>typeof value==='string')))void chapter(key).catch(()=>{});}
+  return {render,fragment,showChapter,sourceSelection,placeLabel,citesOf,preload,hasAuthored:value=>hasAuthored(value,locale()),get reader(){return reader;},dispose(){chapterRequests.cancel();reader?.dialog.remove();reader=null;}};
 }
 
 export {CHAPTER_KEYS,copyLocale};

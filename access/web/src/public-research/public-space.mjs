@@ -31,6 +31,8 @@ import {articleBody} from './reference-articles.mjs';
 import zarathustraWitnesses from '../../../../bonsai/zarathustra/witnesses.json' with {type:'json'};
 import {proximityCriteria,proximityLayout} from './space-proximity.mjs';
 import {datingKind,measureAntiquity,measureZarathustra} from './space-measure.mjs';
+import {keyLabel} from './control-prefs.mjs';
+import {nearCount,nearLevel} from './near-reading.mjs';
 import {depthLayout} from './space-depth.mjs';
 import {aspectLayout} from './space-aspect.mjs';
 import {mountHints,setHint} from './space-hints.mjs';
@@ -99,6 +101,12 @@ Object.assign(extraTranslations.ru,{kind_era:'Эпоха',kind_branch:'Ветв�
 Object.assign(extraTranslations.en,{kind_era:'Era',kind_branch:'Branch',kind_path:'Path',kind_step:'Move',kind_author:'Thinker',kind_figure:'Figure',kind_translator:'Translator',kind_school:'Tradition',kind_work:'Work',kind_version:'Edition',kind_chapter:'Chapter',kind_passage:'Passage',kind_concept:'Concept',kind_term:'Term',kind_image:'Image',kind_question:'Question',kind_personal:'Personal record',previousMove:'Previous move',nextMove:'Next move',trail:'Research trail',trailBack:'Back along the trail',trailForward:'Forward along the trail',trailBackWord:'Back',trailForwardWord:'Forward',benchWord:'Workbench',benchFoldWord:'Fold',fragmentCopy:'Copy quotation',fragmentCopied:'Copied'});
 // The images on a card: what each is for, and the words of its caption and viewer.
 Object.assign(extraTranslations.ru,{'media_author-portrait':'Портрет автора','media_book-response':'Отклик на книгу',media_motif:'Совпадение мотива',mediaPublicDomain:'Общественное достояние',mediaCommonsPublicDomain:'Общественное достояние · Wikimedia Commons',mediaOpenAccess:'Открытый доступ','media_era-material':'Материал эпохи','media_object-of-analysis':'Предмет анализа',media_comparison:'Для сравнения',mediaOpen:'Открыть изображение во всех подробностях',mediaInscribed:'Надпись на предмете',mediaSeries:'Серия',mediaSize:'{0} × {1} мм',mediaMissing:'Изображение не загрузилось с сервиса держателя.',mediaZoomIn:'Приблизить',mediaZoomOut:'Отдалить',mediaWhole:'Показать целиком'});
+// The keyboard's way through the sky (F2) and the actions a star's hint names (A6).
+// Listening to the original in the chapter window (H2).
+Object.assign(extraTranslations.ru,{agentReplay:'Проигрывается работа',agentsHere:'Сейчас здесь работают агенты',agentsBoard:'Доска «Агенты»',agentRoute:'Маршрут предложен агентом',trialLens:'Пробная линза агента',trialLensOff:'Снять',nearReading:'Чтение вблизи',nearSentence:'место, на котором стоит звезда',nearPlaces:'её места',voiceListen:'Слушать оригинал',voicePause:'Пауза',voiceResume:'Продолжить чтение',voiceRate:'Скорость чтения',voiceSentence:'Предложение {0} из {1}',voiceSilent:'немецкого голоса в этом браузере нет: свет идёт в темпе чтения'});
+Object.assign(extraTranslations.en,{agentReplay:'Replaying the work of',agentsHere:'Agents at work here now',agentsBoard:'The board “Agents”',agentRoute:'A route an agent proposed',trialLens:'An agent\'s trial lens',trialLensOff:'Take off',nearReading:'Reading up close',nearSentence:'the place the star rests on',nearPlaces:'its places',voiceListen:'Listen to the original',voicePause:'Pause',voiceResume:'Resume reading',voiceRate:'Pace of reading',voiceSentence:'Sentence {0} of {1}',voiceSilent:'this browser has no German voice: the light moves at the pace of reading'});
+Object.assign(extraTranslations.ru,{ownSkyOn:'Моё небо: открытое в познании выделено',ownSkyOff:'Моё небо скрыто',compareWith:'Сравнить с другой звездой',connectWith:'Связать с другой мыслью',hintCard:'карточка',hintActions:'все действия',hintLinks:'связи звезды',hintClick:'Щелчок',noLinksHere:'У этой звезды на карте нет связей',walkLink:'Связь {0} из {1}'});
+Object.assign(extraTranslations.en,{ownSkyOn:'My sky: what learning opened stands out',ownSkyOff:'My sky is hidden',compareWith:'Compare with another star',connectWith:'Link with another thought',hintCard:'card',hintActions:'every action',hintLinks:'links of the star',hintClick:'Click',noLinksHere:'This star has no links on the map',walkLink:'Link {0} of {1}'});
 Object.assign(extraTranslations.en,{'media_author-portrait':'Portrait of the author','media_book-response':'A response to the book',media_motif:'A shared motif',mediaPublicDomain:'Public domain',mediaCommonsPublicDomain:'Public domain · Wikimedia Commons',mediaOpenAccess:'Open access','media_era-material':'Material of the era','media_object-of-analysis':'Object of analysis',media_comparison:'For comparison',mediaOpen:'Open the image in full detail',mediaInscribed:'Inscribed on the object',mediaSeries:'Series',mediaSize:'{0} × {1} mm',mediaMissing:'The image did not load from the holder’s service.',mediaZoomIn:'Zoom in',mediaZoomOut:'Zoom out',mediaWhole:'Show whole'});
 export function toggleResearchFullscreen(host,doc=document){
   if(doc.fullscreenElement)return doc.exitFullscreen().catch(()=>{});
@@ -106,7 +114,7 @@ export function toggleResearchFullscreen(host,doc=document){
 }
 
 /** A public adapter over the existing constructor scene and its Rust graph owner. */
-export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',library,bindings=new Map(),documentBindings=new Map(),groundTargets=()=>[],routeGroundTargets=()=>null,graphPredecessors=[],api,workspace,shelf,question,saveState,status,personalOwnerRoot,agentOwnerRoot,journeys=[],index=null}={}){
+export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',library,bindings=new Map(),documentBindings=new Map(),groundTargets=()=>[],routeGroundTargets=()=>null,graphPredecessors=[],api,workspace,shelf,question,saveState,status,personalOwnerRoot,agentOwnerRoot,journeys=[],index=null,controlPrefs=null}={}){
   if(!host||!library||!api)throw new TypeError('The public space needs a host, library, and reader API.');
   // Antiquity calls its authored routes branches, as the earlier tree did.
   const profileWords={antiquity:{ru:{routes:'Ветви',stepName:'Ход',backToRoute:'назад к ветви',routeNext:'Следующий ход',routePrevious:'Предыдущий ход'},en:{routes:'Branches',stepName:'Move',backToRoute:'back to the branch',routeNext:'Next move',routePrevious:'Previous move'}}}[profile]??{};
@@ -228,6 +236,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A measuring lens can be linked with what it measures by: the proximity criterion, the concept traced through time.
   const linkedCriterion=new URLSearchParams(location.search).get('treeCriterion'),linkedConcept=new URLSearchParams(location.search).get('treeConcept');
   let criterion=criteria.some(item=>item.id===linkedCriterion)?linkedCriterion:criteria[0]?.id??null,traceConcept=linkedConcept||null,measureOpen=false,nearCenter=null;
+  // Other surfaces add their own blocks to the measure panel (research-trail.mjs adds the frontier).
+  const measureBlocks=new Set();
+  const extendMeasure=()=>{for(const render of measureBlocks){try{render(panelContent,{bars});}catch(error){console.error('Measure block',error);}}};
   const desktopMode=window.matchMedia('(min-width: 761px)');
   // A narrow bar gives the search a short word, so it is read whole.
   const narrowBar=window.matchMedia('(max-width: 900px)');narrowBar.addEventListener?.('change',()=>{placeSearch();});
@@ -261,7 +272,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const lensTitle=el('p','eyebrow ps-rail-title',t('lenses')),lensList=el('div','lens-list');
   const actionsTitle=el('p','eyebrow ps-rail-title',t('researchActions')),mainActions=el('div','ps-main-actions');mainActions.setAttribute('role','group');mainActions.setAttribute('aria-label',t('researchActions'));
   lensRail.append(lensTitle,lensList,actionsTitle,mainActions);
-  for(const [key,icon,action] of [['routes','⌁',()=>toggleRoutes()],['lensInquiry','?',()=>showInquiry()],['grow','✣',()=>openGrow()],['research','◎',()=>togglePersonal()],['new','＋',()=>openNewThought()],['connect','↗',()=>beginConnect()],['compare','⇄',()=>beginCompare()],['measureAction','∑',()=>openMeasure()]]){const b=button('','ps-top-action');b.dataset.spaceAction=key;setHint(b,t(key));b.append(hasIcon(key)?iconElement(document,key,'ps-action-icon',18):el('span','ps-action-icon',icon),el('span','ps-action-label',t(key)));b.addEventListener('click',action);mainActions.append(b);}
+  for(const [key,icon,action] of [['routes','⌁',()=>toggleRoutes()],['lensInquiry','?',()=>showInquiry()],['grow','✣',()=>openGrow()],['research','◎',()=>togglePersonal()],['new','＋',()=>openNewThought()],['connect','↗',()=>beginConnect(selected??undefined)],['compare','⇄',()=>beginCompare(selected??undefined)],['measureAction','∑',()=>openMeasure()]]){const b=button('','ps-top-action');b.dataset.spaceAction=key;setHint(b,t(key));b.append(hasIcon(key)?iconElement(document,key,'ps-action-icon',18):el('span','ps-action-icon',icon),el('span','ps-action-label',t(key)));b.addEventListener('click',action);mainActions.append(b);}
   // Orientation: where in the tree the reader stands, from the whole space down to the chosen star.
   const heading=el('header','view-heading ps-orientation');
   const kicker=el('p','view-kicker');
@@ -273,6 +284,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const relationBar=el('section','relation-bar ps-relations');
   const relationToggle=button(t('filter'),'relation-toggle');
   const relationChips=el('div','relation-chips'),statusLegend=el('div','ps-status-legend');relationBar.append(relationToggle,relationChips,statusLegend);
+  // The research layer's highlight categories name their channel here (highlight-categories.mjs, TOS-D-0082).
+  const highlightLegend=el('div','ps-highlight-legend');highlightLegend.hidden=true;relationBar.append(highlightLegend);
+  // The agents' sky (C7, sky-agents.mjs) names its marks here.
+  const agentsLegend=el('div','ps-highlight-legend ps-agents-legend');agentsLegend.hidden=true;relationBar.append(agentsLegend);
   const footer=el('footer','footer ps-footer');
   const footerTools=el('div','footer-tools');
   // The footer speaks only when something happened: a saved change, an error.
@@ -285,7 +300,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const panelBench=button('','icon ps-bench-toggle'),panelTools=el('div','ps-column-tools');panelBench.hidden=true;panelBench.addEventListener('click',()=>toggleBench());
   // The card goes onto the workbench, where it is worked on beside the text, the word and the reader's own thought.
   const panelAdd=button('','icon ps-bench-add');panelAdd.hidden=true;panelAdd.innerHTML=BENCH_ADD_ICON;panelAdd.addEventListener('click',()=>layOnBench());
-  panelTools.append(panelAdd,panelBench,panelClose);panelTop.append(panelTitle,panelTools);
+  // Tools that need a subject stand at the subject (J2): the open star is compared or linked from its own card.
+  const subjectTool=(key,action)=>{const node=button('','icon ps-subject-tool');node.dataset.subjectTool=key;node.hidden=true;node.append(iconElement(document,key,'ps-tool-symbol',16));node.addEventListener('click',()=>{const first=selected;if(first)action(first);});return node;};
+  const panelCompare=subjectTool('compare',first=>beginCompare(first)),panelConnect=subjectTool('connect',first=>beginConnect(first));
+  panelTools.append(panelCompare,panelConnect,panelAdd,panelBench,panelClose);panelTop.append(panelTitle,panelTools);
   const panelContent=el('div','ps-panel-content');
   // A measuring lens keeps its own controls at the top of the column: the concept traced through time, the criterion of proximity.
   const lensControls=el('div','ps-lens-controls');lensControls.hidden=true;
@@ -356,6 +374,31 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     return svg;
   }
   // The globe shows the space's turn: its meridian and equator open as the space turns, its dot is the space's front.
+  // Reading up close (J1): the nearer the reader comes to a chosen star, the more of its text stands beside it in the
+  // sky: first the sentence it rests on, then its places, each with the original and the translation. Moving away
+  // lets them go; the card and the reader stay where they were.
+  const nearReading=el('aside','ps-closeup');nearReading.hidden=true;nearReading.setAttribute('aria-label',t('nearReading'));
+  let nearKey='';
+  function nearCites(id){
+    const material=previewMaterials.get(String(id).replace(/^material:/,''))??null,record=material?.coreId?index?.get(material.coreId)?.record:material;
+    return citedPlaces(record).filter(cite=>cite?.w&&(cite.u?.length||cite.loc||Number.isInteger(cite.s)));
+  }
+  function paintNear(pose=lastPose){
+    if(!nearReading.isConnected)shell.append(nearReading);
+    const level=nearLevel({zoom:pose?.zoom??1,selected,route:Boolean(route),measured:measuredLens(lens),bench});
+    const star=level?shell.querySelector(`.tree-star[data-node="${CSS.escape(selected)}"]`):null;
+    const cites=star?nearCites(selected).slice(0,nearCount(level)):[];
+    if(!cites.length){nearReading.hidden=true;nearKey='';return;}
+    const key=`${selected}|${level}|${locale()}`;
+    if(key!==nearKey){nearKey=key;nearReading.replaceChildren(el('p','ps-closeup-title',`${label(matForNode(graphState().nodes.find(node=>node.id===selected)))} · ${t(level===1?'nearSentence':'nearPlaces')}`),...cites.map(cite=>fragments.fragment(cite)));}
+    nearReading.hidden=false;nearReading.dataset.level=String(level);
+    // Beside the star, inside the free part of the map, on the side with more room.
+    const box=star.getBoundingClientRect(),own=shell.getBoundingClientRect(),area=freeArea({width:shell.clientWidth,height:shell.clientHeight})??{left:8,right:shell.clientWidth-8,top:8,bottom:shell.clientHeight-8};
+    const x=box.left+box.width/2-own.left,y=box.top+box.height/2-own.top,width=Math.min(420,Math.max(240,(area.right-area.left)*.42));
+    const right=area.right-x>x-area.left,left=right?Math.min(area.right-width,x+28):Math.max(area.left,x-28-width);
+    nearReading.style.width=`${Math.round(width)}px`;nearReading.style.left=`${Math.round(Math.max(area.left,left))}px`;
+    nearReading.style.top=`${Math.round(Math.min(Math.max(area.top,y-60),Math.max(area.top,area.bottom-nearReading.offsetHeight)))}px`;
+  }
   function paintTurn(pose){
     lastPose=pose;if(!turnGlobe||!pose)return;
     const yaw=pose.yaw,pitch=pose.pitch;
@@ -1156,19 +1199,90 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const layoutKind=()=>volumeLens(lens)?null:lens==='time'&&timeline?timeline.kind:lens==='space'&&geography?'plane':lens==='proximity'&&proximityLens?'proximity':null;
   const layoutStrip=()=>volumeLens(lens)?0:lens==='time'&&timeline?timeline.strip:lens==='space'&&geography?geography.strip:0;
   let shownView=null;
+  // My sky (I1): what the person opened in the learning mode stands out in the original one, the rest steps back.
+  const OWN_SKY_KEY=`tos.public-research.own-sky.v1.${profile}`;
+  let ownSky=null,ownSkyOn=(()=>{try{return localStorage.getItem(OWN_SKY_KEY)==='on';}catch{return false;}})();
+  function withOwnSky(view){
+    if(!ownSkyOn||!ownSky?.known.size||!view)return view;
+    const opened=new Set([...ownSky.known].flatMap(id=>[id,coreMaterial(id)].filter(Boolean)));
+    const mine=node=>opened.has(node.materialId)||opened.has(String(node.id).replace(/^material:/,''))||opened.has(node.coreId);
+    return {...view,nodes:view.nodes.map(node=>mine(node)?{...node,prominent:true,dim:false}:{...node,dim:true,prominent:false}),
+      edges:view.edges.map(edge=>ownSky.found.has(edge.coreRecord?.id)?{...edge,highlight:true}:edge)};
+  }
+  // An agent's trial lens (L3): its members stand out, the rest steps back, and a chip names the lens until it is taken off.
+  let trialLens=null;
+  const trialChip=el('div','ps-trial-lens');trialChip.hidden=true;
+  function withTrialLens(view){
+    if(!trialLens||!view)return view;
+    const mine=node=>trialLens.members.has(node.materialId)||trialLens.members.has(String(node.id).replace(/^material:/,''))||trialLens.members.has(node.coreId);
+    return {...view,nodes:view.nodes.map(node=>mine(node)?{...node,prominent:true,dim:false}:{...node,dim:true,prominent:false})};
+  }
+  function setTrialLens(spec){
+    trialLens=spec?{title:spec.title,members:new Set((spec.members??[]).flatMap(id=>[id,coreMaterial(id)].filter(Boolean)))}:null;
+    if(!trialChip.isConnected)shell.append(trialChip);
+    trialChip.hidden=!trialLens;trialChip.replaceChildren();
+    if(trialLens){const off=button(t('trialLensOff'),'text-button');off.addEventListener('click',()=>setTrialLens(null));trialChip.append(el('span','ps-trial-name',`${t('trialLens')}: ${spec.title}`),off);}
+    refreshSky();return Boolean(trialLens);
+  }
+  // An agent's routes (L4) join the stand's own and are walked by the same walker; each is the agent's proposal.
+  // Routes from agents' work: the field's routes (L4) and replays of an agent's or a squad's work (C9), each group
+  // replaced on its own.
+  function setAgentRoutes(list,group='field'){
+    for(let i=routes.length-1;i>=0;i--)if(routes[i].agent===group)routes.splice(i,1);
+    for(const item of list??[])routes.push({...item,source:'atlas',agent:group,steps:(item.steps??[]).map(step=>({...step,nodeId:coreMaterial(step.nodeId)??step.nodeId}))});
+    if(browsingRoutes||route)renderRoutes();return routes.filter(item=>item.agent===group).length;
+  }
+  // One highlight category at a time (A2): its links take brightness and line weight, the stars at their ends and its own
+  // stars stand out, the rest steps back. The legend names what the channel shows.
+  let highlight=null;
+  function withHighlight(view){
+    if(!highlight||!view)return view;
+    const edges=view.edges.map(edge=>highlight.edges.has(edge.coreRecord?.id)||highlight.edges.has(edge.id)?{...edge,highlight:true}:edge);
+    const ends=new Set(edges.filter(edge=>edge.highlight&&(highlight.edges.has(edge.coreRecord?.id)||highlight.edges.has(edge.id))).flatMap(edge=>[edge.from,edge.to]));
+    const own=node=>ends.has(node.id)||highlight.nodes.has(node.materialId)||highlight.nodes.has(String(node.id).replace(/^material:/,''))||highlight.nodes.has(node.coreId);
+    return {...view,edges,nodes:view.nodes.map(node=>own(node)?{...node,prominent:true,dim:false}:{...node,dim:true,prominent:false})};
+  }
+  // Agents at work by star (C7): {address: {count, roles}}, read from the journal's presence fold.
+  let agentPresence=null;
+  const agentsAtNode=node=>agentPresence&&node?agentPresence.get(node.coreId)??agentPresence.get(node.materialId)??agentPresence.get(String(node.id).replace(/^material:/,''))??agentPresence.get(node.id)??null:null;
+  function withAgents(view){
+    if(!agentPresence||!view)return view;
+    return {...view,nodes:view.nodes.map(node=>{const agents=agentsAtNode(node);return agents?{...node,agents}:node;})};
+  }
+  // The same agents in the star's card (C3): who works here now, the way to the board that shows them all.
+  function paintAgentsHere(id){
+    const agents=agentsAtNode(graphState().nodes.find(node=>node.id===id));
+    if(!agents)return;
+    const line=el('p','ps-card-voices ps-agents-here');line.dataset.agents=String(agents.count);
+    line.append(el('span','',`${t('agentsHere')}: ${agents.count}${agents.roles.length?` · ${agents.roles.slice(0,4).join(', ')}`:''}`));
+    const board=button(t('agentsBoard'),'text-button');board.addEventListener('click',()=>shell.dispatchEvent(new CustomEvent('public-research-agents-board',{bubbles:true})));line.append(board);
+    panelContent.prepend(line);
+  }
+  function setAgentPresence(value){
+    agentPresence=value&&value.size?new Map([...value].flatMap(([id,row])=>[[id,row],[coreMaterial(id),row]].filter(([key])=>key))):null;refreshSky();
+    const here=panelContent.querySelector('.ps-agents-here');
+    here?.remove();if(columnMode()==='node'&&selected)paintAgentsHere(selected);
+    return Boolean(agentPresence);
+  }
+  function setHighlight(value){
+    highlight=value?{edges:new Set(value.edges??[]),nodes:new Set([...(value.nodes??[])].flatMap(id=>[id,coreMaterial(id)].filter(Boolean)))}:null;
+    refreshSky();return Boolean(highlight);
+  }
+  function setOwnSky(on){ownSkyOn=Boolean(on);try{localStorage.setItem(OWN_SKY_KEY,ownSkyOn?'on':'off');}catch{}shell.dataset.ownSky=String(ownSkyOn);notify(t(ownSkyOn?'ownSkyOn':'ownSkyOff'));refreshSky();}
   function refreshSky(){
     sky?.setCloseIn?.(treeView()||gatherView());sky?.setZoomCeiling?.(treeView()||gatherView()?14:4);
-    if(!sky)return;shownView=visibleState();sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
+    if(!sky)return;shownView=withAgents(withHighlight(withTrialLens(withOwnSky(visibleState()))));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
     // An aspect is framed whole once, when its choice is made: the chosen star or link and the rows beside it.
     const key=aspect?`${aspect.kind}:${aspect.focus.join('|')}`:'';
     if(key!==aspectKey){const was=aspectKey;aspectKey=key;aspectOpen={};
       // An aspect is read straight on; letting it go returns the space to its resting turn.
       if(aspect)sky.faceFront();else if(was)sky.turnToRest();
-      if(aspect){shownView=visibleState();sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
+      if(aspect){shownView=withAgents(withHighlight(withTrialLens(withOwnSky(visibleState()))));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
     sky.refresh();
   }
   function reflect(){
     if(destroyed)return;state=model.getState();
+    requestAnimationFrame(()=>{if(!destroyed)paintNear();});
     if(promptHost?.isConnected&&promptId)readingPrompt(promptHost,promptId);
     // The scale of time rearranges the map's frame: its tools join the heading and its strips take their room.
     const kind=layoutKind();if(kind)shell.dataset.scale=kind;else delete shell.dataset.scale;
@@ -1190,7 +1304,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     for(const item of lenses){
       const kind=item.positions?.positions==='measure'?'measure':'group';
       if(previous==='group'&&kind==='measure')lensList.append(el('span','ps-lens-divider'));previous=kind;
-      const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.dataset.positions=kind;
+      const b=button('', 'lens');b.setAttribute('aria-pressed',String(lens===item.id));b.dataset.positions=kind;b.dataset.lens=item.id;
       b.append(hasIcon(item.id)?iconElement(document,item.id,'lens-icon',18):el('span','lens-icon',item.icon),el('span','lens-name',tr(item.title,locale())));
       setHint(b,tr(item.description,locale()));
       b.addEventListener('click',event=>{lens=item.id;const refocus=event.detail===0||lensList.contains(document.activeElement);
@@ -1267,7 +1381,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       const list=(title,rows)=>{if(!rows.length)return;gaps.append(el('h2','minor-title',title),el('p','ps-measure-list',rows.map(row=>`${quote(tr(row.title,locale()))} · ${row.n}`).join(' · ')));};
       list(t('measureLifeOnly'),m.gaps.lifeOnly);if(geography)list(t('measurePlaceless'),m.gaps.placeless);
       if(gaps.childElementCount)panelContent.append(gaps);
-      return;
+      extendMeasure();return;
     }
     const m=measureZarathustra({routes,timeline,book:bonsai?.chronology?.book,placeOf,materials:[...materials.values()]});if(!m)return;
     bars(panelContent,`${t('measureGrounding')} · ${m.total}`,[{label:t('measureInBook'),n:m.inBook},{label:t('measureOutside'),n:m.outside}],{total:m.total});
@@ -1279,6 +1393,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const chapterOf=id=>timeline.placeOf(id)?.chapter??NaN;
     pathRows(panelContent,t('measureRoutes'),routes.map(item=>{const ids=(item.steps??[]).map(step=>step.nodeId??step.graphNodeId).filter(id=>timeline.positions.has(id)),row=m.routes.find(value=>value.id===item.id);return {id:item.id,title:item.title,size:countSteps(row?.steps??ids.length),returns:row?.returns??0,values:ids.map(chapterOf)};}),
       {min:0,max:timeline.domain.max,ends:timeline.scaleEnds(locale())});
+    extendMeasure();
   }
   function renderWelcome(){panelContent.replaceChildren();}
   function renderLensControls(mode){
@@ -2025,12 +2140,14 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     panelClose.hidden=!wide&&!columnOpen;panelClose.setAttribute('aria-label',t(mode==='overview'&&!browsingRoutes?'collapseColumn':mode==='route'?'resetRoute':'close'));
     // Only the open card of a star or a link is a workbench; any other column, or a closed one, folds it back.
     const benchable=(mode==='node'||mode==='edge')&&columnOpen;if(!benchable)bench=false;
+    const subjectOpen=mode==='node'&&columnOpen&&Boolean(selected)&&!interaction;panelCompare.hidden=panelConnect.hidden=!subjectOpen;
+    for(const [node,key] of [[panelCompare,'compareWith'],[panelConnect,'connectWith']]){node.setAttribute('aria-label',t(key));setHint(node,t(key));}
     shell.dataset.bench=String(bench);reading.dataset.bench=String(bench);panelBench.hidden=!benchable;panelBench.innerHTML=benchIcon(bench);panelAdd.hidden=!benchable;paintBenchAdd();
     panelBench.setAttribute('aria-pressed',String(bench));panelBench.setAttribute('aria-label',t(bench?'closeBench':'openBench'));setHint(panelBench,t(bench?'closeBench':'openBench'),'F');
     const trays=bench&&!subjectChanged?benchTrays():null;
     delete panelContent.dataset.termWorks;delete panelContent.dataset.termNode;
     renderRoutes();renderLensControls(mode);
-    if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node')renderNode(selected);else if(mode==='edge')renderEdge(selectedEdge);else if(mode==='measure')renderMeasure();
+    if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node'){renderNode(selected);paintAgentsHere(selected);}else if(mode==='edge')renderEdge(selectedEdge);else if(mode==='measure')renderMeasure();
     if(bench)openBench(mode,trays);
     // The scale of time shows the chosen move's author's life, so a new choice redraws its strip.
     if(measuredLens(lens)&&scaleChoice!==selected)refreshSky();
@@ -2160,7 +2277,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       card.addEventListener('click',()=>{sky?.light(null);startRoute(item);});list.append(card);
       // Pointed at, a branch or route lights its way through the stars it walks.
       if(item.source==='atlas'){
-        const light=()=>{const view=new Set((shownView?.nodes??[]).map(node=>node.id));sky?.light(routeStars(shown.steps??[],{graphIdOf:id=>graphIdForMaterial(materials.has(id)?id:String(id).replace(/^material:/,'')),shown:view}));};
+        // Pointing at a route also begins loading the chapters its steps stand in, so opening it is immediate.
+        const light=()=>{const view=new Set((shownView?.nodes??[]).map(node=>node.id));sky?.light(routeStars(shown.steps??[],{graphIdOf:id=>graphIdForMaterial(materials.has(id)?id:String(id).replace(/^material:/,'')),shown:view}));
+          fragments.preload?.(citedPlaces([item,...(item.steps??[]).map(step=>previewMaterials.get(String(step.nodeId??step.graphNodeId??'').replace(/^material:/,''))?.record??null)]));};
         const dark=()=>sky?.light(null);
         card.addEventListener('pointerenter',light);card.addEventListener('focus',light);card.addEventListener('pointerleave',dark);card.addEventListener('blur',dark);
       }
@@ -2173,6 +2292,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const current=routes.find(item=>item.id===route.id),steps=current?.steps??[],item={...current,source:'atlas'};
     const head=el('div','ps-walk-head');head.append(el('span','ps-card-kicker',`${routeWord(item)} · ${routeSize(item,steps.length)}`),el('h2','ps-route-title',tr(current?.title,locale())));
     if(current?.question)head.append(el('p','ps-route-question',tr(current.question,locale())));
+    // An agent's route says whose proposal it is (agent-field.mjs).
+    if(current?.byAgent)head.append(el('p','ps-card-voices',`${t(current.agent==='replay'?'agentReplay':'agentRoute')}: ${current.byAgent}`));
     const voices=routeVoicesFor(item);if(voices.length)head.append(el('p','ps-card-voices',voices.join(' · ')));
     deck.append(head);
     const list=el('ol','ps-steps');
@@ -2348,10 +2469,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function toggleFullscreen(){return toggleResearchFullscreen(host);}
   function keyboard(event){
-    if(benchView?.isOpen()||dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"],.ps-personal'))return;
+    // The sheets of the action layer, the desk and the trail keep their own keys: Escape there closes the sheet only.
+    if(benchView?.isOpen()||dialog.open||event.target.closest('input,textarea,select,[contenteditable="true"],.ps-personal,.al-palette,.al-capabilities,.al-settings,.ad-sheet'))return;
     const key=event.key.toLowerCase();if((event.ctrlKey||event.metaKey)&&key==='z'){event.preventDefault();event.shiftKey?model.redo():model.undo();checkGraphPersistence();}
     else if(!event.ctrlKey&&!event.metaKey&&!event.altKey){
-      if(key==='o')frameSky();
+      // The device's keys (control-prefs.mjs); by default O, /, B and F.
+      const keys=controlPrefs?.get?.().keys??{frame:'KeyO',search:'Slash',bench:'KeyB',expand:'KeyF',stars:'KeyG',nextLink:'BracketRight',previousLink:'BracketLeft'};
+      if(event.code===keys.frame)frameSky();
       // Escape lets a chosen star go; on the tree the view steps back to the whole of it.
       // Escape folds the workbench back to the column, with the same star still chosen; the reader's own work opened
       // from the bench closes back onto it.
@@ -2359,11 +2483,26 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       if(key==='escape'&&fragments.reader?.dialog?.open){event.preventDefault();fragments.reader.dialog.close();return;}
       if(key==='escape'&&bench){event.preventDefault();if(!personal.hidden)closePersonal();else toggleBench(false);return;}
       if(key==='escape'&&(selected||selectedEdge)&&!route){event.preventDefault();closePanel();}
-      if(key==='/'){event.preventDefault();search.focus();}
+      if(event.code===keys.search||(key==='/'&&keys.search==='Slash')){event.preventDefault();search.focus();}
       // B lays the open card on the workbench, or opens the workbench when no card is open (Shift+B always opens it);
       // F spreads the card over the whole screen and folds it back. Both in any keyboard layout.
-      if(event.code==='KeyB'){event.preventDefault();if(!event.shiftKey&&!panelAdd.hidden)layOnBench();else benchView?.show();return;}
-      if(event.code==='KeyF'&&!panelBench.hidden){event.preventDefault();toggleBench();return;}
+      if(event.code===keys.bench){event.preventDefault();if(!event.shiftKey&&!panelAdd.hidden)layOnBench();else benchView?.show();return;}
+      if(event.code===keys.expand&&!panelBench.hidden){event.preventDefault();toggleBench();return;}
+      // The keyboard walks the sky (F2): G brings the focus to the stars, arrows move it to the nearest star that way,
+      // ] and [ walk the links of the chosen star, Enter crosses a walked link to its other end, and the menu key
+      // (or Shift+F10) opens every action for the star or link it is on.
+      const onStar=event.target.closest?.('.tree-star'),onLink=event.target.closest?.('.edge-label');
+      if(event.code===keys.stars){event.preventDefault();focusStars();return;}
+      if(key==='contextmenu'||(event.shiftKey&&key==='f10')){
+        const on=onStar??onLink;if(on){event.preventDefault();on.click();requestAnimationFrame(()=>shell.dispatchEvent(new CustomEvent('public-research-menu',{bubbles:true,detail:{anchor:on}})));return;}
+        if(selected||selectedEdge){event.preventDefault();shell.dispatchEvent(new CustomEvent('public-research-menu',{bubbles:true,detail:{}}));return;}
+      }
+      if(!route&&(event.code===keys.nextLink||event.code===keys.previousLink)){
+        const anchor=walking()?walk.anchor:selected;if(anchor){event.preventDefault();walkLinks(anchor,event.code===keys.nextLink?1:-1);return;}
+      }
+      if(key==='enter'&&walking()&&(event.target===document.body||onLink||event.target.closest?.('canvas'))){event.preventDefault();crossWalk();return;}
+      const starArrow={arrowleft:[-1,0],arrowright:[1,0],arrowup:[0,-1],arrowdown:[0,1]}[key];
+      if(starArrow&&onStar&&!event.shiftKey){event.preventDefault();focusNearestStar(onStar,starArrow);return;}
       if(key==='+'||key==='='){event.preventDefault();sky?.zoomBy(1.25);}
       if(key==='-'||key==='_'){event.preventDefault();sky?.zoomBy(1/1.25);}
       // Arrows walk the open branch or route a step at a time.
@@ -2373,6 +2512,52 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       // Escape climbs one level at a time: a pending pick, a comparison, an open panel, then the route.
       if(key==='escape'){if(!searchResults.hidden){searchResults.hidden=true;return;}if(interaction){cancelInteraction();return;}if(!compareBar.hidden){compareIds=[];compareBar.hidden=true;refreshSky();renderColumn();return;}if(!personal.hidden){closePersonal();return;}closeColumnLayer({collapse:false});}
     }
+  }
+  // ---- walking the sky by keys (F2)
+  const starButtons=()=>[...shell.querySelectorAll('.tree-star')].filter(node=>node.tabIndex>=0&&!node.hidden&&node.isConnected);
+  const starButton=id=>shell.querySelector(`.tree-star[data-node="${CSS.escape(id)}"]`);
+  /** Focus the chosen star, or the star nearest the middle of the free map. */
+  function focusStars(){
+    const chosen=selected?starButton(selected):null;if(chosen&&chosen.tabIndex>=0){chosen.focus({preventScroll:true});return;}
+    const area=freeArea({width:shell.clientWidth,height:shell.clientHeight})??{left:0,right:shell.clientWidth,top:0,bottom:shell.clientHeight},origin=shell.getBoundingClientRect();
+    const cx=origin.left+(area.left+area.right)/2,cy=origin.top+(area.top+area.bottom)/2;
+    let best=null,distance=Infinity;
+    for(const node of starButtons()){const box=node.getBoundingClientRect();if(!box.width&&!box.height)continue;const d=Math.hypot(box.left+box.width/2-cx,box.top+box.height/2-cy);if(d<distance){distance=d;best=node;}}
+    best?.focus({preventScroll:true});
+  }
+  /** The nearest star in the direction of an arrow, within a cone of it; nearness across the arrow costs more than along it. */
+  function focusNearestStar(from,[dx,dy]){
+    const own=from.getBoundingClientRect(),cx=own.left+own.width/2,cy=own.top+own.height/2;
+    let best=null,score=Infinity;
+    for(const node of starButtons()){
+      if(node===from)continue;const box=node.getBoundingClientRect();if(!box.width&&!box.height)continue;
+      const x=box.left+box.width/2-cx,y=box.top+box.height/2-cy,along=x*dx+y*dy,across=Math.abs(x*dy-y*dx);
+      if(along<=2||across>along*1.8)continue;
+      const value=along+across*2.2;if(value<score){score=value;best=node;}
+    }
+    best?.focus({preventScroll:true});
+  }
+  // A walk keeps the star it started from while its links are chosen one by one.
+  let walk=null;
+  const walking=()=>Boolean(walk&&selectedEdge===walk.edge);
+  const nameOfNode=id=>{const node=shownView?.nodes?.find(item=>item.id===id)??graphState().nodes.find(item=>item.id===id);return node?label(matForNode(node)??node):id;};
+  function linksOf(id){
+    const edges=(shownView?.edges??[]).filter(edge=>edge.id&&(edge.from===id||edge.to===id));
+    return edges.sort((a,b)=>nameOfNode(a.from===id?a.to:a.from).localeCompare(nameOfNode(b.from===id?b.to:b.from),locale())||String(a.id).localeCompare(String(b.id)));
+  }
+  function walkLinks(anchor,step){
+    const links=linksOf(anchor);if(!links.length){notify(t('noLinksHere'));return;}
+    const index=walking()&&walk.anchor===anchor?(walk.index+step+links.length)%links.length:step>0?0:links.length-1;
+    const edge=links[index];selectEdge(edge.id);walk={anchor,index,edge:edge.id};
+    notify(t('walkLink').replace('{0}',String(index+1)).replace('{1}',String(links.length)));
+    requestAnimationFrame(()=>shell.querySelector(`.edge-label[data-edge="${CSS.escape(edge.id)}"]`)?.focus({preventScroll:true}));
+  }
+  function crossWalk(){
+    const edge=(shownView?.edges??[]).find(item=>item.id===walk.edge);if(!edge){walk=null;return;}
+    const other=edge.from===walk.anchor?edge.to:edge.from;walk=null;
+    selectActual(other,{reveal:true});sky?.reveal?.(other);
+    // The sky may draw the star anew after the choice; the focus waits for it a few frames.
+    let frames=0;const land=()=>{const node=starButton(other);if(node){node.focus({preventScroll:true});if(document.activeElement===node)return;}if(++frames<20)requestAnimationFrame(land);};requestAnimationFrame(land);
   }
   function restoreFocus(){
     const target=!reading.hidden?(deck.querySelector('.ps-step-head[aria-current="true"]')??panelContent.querySelector('button,a[href]')??reading.querySelector('button,a[href]')):mainActions.querySelector('[data-space-action="routes"]');
@@ -2427,13 +2612,22 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   // The space turns under a drag and rests a little turned, so its depth shows; Shift, the right button or two fingers move it,
   // a pinch or the wheel zooms, and a star held still is picked up. A measuring lens lays its scale flat and only moves.
-  sky=mountConstructorSky(shell,{obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>paintTurn(pose),dragNodes:()=>!measuredLens(lens)&&!treeView()&&!gatherView()&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge,
+  sky=mountConstructorSky(shell,{controls:()=>controlPrefs?.get?.()??null,obstacles:()=>header?[header,searchResults]:[],rest:depth?.rest??null,intro:true,holdToMove:380,turnFromStars:true,touch:true,secondaryPan:true,inertia:true,depthCue:true,planarMoves:true,nativeTitles:false,onThreadSelect:id=>followThread(id),threadsFor:id=>darkThreads(id),onEdgeHover:id=>{const label=id?shell.querySelector(`.edge-label[data-edge="${CSS.escape(id)}"]`):null;if(label)hints?.showFor(label);else hints?.hide();},onPose:pose=>{paintTurn(pose);paintNear(pose);},dragNodes:()=>!measuredLens(lens)&&!treeView()&&!gatherView()&&!aspect,getViewport:freeArea,onSelect:id=>selectNode(id,{fromMap:true}),onMove:(id,moved)=>{const node=graphState().nodes.find(item=>item.id===id),own=node?.position?.[2],position=[moved[0],moved[1],Number.isFinite(own)?own:moved[2]];if(node?.ownerType==='personal-hypothesis'){personalPositions.set(id,position);try{localStorage.setItem(positionsKey,JSON.stringify(Object.fromEntries(personalPositions)));positionsPersistenceError=false;}catch{positionsPersistenceError=true;notify(t('graphSaveError'));};}else try{model.moveNode(id,position);checkGraphPersistence();}catch{}},onEdgeSelect:selectEdge,
     // A click on the empty sky lets a chosen star of the tree go.
     onBackground:()=>{if(selected&&(treeView()||gatherView())&&!route)closePanel();}});
   inkTheme();
   // One hint answers a pointer that rests on something, or a keyboard that reaches it: a tool says what it does and its key,
   // a star its kind, when and where, a link its kind and what that kind means. Nothing of it stays on the screen by itself.
-  function starHint(id){
+  const mac=/Mac|iPhone|iPad/.test(globalThis.navigator?.platform??'');
+  // A star's hint ends with what can be done with it: by keys when the keyboard reached it, by a click otherwise.
+  function hintActions(id,via){
+    const keys=controlPrefs?.get?.().keys??{},menu=[mac?'⌘':'Ctrl',keyLabel(keys.palette??'KeyK')];
+    if(via!=='keyboard')return [{keys:[t('hintClick')],text:t('hintCard')},{keys:menu,text:t('hintActions')}];
+    const own=[{keys:['Enter'],text:t('hintCard')},{keys:['Shift','F10'],text:t('hintActions')}];
+    if(selected===id)own.push({keys:[keyLabel(keys.previousLink??'BracketLeft'),keyLabel(keys.nextLink??'BracketRight')],text:t('hintLinks')});
+    return own;
+  }
+  function starHint(id,via='pointer'){
     const node=graphState().nodes.find(item=>item.id===id);if(!node)return null;
     if(node.ownerType==='personal-hypothesis')return {eyebrow:t('rungPersonal'),glyph:signElement(document,'personal'),title:label(node),lines:[]};
     const material=matForNode(node),part=partName(profile,material,locale(),{moveIds}),rung=ladderRung({material,node});
@@ -2443,7 +2637,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(material?.id&&geography&&starSet.has(material.id)){const entry=placeEntryOf(material.id),place=entry?.place?placesReader.place(entry.place):null;if(place)lines.push(`⌖ ${tr(place.label,locale())}`);}
     // On the tree a star's hint also says where it stands in it.
     const note=treeView()&&material?.id?treeLayout.notes?.get(material.id):null;if(note)lines.push(`✧ ${tr(note,locale())}`);
-    return {eyebrow,glyph:signOf(material,node),title:keepDots(label(material??node)),lines};
+    return {eyebrow,glyph:signOf(material,node),title:keepDots(label(material??node)),lines,actions:hintActions(id,via)};
   }
   function edgeHint(id){
     const edge=shownView?.edges?.find(item=>item.id===id);if(!edge||edge.proposalId)return null;
@@ -2456,7 +2650,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   hints=mountHints(shell,{
     selector:'[data-hint],.tree-star,.edge-label,.tree-thread',
-    describe:element=>element.matches('.tree-star')?starHint(element.dataset.node):element.matches('.edge-label')?edgeHint(element.dataset.edge):element.matches('.tree-thread')?threadHint(element.dataset.thread):undefined,
+    describe:(element,via)=>element.matches('.tree-star')?starHint(element.dataset.node,via):element.matches('.edge-label')?edgeHint(element.dataset.edge):element.matches('.tree-thread')?threadHint(element.dataset.thread):undefined,
     side:element=>element.matches('.tree-star,.tree-thread')?'right':element.closest('.ps-map-tools')?(desktopMode.matches&&!shell.dataset.scale?'left':'bottom'):element.closest('.ps-lens-rail')&&desktopMode.matches?'right':'top',
     moving:element=>element.matches('.tree-star,.edge-label,.tree-thread'),
   });
@@ -2528,6 +2722,20 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A new theme repaints what is coloured from code: the relation chips and the links of a route.
   const themeEvent=()=>{if(destroyed)return;inkTheme();setLocaleState();reflect();};window.addEventListener('site-theme',themeEvent);
   mountWorkbench();
-  return {root:shell,index,selection:researchSelection,openBench:()=>benchView?.show(),bench:()=>benchView,setTrail,openResearch,renderResearch,renderContents,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
+  // The action layer (action-layer.mjs) reaches the space through these: lenses, routes, search, the bench and the card's tools.
+  const actionApi={lenses:()=>lenses.map(item=>({id:item.id,title:item.title})),lens:()=>lens,setLens:id=>{const target=lensList.querySelector(`[data-lens="${CSS.escape(id)}"]`);if(!target)return false;target.click();return true;},
+    routeState:()=>route?{id:route.id,source:route.source,step:routeIndex+1}:null,toggleRoutes:()=>toggleRoutes(),setPassageActions:actions=>standOrigin?.setPassageActions?.(actions),terms:()=>bonsaiFor(profile)?.terms?.terms??[],core:()=>library.space?.core??null,
+    addMeasureBlock:render=>{measureBlocks.add(render);if(measureOpen)reflect();return ()=>{measureBlocks.delete(render);};},openMeasure:()=>openMeasure(),
+    showChapter:key=>fragments.showChapter(key).catch(()=>notify(t('unavailable'))),
+    routes:()=>[...routes,...journeyList].map(item=>({id:item.id,source:item.source??'atlas',title:item.title,steps:item.steps?.length??0})),
+    // A device's turn (sky-window.mjs) turns the space as the arrows do.
+    turnBy:(dx,dy)=>sky?.turnBy?.(dx,dy),
+    setTrialLens:spec=>setTrialLens(spec),setHighlight:value=>setHighlight(value),highlightLegend:()=>highlightLegend,setAgentPresence:value=>setAgentPresence(value),agentsLegend:()=>agentsLegend,trialLens:()=>trialLens?{title:trialLens.title,members:trialLens.members.size}:null,setAgentRoutes:(list,group)=>setAgentRoutes(list,group),
+    setOwnSkyState:value=>{ownSky=value?{known:new Set(value.known??[]),found:new Set(value.found??[])}:null;if(ownSkyOn)refreshSky();},
+    ownSky:()=>({available:Boolean(ownSky?.known.size),on:ownSkyOn,opened:ownSky?.known.size??0}),toggleOwnSky:force=>setOwnSky(force??!ownSkyOn),
+    connectFrom:id=>{beginConnect(graphIdForMaterial(index?.get(id)?.materialId??id));return true;},
+    // A route starts at its beginning, or at a given step (1-based), as a workplace returns it (workplaces.mjs).
+    startRoute:(id,step=null)=>{const item=routes.find(entry=>entry.id===id)??journeyList.find(entry=>entry.id===id);if(!item)return false;startRoute(item);const at=Number.isSafeInteger(step)?Math.max(0,Math.min((item.steps?.length??1)-1,step-1)):0;if(at>0){if(item.source==='atlas'||routes.includes(item))goRouteStep(at);else goJourneyStep(at);}return true;},focusSearch:()=>search.focus(),layOnBench:()=>layOnBench(),canLayOnBench:()=>!panelAdd.hidden,columnTools:panelTools};
+  return {root:shell,index,selection:researchSelection,actions:actionApi,openBench:()=>benchView?.show(),bench:()=>benchView,setTrail,openResearch,renderResearch,renderContents,markTerms:node=>terms.mark(node),readingPrompt,fragments,coreView,timeOf:id=>timeline?.spanOf?.(index?.get(id)?.materialId??id)??null,placeOf:id=>placeOf(index?.get(id)?.materialId??id),openPersonal:()=>{if(personal.hidden)togglePersonal();},compare:id=>beginCompare(graphIdForMaterial(index?.get(id)?.materialId??id)),pristineGraphs,openCollection,personalRoot:personalContent,workspaceRoot,agentRoot,refreshLocale,restoreFocus,refreshJourneys(items){journeyList=Array.isArray(items)?items:[];if(route)renderRoutes();},renderJourneys:renderRoutes,model,
     destroy(){if(destroyed)return;destroyed=true;window.removeEventListener('site-theme',themeEvent);window.removeEventListener('resize',refitScale);cancelAnimationFrame(refitFrame);shell.removeEventListener('click',openLane);shell.removeEventListener('keydown',openLaneByKey);unsubscribeModel?.();unsubscribeWorkspace?.();workspaceRoot.removeEventListener('public-research-import-result',showImportResult);workspaceRoot.removeEventListener('public-research-workspace-history',researchHistory);document.removeEventListener('keydown',keyboard);document.removeEventListener('pointerdown',notePress,{capture:true});clearTimeout(controlsTimer);shell.removeEventListener('pointerdown',notePointer,{capture:true});hints?.dispose();controls?.dispose();fragments.dispose();standOrigin?.dispose();api.reader?.setSelectionActions?.([]);desktopMode.removeEventListener('change',syncInitialRouteDock);header?.removeEventListener('public-space-locale',localeEvent);benchView?.dispose();benchButton?.remove();sky?.dispose();model.dispose();shell.remove();header?.remove();terms.dispose();}};
 }

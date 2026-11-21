@@ -1,0 +1,67 @@
+{
+ "reader": {
+  "id": "codex-2026-11-12-sophist",
+  "model": "gpt-6",
+  "date": "2026-11-12",
+  "reads": "Plato, Sophist 235d–236b, in the Greek public corpus, beside the registers’ readings."
+ },
+ "library": {
+  "agents": {
+   "plato": {
+    "tree": "tos.agent.plato"
+   }
+  },
+  "works": {
+   "plato.sophist": {
+    "title": {
+     "ru": "Софист",
+     "en": "Sophist"
+    },
+    "original": "grc",
+    "tree": "tos.work.retained-antiquity.sophist"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "plato.sophist:likeness-and-proportion",
+   "of": [
+    "C:A-C014",
+    "C:A-C018"
+   ],
+   "areas": [
+    "AE22"
+   ],
+   "work": "plato.sophist",
+   "locus": "235d–236b",
+   "voice": {
+    "ru": "Элейский чужеземец и Теэтет",
+    "en": "The Eleatic Stranger and Theaetetus"
+   },
+   "formula": [
+    {
+     "unit": "235",
+     "from": "μίαν μὲν τὴν εἰκαστικὴν",
+     "to": "τὴν τοῦ μιμήματος γένεσιν ἀπεργάζηται."
+    },
+    {
+     "unit": "236",
+     "from": "οὔκουν ὅσοι γε",
+     "to": "τοῖς εἰδώλοις ἐναπεργάζονται;"
+    }
+   ],
+   "thesis": {
+    "ru": "Чужеземец различает воспроизведение размеров и цветов образца и работу, в которой художники больших произведений меняют действительные пропорции ради кажущейся красоты с точки зрения зрителя.",
+    "en": "The Stranger distinguishes reproducing the proportions and colours of a model from the work of artists who adjust the actual proportions of large works so they look beautiful to the viewer."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "Both registers describe the distinction through 236c. This reading is confined to 235d–236b: the later definition of phantasm is not included. The Russian corpus splits a sentence across units 235–236 and translates the later 236b viewing position differently from the Greek; the alignment must be checked independently.",
+   "from": [
+    "C:A-I010",
+    "C:A-I011"
+   ]
+  }
+ ],
+ "links": []
+}

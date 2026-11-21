@@ -8,6 +8,80 @@ const PHILOSOPHY_DESCRIPTION: &str =
     "Prompt route for reviewing ToS philosophy graph projection context.";
 const WORD_DESCRIPTION: &str =
     "Prompt route for source-first morphology, semantics, etymology, and English rendering.";
+const AGENT_DESCRIPTION: &str =
+    "The agent of the Tree: its rules and one of its roles, for work in the person's act journal.";
+const AGENT_ROLES: &[u8] = include_bytes!("../../../../access/contracts/agent-roles.v1.json");
+
+/// The rules and one role (or every role) of the agent of the Tree, read from
+/// access/contracts/agent-roles.v1.json, which the page also gives its agents.
+fn agent_text(role: &str) -> Result<String, AccessError> {
+    let document = tos_foundation::parse_json(
+        AGENT_ROLES,
+        tos_foundation::JsonMode::PublishedStrict,
+        tos_foundation::JsonLimits::default(),
+    )
+    .map_err(|_| invalid("agent roles contract unreadable"))?;
+    let root = document.root();
+    let lines = |value: Option<&JsonValue>| -> Vec<String> {
+        value
+            .and_then(JsonValue::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(|item| item.as_str().map(str::to_owned))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let mut text = String::from(
+        "You are the agent of the Tree of Sophia, working in the person's act journal.\nRules:\n",
+    );
+    for rule in lines(root.object_get("rules")) {
+        text.push_str("- ");
+        text.push_str(&rule);
+        text.push('\n');
+    }
+    let roles = root
+        .object_get("roles")
+        .and_then(JsonValue::as_array)
+        .unwrap_or_default();
+    let chosen: Vec<&JsonValue> = roles
+        .iter()
+        .filter(|item| {
+            role.is_empty() || item.object_get("id").and_then(JsonValue::as_str) == Some(role)
+        })
+        .collect();
+    if chosen.is_empty() {
+        return Err(invalid("unknown agent role"));
+    }
+    text.push_str(if role.is_empty() {
+        "Roles:\n"
+    } else {
+        "Your role:\n"
+    });
+    for item in chosen {
+        let field = |name: &str| {
+            item.object_get(name)
+                .and_then(JsonValue::as_str)
+                .unwrap_or_default()
+        };
+        let name = item
+            .object_get("name")
+            .and_then(|name| name.object_get("en"))
+            .and_then(JsonValue::as_str)
+            .unwrap_or_default();
+        text.push_str(&format!(
+            "- {} ({}): {} Appends: {}. Refuses: {}\n",
+            name,
+            field("id"),
+            field("does"),
+            lines(item.object_get("appends")).join(", "),
+            field("refuses"),
+        ));
+    }
+    text.push_str("Start with the page's tos.act.manifest tool, or with tos_knowledge_catalog when you work through tos mcp without the page.");
+    Ok(text)
+}
 pub(crate) fn list() -> Vec<u8> {
     let mut out = b"{\"prompts\":[".to_vec();
     for (i, (name, description, arguments)) in [
@@ -26,6 +100,7 @@ pub(crate) fn list() -> Vec<u8> {
             WORD_DESCRIPTION,
             &[("query", true), ("language", false), ("rank", false)][..],
         ),
+        ("tos-tree-agent", AGENT_DESCRIPTION, &[("role", false)][..]),
     ]
     .into_iter()
     .enumerate()
@@ -173,6 +248,7 @@ pub(crate) fn get(params: Option<&JsonValue>, cap: usize) -> Result<Vec<u8>, Acc
     let allowed: &[&str] = match name {
         "tos-corpus-review" | "tos-philosophy-graph-review" => &["view_id", "query"],
         "tos-zarathustra-word-analysis" => &["query", "language", "rank"],
+        "tos-tree-agent" => &["role"],
         _ => return Err(invalid("unknown ToS prompt")),
     };
     if let Some(arguments) = arguments {
@@ -202,6 +278,10 @@ pub(crate) fn get(params: Option<&JsonValue>, cap: usize) -> Result<Vec<u8>, Acc
                 ),
             )
         }
+        "tos-tree-agent" => (
+            AGENT_DESCRIPTION,
+            agent_text(&string(arguments, "role", Some(""))?)?,
+        ),
         _ => (
             WORD_DESCRIPTION,
             format!(
@@ -240,6 +320,33 @@ pub(crate) fn get(params: Option<&JsonValue>, cap: usize) -> Result<Vec<u8>, Acc
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn the_agent_prompt_gives_the_rules_and_one_or_every_role() {
+        let all = agent_text("").unwrap();
+        assert!(
+            all.contains("Rules:") && all.contains("(philologist)") && all.contains("(opponent)")
+        );
+        let one = agent_text("quote-checker").unwrap();
+        assert!(
+            one.contains("Your role:")
+                && one.contains("(quote-checker)")
+                && !one.contains("(opponent)")
+        );
+        assert!(agent_text("judge").is_err());
+        let doc = tos_foundation::parse_json(
+            br#"{"name":"tos-tree-agent","arguments":{"role":"reader"}}"#,
+            tos_foundation::JsonMode::RequestLastWins,
+            tos_foundation::JsonLimits::default(),
+        )
+        .unwrap();
+        let out = String::from_utf8(get(Some(doc.root()), 16_384).unwrap()).unwrap();
+        assert!(out.contains("Reader of places"));
+        assert!(
+            String::from_utf8(list())
+                .unwrap()
+                .contains("\"tos-tree-agent\"")
+        );
+    }
     #[test]
     fn mcp_maintained_prompt_repr_integer_coercion_and_output_cap() {
         assert_eq!(repr_units(&[0xd800, 10, 39]), "\"\\ud800\\n'\"");

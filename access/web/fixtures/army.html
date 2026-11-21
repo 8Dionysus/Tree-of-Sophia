@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Act journal army probe</title>
+<style>body{font:14px system-ui;margin:24px;max-width:760px}label{margin-right:12px}pre{background:#f4f4f4;padding:12px;overflow:auto}</style>
+</head>
+<body>
+<h1>Act journal army probe</h1>
+<p>Development fixture. It fills a separate journal database with synthetic records and deletes it afterwards.</p>
+<label>Agents <input id="army-agents" type="number" value="50" min="0" max="2000"></label>
+<label>Acts <input id="army-acts" type="number" value="10000" min="100" max="1000000" step="100"></label>
+<button id="army-run" type="button">Run</button>
+<pre id="army-output"></pre>
+<script type="module" src="./army-probe.mjs"></script>
+</body>
+</html>
