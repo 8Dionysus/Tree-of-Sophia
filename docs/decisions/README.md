@@ -2352,3 +2352,6 @@ Start from [TEMPLATE.md](TEMPLATE.md) and the [local card](AGENTS.md). Use a sta
 - [TOS-D-0079 — Media on Stand Cards](TOS-D-0079-media-on-stand-cards.md), 2026-11-07, accepted by explicit operator instruction.
 - [TOS-D-0080 — The Aesthetics Bonsai and the Core of a Field](TOS-D-0080-aesthetics-bonsai-and-the-core-of-a-field.md), 2026-11-09, accepted by explicit operator instruction.
 - [TOS-D-0081 — Media Captions in the Reader's Language](TOS-D-0081-media-captions-in-the-readers-language.md), 2026-11-11, accepted by explicit operator instruction.
+- [TOS-D-0082 — Useful in View, Technical Behind a Door](TOS-D-0082-useful-in-view-technical-behind-a-door.md), 2026-11-20, accepted by explicit operator instruction.
+- [TOS-D-0083 — The Bridge as a Mode of `tos`](TOS-D-0083-the-bridge-as-a-mode-of-tos.md), 2026-11-20, accepted by explicit operator instruction.
+- [TOS-D-0084 — Edition Pages as Witness Data](TOS-D-0084-edition-pages-as-witness-data.md), 2026-11-20, accepted by explicit operator instruction.

@@ -25,7 +25,7 @@ const all=root=>[root,...root.children.flatMap(all)];
 const current='c'.repeat(64),old='a'.repeat(64),missing='b'.repeat(64),active=[];
 afterEach(()=>{for(const destroy of active.splice(0))destroy();vi.unstubAllGlobals();vi.clearAllMocks();});
 
-function fixture({work='also-sprach-zarathustra'}={}){
+function fixture({work='also-sprach-zarathustra',viewControl=null}={}){
   vi.stubGlobal('document',{createElement:tag=>new Element(tag)});
   vi.stubGlobal('location',{href:`http://localhost/?experience=cognitive&item=same&revision=${old}`});
   const history={state:null};for(const method of ['replaceState','pushState'])history[method]=vi.fn((_state,_title,url)=>{location.href=String(url);});
@@ -44,7 +44,7 @@ function fixture({work='also-sprach-zarathustra'}={}){
   const experience=mountResearchExperience({root,header:new Element('header'),profile:'test',locale:()=> 'en',index,space,notebook,api});
   const onOpen=vi.fn((id,options)=>experience.open(id,options));
   const session=mountCognitiveSession({root:experience.cognitiveRoot,notebook,index,api,locale:()=> 'en',profile:'test',getSelection:()=>experience.getState(),versionContext:experience.versionContext,onOpen});
-  const page=connectResearchPage({index,space,experience,session,api,workspace:{summary:()=>({revision:0})},locale:()=> 'en'});
+  const page=connectResearchPage({index,space,experience,session,api,workspace:{summary:()=>({revision:0})},locale:()=> 'en',...(viewControl?{viewState:()=>({presence_layer:viewControl.layer()}),viewControl:()=>viewControl}:{})});
   const tools=createWebMCPAdapter.mock.calls.at(-1)[3];
   const invoke=async(name,input={})=>JSON.parse((await tools.find(tool=>tool.name===name).execute(input)).content[0].text);
   active.push(()=>{page.destroy();session.destroy();experience.destroy();});
@@ -123,4 +123,16 @@ test('an unavailable selected version fails explicitly without returning or reco
   expect(f.provider.window).not.toHaveBeenCalled();expect(f.fragments.sourceSelection).not.toHaveBeenCalled();
   expect((await f.invoke('tos.bonsai.research-item',{id:'same',revision:current})).value.title.en).toBe('Current meaning');
   expect(f.experience.getState().revision).toBe(missing);
+});
+
+test('a page command that sets the layer completes; a person\'s change of layer still supersedes pending commands',async()=>{
+  let layer='reading',page=null;
+  // As the action layer does: a change the person makes is announced to the registry, a command's own is not.
+  const viewControl={layer:()=>layer,setLayer:(next,{notify=true}={})=>{layer=next;if(notify)page.registry.notifyStateChange();return layer;}};
+  const f=fixture({viewControl});page=f.page;
+  const result=await page.registry.invoke('tos.page.set-layer',{layer:'research'});
+  expect(result.value).toEqual({layer:'research'});
+  const before=page.registry.context().revision;
+  viewControl.setLayer('agents');
+  expect(page.registry.context().revision).toBe(before+1);
 });

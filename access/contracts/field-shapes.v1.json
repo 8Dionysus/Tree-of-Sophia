@@ -1,0 +1,37 @@
+{
+  "schema": "tos.field.shapes.v1",
+  "purpose": "The shapes the interface draws for kinds an agent declares. An agent declares a kind x.<namespace>.<name> with a kind-declaration act and may name one of these shapes in body.declares.shape; acts of that kind then appear in the field as thoughts, links, trial lenses or routes. Everything in the field is the agent's proposal in the person's own journal: the person moves anything into a ticket, the person's research or the Tree only by an explicit act of their own. A kind without a shape appears in the field by its declaration and its acts' intents.",
+  "shapes": [
+    {
+      "name": "thought",
+      "body_required": ["title", "text"],
+      "body_optional": [],
+      "targets": "the subjects or places the thought is about",
+      "shows": "a thought of the field, beside the subjects it names"
+    },
+    {
+      "name": "link",
+      "body_required": ["from", "to", "verb"],
+      "body_optional": ["text"],
+      "targets": "the two subjects or places it joins",
+      "shows": "a link of the field between two subjects, in the work's own verb where the work has one"
+    },
+    {
+      "name": "lens",
+      "body_required": ["title", "members"],
+      "body_optional": ["description", "groups"],
+      "targets": "the subjects the lens gathers",
+      "shows": "a trial lens: its members stand out on the sky, the rest steps back; its groups list their members",
+      "members": "up to 400 subject addresses (research index IDs)",
+      "groups": "up to 24 groups {title, members}"
+    },
+    {
+      "name": "route",
+      "body_required": ["title", "steps"],
+      "body_optional": ["question"],
+      "targets": "the subjects the route passes",
+      "shows": "a route walked step by step by the stand's own route walker",
+      "steps": "2 to 40 steps {target, title?, text?}; each target a subject address"
+    }
+  ]
+}
