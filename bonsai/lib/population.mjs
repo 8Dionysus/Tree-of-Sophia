@@ -64,11 +64,31 @@ export function populationIssues(module,{chronology=null,identities=null,registr
     }
     for(const gap of member.gaps??[])if(!GAP.test(gap))problems.push(`${at}: gap ${gap} is not a gap code`);
     if(member.kind==='collective'&&member.phases?.length)problems.push(`${at}: a collective has no life phases`);
+    // The row the member's ID was founded on, and the register's own words for each row, where the module keeps them.
+    if(member.founded!==undefined&&!(member.grew_from??[]).includes(member.founded))problems.push(`${at}: founded on ${member.founded}, which it did not grow from`);
+    const byRow=member.register?.rows;
+    if(byRow!==undefined){
+      if(!byRow||typeof byRow!=='object'||Object.keys(byRow).sort().join('|')!==[...(member.grew_from??[])].sort().join('|'))problems.push(`${at}: register rows are not the rows it grew from`);
+      else for(const [row,said] of Object.entries(byRow)){
+        if(said.status!==undefined&&!REGISTER_STATUSES.includes(said.status))problems.push(`${at}: ${row} has status ${said.status}`);
+        if(said.role!==undefined&&!text(said.role))problems.push(`${at}: ${row} has an empty role`);
+      }
+    }
   }
+  const regions=module.regions??{};
+  for(const [key,names] of Object.entries(regions))if(!bilingual(names))problems.push(`region ${key}: needs ru and en`);
   for(const [batch,entry] of Object.entries(batches)){
     if(!/^(?:A\d{2}|T[23]-\d{2})$/.test(batch))problems.push(`batch ${batch}: not a batch name`);
     if(!Number.isInteger(entry?.rows)||entry.rows<0)problems.push(`batch ${batch}: rows is not a count`);
     if(entry?.register!==undefined&&!/^https:\/\/treeofsophia\.com\/__research\/layers\/sha256\/[0-9a-f]{64}$/.test(entry.register))problems.push(`batch ${batch}: register is not a layer address of the site`);
+    // A batch is a research node of the master tables: its table, title, region and windows of time.
+    const node=entry?.node;
+    if(node!==undefined){
+      if(!['I','II','III'].includes(node?.table))problems.push(`batch ${batch}: node table ${node?.table} is not I, II or III`);
+      if(!bilingual(node?.title))problems.push(`batch ${batch}: node title needs ru and en`);
+      if(!(node?.region in regions))problems.push(`batch ${batch}: node region ${node?.region} is not one the module names`);
+      for(const window of ['formation','fixation','canonization'])if(!text(node?.windows?.[window]?.words))problems.push(`batch ${batch}: node window ${window} has no words`);
+    }
   }
   for(const [from,to] of Object.entries(module.redirects??{})){
     if(!MEMBER_ID.test(from))problems.push(`redirect ${from}: not a member ID`);

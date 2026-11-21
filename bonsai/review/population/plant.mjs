@@ -37,6 +37,23 @@ export const KINDS={
   collective:{tree_type:'tos.entity.organization',label:{ru:'коллектив',en:'collective'}}
 };
 
+// The regions the stand groups the research nodes under (nodes.py REGIONS gives each node its key): a grouping for
+// navigation, not a claim about a tradition, whose macro-region stays in the master table's own words.
+export const REGIONS={
+  europe:{ru:'Европа',en:'Europe'},
+  'west-asia':{ru:'Западная Азия',en:'West Asia'},
+  'north-africa':{ru:'Северная Африка',en:'North Africa'},
+  africa:{ru:'Африка к югу от Сахары',en:'Sub-Saharan Africa'},
+  'south-asia':{ru:'Южная Азия',en:'South Asia'},
+  'central-asia':{ru:'Центральная Азия',en:'Central Asia'},
+  'east-asia':{ru:'Восточная Азия',en:'East Asia'},
+  'southeast-asia':{ru:'Юго-Восточная Азия',en:'Southeast Asia'},
+  caucasus:{ru:'Кавказ',en:'The Caucasus'},
+  americas:{ru:'Америка',en:'The Americas'},
+  oceania:{ru:'Океания',en:'Oceania'},
+  transnational:{ru:'Транснациональные поля',en:'Transnational fields'}
+};
+
 const readJsonl=text=>text.split('\n').filter(Boolean).map(line=>JSON.parse(line));
 const byKey=(a,b)=>a<b?-1:a>b?1:0;
 const weaker=(...values)=>CERTAINTIES[Math.max(...values.map(value=>CERTAINTIES.indexOf(value)))]??'uncertain';
@@ -57,7 +74,12 @@ function inputs(review,root,files){
   const ledger=new Map();
   for(const line of readJsonl(read('ids.jsonl')))ledger.set(line.id,{...(ledger.get(line.id)??{}),...line});
   const decisions=files?.['decisions.jsonl']!==undefined||existsSync(join(review,'decisions.jsonl'))?readJsonl(read('decisions.jsonl')):[];
-  return {rows,digests,manifest,ledger,decisions,keys:readJsonl(read('keys.jsonl')),core:JSON.parse(read('core.json')),queue:readJsonl(read('queue/identity.jsonl'))};
+  // The research nodes of the master tables (nodes.py) and the stand's English titles of them.
+  const nodesPath=join(review,'layer','nodes','master-tables.jsonl');
+  if(!existsSync(nodesPath))throw new Error('plant: no layer/nodes/master-tables.jsonl (fetch the layers, or run nodes.py)');
+  const nodes=new Map(readJsonl(readFileSync(nodesPath,'utf8')).map(node=>[node.node,node]));
+  const nodeTitles=JSON.parse(read('inputs/node-titles.en.json')).titles;
+  return {rows,digests,manifest,ledger,decisions,nodes,nodeTitles,keys:readJsonl(read('keys.jsonl')),core:JSON.parse(read('core.json')),queue:readJsonl(read('queue/identity.jsonl'))};
 }
 
 // Two readers' years: a year of an era as the Tree's lexeme (astronomical, four digits at least).
@@ -160,7 +182,7 @@ function dating(found,wording){
 
 /** The modules the records give, in memory: {files: {path: text}, summary}. */
 export function plant({review=HERE,root=ROOT,files=null}={}){
-  const {rows,digests,manifest,ledger,decisions,keys,core,queue}=inputs(review,root,files);
+  const {rows,digests,manifest,ledger,decisions,nodes,nodeTitles,keys,core,queue}=inputs(review,root,files);
   // Two readers' decisions on a member's rows: a row's kind, the member's name in Latin script, its years; the latest stands.
   const decided={kind:new Map(),name:new Map(),life:new Map()};
   decisions.forEach((decision,at)=>{const map=decided[decision.type];if(map)for(const row of decision.rows??[])map.set(row,{...decision,at});});
@@ -181,7 +203,16 @@ export function plant({review=HERE,root=ROOT,files=null}={}){
     if(!digests.has(path))throw new Error(`plant: layers.json has no digest for ${path}`);
     return `${SITE}${digests.get(path)}`;
   };
-  for(const row of rows.values()){batches[row.batch]??={rows:0,core_rows:0,register:register(row.batch)};batches[row.batch].rows++;}
+  // A batch is one research node of the master tables: its table, its title in the table's words and in the stand's
+  // English, the region the stand groups it under, its windows of time and the table's status and confidence.
+  const nodeOf=batch=>{
+    const node=nodes.get(batch),en=nodeTitles[batch];
+    if(!node)throw new Error(`plant: the master tables have no node ${batch}`);
+    if(!en)throw new Error(`plant: inputs/node-titles.en.json has no title for ${batch}`);
+    if(!REGIONS[node.region.key])throw new Error(`plant: ${batch} is in a region plant.mjs does not name: ${node.region.key}`);
+    return {table:node.table,title:{ru:node.title,en},region:node.region.key,region_words:node.region.words,windows:node.windows,status:node.status,confidence:node.confidence};
+  };
+  for(const row of rows.values()){batches[row.batch]??={rows:0,core_rows:0,register:register(row.batch),node:nodeOf(row.batch)};batches[row.batch].rows++;}
   const members={},situations={},lives={},sources={},agents={},organizations={};
   const treeAgents=join(root,'ToS','source-witnesses','agents');
   const planted=[...memberRows].filter(([,list])=>list.some(row=>coreRows.has(row))).sort(([a],[b])=>byKey(a,b));
@@ -256,7 +287,10 @@ export function plant({review=HERE,root=ROOT,files=null}={}){
     }
     const statuses=[...new Set(ordered.map(row=>row.status).filter(status=>['verified','provisional','disputed'].includes(status)))].sort();
     const roles=[...new Set(ordered.map(row=>row.role).filter(Boolean))].sort();
-    members[id]={kind,name,core:true,verdict:'undecided',register:{statuses:statuses.length?statuses:['provisional'],roles},phases,gaps:[...gaps].sort(),grew_from:[...list].sort()};
+    // The register's status and role stay with each row: a member grown from rows of several nodes may be one node's
+    // core and another's transmission. The statuses and roles above are their union.
+    const byRow=Object.fromEntries(ordered.map(row=>[row.row,{...(['verified','provisional','disputed'].includes(row.status)?{status:row.status}:{}),...(row.role?{role:row.role}:{})}]).sort(([a],[b])=>byKey(a,b)));
+    members[id]={kind,name,core:true,verdict:'undecided',founded:entry.founded_on,register:{statuses:statuses.length?statuses:['provisional'],roles,rows:byRow},phases,gaps:[...gaps].sort(),grew_from:[...list].sort()};
     const tree=KINDS[kind].tree_type==='tos.entity.organization'?`tos.organization.${entry.slug}`:`tos.agent.${entry.slug}`;
     const resolved=Boolean(entry.tree)&&existsSync(join(treeAgents,entry.slug,'agent.json'));
     (KINDS[kind].tree_type==='tos.entity.organization'?organizations:agents)[id]={tree,status:resolved?'resolved':'to-mint'};
@@ -278,6 +312,7 @@ export function plant({review=HERE,root=ROOT,files=null}={}){
     },
     grew_from:{provenance:'bonsai/review/population/provenance.json',keys:'bonsai/review/population/keys.jsonl',ledger:'bonsai/review/population/ids.jsonl',core:'bonsai/review/population/core.json'},
     kinds:KINDS,
+    regions:REGIONS,
     batches:Object.fromEntries(Object.entries(batches).sort(([a],[b])=>byKey(a,b))),
     members,
     redirects

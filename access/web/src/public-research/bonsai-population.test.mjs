@@ -42,6 +42,12 @@ describe('the Population bonsai',()=>{
     const row=population.members[dated].grew_from[0];
     expect(changed(copy=>{copy.members[plain].grew_from.push(row);}).some(issue=>issue.includes(`${row} already grew`))).toBe(true);
     expect(changed(copy=>{copy.members[plain].phases.push('tos.biographical-phase.nobody.lifetime');})).toContain(`member ${plain}: phase tos.biographical-phase.nobody.lifetime is not in the chronology`);
+    // The founding row, the register's words per row and the research node of each batch.
+    expect(changed(copy=>{copy.members[plain].founded='A01:A01-A999';})).toContain(`member ${plain}: founded on A01:A01-A999, which it did not grow from`);
+    expect(changed(copy=>{copy.members[plain].register.rows={};})).toContain(`member ${plain}: register rows are not the rows it grew from`);
+    expect(changed(copy=>{copy.batches.A01.node.region='atlantis';})).toContain('batch A01: node region atlantis is not one the module names');
+    expect(changed(copy=>{copy.batches.A01.node.title.en='';})).toContain('batch A01: node title needs ru and en');
+    expect(changed(copy=>{copy.batches.A01.node.table='IV';})).toContain('batch A01: node table IV is not I, II or III');
     expect(changed(copy=>{copy.members[dated].phases=[];}).some(issue=>issue.endsWith('its member does not list it'))).toBe(true);
     expect(changed(copy=>{copy.redirects={'m-aaaaaaaaaa':'m-bbbbbbbbbb'};})).toContain('redirect m-aaaaaaaaaa: leads to m-bbbbbbbbbb, which is not a member');
     expect(changed(copy=>{copy.kinds.person.tree_type='tos.entity.work';})).toContain('kind person: tree_type tos.entity.work is not an agent or organization type');
