@@ -1,8 +1,8 @@
-# TOS-D-0082 The Population Bonsai and the Core of a Population
+# TOS-D-0085 The Population Bonsai and the Core of a Population
 
 ## Index Metadata
 
-- Decision ID: TOS-D-0082
+- Decision ID: TOS-D-0085
 - Original date: 2026-11-20
 - Surface classes: bonsai, access/web
 - ToS layers: derived projection

@@ -1,0 +1,294 @@
+{
+  "schema": "tos.act.kinds.v1",
+  "description": "Base kinds of act records and the categories of tickets and proposals. A stand may add categories in its bonsai; an agent may add a kind with a kind-declaration act. Every kind keeps the record invariants of act-record.v1.schema.json.",
+  "field_rules": {
+    "grounds": "required: at least one ground; optional: may be empty",
+    "parents": "required: at least one parent; optional: may be empty",
+    "body_required": "body fields that must be present and non-empty",
+    "target_prefix": "when present, every target starts with one of these prefixes",
+    "group_by": "change fields that join proposals into one review group; when any of them is missing, only identical changes on the same targets share a group"
+  },
+  "kinds": [
+    {
+      "name": "note",
+      "description": "A note on a subject or a place.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "text"
+      ]
+    },
+    {
+      "name": "ticket",
+      "description": "An observation on a subject or a place, filed under a category.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "category",
+        "observation"
+      ]
+    },
+    {
+      "name": "proposal",
+      "description": "A concrete change with its grounds, filed under a category.",
+      "grounds": "required",
+      "parents": "optional",
+      "body_required": [
+        "category",
+        "change"
+      ]
+    },
+    {
+      "name": "assignment",
+      "description": "A ticket or subject handed to an agent, a role or a squad.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "assignee"
+      ]
+    },
+    {
+      "name": "reply",
+      "description": "An agent's answer to a ticket or an assignment.",
+      "grounds": "optional",
+      "parents": "required",
+      "body_required": [
+        "text"
+      ]
+    },
+    {
+      "name": "review",
+      "description": "The person's decision on proposals: their own decision, not the Tree's.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "decision",
+        "reason"
+      ],
+      "target_prefix": [
+        "act:",
+        "group:"
+      ]
+    },
+    {
+      "name": "withdrawal",
+      "description": "Withdraws an earlier act; withdrawing a withdrawal restores it.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [],
+      "target_prefix": [
+        "act:"
+      ]
+    },
+    {
+      "name": "lease",
+      "description": "An advisory claim that an author is working on a target for a while.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "ttl_ms"
+      ]
+    },
+    {
+      "name": "release",
+      "description": "Ends the author's lease on its targets.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": []
+    },
+    {
+      "name": "kind-declaration",
+      "description": "Declares a new kind x.<namespace>.<name> with its field rules.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "declares"
+      ],
+      "target_prefix": [
+        "kind:"
+      ]
+    },
+    {
+      "name": "transfer",
+      "description": "Something sent outside, with its format and recipient; a return names it as parent.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "format",
+        "recipient"
+      ]
+    },
+    {
+      "name": "return",
+      "description": "What came back from a transfer.",
+      "grounds": "optional",
+      "parents": "required",
+      "body_required": []
+    },
+    {
+      "name": "squad",
+      "description": "A group of agents with a role, an area, a budget and a stop rule.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "role",
+        "area",
+        "budget",
+        "stop"
+      ]
+    },
+    {
+      "name": "change-packet",
+      "description": "Accepted changes gathered for the owner's route; it applies nothing by itself.",
+      "grounds": "optional",
+      "parents": "required",
+      "body_required": [
+        "changes"
+      ]
+    },
+    {
+      "name": "workspace-event",
+      "description": "A mirrored event of the research workspace, which keeps owning its thoughts and proposals.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "action"
+      ]
+    },
+    {
+      "name": "branch",
+      "description": "A research branch: a question and what the person gathers under it (tickets, thoughts, a layout, a session); a later branch act replaces it.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "question"
+      ],
+      "target_prefix": [
+        "branch:"
+      ]
+    }
+  ],
+  "decisions": [
+    "accept",
+    "accept-with-edit",
+    "reject",
+    "defer"
+  ],
+  "categories": [
+    {
+      "name": "translation",
+      "variants": [
+        "outdated",
+        "inaccurate",
+        "missing"
+      ],
+      "change_required": [
+        "from",
+        "to"
+      ],
+      "group_by": [
+        "term",
+        "to_lemma"
+      ],
+      "description": "A translation's word or passage: the witness stays as it is, the Tree's own words or a new rendering change. Proposals naming the same term and the same new word form one group, whatever form each place needs; without them only identical changes group."
+    },
+    {
+      "name": "tree-word",
+      "variants": [],
+      "change_required": [
+        "from",
+        "to"
+      ],
+      "group_by": [
+        "term",
+        "to_lemma"
+      ],
+      "description": "A word the Tree uses for a term of the work. Proposals naming the same term and the same new word form one group."
+    },
+    {
+      "name": "text",
+      "variants": [
+        "transcription",
+        "punctuation",
+        "missing"
+      ],
+      "change_required": [
+        "from",
+        "to"
+      ],
+      "group_by": [
+        "from",
+        "to"
+      ],
+      "description": "A transcription of a witness, checked against its scan."
+    },
+    {
+      "name": "alignment",
+      "variants": [],
+      "change_required": [
+        "pair"
+      ],
+      "group_by": [],
+      "description": "Which sentences of two witnesses translate one another."
+    },
+    {
+      "name": "relation",
+      "variants": [
+        "verb",
+        "grounds",
+        "missing",
+        "superfluous"
+      ],
+      "change_required": [
+        "statement"
+      ],
+      "group_by": [],
+      "description": "A link between two subjects: its verb, its grounds, whether it exists."
+    },
+    {
+      "name": "reading",
+      "variants": [
+        "counter-reading",
+        "scope"
+      ],
+      "change_required": [
+        "statement"
+      ],
+      "group_by": [],
+      "description": "A reading of a place or a thought."
+    },
+    {
+      "name": "source-dating",
+      "variants": [
+        "date",
+        "place",
+        "source"
+      ],
+      "change_required": [
+        "statement"
+      ],
+      "group_by": [],
+      "description": "A dating, a place or a source record."
+    },
+    {
+      "name": "media",
+      "variants": [
+        "caption",
+        "rights",
+        "region"
+      ],
+      "change_required": [
+        "statement"
+      ],
+      "group_by": [],
+      "description": "An image, a page or a sound and what is said about it."
+    },
+    {
+      "name": "open",
+      "variants": [],
+      "change_required": [],
+      "group_by": [],
+      "description": "Anything that has no category yet."
+    }
+  ]
+}

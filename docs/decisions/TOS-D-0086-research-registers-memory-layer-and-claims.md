@@ -1,8 +1,8 @@
-# TOS-D-0083 Research Registers: Memory, Research Layer and Claims
+# TOS-D-0086 Research Registers: Memory, Research Layer and Claims
 
 ## Index Metadata
 
-- Decision ID: TOS-D-0083
+- Decision ID: TOS-D-0086
 - Original date: 2026-11-20
 - Surface classes: bonsai, docs/route-law
 - ToS layers: research packets, derived projection
@@ -45,7 +45,7 @@ How the repository uses registers today:
   `bonsai/review/population/registry/` and a parsed layer beside them, both in
   R2 (`layers.json`), published to the site's copy on merge (107 MB); its
   members show the registers' words at low footing, and the reading line's
-  decisions with their sources (TOS-D-0082).
+  decisions with their sources (TOS-D-0085).
 
 The question raised by the operator: keep registers as memory and source,
 process them and keep the raw material hidden, or use them directly.
@@ -138,7 +138,7 @@ public in git history in any case.
 - `ToS/research-packets/AGENTS.md`
 - `docs/decisions/TOS-D-0006-research-packet-authority-correction.md`
 - `docs/decisions/TOS-D-0080-aesthetics-bonsai-and-the-core-of-a-field.md`
-- `docs/decisions/TOS-D-0082-population-bonsai-and-the-core-of-a-population.md`
+- `docs/decisions/TOS-D-0085-population-bonsai-and-the-core-of-a-population.md`
 
 ## Validation
 

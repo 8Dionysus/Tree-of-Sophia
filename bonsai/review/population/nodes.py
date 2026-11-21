@@ -8,7 +8,7 @@
 (antiquity, A01–A48), Table II (600–1500, T2-01–T2-58) and Table III (modernity, T3-01–T3-84). One row of a table
 is one research node; a node's ID is the batch ID its registers carry. Every table must match, byte for byte, the
 SHA-256 the manifest records for its path, or the intake stops. A table must have the columns this adapter reads,
-under the names it knows: a new form of the tables needs its own reading here, never a guess (TOS-D-0083).
+under the names it knows: a new form of the tables needs its own reading here, never a guess (TOS-D-0086).
 
 Writes, beside this file:
 

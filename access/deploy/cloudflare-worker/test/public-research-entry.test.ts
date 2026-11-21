@@ -104,9 +104,9 @@ test("an address the site does not hold gets the Tree's own page with status 404
   assert.equal(originRequests.length, 0);
 });
 
-test("icons, crawler files and link cards come from the root of the research build", async () => {
+test("icons, crawler files, link cards and the service worker come from the root of the research build", async () => {
   const app = fixture(request => new Response(new URL(request.url).pathname));
-  for (const path of ["/favicon.svg", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml", "/theme.js", "/og/zarathustra-en.jpg"]) {
+  for (const path of ["/favicon.svg", "/favicon.ico", "/apple-touch-icon.png", "/robots.txt", "/sitemap.xml", "/theme.js", "/sw.js", "/og/zarathustra-en.jpg"]) {
     const response = await app.fetch(new Request(`https://treeofsophia.com${path}`));
     assert.equal(app.paths.at(-1), path);
     assert.equal(await response.text(), path);

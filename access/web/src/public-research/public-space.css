@@ -666,6 +666,9 @@
 #tree .ps-hint-eyebrow{color:#8ea2ba;font:600 9.5px/1.4 var(--ps-sans);letter-spacing:.1em;text-transform:uppercase}
 #tree .ps-hint-title{color:#eef0f3;font:400 14px/1.3 var(--ps-serif)}
 #tree .ps-hint-line{color:#c3cfdb}
+#tree .ps-hint-actions{display:flex;flex-wrap:wrap;gap:3px 12px;margin-top:3px;padding-top:5px;border-top:1px solid #8aa0b833;color:#aebccb;font-size:11.5px}
+#tree .ps-hint-action{display:inline-flex;align-items:center;gap:3px}
+#tree .ps-hint-action span{margin-left:2px}
 @keyframes ps-hint-in{from{opacity:0;translate:0 2px}to{opacity:1;translate:0 0}}
 @media (prefers-reduced-motion:reduce){#tree .ps-hint{animation:none}}
 
@@ -783,6 +786,10 @@
 .ps-parallel-cell.is-absent{min-height:1.5em;background:repeating-linear-gradient(135deg,transparent 0 7px,#8296b214 7px 8px);border-radius:3px}
 .ps-parallel mark{background:#d6c59c33;color:#f1e7cb;border-radius:2px;padding:0 1px}
 .ps-parallel-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:10px 22px 14px;border-top:1px solid #8296b22b}
+.ps-parallel-nav .ps-parallel-pace{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:0 6px;color:#d6c59c;font:13px/1 var(--ps-sans,system-ui,sans-serif)}
+.ps-parallel-voice{margin:0;padding:6px 22px;border-top:1px solid #8296b22b;color:#b9c6d4;font:12.5px/1.4 var(--ps-sans,system-ui,sans-serif)}
+::highlight(tos-voice){background-color:#dcc6905c;color:inherit}
+.ps-parallel-cell p.is-voiced{background:#dcc69024;box-shadow:-6px 0 0 #dcc69024,6px 0 0 #dcc69024;border-radius:2px}
 .ps-parallel-foot .text-button{min-height:32px;color:#d6c59c;font:12.5px/1.3 var(--ps-sans,system-ui,sans-serif)}
 .ps-parallel-credit{flex:1 1 320px;min-width:0;margin:0;color:#7f93ab;font:11px/1.5 var(--ps-sans,system-ui,sans-serif);display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;border-radius:3px}
 .ps-parallel-credit.is-open{display:block}
@@ -979,3 +986,31 @@
 #tree :is(.lens-icon,.ps-action-icon,.ps-tool-symbol) svg{width:18px;height:18px;overflow:visible}
 #tree .ps-icon-star{fill:#d9bd7f;stroke:none;transition:fill .18s ease,filter .18s ease}
 #tree :is(.lens,.ps-top-action,button):is(:hover,[aria-pressed=true]) .ps-icon-star{fill:#f1d79c;filter:drop-shadow(0 0 2.5px #e9c97f99)}
+
+/* Reading up close (J1): a chosen star's text beside it in the sky as the reader zooms in. */
+#tree .ps-closeup{position:absolute;z-index:12;display:flex;flex-direction:column;gap:8px;max-height:min(62vh,560px);overflow:auto;padding:12px 14px;border:1px solid #dcc69055;border-radius:10px;background:#08111ff0;box-shadow:0 14px 36px #000b;animation:ps-closeup-in .22s ease-out}
+#tree .ps-closeup[hidden]{display:none}
+#tree .ps-closeup-title{margin:0;color:#d9c9a6;font:500 12px/1.4 var(--ps-sans);letter-spacing:.06em;text-transform:uppercase}
+@keyframes ps-closeup-in{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#tree .ps-closeup{animation:none}}
+
+/* An agent's trial lens (L3): a chip at the top of the free map names it until it is taken off. */
+#tree .ps-trial-lens{position:absolute;top:66px;left:50%;z-index:14;display:flex;align-items:center;gap:10px;transform:translateX(-50%);padding:6px 8px 6px 14px;border:1px dashed #dcc690aa;border-radius:999px;background:#08111ff0;color:#e9dcc0;font:500 13px/1.3 var(--ps-sans);box-shadow:0 8px 24px #0009}
+#tree .ps-trial-lens[hidden]{display:none}
+
+/* A window into the sky (G5): a chip says the phone turns the space, and closes the window. */
+#tree .ps-sky-window{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:31;display:flex;align-items:center;gap:10px;transform:translateX(-50%);padding:6px 8px 6px 14px;border:1px solid #dcc69088;border-radius:999px;background:#08111ff0;color:#e9dcc0;font:500 13px/1.3 var(--ps-sans);box-shadow:0 8px 24px #0009}
+#tree .ps-sky-window[hidden]{display:none}
+
+/* Highlight categories of the research layer (A2): one at a time, and the legend names the channel. */
+#tree .ps-highlight-legend{display:contents}
+#tree .ps-highlight-legend[hidden]{display:none}
+#tree .ps-highlight-items{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}
+#tree .ps-highlight-chip{padding:2px 0;border:0;background:none;color:#9bb0c6;font:11px/1.3 var(--ps-sans);cursor:pointer}
+#tree .ps-highlight-chip[aria-pressed=true]{color:#e9dcc0;text-decoration:underline;text-underline-offset:4px}
+#tree .ps-highlight-caption{flex-basis:100%;color:#d9c9a6;font:11.5px/1.4 var(--ps-sans)}
+
+/* On a phone the controls card steps aside while a card is open: it speaks of the sky, not of the card. */
+@media (max-width:760px){#tree.pr-public-space:is([data-sheet=open],[data-sheet=full]) .ps-controls{display:none}}
+/* A card whose places all lack the chosen language says so once, at the first place. */
+#tree .ps-fragment:has(.ps-fragment-wait)~.ps-fragment .ps-fragment-wait{display:none}

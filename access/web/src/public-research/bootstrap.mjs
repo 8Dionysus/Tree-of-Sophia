@@ -11,6 +11,7 @@ import {installConstructorRules} from '../../constructor/model.mjs';
 import {installConstructorReadingRules} from '../../constructor/reading-rules-rust.mjs';
 
 import {installWebMcpRules} from '../webmcp.ts';
+import {installActJournalRules} from '../act-journal/journal.mjs';
 import {configureResearchOperations} from './research-operations.mjs';
 import {configureResearchIndexSearch} from './research-index.mjs';
 
@@ -22,6 +23,7 @@ export function installPublicReaderRules(runtime) {
   configureResearchOperations(runtime);
   configureResearchIndexSearch(runtime);
   installBrowserWorkspaceMachine(runtime.BrowserWorkspaceSession);
+  installActJournalRules(runtime);
   installCorpusReferenceRules(runtime);
   installReaderOccurrenceRules(runtime);
   installResearchShelfRules(runtime);

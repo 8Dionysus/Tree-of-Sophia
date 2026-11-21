@@ -59,9 +59,18 @@ III.13).
 | 4. Assessment | the maker's proposal, the independent verdict, the stand's admission | an independent reviewer and the stand |
 | 5. Views | node tabs, routes, lenses, export | derived; carries no significance of its own |
 
-Size, brightness and position on screen add nothing to a claim's weight. A
-nuance is made visible in proportion to what it changes in understanding, a
-decision or the next step.
+Size, brightness and position on screen add nothing to a claim's weight. A view
+may give size, brightness or the weight of a line to a recorded property of a
+claim (its category, verdict, attention, or a layer the reader turned on) when
+its legend names what that channel shows; one channel shows one property at a
+time. A nuance is made visible in proportion to what it changes in
+understanding, a decision or the next step.
+
+What serves reading, understanding or the next step stands in view. What is
+important but serves checking (rights and their sources, provenance and
+fixity, addresses of places and regions, journal and build records, facsimiles
+beside a transcription, what review withheld) stands whole in a technical
+section the reader opens on purpose (TOS-D-0082).
 
 ## Objects
 
@@ -225,7 +234,7 @@ ambiguous and counter-read cases together with their reasons.
 | **verify** | independent reviewer, in batches per node | cards without the maker's reasoning | verdicts | a verdict without a reason at a place |
 | **apply** | the stand | proposals and verdicts | core modules with admission | a `confirmed` shown for an undecided claim |
 | **check** | `bonsai/lib/core.mjs` | the core | pass or the failing claims | listed under *Checks* |
-| **show** | the stand | the core | tabs, routes, lenses | significance carried by size or brightness |
+| **show** | the stand | the core | tabs, routes, lenses | size, brightness or line weight that shows nothing recorded or that the legend does not name; apparatus standing in the reading's way instead of in a technical section |
 | **export** | `bonsai/lib/export.mjs` | admitted claims | a candidate packet, `unreviewed` | a write into `ToS/` |
 
 The maker and the reviewer are recorded with model, effort, brief and date. A

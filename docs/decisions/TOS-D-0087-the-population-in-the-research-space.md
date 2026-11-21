@@ -1,8 +1,8 @@
-# TOS-D-0084 The Population in the Research Space
+# TOS-D-0087 The Population in the Research Space
 
 ## Index Metadata
 
-- Decision ID: TOS-D-0084
+- Decision ID: TOS-D-0087
 - Original date: 2026-11-20
 - Surface classes: access/web, bonsai
 - ToS layers: derived projection
@@ -12,14 +12,14 @@
 
 ## Context
 
-TOS-D-0082 gave the Population bonsai a light page of its own at
+TOS-D-0085 gave the Population bonsai a light page of its own at
 `/population/`, outside the research space the other stands share, since its
 material is people rather than texts. The operator asked for the space instead:
 lenses and spatial views fit thousands of people as well as they fit works.
 
 Two facts shaped how. The master tables of the research name, for each of the
 190 batches, a research node with its title, macro-region and windows of time,
-and TOS-D-0083 lets a bonsai publish what it grows from them. And the space
+and TOS-D-0086 lets a bonsai publish what it grows from them. And the space
 draws every star as a button on the page: measured headless on the Population's
 tree, 3,466 stars cost 136 ms a frame (median), where the Aesthetics tree's 901
 cost 37.7 ms.
@@ -48,7 +48,7 @@ footing, the verdict that is not given, and each register row with its node.
 
 ## Options Considered
 
-- Keep the light page (TOS-D-0082). It reads well but gives the population no
+- Keep the light page (TOS-D-0085). It reads well but gives the population no
   space: no lenses, no tree, no view of the research's own structure.
 - Every member as a star, as the other stands draw theirs. Over budget by four
   times on the tree.
@@ -69,7 +69,7 @@ opens on the regions.
 
 ## Consequences
 
-- The light page and its model (`access/web/src/population/`) are gone; TOS-D-0082
+- The light page and its model (`access/web/src/population/`) are gone; TOS-D-0085
   remains the record of the bonsai itself.
 - The sky's dots are shared code but opt-in: a view without points draws none.
 - The space reads the corpus through Antiquity's selection, as the Aesthetics
