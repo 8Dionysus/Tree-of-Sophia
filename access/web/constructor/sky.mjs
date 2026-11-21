@@ -149,6 +149,11 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   // stands over the page with a soft shadow. 0 on the night, 1 on a light page.
   const daylight=()=>ink>1?1:0;
   let nodes=[],edges=[],clusters=[],backdrop=[],planes=[],threads=[],lit=null,litGlow=0,selectedId=null,selectedEdgeId=null,hoverEdge=null,linkFrom=null,center=[0,0,0],targetCenter=[0,0,0],fitScale=1,targetFit=1,edgeHits=[],measureLabels=true,aspectIds=null;
+  // Dots: material a view draws on the sky alone, without a star of its own, where a star each would be too many for the
+  // page (the thousands of members of a population). The pointer reaches a dot at its centre and names it; choosing a dot
+  // chooses its id, as choosing a star does, and the page may then give it a star. A view without dots draws none.
+  let dots=[],dotX=new Float32Array(0),dotY=new Float32Array(0),dotShown=new Uint8Array(0),hoverDot=-1;
+  const dotLabel=document.createElement('span');dotLabel.className='tree-dot-label';dotLabel.hidden=true;Object.assign(dotLabel.style,{position:'absolute',left:'0',top:'0',pointerEvents:'none'});layer.append(dotLabel);
   let viewport={left:0,right:1,top:0,bottom:1},targetViewport={...viewport},uiObstacles=[];
   const colorOf=n=>hex(n.color,({work:'#a8cde5',part:'#88aaca',chapter:'#b2aedc',fragment:'#dac697',dossier:'#c7a5e6',concept:'#f4cf87',interpretation:'#ba9be5',question:'#83cec7',note:'#b9c7d5',excerpt:'#dfc18e',figure:'#b9c9e5',symbol:'#91ccc5',tradition:'#b5abd3'}[n.kind]||'#bdcfdf'));
   function refresh(state,labels={}){
@@ -266,6 +271,14 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       plane.el.textContent=typeof item.label==='string'?item.label:'';plane.z=item.z;plane.x=[...item.x];plane.y=[...item.y];plane.color=hex(item.color,'#a9bdd6');plane.el.style.color=plane.color;return plane;
     });oldPlanes.forEach(plane=>plane.el.remove());
     updateThreads();
+    // A dot keeps its place from one view to the next and moves to the new one, as a star does.
+    const oldDots=new Map(dots.map(dot=>[dot.id,dot]));
+    dots=(Array.isArray(state.points)?state.points:[]).filter(item=>typeof item?.id==='string'&&Array.isArray(item.position)&&item.position.length===3&&item.position.every(Number.isFinite)).map(item=>{
+      const previous=oldDots.get(item.id);
+      return {id:item.id,p:previous?previous.p:[...item.position],target:[...item.position],color:hex(item.color,colorOf(item)),title:labels[item.id]??item.title??item.id};
+    });
+    if(dotX.length!==dots.length){dotX=new Float32Array(dots.length);dotY=new Float32Array(dots.length);dotShown=new Uint8Array(dots.length);}
+    hoverDot=-1;dotLabel.hidden=true;
     if(!nodes.some(n=>n.id===hover))hover=null;if(!edges.some(e=>e.id===hoverEdge))hoverEdge=null;
     layoutVersion++;measureLabels=true;resize();
   }
@@ -304,7 +317,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     if(key===fittedFor)return;fittedFor=key;
     const c=Math.cos(tyaw),s=Math.sin(tyaw),cp=Math.cos(tpitch),sp=Math.sin(tpitch),sx=widen(targetViewport);
     const low=[Infinity,Infinity,Infinity],high=[-Infinity,-Infinity,-Infinity],points=[];
-    for(const n of nodes){
+    for(const n of [...nodes,...dots]){
       const x=(n.target[0]-targetCenter[0])*sx,y=n.target[1]-targetCenter[1],z=n.target[2]-targetCenter[2];
       const rx=x*c-z*s,rz=x*s+z*c,turned=[rx,y*cp-rz*sp,y*sp+rz*cp];points.push(turned);
       for(let i=0;i<3;i++){low[i]=Math.min(low[i],turned[i]);high[i]=Math.max(high[i],turned[i]);}
@@ -505,6 +518,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     const end={...last,x:last.x+(before.x-last.x)*gapB/lengthB,y:last.y+(before.y-last.y)*gapB/lengthB};
     return [start,...route.slice(1,-1),end];
   }
+  // The dot whose centre lies nearest the pointer, within its reach; -1 where none does.
+  function nearestDot(x,y,reach){let best=-1;for(let i=0;i<dots.length;i++){if(!dotShown[i])continue;const d=Math.hypot(dotX[i]-x,dotY[i]-y);if(d<reach){reach=d;best=i;}}return best;}
   function hitEdge(x,y){
     if(!inView(box(x,y,0,0)))return null;
     let closest=null,best=8;
@@ -831,6 +846,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     }
     for(const side of ['left','right','top','bottom'])viewport[side]=approach(viewport[side],targetViewport[side]);
     for(const n of nodes)if(!n.dragging)n.p=n.p.map((v,i)=>approach(v,n.target[i]));
+    for(const dot of dots)dot.p=dot.p.map((v,i)=>approach(v,dot.target[i]));
     for(const c of clusters)c.p=c.p.map((v,i)=>approach(v,c.target[i]));
     const nextBase=Math.max(.1,Math.min((viewport.right-viewport.left)/880,(viewport.bottom-viewport.top)/540,1.7));
     if(Math.abs(base-nextBase)>.00001||frameCount===0){base=nextBase;dust.forEach(s=>{const spread=(FOCAL-s.minZ-s.range*.5)/FOCAL;s.x=s.sx*w*.5/base*spread;s.y=s.sy*h*.5/base*spread;});}
@@ -968,6 +984,29 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const ex=a.x+dx*(reach+7),ey=a.y+dy*(reach+7);ctx.globalAlpha=.55*thread.grown;ctx.fillStyle=thread.color;ctx.beginPath();ctx.arc(ex,ey,1.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
       thread.el.hidden=!inView(box(ex-4,ey-4,8,8));thread.el.style.transform=`translate3d(${(ex-12).toFixed(2)}px,${(ey-12).toFixed(2)}px,0)`;
       if(thread.grown<.995)layoutMoving=true;
+    }
+    // A dot is a point of its colour, paler as it goes back and when a chosen star gathers the view; the pointed one is
+    // ringed and named under it.
+    if(dots.length){
+      const day=daylight();
+      for(let i=0;i<dots.length;i++){
+        const dot=dots[i],q=project(dot.p),hot=i===hoverDot;dotX[i]=q.x;dotY[i]=q.y;
+        const inside=measured?inView(box(q.x-3,q.y-3,6,6)):q.x>-6&&q.y>-6&&q.x<w+6&&q.y<h+6;dotShown[i]=inside?1:0;if(!inside)continue;
+        const near01=depthCue&&!measured?clamp((q.d-.86)/.3,0,1):1,size=clamp((hot?3.4:2.1)*Math.sqrt(Math.max(.3,q.s)),1.2,hot?4.4:3);
+        ctx.globalAlpha=hot?1:(day?.38+.5*near01:.42+.48*near01)*(focused?.5:1)*(1-.8*focusMix);
+        ctx.fillStyle=day&&!hot&&near01<1?mixHex(dot.color,night('#B3B6C4'),(1-near01)*.6):dot.color;
+        ctx.fillRect(q.x-size/2,q.y-size/2,size,size);
+        if(hot){ctx.strokeStyle=dot.color;ctx.lineWidth=1;ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(q.x,q.y,size+3,0,Math.PI*2);ctx.stroke();}
+      }
+      ctx.globalAlpha=1;
+      // How many dots are in view, and where the last of them stands (the outermost of the last group, clear of its star):
+      // a probe for the page's own checks.
+      let shown=0,lastShown=-1;for(let i=0;i<dots.length;i++)if(dotShown[i]){shown++;lastShown=i;}
+      root.dataset.dots=String(shown);root.dataset.dotProbe=lastShown<0?'':`${dotX[lastShown].toFixed(1)},${dotY[lastShown].toFixed(1)},${dots[lastShown].id}`;
+      if(hoverDot>=0&&dotShown[hoverDot]){
+        const dot=dots[hoverDot];if(dotLabel.textContent!==dot.title)dotLabel.textContent=dot.title;
+        dotLabel.hidden=false;dotLabel.style.transform=`translate3d(${dotX[hoverDot].toFixed(1)}px,${(dotY[hoverDot]+9).toFixed(1)}px,0) translateX(-50%)`;
+      }else if(!dotLabel.hidden)dotLabel.hidden=true;
     }
     nodes.forEach(n=>{
       const p=n.screen,hot=n.id===selectedId||n.id===hover||(holdToMove>0&&n.dragging),own=colorOf(n),big=n.major,dim=(focused&&root.dataset.journey!=='true'&&!near.has(n.id)&&!kept.has(n.id)||n.dimmed)&&!hot,radius=starRadius(n),warm=n.warm??(hot?1:0);
@@ -1226,14 +1265,23 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   },{capture:true});
   canvas.addEventListener('pointermove',e=>{
     if(pinching(e))return;
-    if(!drag){const p=pointer(e),id=hitEdge(p.x,p.y);if(hoverEdge!==id){hoverEdge=id;canvas.style.cursor=id?'pointer':'';onEdgeHover?.(id);kick();}return;}
-    if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;dragBy(drag,dx,dy);
+    if(!drag){
+      const p=pointer(e),id=hitEdge(p.x,p.y),at=id?-1:nearestDot(p.x,p.y,e.pointerType==='touch'?16:8);
+      if(hoverEdge!==id){hoverEdge=id;onEdgeHover?.(id);kick();}
+      if(hoverDot!==at){hoverDot=at;kick();}
+      canvas.style.cursor=id||at>=0?'pointer':'';return;
+    }
+    if(e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.hypot(dx,dy)<5&&!drag.moved)return;drag.moved=true;hoverEdge=null;hoverDot=-1;dragBy(drag,dx,dy);
   });
   const release=e=>{
     if(!drag||e.pointerId!==drag.id)return;const click=e.type==='pointerup'&&!drag.moved&&!drag.forcePan;drag=null;canvas.classList.remove('dragging');letGo();
-    if(click){const p=pointer(e),id=hitEdge(p.x,p.y);if(id)onEdgeSelect(id);else onBackground?.();}kick();
+    if(click){
+      const p=pointer(e),id=hitEdge(p.x,p.y);
+      if(id)onEdgeSelect(id);
+      else{const at=nearestDot(p.x,p.y,e.pointerType==='touch'?16:8);if(at>=0)onSelect(dots[at].id);else onBackground?.();}
+    }kick();
   };canvas.addEventListener('pointerup',release);canvas.addEventListener('pointercancel',release);canvas.addEventListener('lostpointercapture',release);
-  canvas.addEventListener('pointerleave',()=>{if(!drag){if(hoverEdge)onEdgeHover?.(null);hoverEdge=null;canvas.style.cursor='';kick();}});
+  canvas.addEventListener('pointerleave',()=>{if(!drag){if(hoverEdge)onEdgeHover?.(null);hoverEdge=null;hoverDot=-1;canvas.style.cursor='';kick();}});
   const visibility=()=>{last=0;if(document.hidden){cancelAnimationFrame(raf);raf=0}else kick()};document.addEventListener('visibilitychange',visibility);
   canvas.addEventListener('sophia-renderer-restored',kick);
   const ro=new ResizeObserver(resize);ro.observe(root);paintNebula();resize();
@@ -1256,7 +1304,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     frame({fill=false,x=null,y=null,plane=false}={}){
       if(fill)resize();tstretchY=1;measured=null;
       if(nodes.length){
-        const points=(aspectIds&&nodes.some(n=>aspectIds.has(n.id))?nodes.filter(n=>aspectIds.has(n.id)):nodes).map(n=>n.target),min=[0,1,2].map(i=>Math.min(...points.map(p=>p[i]))),max=[0,1,2].map(i=>Math.max(...points.map(p=>p[i])));
+        const points=(aspectIds&&nodes.some(n=>aspectIds.has(n.id))?nodes.filter(n=>aspectIds.has(n.id)):[...nodes,...dots]).map(n=>n.target),min=[0,1,2].map(i=>Math.min(...points.map(p=>p[i]))),max=[0,1,2].map(i=>Math.max(...points.map(p=>p[i])));
         if(Array.isArray(x)&&x.length===2&&x.every(Number.isFinite)){min[0]=Math.min(min[0],x[0]);max[0]=Math.max(max[0],x[1]);}
         if(Array.isArray(y)&&y.length===2&&y.every(Number.isFinite)){min[1]=Math.min(min[1],y[0]);max[1]=Math.max(max[1],y[1]);}
         targetCenter=min.map((v,i)=>(v+max[i])/2);
