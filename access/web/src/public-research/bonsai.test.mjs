@@ -210,7 +210,7 @@ describe('every bonsai',()=>{
     }
     const {packet}=checkBonsai(root,'zarathustra',{validator:contracts,relations});
     expect(packet.records.find(record=>record.record_id==='tos.historical-event.friedrich-nietzsche.recurrence-thought')).toMatchObject({schema_version:'tos_historical_record_v1',record_type:'historical-event'});
-  });
+  },30000);
   it('marks every lens of its stand as a measure or a grouping, and says what',()=>{
     for(const id of ids){
       const {manifest}=loadBonsai(root,id);

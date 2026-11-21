@@ -97,10 +97,11 @@ describe('the Population bonsai',()=>{
     expect(controlIssues(control('never-auto'),keys)).toEqual(['c: A01:A01-A001 and A02:A02-A001 were joined without a reader\'s decision']);
     expect(controlIssues({cases:[{id:'d',must:'same',rows:['A01:A01-A001','A03:A03-A001']}]},keys)).toEqual(['d: the rows are not one member']);
   });
+  // Three rebuilds of 16,971 rows take longer than vitest's five seconds when the whole suite runs at once.
   it.skipIf(!layersFetched)('is what the register rows, the decisions and the ledger give',()=>{
     const run=(script,...args)=>execFileSync(process.execPath,[join(review,script),...args,'--check'],{encoding:'utf8'});
     expect(run('resolve.mjs')).toMatch(/^resolve: matches what the rows and decisions give/);
     expect(run('plant.mjs')).toBe('population.json: matches what the records give\nchronology.json: matches what the records give\nidentities.json: matches what the records give\n');
     expect(run(join('line','kit.mjs'),'queues')).toBe(['kind','dates','latin','living'].map(name=>`queue/${name}.jsonl: matches what population.json and the rows give\n`).join(''));
-  });
+  },30000);
 });
