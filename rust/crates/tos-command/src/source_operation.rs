@@ -65,11 +65,23 @@ pub fn bind_selected_candidate(
         command.replayed,
     );
     let checked = checked.map_err(SourceOperationError::Command)?;
-    if checked != command {
+    if checked.handler_id != command.handler_id
+        || checked.operation != command.operation
+        || checked.base_revision != command.base_revision
+        || checked.configuration_raw_sha256 != command.configuration_raw_sha256
+        || checked.response != command.response
+        || checked.changes != command.changes
+        || checked.reads != command.reads
+        || checked.replayed != command.replayed
+    {
         return Err(SourceOperationError::Command(SourceCommandError::Conflict(
             "command proposal differs from exact request/configuration/source inputs",
         )));
     }
+    // VAL below verifies request and canonical configuration digests using
+    // the profiles carried by the proposal. The raw configuration hash and
+    // the source-derived command plan were checked above; comparing the old
+    // default digest calculation here would misclassify a tagged JCS1 plan.
     if command.changes.is_empty() || command.replayed {
         return Err(SourceOperationError::Command(SourceCommandError::Invalid(
             "read-only or replay result has no new candidate delta",
@@ -82,10 +94,12 @@ pub fn bind_selected_candidate(
         candidate_revision: candidate.current().revision(),
         request_raw: context.request_raw.clone(),
         request_canonical_sha256: command.request_canonical_sha256,
+        request_digest_profile: command.request_digest_profile,
         configuration_path: protected_configuration_locator,
         configuration_raw: context.configuration_raw.clone(),
         configuration_raw_sha256: command.configuration_raw_sha256,
         configuration_canonical_sha256: command.configuration_canonical_sha256,
+        configuration_digest_profile: command.configuration_digest_profile,
         changes: command
             .changes
             .iter()

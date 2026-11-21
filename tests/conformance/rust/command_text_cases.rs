@@ -437,69 +437,32 @@ const DERIVED_OCR_NATIVE_OWNER_PATHS: &[&str] = &[
 ];
 
 fn text_fixture(root: &Path) -> NativePythonFixture {
-    let script = r#"
-import json,sys
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts'),str(repository/'tests')]
-import test_source_text_unit_commands as unit
-import test_source_text_layer_commands as layer
-class ExistingRoot:
-    def __init__(self,*args,**kwargs): self.name=str(root)
-    def cleanup(self): pass
-original=unit.tempfile.TemporaryDirectory
-unit.tempfile.TemporaryDirectory=ExistingRoot
-try:
-    case=layer.NativeLayerCommandTests(methodName='runTest')
-    case.setUp()
-finally:
-    unit.tempfile.TemporaryDirectory=original
-print(json.dumps({'public':str(case.public),'private':str(case.store),
-    'context':str(case.context_path),'owner':str(case.owner),
-    'source_ref':case.source_ref,'content_sha256':layer.source._digest(case.content)[7:],
-    'content_bytes':len(case.content),'config':case.config,
-    'unit_config':case.seed.config,'unit_proposal':case.seed.proposal,
-    'unit_layer_schema':unit.native.LAYER_CONFIG,
-    'implementations':sorted(set(layer.layers.IMPLEMENTATIONS))},ensure_ascii=False,separators=(',',':')))
-"#;
+    let factory_script_sha256 = "a1229d2d8c7f9b0cd02bc09a88ec676dcea9740ff9997324984762da1e3cb266";
     let fixture = super::native_python_fixture(
         "text-initial-layer",
         &[("source-root", root)],
         INITIAL_TEXT_NATIVE_OWNER_PATHS,
     );
-    super::assert_native_python_fixture(&fixture, script, INITIAL_TEXT_NATIVE_OWNER_PATHS);
+    super::assert_native_python_fixture(
+        &fixture,
+        factory_script_sha256,
+        INITIAL_TEXT_NATIVE_OWNER_PATHS,
+    );
     fixture
 }
 
 fn alignment_fixture(root: &Path) -> NativePythonFixture {
-    let script = r#"
-import json,sys
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts'),str(repository/'tests')]
-import test_source_text_unit_commands as unit
-import test_source_alignment_commands as alignment
-class ExistingRoot:
-    def __init__(self,*args,**kwargs): self.name=str(root)
-    def cleanup(self): pass
-original=unit.tempfile.TemporaryDirectory
-unit.tempfile.TemporaryDirectory=ExistingRoot
-try:
-    case=alignment.NativeAlignmentCommandTests(methodName='runTest')
-    case.setUp()
-finally:
-    unit.tempfile.TemporaryDirectory=original
-print(json.dumps({'public':str(case.public),'private':str(case.private),
-    'context':str(case.context_path),'owner':str(case.owner),
-    'source_ref':case.source_ref,'config':case.config,'proposal':case.proposal,
-    'implementations':sorted(set(alignment.align.IMPLEMENTATIONS))},ensure_ascii=False,separators=(',',':')))
-"#;
+    let factory_script_sha256 = "1cfeed77ea11b788d3a190cec7bcb742cb2035e9e955eb4314399d4cc2e1f54e";
     let fixture = super::native_python_fixture(
         "text-alignment",
         &[("source-root", root)],
         ALIGNMENT_NATIVE_OWNER_PATHS,
     );
-    super::assert_native_python_fixture(&fixture, script, ALIGNMENT_NATIVE_OWNER_PATHS);
+    super::assert_native_python_fixture(
+        &fixture,
+        factory_script_sha256,
+        ALIGNMENT_NATIVE_OWNER_PATHS,
+    );
     fixture
 }
 
@@ -509,89 +472,7 @@ fn derived_fixture(
     seed: &NativeTextUnitSeed,
     ledger: &mut TextFixtureReference<'_>,
 ) -> NativePythonFixture {
-    let script = r#"
-import copy,json,os,sys,unicodedata
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:3])
-kind=sys.argv[3]
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import source_text_layer_commands as layers
-import source_commands as source
-from source_text_layer_proposal import derivation_policy
-store=root/'private'
-original=json.loads((root/'layer-owner.json').read_bytes())
-source_ref=original['source_path']
-prior_raw=(store/source_ref).read_bytes()
-prior=json.loads(prior_raw)
-prefix=source_ref.split('layers/first/')[0]
-variants={'normalize':('normalized','5','6','text-layer.normalize'),
-    'correct':('corrected','7','8','text-layer.correct'),
-    'record-ocr':('recorded','a','b','text-layer.record-ocr')}
-home,layer_digit,event_digit,operation=variants[kind]
-layer_id='tos.text-layer.sid-'+layer_digit*32
-rights_ref=prefix+'rights/derived-'+home+'.json'
-source_rights_ref=original['derivation_access']['rights_record_refs'][0]['ref']
-rights=json.loads((root/'public'/source_rights_ref).read_bytes())
-rights.update(rights_id='tos.rights.synthetic.native-derived-'+home,scope_refs=[layer_id])
-rights_raw=source._canonical(rights)+b'\n'
-rights_path=store/rights_ref
-rights_path.write_bytes(rights_raw)
-rights_path.chmod(0o600)
-config=copy.deepcopy(original)
-config.update(schema_version=layers.DERIVE_CONFIG,
-    source_path=prefix+'layers/'+home+'/source-text-layer.v1.json',
-    allowed_operations=[operation],
-    input={'kind':'text_layer','binding':{'schema_version':'tos_native_text_layer_binding_v1',
-        'text_layer':{'record_ref':source_ref,'record_sha256':source._digest(prior_raw)[7:],
-            'layer_id':prior['layer_id'],'layer_version':prior['layer_version']},
-        'source_record_refs':original['source_record_refs']}},
-    material={},policy=derivation_policy(operation,unicode_form='NFC') if kind=='normalize' else derivation_policy(operation))
-config.pop('member')
-config.pop('selector')
-config['identities']={'layer_id':layer_id,'provenance_event_id':'tos.event.sid-'+event_digit*32}
-text=(store/source_ref).parent.joinpath('content.txt').read_bytes()
-if kind!='record-ocr':
-    config['source_access']={'read_scope':'exact_text_layer','access_allowed':True,
-        'byte_size':len(text),'authority_ref':'operator:synthetic-layer-reading',
-        'expires_at':'2099-01-01T00:00:00Z'}
-if kind=='normalize':
-    config['maker'].update(method='tos.unicode.normalize.v1',version=config['policy']['unicode_database_version'])
-elif kind=='correct':
-    config['maker'].update(maker_type='human',method='supplied synthetic correction',version='1')
-    before=text.decode('utf-8')
-    start=before.index('test')
-    config['material']={'edits':[{'start':start,'end':start+4,'input_exact':'test',
-        'input_sha256':source._digest(b'test')[7:],'output_exact':'trial',
-        'reason':'Synthetic source-visible correction proposal, not accepted reading.','confidence':0.7}]}
-else:
-    anchor=prior['source_binding']['anchors'][0]
-    config['input']={'kind':'acquired_file','anchor':{'anchor_id':anchor['anchor_id'],
-        'record_ref':anchor['anchor_record_ref'],'record_sha256':anchor['anchor_record_sha256']}}
-    config['source_access']=copy.deepcopy(original['source_access'])
-    supplied='Supplied OCR & transcript\r\n\u212b fi\ufb01.'
-    supplied_ref=prefix+'supplied-result.txt'
-    supplied_path=store/supplied_ref
-    supplied_path.write_bytes(supplied.encode('utf-8'))
-    supplied_path.chmod(0o600)
-    config['material']={'content_ref':supplied_ref,'content_sha256':source._digest(supplied.encode('utf-8'))[7:],
-        'byte_size':len(supplied.encode('utf-8')),'access_allowed':True,
-        'authority_ref':'operator:synthetic-supplied-result-read','expires_at':'2099-01-01T00:00:00Z',
-        'provider_execution':'not_observed','reported_maker':{'maker_type':'software',
-            'agent_ref':'synthetic:unverified-reported-producer','method':'supplied method declaration','version':'1'}}
-    config['maker'].update(method='record explicitly supplied text',version='1')
-config['derivation_access'].update(operation={'normalize':'unicode_normalization','correct':'correction','record-ocr':'ocr'}[kind],rights_record_refs=[
-    original['derivation_access']['rights_record_refs'][0],
-    {'ref':rights_ref,'sha256':source._digest(rights_raw)[7:]}])
-owner=root/('derived-'+kind+'-owner.json')
-owner.write_bytes(source._canonical(config)+b'\n')
-owner.chmod(0o600)
-expected={'normalize':lambda:unicodedata.normalize('NFC',text.decode('utf-8')).encode('utf-8'),
-    'correct':lambda:text.replace(b'test',b'trial'),
-    'record-ocr':lambda:supplied.encode('utf-8')}[kind]()
-print(json.dumps({'owner':str(owner),'source_ref':config['source_path'],
-    'expected_sha256':source._digest(expected)[7:],'expected_bytes':len(expected)},
-    ensure_ascii=False,separators=(',',':')))
-"#;
+    let factory_script_sha256 = "eb5bc520ee3b616f46997d483c637ac8d68eae4f19c995796788c87203bcc3a9";
     let id = match kind {
         "normalize" => "text-derived-normalize",
         "correct" => "text-derived-correct",
@@ -605,7 +486,7 @@ print(json.dumps({'owner':str(owner),'source_ref':config['source_path'],
         DERIVED_TEXT_NATIVE_OWNER_PATHS
     };
     let fixture = super::native_python_fixture(id, &[("private-root", &destination)], owner_paths);
-    super::assert_native_python_fixture(&fixture, script, owner_paths);
+    super::assert_native_python_fixture(&fixture, factory_script_sha256, owner_paths);
     // The frozen proposal was captured beside a different private store. Build
     // a new synthetic request against the actual native predecessor, retaining
     // the captured edit/OCR material and its independently checked output hash.

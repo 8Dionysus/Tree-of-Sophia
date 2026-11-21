@@ -2355,3 +2355,4 @@ Start from [TEMPLATE.md](TEMPLATE.md) and the [local card](AGENTS.md). Use a sta
 - [TOS-D-0082 — Useful in View, Technical Behind a Door](TOS-D-0082-useful-in-view-technical-behind-a-door.md), 2026-11-20, accepted by explicit operator instruction.
 - [TOS-D-0083 — The Bridge as a Mode of `tos`](TOS-D-0083-the-bridge-as-a-mode-of-tos.md), 2026-11-20, accepted by explicit operator instruction.
 - [TOS-D-0084 — Edition Pages as Witness Data](TOS-D-0084-edition-pages-as-witness-data.md), 2026-11-20, accepted by explicit operator instruction.
+- [TOS-D-0076 — Forward-Only Canonical Profile](TOS-D-0076-forward-only-canonical-profile.md), 2026-11-02, accepted by explicit operator instruction; implementation pending.

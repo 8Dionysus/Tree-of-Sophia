@@ -5,25 +5,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_creation_store::IsolatedCreationRoot;
-const FACTORY: &str = r#"
-import json,sys,tempfile
-from pathlib import Path
-repository,root,unused=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_collection_commands as fixture
-class SelectedRoot:
-    def __init__(self,*a,**kw): self.name=str(root)
-    def cleanup(self): pass
-original=tempfile.TemporaryDirectory;tempfile.TemporaryDirectory=SelectedRoot
-try:
-    case=fixture.NativeCollectionTests(methodName='runTest');case.setUp()
-finally: tempfile.TemporaryDirectory=original
-case.owner.chmod(0o600)
-implementations=sorted(fixture.attachment.IMPLEMENTATIONS)
-for ref in implementations:
-    p=root/ref;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((repository/ref).read_bytes());p.chmod(0o644)
-print(json.dumps({'config':case.config,'proposal':case.proposal(),'implementations':implementations,'owner':str(case.owner),'collection_ref':case.collection_ref,'work_ref':case.work_ref},ensure_ascii=False))
-"#;
+const FACTORY_SCRIPT_SHA256: &str =
+    "94c591740c56abd90d33bb97ae69a71d78f38e674124bb7bdf712725400b6e02";
 
 fn replace_json_values(value: &mut Value, replacements: &[(String, String)]) {
     match value {
@@ -134,7 +117,7 @@ fn native_collection_cli_attaches_replays_and_recovers_multi_file_membership() {
             &[("source-root", isolated.path())],
             &native_owner_paths,
         );
-        super::assert_native_python_fixture(&captured, FACTORY, &native_owner_paths);
+        super::assert_native_python_fixture(&captured, FACTORY_SCRIPT_SHA256, &native_owner_paths);
         let fixture = captured.packets.get("factory").unwrap();
         let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
         assert!(fs::metadata(&owner).unwrap().len() <= 4096);

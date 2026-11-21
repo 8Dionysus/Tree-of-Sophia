@@ -1288,6 +1288,7 @@ fn private_read_race_write(
         archives: Vec::new(),
         command_id: command_id.to_owned(),
         request_digest: Digest256::of_bytes(command_id.as_bytes()),
+        request_digest_profile: None,
         raw_request_digest: Digest256::of_bytes(format!("raw:{command_id}").as_bytes()),
         owner_configuration_digest: Digest256::of_bytes(b"private lock regression owner config"),
         source_binding,

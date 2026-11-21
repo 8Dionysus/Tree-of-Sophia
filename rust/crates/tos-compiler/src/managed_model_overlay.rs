@@ -35,6 +35,20 @@ pub(crate) struct NavigationOverlayValueV2 {
     pub payload: Option<Value>,
 }
 
+fn source_create_receipt_profile_matches(receipt: &Value) -> bool {
+    let schema = receipt.get("schema_version").and_then(Value::as_str);
+    let profile = match receipt.get("request_digest_profile") {
+        None => None,
+        Some(Value::String(profile)) => Some(profile.as_str()),
+        Some(_) => return false,
+    };
+    matches!(
+        (schema, profile),
+        (Some("tos_local_source_create_receipt_v1"), None)
+            | (Some("tos_local_source_create_receipt_v2"), Some("jcs1"))
+    )
+}
+
 pub(crate) fn navigation_key(collection: &str, id: &str) -> Result<Vec<u8>> {
     if !matches!(collection, "nodes" | "edges")
         || id.is_empty()
@@ -500,7 +514,10 @@ fn verify_initial_agent_changed_members(
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> Result<()> {
-    use tos_foundation::Digest256;
+    use tos_foundation::{
+        CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, JsonMode, parse_json,
+        verify_canonical_digest_v1,
+    };
     let home = record_path
         .rsplit_once('/')
         .ok_or(Error::Invalid("overlay Agent home"))?
@@ -549,7 +566,7 @@ fn verify_initial_agent_changed_members(
         || request.value()["command_id"]
             .as_str()
             .is_none_or(str::is_empty)
-        || receipt.value()["schema_version"] != "tos_local_source_create_receipt_v1"
+        || !source_create_receipt_profile_matches(receipt.value())
         || receipt.value()["source_path"] != record_path
         || receipt.value()["source"] != expected_subject
         || receipt.value()["command_id"] != request.value()["command_id"]
@@ -568,14 +585,35 @@ fn verify_initial_agent_changed_members(
     {
         return Err(Error::Invalid("overlay provenance existing semantic rules"));
     }
-    let canonical_request = tos_foundation::canonical_raw_bytes_v1(
+    let request_limits = JsonLimits::new(max_bytes, 96, 1_000_000, 4096)
+        .map_err(|_| Error::Budget("overlay capture canonical limits"))?;
+    let request = parse_json(
         request_member.raw,
-        tos_foundation::CanonicalProfile::SourceCommandInputV1,
-        tos_foundation::JsonLimits::new(max_bytes, 96, 1_000_000, 4096)
-            .map_err(|_| Error::Budget("overlay capture canonical limits"))?,
+        JsonMode::PublishedStrict,
+        request_limits,
     )
-    .map_err(|e| Error::Source(e.to_string()))?;
-    if receipt.value()["request_digest"] != Digest256::of_bytes(&canonical_request).to_prefixed() {
+    .map_err(|_| Error::Invalid("overlay capture request JSON"))?;
+    let request_profile =
+        if receipt.value()["schema_version"] == "tos_local_source_create_receipt_v2" {
+            Some(JCS_DIGEST_TAG)
+        } else {
+            None
+        };
+    let request_digest = Digest256::from_prefixed(
+        receipt.value()["request_digest"]
+            .as_str()
+            .ok_or(Error::Invalid("overlay receipt request digest"))?,
+    )
+    .map_err(|_| Error::Invalid("overlay receipt request digest"))?;
+    if !verify_canonical_digest_v1(
+        request.root(),
+        request_profile,
+        CanonicalProfile::SourceCommandInputV1,
+        request_digest,
+        request_limits,
+    )
+    .map_err(|_| Error::Invalid("overlay receipt request profile or JSON"))?
+    {
         return Err(Error::Invalid("overlay receipt/request byte binding"));
     }
     let files = receipt.value()["files"]
