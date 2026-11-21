@@ -26,6 +26,7 @@ import {AREA_TITLES,SCHOOL_ERA,TREE_LABEL_FROM,antiquityTree,treeVia} from './sp
 import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
 import {populationTree} from './population-tree.mjs';
 import {populationEyebrow,populationKindWord,renderPopulationCard} from './population-card.mjs';
+import {populationTimeline} from './population-time.mjs';
 import {PART_TITLES,zarathustraTree} from './space-tree-zarathustra.mjs';
 import {antiquityBook,zarathustraBook} from './reference-outline.mjs';
 import {createReferenceBook} from './reference-book.mjs';
@@ -159,7 +160,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // The node opens where the reader is: in the experience when it holds the page, on the map otherwise; an open book gives way to it.
     openNode:id=>{const book=fragments.reader?.dialog;if(book?.open)book.close();if(shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,cancelable:true,detail:{id}})))openResearch(id);}});
   // The lens "Time" exists where the data dates or orders its material: Antiquity by the years its bonsai gives the writings, Zarathustra by the order of the book.
-  const timeline=profile==='aesthetics'?aestheticsTimeline({field:bonsai.field,library,chronology:bonsai.chronology}):profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology}):null;
+  const timeline=profile==='aesthetics'?aestheticsTimeline({field:bonsai.field,library,chronology:bonsai.chronology}):profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology})
+    :profile==='population'&&bonsai?.population?populationTimeline({population:bonsai.population,chronology:bonsai.chronology}):null;
   // What a star's dating and place are about: the writing of its passage or work (Antiquity), of the text it first rests on (Zarathustra).
   const situationOf=materialId=>profile==='aesthetics'?(materials.get(materialId)?.dating??bonsai?.chronology?.compositions?.works?.[materials.get(materialId)?.workId]??materials.get(materialId)?.life??null):profile==='antiquity'?timeline?.timeOf?.(materialId)?.composition??null:bonsai?.chronology?.compositions?.references?.[timeline?.firstGround?.(materialId)]??bonsai?.chronology?.book?.parts?.find(item=>item.part===timeline?.placeOf?.(materialId)?.part)?.writing??null;
   const placesReader=bonsai?.places?readPlaces(bonsai.places):null;
@@ -185,7 +187,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const passageOf=materialId=>collectionByLegacyId.get(String(materialId).replace(/^antiquity:reading:/,''));
   const distances=proximityCriteria({conceptsOf:id=>profile==='aesthetics'?materials.get(id)?.concepts??null:passageOf(id)?.concepts??null,groundsOf:id=>timeline?.groundsOf?.(id)??null,edges:nearEdges,spanOf:id=>timeline?.spanOf?.(id)??null,pointOf:id=>placeOf(id)?.point??null,chapterOf:id=>timeline?.placeOf?.(id)?.chapter??null});
   const criteria=(bonsai?.manifest?.lenses?.proximity?.criteria??[]).filter(item=>distances[item.id]&&(!item.requires||(item.requires==='places'?!!geography:item.requires==='chronology'?timeline?.kind==='years':true)));
-  const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:profile==='aesthetics'?{ru:'Годы написания; строки — группы областей',en:'Years of writing; rows are groups of areas'}:timeline.kind==='years'?{ru:'Годы написания; строки — ветви',en:'Years of writing; rows are branches'}:{ru:'Порядок книги, от Пролога до четвёртой части; строки — круги карты',en:'The order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
+  const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:profile==='aesthetics'?{ru:'Годы написания; строки — группы областей',en:'Years of writing; rows are groups of areas'}:profile==='population'?{ru:'Годы жизни или деятельности; строки — регионы',en:'Years of life or activity; rows are regions'}:timeline.kind==='years'?{ru:'Годы написания; строки — ветви',en:'Years of writing; rows are branches'}:{ru:'Порядок книги, от Пролога до четвёртой части; строки — круги карты',en:'The order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
   const spaceLens=geography?{id:'space',icon:'⌖',title:{ru:'Пространство',en:'Space'},description:{ru:'Где написан текст или где жил его автор',en:'Where the text was written, or where its author lived'}}:null;
   const proximityLens=starIds.length&&criteria.length?{id:'proximity',icon:'⊙',title:{ru:'Близость',en:'Proximity'},description:{ru:'Расстояние от выбранной звезды',en:'Distance from the chosen star'}}:null;
   // A lens with no stars of its own in this library is not offered.
@@ -194,7 +196,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A lens measures where its bonsai has the measure; it stands in volume as the tree does (space-volumes.mjs), but an open
   // branch on the scale of time keeps its own flat order, read top to bottom. A flat lens is a measured one.
   const measuredData=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
-  const volumeLens=id=>measuredData(id)&&!(id==='time'&&(profile==='aesthetics'||stepView()));
+  const volumeLens=id=>measuredData(id)&&!(id==='time'&&(profile==='aesthetics'||profile==='population'||stepView()));
   const measuredLens=id=>measuredData(id)&&!volumeLens(id);
   // The lenses that gather stand in volume as the tree does, each in the form of what it gathers (space-gatherings.mjs).
   const GATHERING=new Set(['sources','meaning','tensions','images']),gatherings=new Map();
@@ -725,6 +727,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     else if(lens==='tree'&&treeLayout)applyTree(projected);
     else if(gathered)applyGathering(projected,gatheringNow(lens));
     else applyDepth(projected);
+    if(profile==='population')dotMembers(projected);
     // A choice turns the space toward itself on the lenses that group; a measure keeps its axes, a route its way and a
     // comparison or a new link its stars where the reader set them.
     aspect=null;
@@ -1068,18 +1071,18 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     projected.clusters=treeLayout.names.map(name=>({id:name.id,title:tr(name.title,locale()),subtitle:'',center:name.center,...(name.color?{color:paint(name.color)}:{}),tone:name.kind,...(name.kind==='stratum'?{variant:'edge'}:name.kind==='group'?{}:{recede:true}),...(name.kind==='path'?{yields:true}:{})}));
     projected.backdrop=treeBackdrop();
     projected.shade=treeShade();
-    // The Population's members are too many for a star each: in the tree they stand as dots on the sky, and a member
-    // gets a star when it is chosen or compared, so its card, its threads and its name come with it.
-    if(profile==='population'){
-      const keep=new Set([selected,...compareIds,...connectIds].filter(Boolean)),dots=[];
-      projected.nodes=projected.nodes.filter(node=>{
-        if(treeLayout.roles.get(node.materialId)!=='passage'||keep.has(node.id))return true;
-        dots.push({id:node.id,position:node.position,kind:node.kind,title:label(matForNode(node)??node)});return false;
-      });
-      const starIds=new Set(projected.nodes.map(node=>node.id));
-      projected.edges=projected.edges.filter(edge=>starIds.has(edge.from)&&starIds.has(edge.to));
-      projected.points=dots;
-    }
+  }
+  // The Population's members are too many for a star each: in every lens they stand as dots on the sky, and a member
+  // gets a star when it is chosen or compared, so its card, its threads and its name come with it.
+  function dotMembers(projected){
+    const keep=new Set([selected,...compareIds,...connectIds].filter(Boolean)),dots=[];
+    projected.nodes=projected.nodes.filter(node=>{
+      if(!String(node.materialId??'').startsWith('population:member:')||keep.has(node.id))return true;
+      dots.push({id:node.id,position:node.position,kind:node.kind,title:label(matForNode(node)??node)});return false;
+    });
+    const starIds=new Set(projected.nodes.map(node=>node.id));
+    projected.edges=projected.edges.filter(edge=>starIds.has(edge.from)&&starIds.has(edge.to));
+    projected.points=dots;
   }
   // The tree's ground, where its shadow lies in the day: the centre and radius of its ground circle.
   let treeShadeMemo;
@@ -1783,7 +1786,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function selectActual(id,{reveal=false}={}){const changed=id!==selected;measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;
     // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it; on the
     // Population's tree a chosen member is drawn again as a star, out of the dots.
-    if(changed&&!measuredLens(lens)&&(core||lens!=='tree'||profile==='population'))refreshSky();
+    if(changed&&(profile==='population'||(!measuredLens(lens)&&(core||lens!=='tree'))))refreshSky();
     sky?.setCloseIn?.(treeView()||gatherView());sky?.select(id);sky?.selectEdge(null);renderColumn();
     // On the tree a chosen star turns to face the reader, with what grew from it and what it grew from.
     if(changed&&(treeView()||gatherView())){const at=shownView?.nodes?.find(node=>node.id===id)?.position;if(at&&Math.hypot(at[0],at[2])>1)sky?.turnTo?.(Math.atan2(at[0],at[2]));}
@@ -1797,7 +1800,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // Leaving a chosen star on the tree, the view steps back to the whole tree, turned as the reader left it.
     if(leaving&&(treeView()||gatherView()))sky?.frame?.();if(!route)columnOpen=false;
     // A member let go on the Population's tree goes back among the dots.
-    if(leaving&&profile==='population'&&treeView())refreshSky();
+    if(leaving&&profile==='population')refreshSky();
     reflect();sky?.refresh();}
   function togglePersonal(){
     if(!personal.hidden){closePersonal();return;}

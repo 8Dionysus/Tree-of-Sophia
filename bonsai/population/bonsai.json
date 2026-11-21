@@ -81,5 +81,32 @@
       }
     }
   ],
-  "lenses": {}
+  "lenses": {
+    "tree": {
+      "positions": "group",
+      "short": {
+        "ru": "Древо",
+        "en": "Tree"
+      },
+      "groups": {
+        "ru": "регионы, узлы исследования ярусами по таблицам и авторы у узла своей основной строки",
+        "en": "regions, the research nodes in tiers by table, and the authors at the node of their founding row"
+      }
+    },
+    "time": {
+      "positions": "measure",
+      "short": {
+        "ru": "Время",
+        "en": "Time"
+      },
+      "measures": {
+        "ru": "годы жизни или деятельности, по хронологии бонсая",
+        "en": "years of life or activity, as the bonsai's chronology dates them"
+      },
+      "groups": {
+        "ru": "строки — регионы узлов основной строки; авторы без годов — вне шкалы",
+        "en": "rows are the regions of the founding nodes; authors without years stand off the scale"
+      }
+    }
+  }
 }
