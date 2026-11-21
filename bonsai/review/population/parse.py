@@ -324,16 +324,26 @@ def day_valid(year, month, day):
     return 1 <= month <= 12 and 1 <= day <= days[month - 1]
 
 
+# A batch's own convention for unmarked years ("н. э., если нет отметки до н. э."): it names CE as the default and
+# marks no year BCE, so its "до н. э." must not be read as the line's era.
+DEFAULT_CE = re.compile(rf'{ERA_CE}\s*,?\s*если\s+(?:нет\s+отметки|не\s+указано)\s+{ERA_BCE}', re.I)
+
+
 def era_of(match_era, others):
-    """+1 for CE, -1 for BCE, None where neither the value nor the line names one."""
+    """+1 for CE, -1 for BCE, None where neither the value nor the line names one; a line's default-era clause
+    gives CE only where no field marks an era of its own."""
     if match_era:
         return -1 if re.match(ERA_BCE, match_era, re.I) else 1
+    default = None
     for field in others:
+        if DEFAULT_CE.search(field):
+            default = 1
+            field = DEFAULT_CE.sub(' ', field)
         if re.search(rf'(?:^|\s|;){ERA_BCE}(?:$|\s|[;,.])', field, re.I):
             return -1
         if re.search(rf'(?:^|\s|;){ERA_CE}(?:$|\s|[;,.])', field, re.I):
             return 1
-    return None
+    return default
 
 
 def astronomical(year, era):

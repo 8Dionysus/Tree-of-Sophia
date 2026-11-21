@@ -28,6 +28,12 @@ describe('the Population bonsai',()=>{
   it('grew every member from the register rows keys.jsonl gives it, and keeps its control cases',()=>{
     expect(populationReviewIssues(root,{population})).toEqual([]);
   });
+  it('reads the unmarked years of a batch whose convention is the common era as CE',()=>{
+    // A19 writes «н. э., если нет отметки до н. э.»: Annambhaṭṭa and Vijñānabhikṣu worked in the 17th and 16th centuries CE.
+    const activity=slug=>chronology.situations[`tos.biographical-phase.${slug}.activity`].dating.interval;
+    expect(activity('annambhatta')).toMatchObject({start:'1601',end:'1700'});
+    expect(activity('vijnanabhiksu')).toMatchObject({start:'1501',end:'1600'});
+  });
   it('refuses a broken member',()=>{
     expect(changed(copy=>{copy.members['m-NOT']=copy.members[plain];delete copy.members[plain];})).toContain('member m-NOT: id is not m- and base32');
     expect(changed(copy=>{copy.members[plain].kind='spirit';})).toContain(`member ${plain}: unknown kind spirit`);
