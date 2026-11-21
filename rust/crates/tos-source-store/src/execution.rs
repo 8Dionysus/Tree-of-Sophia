@@ -29,6 +29,25 @@ use crate::{
     PinnedSqliteAuxLimits, PinnedSqliteAuxRequest, PinnedSqliteAuxScope, PinnedSqliteIoBudget,
     PinnedSqliteSpaceBudget, PinnedSqliteSpaceReservation,
 };
+struct ParentWriteLock<'a>(&'a File);
+
+impl<'a> ParentWriteLock<'a> {
+    fn acquire(parent: &'a File) -> Result<Self, String> {
+        parent
+            .try_lock_exclusive()
+            .map_err(|e| format!("research output parent busy: {e}"))?;
+        Ok(Self(parent))
+    }
+}
+
+impl Drop for ParentWriteLock<'_> {
+    fn drop(&mut self) {
+        // A child process can retain the open file description until exec.
+        // End the lock with the write even while such a descriptor is open.
+        let _ = FileExt::unlock(self.0);
+    }
+}
+
 fn output_stat(parent: &File, leaf: &CString) -> Result<Option<libc::stat>, String> {
     let mut st = std::mem::MaybeUninit::<libc::stat>::uninit();
     if unsafe {
@@ -757,9 +776,7 @@ impl Execution {
             return Err("research output file cap exceeded".into());
         }
         let (parent, leaf) = self.output_parent(reference)?;
-        parent
-            .try_lock_exclusive()
-            .map_err(|e| format!("research output parent busy: {e}"))?;
+        let _parent_lock = ParentWriteLock::acquire(&parent)?;
         let parent_blocks_before = parent.metadata().map_err(|e| e.to_string())?.blocks();
         let initial = output_stat(&parent, &leaf)?;
         let present = initial.is_some();
@@ -1110,6 +1127,23 @@ mod tests {
         assert_eq!(fs::read_dir(temp.path()).unwrap().count(), 1);
         assert!(ctx.budget_report()["read_returned_bytes"].as_u64().unwrap() > 0);
     }
+    #[test]
+    fn output_lock_ends_while_an_inherited_descriptor_is_open() {
+        let root = tempfile::tempdir().unwrap();
+        let operation = Execution::new(root.path(), 10).unwrap();
+        let (parent, _) = operation.output_parent("journal").unwrap();
+        let lock = ParentWriteLock::acquire(&parent).unwrap();
+        let inherited = parent.try_clone().unwrap();
+        let contender = tos_fd_open::reopen_directory(&parent).unwrap();
+        assert!(contender.try_lock_exclusive().is_err());
+
+        drop(lock);
+        drop(parent);
+
+        assert!(contender.try_lock_exclusive().is_ok());
+        assert!(inherited.metadata().unwrap().is_dir());
+    }
+
     #[test]
     fn journal_replacement_refuses_a_stale_read_without_losing_history() {
         let root = tempfile::tempdir().unwrap();

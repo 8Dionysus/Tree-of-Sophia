@@ -2,11 +2,18 @@
 // question, human actions and attributed replies in the existing notebook.
 import {localeValue,copyLocale,localeText} from './locale.mjs';
 import './cognitive-session.css';
+import agentRoles from '../../../contracts/agent-roles.v1.json' with {type:'json'};
 const PREFIX='tos.public-research.cognitive.v1:';
 const uid=()=>crypto.randomUUID();
 const clone=value=>structuredClone(value);
 const bounded=(value,max,name)=>{if(typeof value!=='string'||!value.trim()||value.length>max)throw new TypeError(`Invalid ${name}`);return value.trim();};
 const requests=new Set(['thought','research','question','trial']);
+// The roles a learning session's agent may take (agent-roles.v1.json): the guide accompanies, the opponent argues back.
+export const SESSION_ROLES=Object.freeze(['guide','opponent'].map(id=>agentRoles.roles.find(role=>role.id===id)).filter(Boolean));
+const TASKS={
+  guide:'Read exact sources, distinguish the work from interpretations, respond to the human action at the selected help level, preserve alternatives and explain your grounds.',
+  opponent:'Defend the strongest recorded counter-reading of the selected link against the person, with its own places, and say what it would change. Argue from places only; never stand in for the work\'s own thought, and keep the person\'s reading visible beside yours.',
+};
 
 export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',profile,getSelection=()=>null,onOpen=()=>{},onHelpChange=()=>{},workspace,isActive=()=>true,versionContext=async revision=>{if(revision!==index.revision)throw new TypeError(`Research version is unavailable: ${revision}`);return {index,current:true};}}){
   let header,expected,events=[],responses=[],disposed=false,serial=Promise.resolve(),waiters=new Set(),questionDirty=false,renderToken=0;
@@ -14,14 +21,15 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
   const el=(tag,value,cls='')=>{const node=document.createElement(tag);node.className=cls;if(value!==undefined)node.textContent=value;return node;};
   const t=(ru,en)=>copyLocale(locale)==='en'?localeText(en,locale()):ru;
   const status=el('p',undefined,'cognitive-status');status.setAttribute('role','status');
-  const controls=el('div',undefined,'cognitive-controls'),level=document.createElement('select'),connect=el('button'),pause=el('button'),newStep=el('button');
+  const controls=el('div',undefined,'cognitive-controls'),level=document.createElement('select'),roleSelect=document.createElement('select'),connect=el('button'),pause=el('button'),newStep=el('button');
   level.setAttribute('aria-label',t('Уровень помощи','Level of help'));for(const [value,ru,en]of [['light','Лёгкий','Light'],['medium','Средний','Medium'],['heavy','Тяжёлый','Heavy']]){const option=el('option',t(ru,en));option.value=value;level.append(option);}
   const title=el('h2'),intro=el('p'),launch=el('textarea',undefined,'cognitive-launch');launch.readOnly=true;launch.rows=5;launch.setAttribute('aria-label',t('Задание подключённому агенту','Connected agent instruction'));launch.hidden=true;
   const copy=el('button'),question=el('label',undefined,'cognitive-question'),questionTitle=el('span'),questionInput=el('textarea'),saveQuestion=el('button'),selection=el('p'),log=el('div',undefined,'cognitive-log'),trace=el('details',undefined,'cognitive-trace'),traceTitle=el('summary'),traceBody=el('div'),form=el('form'),answer=el('textarea'),send=el('button'),message=el('p');
   questionInput.rows=2;questionInput.maxLength=4000;saveQuestion.type='button';question.append(questionTitle,questionInput);trace.append(traceTitle,traceBody);
   answer.rows=4;answer.maxLength=4000;answer.setAttribute('aria-label',t('Моя мысль или ответ агенту','My thought or answer to the agent'));send.type='submit';
   for(const b of [connect,pause,newStep,copy])b.type='button';
-  controls.append(level,connect,pause,newStep);form.append(answer,send);root.append(title,intro,controls,status,launch,copy,question,saveQuestion,selection,log,form,message,trace);
+  for(const role of SESSION_ROLES){const option=el('option',localeValue(role.name,locale()));option.value=role.id;roleSelect.append(option);}
+  controls.append(level,roleSelect,connect,pause,newStep);form.append(answer,send);root.append(title,intro,controls,status,launch,copy,question,saveQuestion,selection,log,form,message,trace);
   const notify=()=>{for(const wake of waiters)wake();};
   const selectedState=()=>{const selected=getSelection();return {id:typeof selected==='string'?selected:selected?.id,revision:selected?.revision??index.revision};};
   const ready=(async()=>{
@@ -52,11 +60,14 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
   }
   async function context(input={}){
     const selected=selectedState(),id=input.id??selected.id,resolved=await versionContext(input.revision??selected.revision);
-    return {schema:'tos_cognitive_context_v1',active:isActive(),session_id:header?.id??null,profile,help:header?.help??'light',question:api.getQuestion(),question_revision:header?.question_revision??0,index_revision:resolved.index.revision,selected:id?resolved.index.inspect(id):null,last_ack:header?.last_ack??null,paused:header?.paused??false,
+    const role=SESSION_ROLES.find(item=>item.id===(header?.role??'guide'))??SESSION_ROLES[0];
+    // The opponent receives the link's recorded counter-reading with its places, to defend it.
+    const counter=role.id==='opponent'&&id?resolved.index.get(id)?.record?.assessment?.counter_reading??null:null;
+    return {schema:'tos_cognitive_context_v1',active:isActive(),session_id:header?.id??null,profile,help:header?.help??'light',role:{id:role.id,does:role.does,refuses:role.refuses},...(counter?{counter_reading:clone(counter)}:{}),question:api.getQuestion(),question_revision:header?.question_revision??0,index_revision:resolved.index.revision,selected:id?resolved.index.inspect(id):null,last_ack:header?.last_ack??null,paused:header?.paused??false,
       experience:{actions:events.filter(item=>item.actor==='human').length,requests:events.filter(item=>requests.has(item.type)).length,answered_requests:events.filter(item=>requests.has(item.type)&&responses.some(response=>response.event_id===item.id)).length,disclosed_source_ids:[...new Set(responses.filter(item=>item.index_revision===resolved.index.revision).flatMap(item=>item.source_ids??[]))]},
-      task:'Read exact sources, distinguish the work from interpretations, respond to the human action at the selected help level, preserve alternatives and explain your grounds.'};
+      task:TASKS[role.id]??TASKS.guide};
   }
-  function instruction(){return `Сопровождай мою исследовательскую сессию Бонсая ${header.id}. Открой ${location.href} в видимой вкладке IAB основного агента; продолжим работу в этой вкладке. Прочитай WebMCP tools и tos.bonsai.session-context, затем tos.bonsai.session-join. Одной активной задачей читай tos.bonsai.session-next (timeout_ms:20000), исследуй точные основания через tos.bonsai.research-item и tos.bonsai.read-source, передавая revision из index_revision события, отвечай через tos.bonsai.session-respond. После каждого ответа продолжай ждать следующее действие до моей остановки. Уровень помощи ${header.help}; вопрос: ${api.getQuestion()}. При возобновлении используй тот же session_id и last_ack; исходные мысли, альтернативы и все источники сохраняй с их собственными адресами. Ответ относится к event_id, question_revision и index_revision полученного события. Пустое ожидание означает продолжить цикл. Для другая вкладки того же происхождения используется общий notebook; session-join принимает этот session_id.`;}
+  function instruction(){return `Сопровождай мою исследовательскую сессию Бонсая ${header.id}. Открой ${location.href} в видимой вкладке IAB основного агента; продолжим работу в этой вкладке. Прочитай WebMCP tools и tos.bonsai.session-context, затем tos.bonsai.session-join. Одной активной задачей читай tos.bonsai.session-next (timeout_ms:20000), исследуй точные основания через tos.bonsai.research-item и tos.bonsai.read-source, передавая revision из index_revision события, отвечай через tos.bonsai.session-respond. После каждого ответа продолжай ждать следующее действие до моей остановки. Уровень помощи ${header.help}; роль: ${header.role??'guide'}; вопрос: ${api.getQuestion()}. При возобновлении используй тот же session_id и last_ack; исходные мысли, альтернативы и все источники сохраняй с их собственными адресами. Ответ относится к event_id, question_revision и index_revision полученного события. Пустое ожидание означает продолжить цикл. Для другая вкладки того же происхождения используется общий notebook; session-join принимает этот session_id.`;}
   function itemButton(id,revision){
     const button=el('button',id);button.type='button';button.addEventListener('click',()=>onOpen(id,{revision}));
     void versionContext(revision).then(resolved=>{if(!disposed)button.textContent=localeValue(resolved.index.get(id)?.title,locale())||id;}).catch(()=>{if(!disposed)button.textContent=`${id} · ${t('версия недоступна','version unavailable')}`;});return button;
@@ -65,13 +76,14 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
     if(disposed||!header)return;const token=++renderToken,selected=selectedState(),age=header.connected_at?Date.now()-Date.parse(header.connected_at):Infinity;
     title.textContent=t('Познание с агентом','Learning with an agent');level.setAttribute('aria-label',t('Уровень помощи','Level of help'));launch.setAttribute('aria-label',t('Задание подключённому агенту','Connected agent instruction'));answer.setAttribute('aria-label',t('Моя мысль или ответ агенту','My thought or answer to the agent'));
     const levels={light:t('Лёгкий','Light'),medium:t('Средний','Medium'),heavy:t('Тяжёлый','Heavy')};for(const option of level.children)option.textContent=levels[option.value];
+    roleSelect.setAttribute('aria-label',t('Роль агента','Agent role'));for(const option of roleSelect.children)option.textContent=localeValue(SESSION_ROLES.find(role=>role.id===option.value)?.name,locale())||option.value;roleSelect.value=header.role??'guide';
     status.textContent=header.paused?t('Пауза · исследование сохранено','Paused · research saved'):!header.connected_at?t('Ожидает подключения агента','Waiting for agent connection'):age>60000?t('Требуется переподключение агента','Agent reconnection needed'):header.handling_event_id&&!responses.some(response=>response.event_id===header.handling_event_id)?t('Агент обрабатывает действие','Agent is processing the action'):t('Агент подключён','Agent connected');
     intro.textContent=t('Читайте и формулируйте собственное прочтение. Подключённый агент отвечает по вашим действиям и точным основаниям.','Read and develop your own interpretation. Your connected agent responds to your actions and exact grounds.');
     connect.textContent=t('Подключить / продолжить с агентом','Connect / continue with agent');copy.textContent=t('Скопировать задание','Copy instruction');pause.textContent=header.paused?t('Продолжить','Resume'):t('Пауза','Pause');newStep.textContent=t('Исследовать выбранный предмет','Explore selected item');send.textContent=t('Отправить мысль','Send thought');answer.placeholder=t('Моя формулировка, вопрос, различение или возражение…','My interpretation, question, distinction or objection…');level.value=header.help;
     selection.textContent='';void versionContext(selected.revision).then(resolved=>{const item=resolved.index.get(selected.id);if(!disposed&&token===renderToken)selection.textContent=item?`${t('Предмет','Item')}: ${localeValue(item.title,locale())||item.id}`:'';}).catch(()=>{if(!disposed&&token===renderToken)selection.textContent=`${t('Версия недоступна','Version unavailable')}: ${selected.revision}`;});
     questionTitle.textContent=t('Вопрос исследования','Research question');questionInput.setAttribute('aria-label',questionTitle.textContent);saveQuestion.textContent=t('Сохранить вопрос','Save question');if(!questionDirty)questionInput.value=api.getQuestion();
     launch.value=instruction();log.replaceChildren();traceBody.replaceChildren();
-    const labels={trial:t('Испытание','Trial'),thought:t('Моя мысль','My thought'),research:t('Запрос исследования','Research request'),question:t('Новый вопрос','New question'),open:t('Открыт предмет','Item opened'),mode:t('Смена режима','Mode changed'),'help-level':t('Уровень помощи','Level of help')};
+    const labels={trial:t('Испытание','Trial'),thought:t('Моя мысль','My thought'),research:t('Запрос исследования','Research request'),question:t('Новый вопрос','New question'),open:t('Открыт предмет','Item opened'),mode:t('Смена режима','Mode changed'),'help-level':t('Уровень помощи','Level of help'),role:t('Роль агента','Agent role')};
     for(const event of events.slice(-60)){
       const row=el('article',undefined,'cognitive-event');row.dataset.eventId=event.id;
       row.append(el('small',`${event.sequence} · ${labels[event.type]??t('Действие','Action')}`));
@@ -136,6 +148,7 @@ export function mountCognitiveSession({root,notebook,index,api,locale=()=> 'ru',
   newStep.addEventListener('click',()=>void record('research').catch(error=>message.textContent=error.message));
   questionInput.addEventListener('input',()=>{questionDirty=true;});
   saveQuestion.addEventListener('click',()=>{saveQuestion.disabled=true;const value=questionInput.value;void Promise.resolve().then(()=>api.setQuestion(value)).then(async saved=>{if(!saved)throw new Error(t('Вопрос не сохранён; черновик оставлен в поле.','The question was not saved; its draft remains in the field.'));questionDirty=false;await record('question',{text:value});message.textContent=t('Вопрос сохранён.','Question saved.');}).catch(error=>message.textContent=error.message).finally(()=>{saveQuestion.disabled=false;render();});});
+  roleSelect.addEventListener('change',()=>void enqueue(async()=>{await update(next=>({...next,role:roleSelect.value}));render();}).then(()=>record('role',{text:roleSelect.value})).catch(error=>message.textContent=error.message));
   level.addEventListener('change',()=>void enqueue(async()=>{await update(next=>({...next,help:level.value}));onHelpChange(header.help);render();}).then(()=>record('help-level')).catch(error=>message.textContent=error.message));
   form.addEventListener('submit',event=>{event.preventDefault();const value=answer.value;if(!value.trim())return;send.disabled=true;void Promise.resolve().then(async()=>{if(questionDirty){const draft=questionInput.value;if(!(await api.setQuestion(draft)))throw new Error(t('Вопрос не сохранён; черновик оставлен в поле.','The question was not saved; its draft remains in the field.'));if(questionInput.value!==draft)throw new Error(t('Вопрос изменился во время сохранения; мысль осталась в поле.','The question changed while saving; the thought remains in its field.'));questionDirty=false;}return record('thought',{text:value});}).then(saved=>{if(saved&&answer.value===value)answer.value='';}).catch(error=>message.textContent=error.message).finally(()=>send.disabled=false);});
   const unsub=api.subscribeQuestion?.(()=>{render();});

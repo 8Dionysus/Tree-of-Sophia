@@ -1,0 +1,181 @@
+{
+ "language": "en",
+ "witness": {
+  "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy",
+  "year": 1845,
+  "url": "https://archive.org/details/stheticletterses01schi",
+  "licence": "Public-domain 1845 translation and book; Internet Archive machine OCR of Duke University Libraries copy corrected against its page images, with line-wrap hyphens removed. No separate OCR licence is asserted.",
+  "attribution": "Friedrich Schiller, Upon the Sublime, translated by John Weiss, in The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller (Boston, 1845), pp. 246 and 261; IA OCR checked and corrected against the scanned pages.",
+  "maker": "codex-2026-11-19-weiss-sublime-maker",
+  "rights": {
+   "russia": {
+    "basis": "public-domain",
+    "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: Шиллер умер в 1805, переводчик Вейсс в 1879, сроки истекли до 1993 года."
+   },
+   "usa": {
+    "basis": "public-domain",
+    "law": "US copyright: translation published in the United States in 1845, before 1931, and is in the public domain."
+   },
+   "eu": {
+    "basis": "public-domain",
+    "law": "Directive 2006/116/EC art. 1: author died 1805 and translator died 1879; the ordinary life plus 70 years terms have expired."
+   }
+  },
+  "persons": [
+   {
+    "role": "author",
+    "qid": "Q22670",
+    "name": {
+     "en": "Friedrich Schiller",
+     "ru": "Фридрих Шиллер"
+    },
+    "born": 1759,
+    "died": 1805,
+    "source": "https://www.wikidata.org/wiki/Q22670",
+    "evidence": {
+     "file": "wikidata-Q22670.json",
+     "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+    }
+   },
+   {
+    "role": "translator",
+    "name": {
+     "en": "Weiss, John",
+     "ru": "Джон Вейсс"
+    },
+    "born": 1818,
+    "died": 1879,
+    "source": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10",
+    "evidence": {
+     "kind": "reference",
+     "file": "person-d9a438f7e4b8e240.html",
+     "sha256": "aa58f28f3b4f9a7564a41ee24c47faafe581fdafd975d8ff42a5c39c10499e66",
+     "url": "https://id.loc.gov/authorities/names/suggest2/?q=Weiss%2C%20John%201818%201879&count=10"
+    }
+   }
+  ]
+ },
+ "sources": [
+  {
+   "file": "weiss-1845.txt",
+   "url": "https://archive.org/download/stheticletterses01schi/stheticletterses01schi_djvu.txt",
+   "sha256": "93ff86fbde974e4da0530ae6e2905dd573613bf0feea2fabd1607a2b2ad5ad21",
+   "fetched": "2026-11-19"
+  }
+ ],
+ "images": [
+  {
+   "file": "weiss-p246.jpg",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+   "sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b",
+   "by": "maker"
+  },
+  {
+   "file": "weiss-p261.jpg",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n302.jpg",
+   "sha256": "08aa004c718cca0510c942c9a0469b513233062f10c624adc690c7f66bbca214",
+   "by": "maker"
+  },
+  {
+   "file": "weiss-second-p246.jpg",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+   "sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b",
+   "by": "second"
+  },
+  {
+   "file": "weiss-second-p261.jpg",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n302.jpg",
+   "sha256": "08aa004c718cca0510c942c9a0469b513233062f10c624adc690c7f66bbca214",
+   "by": "second"
+  }
+ ],
+ "places": {
+  "Essay p286a": {
+   "text": "The feeling of sublimity is a mingled feeling. It is a composition of wofulness, which in its highest degree appears as horror, and of joyfulness, which can amount to transport, and although it is not strictly pleasure, is still far preferred to all pleasure by spirits of refinement. This union of two diverse perceptions in a single feeling, proves incontestably our moral independence.",
+   "source": "weiss-1845.txt",
+   "page": "p. 246",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+   "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b",
+   "alignment": "All three German sentences are rendered. Weiss translates Schauer as horror and weakens widersprechender Empfindungen to diverse perceptions; italics are not encoded.",
+   "corrections": [
+    {
+     "from": "ofjoyfulness",
+     "to": "of joyfulness",
+     "offset": 132,
+     "reason": "Printed page 246, IA leaf n287, shows separate words of and joyfulness; OCR merged them.",
+     "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+     "page": "p. 246",
+     "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b"
+    },
+    {
+     "from": "refine- ment",
+     "to": "refinement",
+     "offset": 273,
+     "reason": "Printed page 246, IA leaf n287, divides refinement at the line end; join the word without the line-break hyphen.",
+     "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+     "page": "p. 246",
+     "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b"
+    },
+    {
+     "from": "independ- ence",
+     "to": "independence",
+     "offset": 375,
+     "reason": "Printed page 246, IA leaf n287, divides independence at the line end; join the word without the line-break hyphen.",
+     "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+     "page": "p. 246",
+     "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b"
+    }
+   ]
+  },
+  "Essay p286b": {
+   "text": "We feel ourselves free through Beauty, since the sensuous impulses harmonize with the law of reason; we feel ourselves free through Sublimity, since the sensuous impulses have no influence upon the legislation of the reason, since the spirit acts here, as if it existed under no other laws than its own.",
+   "source": "weiss-1845.txt",
+   "page": "p. 246",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+   "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b",
+   "alignment": "The entire German sentence is translated: freedom is felt in both Beauty and Sublimity, and the spirit acts as if subject only to its own laws.",
+   "corrections": [
+    {
+     "from": "reason ;",
+     "to": "reason;",
+     "offset": 93,
+     "reason": "Printed page 246, IA leaf n287, has a semicolon directly after reason; the OCR inserted a space before it.",
+     "url": "https://archive.org/download/stheticletterses01schi/page/n287.jpg",
+     "page": "p. 246",
+     "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b"
+    }
+   ]
+  },
+  "Essay p299": {
+   "text": "Beauty without Sublimity would lead us to forget our dignity.",
+   "source": "weiss-1845.txt",
+   "page": "p. 261",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n302.jpg",
+   "image_sha256": "08aa004c718cca0510c942c9a0469b513233062f10c624adc690c7f66bbca214",
+   "alignment": "The single sentence corresponds to the original on German pages 299–300; beauty without the sublime would make us forget dignity."
+  }
+ },
+ "review": {
+  "reader": "codex-2026-11-19-schiller-sublime-second",
+  "model": "GPT-6",
+  "date": "2026-11-19",
+  "places": {
+   "Essay p286a": {
+    "reads": "as the packet",
+    "alignment": "Read complete three sentences and all three OCR corrections on Weiss p. 246 and German p. 286; Schauer becomes horror and widersprechender Empfindungen becomes diverse perceptions, weakening opposition, as disclosed; all three sentence boundaries and moral independence correspond.",
+    "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b"
+   },
+   "Essay p286b": {
+    "reads": "as the packet",
+    "alignment": "Read the full sentence on Weiss p. 246 and German p. 286, including the semicolon correction: both feelings of freedom are present, with harmony in beauty and no influence of impulse on legislation in sublimity, and the spirit acts as if under its own laws.",
+    "image_sha256": "472b8e5d8298e1306bb1203d86bc69d29f0098429753c4397da15b6b033f925b"
+   },
+   "Essay p299": {
+    "reads": "as the packet",
+    "alignment": "Read Weiss p. 261 and German pp. 299–300: the whole sentence says beauty without sublimity leads us to forget dignity; page transition and sentence limits match.",
+    "image_sha256": "08aa004c718cca0510c942c9a0469b513233062f10c624adc690c7f66bbca214"
+   }
+  }
+ }
+}

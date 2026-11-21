@@ -27,6 +27,11 @@ pub struct BibliographicSourceCut<'a> {
     pub max_read_files: usize,
     pub max_read_bytes: usize,
 }
+
+impl BibliographicSourceCut<'_> {
+    pub const MAX_READ_FILES: usize = 4096;
+    pub const MAX_READ_BYTES: usize = 64 * 1024 * 1024;
+}
 /// One caller-owned monotone read budget shared by streamed record/history
 /// resolution. Repeated physical reads remain charged; there is no whole-cut cache.
 pub struct StreamedBibliographicReadLedger {
@@ -595,9 +600,9 @@ impl<'a, 'b> Versions<'a, 'b> {
         match input {
             SelectedBibliographicSourceCut::Resident(i) => {
                 if i.max_read_files == 0
-                    || i.max_read_files > 4096
+                    || i.max_read_files > BibliographicSourceCut::MAX_READ_FILES
                     || i.max_read_bytes == 0
-                    || i.max_read_bytes > 64 * 1024 * 1024
+                    || i.max_read_bytes > BibliographicSourceCut::MAX_READ_BYTES
                 {
                     return Err(Error::Invalid(
                         "bibliographic independently selected source cut",

@@ -1,0 +1,46 @@
+{
+  "schema_version": "tos_source_item_manifest_v1",
+  "item_id": "tos.item.retained.antiquity.rhetoric.rhetoric-ru-platonova1894-book1-ch1",
+  "item_kind": "derived_publication",
+  "embodiment_ref": "tos.edition.retained.antiquity.rhetoric.rhetoric-ru-platonova1894-book1-ch1",
+  "storage_posture": "local_gitignored_payload",
+  "payload_files": [
+    {
+      "file_id": "tos.file.sha256.da698d3f8f5f12c807438a017bf1c5eae49799219edf67998cb5374070513648",
+      "relative_path": "payload/retained-reading.json",
+      "original_basename": "rhetoric-ru-platonova1894-book1-ch1.json",
+      "media_type": "application/json",
+      "byte_size": 20553,
+      "sha256": "da698d3f8f5f12c807438a017bf1c5eae49799219edf67998cb5374070513648",
+      "fixity_verified_at": "2026-11-12T23:09:19+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.a57bba67413605e2dfceb2704df4dafd52f633011ea2150e1def14175015fc75",
+      "relative_path": "payload/reading-layer.txt",
+      "original_basename": "reading-layer.txt",
+      "media_type": "text/plain",
+      "byte_size": 20019,
+      "sha256": "a57bba67413605e2dfceb2704df4dafd52f633011ea2150e1def14175015fc75",
+      "fixity_verified_at": "2026-11-12T23:09:19+00:00"
+    },
+    {
+      "file_id": "tos.file.sha256.3cde1877832e5d62d7c0499bbdeb8531a1ce16dba0379a34d545137c390f9801",
+      "relative_path": "payload/rhetoric-i1-transcription.txt",
+      "original_basename": "rhetoric-i1-transcription.txt",
+      "media_type": "text/plain",
+      "byte_size": 20020,
+      "sha256": "3cde1877832e5d62d7c0499bbdeb8531a1ce16dba0379a34d545137c390f9801",
+      "fixity_verified_at": "2026-11-12T23:09:19+00:00"
+    }
+  ],
+  "acquisition_event_ref": "tos.event.retained-acquisition.rhetoric-ru-platonova1894-book1-ch1.20261027",
+  "rights_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/rights.json",
+  "provenance_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+  "forensic_report_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/forensic-report.md",
+  "resource_inventory_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/resource-inventory.json",
+  "visibility": "public_payload",
+  "manifest_version": 1,
+  "source_record_refs": [
+    "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/source-metadata-snapshot.json"
+  ]
+}

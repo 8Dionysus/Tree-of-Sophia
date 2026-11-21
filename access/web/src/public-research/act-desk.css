@@ -1,0 +1,75 @@
+/* The act desk: sheets for a ticket, the board, the review, a change packet, handing over and connecting an agent.
+   Night colours; the light themes are added at build time. */
+.ad-sheet{width:min(760px,calc(100vw - 24px));max-height:86vh;padding:0;border:1px solid var(--ps-line-strong);border-radius:12px;background:#0b1626;color:var(--ps-text);font-family:var(--ps-sans);box-shadow:0 24px 60px #000a}
+.ad-sheet::backdrop{background:#02050b99}
+.ad-head{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--ps-line);background:#0b1626}
+.ad-head h2{margin:0;font:500 21px var(--ps-serif);color:var(--ps-ink)}
+.ad-body{display:flex;flex-direction:column;gap:12px;padding:16px 20px 22px}
+.ad-subject{margin:0;font:500 16px var(--ps-serif);color:var(--ps-gold)}
+.ad-field{display:flex;flex-direction:column;gap:4px}
+.ad-label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ps-muted)}
+.ad-input{box-sizing:border-box;width:100%;padding:8px 10px;border:1px solid var(--ps-line-strong);border-radius:8px;background:#070f1b;color:var(--ps-ink);font:inherit;font-size:15px}
+.ad-input[aria-invalid=true]{border-color:#ef8c62}
+.ad-text{resize:vertical;min-height:72px}
+.ad-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ad-check-row{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--ps-ink)}
+.ad-change{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px dashed #dcc69066;border-radius:10px}
+.ad-minor{margin:6px 0 0;font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--ps-muted)}
+.ad-checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.ad-check{display:flex;gap:8px;align-items:baseline}
+.ad-check-mark{width:16px;text-align:center;font-weight:600}
+.ad-check[data-level=ok] .ad-check-mark{color:#7fc79a}
+.ad-check[data-level=warn] .ad-check-mark{color:var(--ps-gold)}
+.ad-check[data-level=block]{color:var(--ps-ink)}
+.ad-check[data-level=block] .ad-check-mark{color:#ef8c62}
+.ad-save{align-self:flex-start}
+.ad-muted{margin:0;font-size:13px;color:var(--ps-muted)}
+.ad-board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.ad-column{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ad-ticket{display:flex;flex-direction:column;gap:4px;padding:10px;border:1px solid var(--ps-line-strong);border-radius:8px;background:#070f1b;min-width:0}
+.ad-ticket strong{font-weight:500;color:var(--ps-ink);overflow-wrap:anywhere}
+.ad-groups{display:flex;flex-direction:column;gap:12px}
+.ad-group{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--ps-line-strong);border-radius:10px;background:#070f1b}
+.ad-group h3{margin:0;font:500 16px var(--ps-serif);color:var(--ps-ink)}
+.ad-sample{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:14px}
+.ad-sample li{display:flex;flex-wrap:wrap;gap:8px}
+.ad-place{color:var(--ps-muted)}
+.ad-packet{display:flex;flex-direction:column;gap:8px;padding-top:12px;border-top:1px solid var(--ps-line)}
+.ad-pre{margin:0;max-height:46vh;overflow:auto;padding:12px;border:1px solid var(--ps-line);border-radius:8px;background:#070f1b;color:var(--ps-ink);font:12.5px/1.5 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.ad-tab[aria-pressed=true]{color:var(--ps-gold);text-decoration:underline;text-underline-offset:4px}
+.ad-tiers{display:flex;flex-direction:column;gap:6px}
+.wp-key{padding:2px 7px;border:1px solid var(--ps-line-strong);border-bottom-width:2px;border-radius:4px;color:var(--ps-gold);font:600 12px var(--ps-sans)}
+.wp-name{flex:1 1 220px;width:auto}
+.dh-code{align-self:flex-start;max-width:100%;height:auto;padding:0;border-radius:6px;background:#fff;image-rendering:pixelated}
+.dh-link{font:13px ui-monospace,monospace}
+@media (max-width:760px){.ad-board{grid-template-columns:minmax(0,1fr)}.ad-body{padding:14px 16px 18px}}
+/* A technical section (technical.mjs, TOS-D-0082): apparatus behind a door the reader opens on purpose. */
+.tech-section{border-top:1px solid var(--ps-line);padding-top:6px;font-size:13px;color:var(--ps-muted)}
+.tech-section>summary{cursor:pointer;width:max-content;color:var(--ps-muted);font:500 12px/1.6 var(--ps-sans);letter-spacing:.06em;text-transform:uppercase;list-style-position:inside}
+.tech-section[open]>summary{margin-bottom:6px;color:var(--ps-text)}
+.tech-section>*:not(summary){margin:4px 0 0}
+.ep-pages{display:flex;gap:8px;overflow-x:auto;padding:4px 0}
+.ep-page{display:flex;flex-direction:column;gap:2px;align-items:center;color:var(--ps-muted);font-size:11.5px;text-decoration:none}
+.ep-page img{width:120px;height:auto;min-height:60px;border:1px solid var(--ps-line);border-radius:3px;background:#0b1626}
+/* The return gateway (return-gateway.mjs). */
+.rg-state{margin:0;color:var(--ps-gold)}
+.rg-item[data-state=sent] .rg-state{color:var(--ps-muted)}
+.rg-return{margin:4px 0;padding:6px 10px;border-left:2px solid var(--ps-gold);white-space:pre-wrap;color:var(--ps-text)}
+.rg-paste{width:100%;box-sizing:border-box;resize:vertical}
+.ad-review-part{margin:10px 0 2px}
+.ad-group[data-exception=true]{border-left:2px solid #ef8c62}
+/* Talk at a place (talk-at-place.mjs): the moves of a dispute, each answering the one above it. */
+.tk-move{margin:6px 0;padding:6px 10px;border-left:2px solid var(--ps-line)}
+.tk-move .tk-replies{margin-left:12px}
+.tk-thesis{border-left-color:var(--ps-gold)}
+.tk-grounds{border-left-color:#8fc0e8}
+.tk-objection{border-left-color:#ef8c62}
+.tk-answer{border-left-color:#9fd39b}
+.tk-head{margin:0;font-size:12.5px;color:var(--ps-muted)}
+.tk-text{margin:2px 0;white-space:pre-wrap;color:var(--ps-text)}
+.tk-form{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+/* Research branches (research-branch.mjs). */
+.rb-editor{display:flex;flex-direction:column;gap:6px}
+.rb-group{border:1px solid var(--ps-line);border-radius:6px;padding:6px 8px;max-height:30vh;overflow:auto}
+.rb-group legend{color:var(--ps-muted);font-size:12.5px}
+.ad-sample .ad-count{margin-left:8px;color:var(--ps-gold);font-variant-numeric:tabular-nums}

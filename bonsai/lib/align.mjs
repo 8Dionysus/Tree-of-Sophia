@@ -285,14 +285,17 @@ export function sentenceSpans(raw,language=null){
 }
 
 /** Sentences of one side of a group, carrying [unit index, start, end]. */
+function sentenceItem(index,start,text,language){
+  // A Greek question mark reads as one for the cues.
+  return {id:[index,start,start+chars(text).length],len:chars(collapse(text)).length,cue:cues(language==='grc'?text.replace(/[;\u037e]/g,'?'):text),tok:tokens(text,language),section:null,text};
+}
+
 export function sentencesOf(units,language){
   const items=[];
   for(const unit of units){
     const text=chars(unit.raw);
     for(const [s,e] of sentenceSpans(unit.raw,language)){
-      const sentence=text.slice(s,e).join('');
-      // A Greek question mark reads as one for the cues.
-      items.push({id:[unit.index,s,e],len:chars(collapse(sentence)).length,cue:cues(language==='grc'?sentence.replace(/[;\u037e]/g,'?'):sentence),tok:tokens(sentence,language),section:null,text:sentence});
+      items.push(sentenceItem(unit.index,s,text.slice(s,e).join(''),language));
     }
   }
   return items;
@@ -301,6 +304,35 @@ export function sentencesOf(units,language){
 // The lexical comparison normalizes words, while sentence IDs retain the
 // offsets of the exact source characters.
 const anchorWords=text=>text.normalize('NFKC').toLowerCase().replace(/ς/gu,'σ').normalize('NFC').match(/\p{L}[\p{L}\p{M}]*/gu)??[];
+
+/** Split only at uniquely identified clause openings, keeping coordinates in the source unit. */
+export function splitSentenceClauses(sentences,starts,language){
+  if(!starts.length)return sentences;
+  const openings=sentences.flatMap(sentence=>[...sentence.text.matchAll(/[:;：；··]\s*(?=\p{L})/gu)].map(match=>{
+    const at=match.index+match[0].length;
+    return {sentence,offset:chars(sentence.text.slice(0,at)).length,words:anchorWords(sentence.text.slice(at))};
+  }));
+  const cuts=new Map();
+  for(const start of starts){
+    const words=start.flatMap(anchorWords);
+    const matches=openings.filter(opening=>words.every((word,index)=>word===opening.words[index]));
+    if(matches.length!==1)throw new Error('Clause opening keywords are missing or ambiguous in the selected reference');
+    const {sentence,offset}=matches[0],offsets=cuts.get(sentence)??[];
+    if(offsets.includes(offset))throw new Error('Clause opening keywords identify the same break');
+    cuts.set(sentence,[...offsets,offset]);
+  }
+  return sentences.flatMap(sentence=>{
+    const offsets=cuts.get(sentence);
+    if(!offsets)return [sentence];
+    const text=chars(sentence.text),[unit,start]=sentence.id;
+    let previous=0;
+    return [...offsets.sort((a,b)=>a-b),text.length].map(end=>{
+      const item=sentenceItem(unit,start+previous,text.slice(previous,end).join('').trimEnd(),language);
+      previous=end;
+      return item;
+    });
+  });
+}
 
 function anchorRange(sentences,keywords){
   const words=keywords.flatMap(anchorWords);

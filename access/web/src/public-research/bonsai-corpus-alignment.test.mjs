@@ -126,6 +126,25 @@ describe('the corpus alignment of the stands',()=>{
     translation.units[1].text+=' Гнев и речь. Гнев и речь.';
     expect(()=>align([pair])).toThrow(/missing or ambiguous/);
   });
+  it('keeps clause offsets when a translation joins two passages in one sentence',()=>{
+    const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s',reference:'2',text:'τρία εἴδη.'}]};
+    const translation={id:'r',language:'ru',revision:'r-rev',units:[{id:'t',reference:'2',text:'📖 Сначала идут другие слова; затем названы три вида.'}]};
+    const read=()=>({id:'work',versions:[original,translation]});
+    const cited=new Map([['a',{original:'g',units:new Set(['s'])}]]);
+    const pair={originalUnitId:'s',translationUnitId:'t',
+      targetClauseStarts:[['ЗАТЕМ','названы']],sentenceAnchors:[{source:['τρία','εἴδη'],target:['три','вида']}]};
+    const scope={work:'a',translationVersionId:'r',translationRevision:'r-rev',originalVersionId:'g',originalRevision:'g-rev',
+      firstUnitId:'s',lastUnitId:'s',source:'https://example.test/book',localReferencePairs:[pair]};
+    const align=()=>alignCorpus(cited,{a:'work'},read,[scope]);
+    const result=align(),entry=result.units.s.t.r;
+    expect(entry.u).toEqual(['t']);
+    const [source,[[,start,end]]]=entry.pairs[0];
+    expect(source).toEqual([[0,10]]);
+    expect(Array.from(translation.units[0].text).slice(start,end).join('')).toBe('затем названы три вида.');
+    expect(result.receipt['a:r'].sourceScope.localReferenceAlignments[0].targetClauseStarts).toEqual(pair.targetClauseStarts);
+    translation.units[0].text+=' Ещё предложение; затем названы два вида.';
+    expect(align).toThrow(/Clause opening keywords are missing or ambiguous/);
+  });
   it('aligns explicitly matched whole reference units without changing the original or other units',()=>{
     const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s1',reference:'Book 7 · 515',text:'λόγος.'},{id:'s2',reference:'Book 7 · 516',text:'ἄνω.'}]};
     const translation={id:'r',language:'ru',revision:'r-rev',units:[{id:'t1',reference:'515',text:'Слово.'},{id:'t2',reference:'516',text:'Выше.'}]};
@@ -304,6 +323,40 @@ describe('the corpus alignment of the stands',()=>{
     const works=worksOf('zarathustra'),stored=readFileSync(join(root,'bonsai','zarathustra','alignment.json'),'utf8');
     expect(formatAlignment(alignCorpus(citedUnits(content,works,read),works,read))).toBe(stored);
   },120000);
+  it.skipIf(!corpusFetched)('binds Platonova’s Russian Rhetoric opening only to Book I chapter 1',()=>{
+    const module=json('bonsai/antiquity/alignment.json');
+    const id='retained-rhetoric-ru-platonova1894-book1-ch1';
+    const chapter='tos.text-unit.sid-687a8faa55b74f62963435475ae0781f';
+    const entry=module.units[chapter].t[id];
+    const ru=read('tos.work.retained-antiquity.rhetoric').versions.find(version=>version.id===id);
+    expect(ru.units).toHaveLength(1);
+    const first=entry.pairs[0][1].map(([i,s,e])=>Array.from(ru.units.find(unit=>unit.id===entry.u[i]).text).slice(s,e).join('')).join(' ');
+    expect(first).toContain('Риторика — искусство, соотвѣтствующее діалектикѣ');
+    expect(first).toContain('какъ оправдываться, такъ и обвинять');
+    for(const [unit,item] of Object.entries(module.units)){
+      if(unit!==chapter&&item.w==='rhetoric')expect(item.t[id]).toBeUndefined();
+    }
+  });
+  it.skipIf(!corpusFetched)('reads all three books of Platonova and locates the variant at 1356a',()=>{
+    const module=json('bonsai/antiquity/alignment.json');
+    const id='retained-rhetoric-ru-platonova1894';
+    const work=read('tos.work.retained-antiquity.rhetoric');
+    const translation=work.versions.find(version=>version.id===id);
+    expect(translation.units).toHaveLength(60);
+    expect(translation.units[0].text.trimEnd()).toBe(work.versions.find(version=>version.id===id+'-book1-ch1').units[0].text);
+    expect(translation.units.at(-1).reference).toBe('Книга 3 · Глава 19');
+    const topics=translation.units.find(unit=>unit.reference==='Книга 2 · Глава 23');
+    expect(topics.text).toMatch(/нуждались въ соли[\s\S]+изобличительный/u);
+    const chapter='tos.text-unit.sid-21124aa20d3042b9b92de1e1bb81d740';
+    const alignment=module.units[chapter].t[id];
+    const excerpt=alignment.pairs.filter(([from])=>from.some(([start,end])=>start<1520&&1008<end))
+      .flatMap(([,to])=>to.map(([i,start,end])=>Array.from(translation.units.find(unit=>unit.id===alignment.u[i]).text).slice(start,end).join('')))
+      .join(' ');
+    expect(excerpt).toContain('честность оратора');
+    const original=work.versions.find(version=>version.id===module.works.rhetoric.original.versionId);
+    const originalChapter=original.units.find(unit=>unit.id===chapter);
+    expect(Array.from(originalChapter.text).slice(1008,1520).join('')).toContain('κυριωτάτην ἔχει πίστιν τὸ ἦθος');
+  });
   for(const stand of ['zarathustra','antiquity'])it.skipIf(!corpusFetched)(`${stand}: holds every cited unit except places outside all translation scopes`,()=>{
     const module=json(`bonsai/${stand}/alignment.json`),works=worksOf(stand);
     const scopes=stand==='antiquity'?json('bonsai/antiquity/translation-scopes.json').scopes:[];

@@ -1749,9 +1749,9 @@ pub fn render_source_bibliographic_plan_with_work(
     let result = (|| {
         plan.limits.validate(l)?;
         if max_version_read_files == 0
-            || max_version_read_files > 4096
+            || max_version_read_files > BibliographicSourceCut::MAX_READ_FILES
             || max_version_read_bytes == 0
-            || max_version_read_bytes > 64 * 1024 * 1024
+            || max_version_read_bytes > BibliographicSourceCut::MAX_READ_BYTES
         {
             return Err(Error::Budget("cold catalog selected version read limits"));
         }

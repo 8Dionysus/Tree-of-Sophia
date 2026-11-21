@@ -14,9 +14,10 @@ function fixture({getSession}={}){
  const second={id:'other-lion',kind:'relation',record:{admission:'map',from:'other',to:'lion',verb:{en:'asks'},grounds:[]}};
  let stored={level:'light',start:'lion',known:['lion'],found:[],hypotheses:[]};const copy=x=>structuredClone(x);
  const notebook={getPreference:async()=>copy(stored),setPreference:async(_,value,{expectedValue})=>{if(JSON.stringify(stored)!==JSON.stringify(expectedValue))throw Object.assign(Error('conflict'),{code:'conflict'});stored=copy(value);}};
- const root=new Element('div'),index={items:new Map([...nodes,link,second].map(x=>[x.id,x]))};
- const view=mountKnowing({root,index,locale:()=> 'en',notebook,profile:'test',fragments:{fragment:()=>new Element('p')},getSession});live.push(view);
- return {root,view,stored:()=>copy(stored),remote:value=>stored=copy(value)};
+ const index={items:new Map([...nodes,link,second].map(x=>[x.id,x]))},changes=[];
+ const mount=()=>{const root=new Element('div'),view=mountKnowing({root,index,locale:()=> 'en',notebook,profile:'test',fragments:{fragment:()=>new Element('p')},getSession,onChange:value=>changes.push(value)});live.push(view);return {root,view};};
+ const {root,view}=mount();
+ return {root,view,mount,changes,stored:()=>copy(stored),remote:value=>stored=copy(value)};
 }
 test('hovering a threshold keeps its row and expanded journal mounted',async()=>{
  const f=fixture();await f.view.ready;const row=all(f.root).find(x=>x.className==='k-row');const box=all(f.root).find(x=>x.tagName==='details'&&text(x).includes('Questions at the threshold'));box.open=false;
@@ -55,4 +56,24 @@ test('a heavy-mode reading reaches the interlocutor with the opened link',async(
  const area=all(f.root).find(x=>x.tagName==='textarea');area.value='The child is a new beginning.';
  all(f.root).find(x=>x.tagName==='button'&&x.textContent==='Check against the book').listeners.click();
  await vi.waitFor(()=>expect(record).toHaveBeenCalledWith('trial',expect.objectContaining({id:'child-lion',text:expect.stringContaining('The reader’s reading: The child is a new beginning.')})));
+});
+
+test('a return offers the threshold where the person stopped, else the nearest one',async()=>{
+ const f=fixture();await f.view.ready;
+ expect(text(f.root)).toContain('The nearest threshold');
+ const row=all(f.root).filter(x=>x.className==='k-row').find(x=>text(x).includes('?'));
+ // The second threshold has no question of its own, nor has its star: it says what is to be joined.
+ expect(text(f.root)).toContain('To be joined: “lion” and a neighbouring star, in the book’s word.');
+ all(f.root).filter(x=>x.className==='k-row').at(-1).listeners.click();
+ await vi.waitFor(()=>expect(f.stored().last?.link).toBeTruthy());
+ const stopped=f.stored().last.link;
+ const again=f.mount();await again.view.ready;
+ expect(text(again.root)).toContain('You stopped here');
+ all(again.root).find(x=>x.textContent==='Continue from the threshold').listeners.click();
+ expect(text(all(again.root).find(x=>x.className==='k-trial-head'))).toContain(stopped==='other-lion'?'other':'child');
+ expect(row).toBeTruthy();
+});
+test('what is opened reaches the original sky as its own layer',async()=>{
+ const f=fixture();await f.view.ready;
+ expect(f.changes.at(-1)).toEqual({known:['lion'],found:[]});
 });

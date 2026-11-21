@@ -332,6 +332,76 @@
           }
         }
       }
+    },
+    "bridge": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The person's local bridge (`tos bridge`, TOS-D-0083): its connections, event streams, request bodies, journal windows and the review queue by which it paces agents' tickets and proposals.",
+      "properties": {
+        "max_connections": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: connections. Open HTTP connections at once, event streams included.",
+          "default": 256
+        },
+        "max_event_streams": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: streams. Pages following the journal at once.",
+          "default": 16
+        },
+        "max_body_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: bytes. One request body: an act, a batch or an MCP message.",
+          "default": 4194304
+        },
+        "max_window_records": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: records. Records one read of the store returns.",
+          "default": 1000
+        },
+        "review_queue_soft": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: proposals. Open proposals from which agents' tickets and proposals are paced.",
+          "default": 200
+        },
+        "review_queue_max": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: proposals. Open proposals at which agents' tickets and proposals wait for review.",
+          "default": 2000
+        },
+        "pace_step_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: milliseconds. Pause one agent keeps between proposing acts for each open proposal above the soft queue.",
+          "default": 50
+        },
+        "pace_max_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: milliseconds. Longest pause between one agent's proposing acts.",
+          "default": 60000
+        },
+        "snapshot_every_records": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: records. Records appended between two snapshots of the journal's folds; a start reads the snapshot and folds only the records after it.",
+          "default": 50000
+        }
+      }
     }
   },
   "required": [

@@ -18,6 +18,8 @@ installReadingRules(runtime);
 installPoseRules(runtime);
 
 import {installBrowserWorkspaceMachine} from '../research-workspace-rust.ts';
+import {installActJournalRules} from '../act-journal/journal.mjs';
+installActJournalRules(runtime);
 import {installConstructorRules} from '../../constructor/model.mjs';
 import {installSourceFormRules} from '../../constructor/source-form-session-rust.mjs';
 import {installResearchShelfRules} from '../research-shelf/rules.mjs';
