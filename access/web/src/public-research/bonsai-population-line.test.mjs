@@ -1,6 +1,6 @@
 import {existsSync,readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {describe,expect,it} from 'vitest';
+import {beforeAll,describe,expect,it} from 'vitest';
 import {semanticRegistry} from '../../../../bonsai/lib/objects.mjs';
 import {populationIssues} from '../../../../bonsai/lib/population.mjs';
 import {agreement,itemId,verdictProblems} from '../../../../bonsai/review/population/line/kit.mjs';
@@ -92,25 +92,29 @@ describe('the Population line reads a member\'s questions',()=>{
 });
 
 describe.skipIf(!layersFetched)('the Population bonsai plants what two readers decided',()=>{
-  const registry=semanticRegistry(root);
-  // Members the line has not answered yet, taken from the planted bonsai, so the test outlives the queues it empties.
-  const planted=Object.entries(JSON.parse(readFileSync(join(root,'bonsai','population','population.json'),'utf8')).members);
-  const pick=(test,...not)=>{const [member,record]=planted.find(([id,record])=>!not.includes(id)&&test(record));return {member,rows:record.grew_from};};
-  const dates=pick(record=>record.gaps.some(gap=>gap.startsWith('life:')));
-  const active=pick(record=>record.gaps.some(gap=>gap.startsWith('life:')),dates.member);
-  const latin=pick(record=>record.gaps.includes('name:latin'),dates.member,active.member);
-  const kind=pick(record=>record.kind==='person',dates.member,active.member,latin.member);
-  const decisions=[
-    {id:'d-lifeaaaaaa',type:'life',question:'dates',rows:dates.rows,item:'q-testdatesaaa',by:'test',birth:{year:428,era:'BCE',certainty:'approximate'},death:{year:348,era:'BCE',certainty:'exact'},activity:null,living:false,
-      sources:['https://plato.stanford.edu/entries/plato/'],readers:[{verdict:'dates',basis:['text'],note:'The SEP article dates the life.'}]},
-    {id:'d-lifebbbbbb',type:'life',question:'dates',rows:active.rows,item:'q-testactivea',by:'test',birth:null,death:null,activity:{from:{year:2017,era:'CE'},to:{year:2017,era:'CE'},certainty:'exact'},living:false,
-      readers:[{verdict:'dates',basis:['works'],note:'A chapter first published in 2017.'}]},
-    {id:'d-nameaaaaaa',type:'name',question:'latin',rows:latin.rows,item:'q-testlatinaa',by:'test',latin:'Testname Latinus',readers:[{verdict:'latin',basis:['name'],note:'A transliteration.'}]},
-    {id:'d-kindaaaaaa',type:'kind',question:'kind',rows:[kind.rows[0]],item:'q-testkindaaa',by:'test',kind:'conventional',readers:[{verdict:'conventional',basis:['register'],note:'The row says so.'}]},
-  ];
-  const decisionsText=[...readFileSync(join(review,'decisions.jsonl'),'utf8').split('\n').filter(Boolean),...decisions.map(decision=>JSON.stringify(decision))].join('\n')+'\n';
-  const {files}=plant({files:{'decisions.jsonl':decisionsText}});
-  const population=JSON.parse(files['population.json']),chronology=JSON.parse(files['chronology.json']),identities=JSON.parse(files['identities.json']);
+  // vitest runs a skipped suite's body to collect it; planting needs the layers, so it waits for beforeAll.
+  let registry,dates,active,latin,kind,population,chronology,identities;
+  beforeAll(()=>{
+    registry=semanticRegistry(root);
+    // Members the line has not answered yet, taken from the planted bonsai, so the test outlives the queues it empties.
+    const planted=Object.entries(JSON.parse(readFileSync(join(root,'bonsai','population','population.json'),'utf8')).members);
+    const pick=(test,...not)=>{const [member,record]=planted.find(([id,record])=>!not.includes(id)&&test(record));return {member,rows:record.grew_from};};
+    dates=pick(record=>record.gaps.some(gap=>gap.startsWith('life:')));
+    active=pick(record=>record.gaps.some(gap=>gap.startsWith('life:')),dates.member);
+    latin=pick(record=>record.gaps.includes('name:latin'),dates.member,active.member);
+    kind=pick(record=>record.kind==='person',dates.member,active.member,latin.member);
+    const decisions=[
+      {id:'d-lifeaaaaaa',type:'life',question:'dates',rows:dates.rows,item:'q-testdatesaaa',by:'test',birth:{year:428,era:'BCE',certainty:'approximate'},death:{year:348,era:'BCE',certainty:'exact'},activity:null,living:false,
+        sources:['https://plato.stanford.edu/entries/plato/'],readers:[{verdict:'dates',basis:['text'],note:'The SEP article dates the life.'}]},
+      {id:'d-lifebbbbbb',type:'life',question:'dates',rows:active.rows,item:'q-testactivea',by:'test',birth:null,death:null,activity:{from:{year:2017,era:'CE'},to:{year:2017,era:'CE'},certainty:'exact'},living:false,
+        readers:[{verdict:'dates',basis:['works'],note:'A chapter first published in 2017.'}]},
+      {id:'d-nameaaaaaa',type:'name',question:'latin',rows:latin.rows,item:'q-testlatinaa',by:'test',latin:'Testname Latinus',readers:[{verdict:'latin',basis:['name'],note:'A transliteration.'}]},
+      {id:'d-kindaaaaaa',type:'kind',question:'kind',rows:[kind.rows[0]],item:'q-testkindaaa',by:'test',kind:'conventional',readers:[{verdict:'conventional',basis:['register'],note:'The row says so.'}]},
+    ];
+    const decisionsText=[...readFileSync(join(review,'decisions.jsonl'),'utf8').split('\n').filter(Boolean),...decisions.map(decision=>JSON.stringify(decision))].join('\n')+'\n';
+    const {files}=plant({files:{'decisions.jsonl':decisionsText}});
+    population=JSON.parse(files['population.json']);chronology=JSON.parse(files['chronology.json']);identities=JSON.parse(files['identities.json']);
+  });
 
   it('dates a member by two readers\' years and their source, in place of the registers\' gap',()=>{
     const member=population.members[dates.member];
