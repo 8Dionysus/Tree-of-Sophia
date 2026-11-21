@@ -16,6 +16,9 @@ the decisions of the readers. The bonsai itself is
 | `registry/<batch>/agents.jsonl` | every row of the batch's `agents` sheet as the workbook holds it; the first line names the sheet and its columns | R2 |
 | `registry/<batch>/works-responsibility.jsonl` | five cells of every row of its `works` sheet: `record_id`, `preferred_label`, `label_ru`, `work_dates`, `responsibility_statements` | R2 |
 | `registry/authors-table/` | the authors table of the philosophical corpus: the sheets «Имена» (3 470 spellings) and «Произведения» (17 141 units) | R2 |
+| `registry/master-tables/nodes.jsonl` | the research nodes of the three master tables (190, one per batch): the cells the lenses rest on — the ID cell, the windows of formation, fixation and canonization, the macro-region and the node | R2 |
+| `layer/nodes/master-tables.jsonl` | the same nodes parsed: table, launch order, status and confidence, title, macro-region with the region the stand groups it under, windows read as years | R2 |
+| `provenance-master-tables.json` | the master tables read: path in the mirror, bytes, SHA-256 | git |
 | `layer/agents/<batch>.jsonl` | the same agent rows parsed: name forms with their scripts, kind, identifiers, life dates, gaps | R2 |
 | `provenance.json` | the workbooks read: path in the registers mirror, bytes, SHA-256; the workbooks themselves are not kept | git |
 | `keys.jsonl` | every register row: the member it belongs to and on what basis, or why it was left out | git |
@@ -34,6 +37,7 @@ into a checkout.
 ```sh
 python3 -I bonsai/review/population/intake.py --mirror "<registers mirror>"   # registry/, provenance.json
 python3 -I bonsai/review/population/parse.py                                  # layer/
+python3 -I bonsai/review/population/nodes.py --mirror "<registers mirror>"    # the research nodes
 node bonsai/lib/layers.mjs manifest bonsai/review/population                  # layers.json
 node bonsai/review/population/resolve.mjs                                     # keys, ledger, core, queue
 node bonsai/review/population/plant.mjs                                       # bonsai/population/
