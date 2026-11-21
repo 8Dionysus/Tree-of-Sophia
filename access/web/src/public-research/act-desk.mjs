@@ -317,7 +317,15 @@ export function mountActDesk({shell,actionLayer,space,acts,registry=null,api,loc
         box.append(el('h3','',`${categoryLabels[group.category]?pick(categoryLabels[group.category]):group.category}${change.to_lemma?` · ${termName} → ${change.to_lemma}`:''}`),
           el('p','ad-muted',`${group.open_count} ${t('proposals')} · ${group.targets_count} ${t('places')} · ${group.independent_count} ${t('independent')}${group.models.length?` (${group.models.join(', ')})`:''}`));
         const rows=el('ul','ad-sample');
-        for(const record of sample){const item=el('li');item.append(el('span','ad-place',nameOfAddress(record.targets[0])),el('span','',record.body?.change?.from?`«${record.body.change.from}» → «${record.body.change.to}»`:record.intent));rows.append(item);}
+        // Identical rows of the sample stand once with their count (K5): a repeated change at one place is one row.
+        const lines=new Map();
+        for(const record of sample){const place=nameOfAddress(record.targets[0]),change=record.body?.change?.from?`«${record.body.change.from}» → «${record.body.change.to}»`:record.intent,key=`${place}\u0000${change}`;
+          const line=lines.get(key)??{place,change,count:0};line.count++;lines.set(key,line);}
+        for(const line of lines.values()){
+          const count=lines.size===1&&group.targets_count===1?group.open_count:line.count;
+          const item=el('li');item.append(el('span','ad-place',line.place),el('span','',line.change));
+          if(count>1)item.append(el('span','ad-count',`×${count}`));rows.append(item);
+        }
         box.append(rows);
         const reason=el('input','ad-input');reason.placeholder=t('reasonHint');reason.id=`ad-reason-${group.group.slice(-8)}`;
         const edit=el('input','ad-input');edit.placeholder=t('edit');edit.hidden=true;edit.id=`ad-edit-${group.group.slice(-8)}`;

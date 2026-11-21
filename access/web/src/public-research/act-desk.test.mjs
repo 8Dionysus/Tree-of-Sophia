@@ -86,3 +86,13 @@ test('5,000 results of an army are reviewed as groups, the exceptions first, wit
   expect(reads).toBe(1);
   expect(took).toBeLessThan(2000);
 });
+
+test('a repeated change at one place stands once in the review sample, with its count',async()=>{
+  const {document,acts,desk}=setup();
+  for(let n=0;n<5;n++)await acts.act({kind:'proposal',author:{type:'agent',id:`a${n}`,model:n%2?'m1':'m2'},targets:['affirmation:link:01:child'],grounds:[`place:zarathustra:de:I.01#u${n}`],intent:'word',
+    body:{category:'translation',change:{field:'verb',from:'дитя',to:'ребёнок',term:'child',to_lemma:'ребёнок'}}});
+  await desk.openReview();
+  const rows=[...document.querySelectorAll('.ad-sample li')];
+  expect(rows).toHaveLength(1);
+  expect(rows[0].querySelector('.ad-count').textContent).toBe('×5');
+});

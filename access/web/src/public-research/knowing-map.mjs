@@ -319,7 +319,12 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
         box.append(el('h4','k-group',title(from)));
         // The star's own question stands once over its thresholds; a threshold that has none says what it joins (I3).
         const general=tr(nodes.get(from)?.record?.question);if(general)box.append(el('p','k-group-question',general));
-        for(const link of items.slice(0,12)){const target=other(link,from),rumor=rumorOf(link,from),row=btn('',()=>{anchor=from;openTrial(link,target);},'k-row');row.append(el('span','k-row-head',rumor.head));if(rumor.question)row.append(el('span','k-row-question',rumor.question));else if(!general)row.append(el('span','k-row-question k-task',taskOf(link,from)));row.addEventListener('mouseenter',()=>{focus=target;paint(false);});box.append(row);}
+        // Two thresholds that read alike (same kind of star, same chapter) are told apart by their number.
+        const heads=new Map();for(const link of items.slice(0,12)){const head=rumorOf(link,from).head;heads.set(head,(heads.get(head)??0)+1);}
+        const seen=new Map();
+        for(const link of items.slice(0,12)){const target=other(link,from),rumor=rumorOf(link,from),row=btn('',()=>{anchor=from;openTrial(link,target);},'k-row');
+          const nth=(seen.get(rumor.head)??0)+1;seen.set(rumor.head,nth);
+          row.append(el('span','k-row-head',heads.get(rumor.head)>1?`${rumor.head} · ${nth}`:rumor.head));if(rumor.question)row.append(el('span','k-row-question',rumor.question));else if(!general)row.append(el('span','k-row-question k-task',taskOf(link,from)));row.addEventListener('mouseenter',()=>{focus=target;paint(false);});box.append(row);}
       }
       log.append(box);
     }

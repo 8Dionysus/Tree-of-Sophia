@@ -47,9 +47,12 @@ serves a built public-research site from a loopback address and keeps the
 person's act journal in a directory the person names:
 
 ```sh
-npm run build --prefix access/web
-tos bridge 127.0.0.1:8742 --site access/web/dist --store ~/tos-acts
+npm run build:public-research --prefix access/web
+tos bridge 127.0.0.1:8742 --site access/deploy/cloudflare-worker/dist-public-research --store ~/tos-acts
 ```
+
+The published build carries the stands' layers (word layers and media copies);
+a site without them still opens, and the bridge says what is missing.
 
 Open `http://127.0.0.1:8742/zarathustra/`. A page the bridge serves keeps its
 act journal there instead of in the browser. Agents reach the same journal over
@@ -58,7 +61,8 @@ stdio with `tos bridge mcp --connect 127.0.0.1:8742`, under the tier the person
 chose; the board «Agents» shows the army, its squads and the pause that stops
 every agent act. Every record is checked and folded by the browser's own rules
 (`tos-web-rules`). The bridge writes nothing into ToS sources or a stand; its
-posture is `local_only`. The deployment profile's `bridge` fields bound its
+posture is `local_only`. Its pages may use the orientation sensor and the
+microphone, which the published site keeps closed. The deployment profile's `bridge` fields bound its
 connections, event streams, request bodies, store windows and the review queue
 by which it paces agents' tickets and proposals.
 Prepared-reader flags belong to the explicit prepared route below and are

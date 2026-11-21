@@ -40,11 +40,11 @@ const labels={
 export function mountSkyWindow({shell,actionLayer,space,locale=()=> 'ru',view=globalThis}){
   const t=key=>resolveLocale(locale())==='ru'?labels[key][0]:localeText(labels[key][1],locale());
   const doc=shell.ownerDocument;
-  let open=false,last=null,pending={yaw:0,pitch:0},frame=0;
+  let open=false,last=null,pending={yaw:0,pitch:0},frame=0,heard=false,watch=0;
   const chip=doc.createElement('div');chip.className='ps-sky-window';chip.hidden=true;
   const flush=()=>{frame=0;if(pending.yaw||pending.pitch)space?.actions?.turnBy?.(pending.yaw,pending.pitch);pending={yaw:0,pitch:0};};
   const onOrientation=event=>{
-    const reading={alpha:event.alpha,beta:event.beta,gamma:event.gamma};if(reading.alpha==null&&reading.beta==null)return;
+    const reading={alpha:event.alpha,beta:event.beta,gamma:event.gamma};if(reading.alpha==null&&reading.beta==null)return;heard=true;
     const turn=orientationTurn(last,reading,{angle:view.screen?.orientation?.angle??0});last=reading;
     pending={yaw:pending.yaw+turn.yaw,pitch:pending.pitch+turn.pitch};
     // One turn per frame; the flush clears the mark whether the frame comes now or later.
@@ -62,7 +62,10 @@ export function mountSkyWindow({shell,actionLayer,space,locale=()=> 'ru',view=gl
     if(sensorAllowed(doc)===false){actionLayer?.say?.(t('blocked'));return false;}
     // Some browsers ask the person first, and only from a gesture.
     if(typeof Orientation.requestPermission==='function'){try{if(await Orientation.requestPermission()!=='granted'){actionLayer?.say?.(t('denied'));return false;}}catch{actionLayer?.say?.(t('denied'));return false;}}
-    open=true;last=null;view.addEventListener?.('deviceorientation',onOrientation);paint();actionLayer?.say?.(t('on'));return true;
+    open=true;last=null;heard=false;view.addEventListener?.('deviceorientation',onOrientation);paint();actionLayer?.say?.(t('on'));
+    // A computer may know the event and still have no sensor: no reading within a moment closes the window again.
+    view.clearTimeout?.(watch);watch=view.setTimeout?.(()=>{if(open&&!heard){void toggle(false).then(()=>actionLayer?.say?.(t('unsupported')));}},1500);
+    return true;
   }
   const remove=actionLayer?.addActions?.([{id:'sky-window',text:()=>t('window'),for:['any'],active:()=>open,run:()=>toggle()}]);
   return {toggle,isOpen:()=>open,destroy(){remove?.();void toggle(false);chip.remove();}};

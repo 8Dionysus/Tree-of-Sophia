@@ -377,7 +377,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // Reading up close (J1): the nearer the reader comes to a chosen star, the more of its text stands beside it in the
   // sky: first the sentence it rests on, then its places, each with the original and the translation. Moving away
   // lets them go; the card and the reader stay where they were.
-  const nearReading=el('aside','ps-near');nearReading.hidden=true;nearReading.setAttribute('aria-label',t('nearReading'));
+  const nearReading=el('aside','ps-closeup');nearReading.hidden=true;nearReading.setAttribute('aria-label',t('nearReading'));
   let nearKey='';
   function nearCites(id){
     const material=previewMaterials.get(String(id).replace(/^material:/,''))??null,record=material?.coreId?index?.get(material.coreId)?.record:material;
@@ -390,7 +390,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const cites=star?nearCites(selected).slice(0,nearCount(level)):[];
     if(!cites.length){nearReading.hidden=true;nearKey='';return;}
     const key=`${selected}|${level}|${locale()}`;
-    if(key!==nearKey){nearKey=key;nearReading.replaceChildren(el('p','ps-near-title',`${label(matForNode(graphState().nodes.find(node=>node.id===selected)))} · ${t(level===1?'nearSentence':'nearPlaces')}`),...cites.map(cite=>fragments.fragment(cite)));}
+    if(key!==nearKey){nearKey=key;nearReading.replaceChildren(el('p','ps-closeup-title',`${label(matForNode(graphState().nodes.find(node=>node.id===selected)))} · ${t(level===1?'nearSentence':'nearPlaces')}`),...cites.map(cite=>fragments.fragment(cite)));}
     nearReading.hidden=false;nearReading.dataset.level=String(level);
     // Beside the star, inside the free part of the map, on the side with more room.
     const box=star.getBoundingClientRect(),own=shell.getBoundingClientRect(),area=freeArea({width:shell.clientWidth,height:shell.clientHeight})??{left:8,right:shell.clientWidth-8,top:8,bottom:shell.clientHeight-8};

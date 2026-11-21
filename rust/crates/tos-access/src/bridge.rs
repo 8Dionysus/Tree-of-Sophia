@@ -1056,10 +1056,13 @@ fn reason(status: u16) -> &'static str {
 }
 
 impl Bridge {
+    /// The Worker's headers, except that the person's own pages may use the orientation
+    /// sensor (the window into the sky) and the microphone (a word spoken into the
+    /// collection), which the published site keeps closed (gate Q5).
     fn security_headers(&self) -> Vec<(&'static str, String)> {
         vec![
             ("Content-Security-Policy", self.csp.clone()),
-            ("Permissions-Policy", "tools=(self), accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=()".to_owned()),
+            ("Permissions-Policy", "tools=(self), accelerometer=(self), camera=(), geolocation=(), gyroscope=(self), microphone=(self), payment=(), usb=()".to_owned()),
             ("Cross-Origin-Opener-Policy", "same-origin".to_owned()),
             ("Cross-Origin-Embedder-Policy", "require-corp".to_owned()),
             ("Cross-Origin-Resource-Policy", "same-origin".to_owned()),
@@ -1562,6 +1565,13 @@ pub fn run_if_requested(
             site.display()
         );
         return Some(2);
+    }
+    if !site.join("layers").is_dir() {
+        let _ = writeln!(
+            stderr,
+            "tos bridge: {} holds no layers: the stands' word layers and media copies will be missing (build it with `npm run build:public-research --prefix access/web`)",
+            site.display()
+        );
     }
     let listener = match TcpListener::bind(address) {
         Ok(listener) => listener,

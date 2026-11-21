@@ -34,3 +34,18 @@ test('the window says the site closes the sensor, and turns the space where the 
   expect(turnBy).toHaveBeenCalledTimes(1);
   sky.destroy();
 });
+
+test('a computer that knows the event but never reports an orientation closes the window and says so',async()=>{
+  const {Window}=await import('happy-dom');
+  const window=new Window({url:'http://127.0.0.1:8742/zarathustra/'}),document=window.document;document.body.innerHTML='<div id="tree"></div>';
+  Object.defineProperty(document,'permissionsPolicy',{value:{allowsFeature:()=>true},configurable:true});
+  const timers=[];const view={DeviceOrientationEvent:function(){},addEventListener:()=>{},removeEventListener:()=>{},setTimeout:(fn)=>{timers.push(fn);return timers.length;},clearTimeout:()=>{},requestAnimationFrame:fn=>fn(),screen:{orientation:{angle:0}}};
+  const said=[];
+  const sky=mountSkyWindow({shell:document.querySelector('#tree'),actionLayer:{addActions:()=>()=>{},say:text=>said.push(text)},space:{actions:{turnBy:()=>{}}},locale:()=> 'en',view});
+  expect(await sky.toggle(true)).toBe(true);
+  for(const fn of timers.splice(0))fn();
+  await new Promise(resolve=>setTimeout(resolve,0));
+  expect(sky.isOpen()).toBe(false);
+  expect(said.at(-1)).toBe('This device has no orientation sensor');
+  sky.destroy();
+});

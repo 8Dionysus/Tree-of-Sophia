@@ -1,6 +1,9 @@
 /* Collecting on a phone and sorting on a large screen (collect.mjs). */
-.cl-fab{position:absolute;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:30;width:56px;height:56px;border:1px solid #dcc69099;border-radius:50%;background:#132238;color:var(--ps-gold);font:400 28px/1 var(--ps-sans);box-shadow:0 10px 26px #000a}
+.cl-fab{position:absolute;right:16px;bottom:calc(116px + env(safe-area-inset-bottom,0px));z-index:30;width:56px;height:56px;border:1px solid #dcc69099;border-radius:50%;background:#132238;color:var(--ps-gold);font:400 28px/1 var(--ps-sans);box-shadow:0 10px 26px #000a}
 .cl-fab[hidden]{display:none}
 .cl-tags{gap:4px 12px}
 .cl-text{min-height:96px;font-size:16px}
 @media (max-width:760px){.cl-sheet{position:fixed;inset:auto 0 0 0;width:100vw;max-width:100vw;max-height:88vh;margin:0;border-radius:14px 14px 0 0}}
+
+/* While a card fills the sheet the button steps away; it is back when the sheet folds (and in the palette always). */
+#tree:is([data-sheet=open],[data-sheet=full]) .cl-fab{display:none}

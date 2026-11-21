@@ -66,3 +66,6 @@
 #tree .ps-panel-content,.experience-pane .experience-body,.ps-dialog.ps-parallel .ps-fragment-line,.cr-unit,.ad-body{zoom:var(--ui-text-scale)}
 /* High contrast lifts the quiet colours of words, lines and marks. */
 :root[data-ui-contrast=high] #tree,:root[data-ui-contrast=high] #research-bar,:root[data-ui-contrast=high] .ps-dialog{--ps-text:#dde5ee;--ps-muted:#c4d0dc;--ps-faint:#aebccb;--ps-line:#8ea3bf70;--ps-line-strong:#a9bcd2a6}
+
+/* On a phone the tray stands above the map's own tools and the footer, never over them. */
+@media (max-width:760px){.al-tray{bottom:calc(110px + env(safe-area-inset-bottom,0px))}}

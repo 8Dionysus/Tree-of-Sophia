@@ -160,9 +160,12 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
   /** Show a promise's work in the tray while it runs. */
   function track(promise,label){const task=startTask(label);Promise.resolve(promise).then(value=>{task.done();return value;},error=>{task.fail(error);});return promise;}
   if(acts){
-    // Reading a long journal happens in the background; the tray shows it only while it lasts.
-    const task=startTask(t('journal'));
-    acts.ready.then(status=>status.damaged?task.fail(`${status.damaged.error} · ${status.damaged.seq}`):task.done(`${status.loaded} ${t(status.tier==='bridge'?'journalAtBridge':'journalLoaded')}`),error=>task.fail(error));
+    // Reading a long journal happens in the background; the tray shows it only when it takes a while, or fails.
+    let task=null;const slow=view.setTimeout(()=>{task=startTask(t('journal'));},800);
+    acts.ready.then(status=>{view.clearTimeout(slow);
+      if(status.damaged)(task??startTask(t('journal'))).fail(`${status.damaged.error} · ${status.damaged.seq}`);
+      else task?.done(`${status.loaded} ${t(status.tier==='bridge'?'journalAtBridge':'journalLoaded')}`);
+    },error=>{view.clearTimeout(slow);(task??startTask(t('journal'))).fail(error);});
   }
 
   // ------------------------------------------------------------ targets and links (D4)
@@ -232,7 +235,9 @@ export function mountActionLayer({shell,header,space,experience,registry=null,ac
   // One action per lens, named by the lens.
   const lensActions=()=>[...(space?.actions?.lenses?.()??[]).map(item=>({id:`lens-${item.id}`,text:`${t('lens')}: ${titleFromForm(item.title)}`,for:['any'],command:'tos.page.set-lens',active:()=>space.actions.lens()===item.id,run:()=>registry?registry.invoke('tos.page.set-lens',{lens:item.id}):space.actions.setLens(item.id)})),
     // Every route is one action away.
-    ...(space?.actions?.routes?.()??[]).map(item=>({id:`route-${item.id}`,text:`${t('route')}: ${titleFromForm(item.title)}`,for:['any'],command:'tos.page.start-route',active:()=>space.actions.routeState?.()?.id===item.id,run:()=>registry?registry.invoke('tos.page.start-route',{route_id:item.id}):space.actions.startRoute?.(item.id)}))];
+    // Two routes of one name are told apart by their order in the stand's list.
+    ...(space?.actions?.routes?.()??[]).map((item,index,all)=>{const name=titleFromForm(item.title),same=all.filter(other=>titleFromForm(other.title)===name);
+      return {item,name:same.length>1?`${name} (${same.indexOf(item)+1})`:name};}).map(({item,name})=>({id:`route-${item.id}`,text:`${t('route')}: ${name}`,for:['any'],command:'tos.page.start-route',active:()=>space.actions.routeState?.()?.id===item.id,run:()=>registry?registry.invoke('tos.page.start-route',{route_id:item.id}):space.actions.startRoute?.(item.id)}))];
   const titleFromForm=form=>typeof form==='string'?form:form?.[resolveLocale(locale())==='ru'?'ru':'en']??(form?.en?localeText(form.en,locale()):form?.ru)??'';
   const actionText=action=>typeof action.text==='function'?action.text():action.text??(action.prefix?`${t(action.prefix)}: ${t(action.label)}`:t(action.label));
   // Other owners add their actions (the act desk: tickets, review, transfer); each keeps its own label.
