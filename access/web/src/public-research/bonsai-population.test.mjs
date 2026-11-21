@@ -6,7 +6,7 @@ import {checkBonsai,loadBonsai} from '../../../../bonsai/lib/graft.mjs';
 import {semanticRegistry} from '../../../../bonsai/lib/objects.mjs';
 import {controlIssues,POPULATION_SCHEMA,populationIssues,populationReviewIssues} from '../../../../bonsai/lib/population.mjs';
 import {fold,formHead,formKeys,slugify,strength} from '../../../../bonsai/review/population/keys.mjs';
-import {compare} from '../../../../bonsai/review/population/resolve.mjs';
+import {Clusters,compare,mintId,tolerated} from '../../../../bonsai/review/population/resolve.mjs';
 
 const root=new URL('../../../../',import.meta.url).pathname;
 const review=join(root,'bonsai','review','population');
@@ -94,6 +94,25 @@ describe('the Population bonsai',()=>{
     expect(compare(row('T3-10',{keys:name,ids:{gnd:'1'}}),row('T3-33',{keys:name,ids:{gnd:'2'}}),exact)).toEqual({decision:'queue',reason:'id-conflict'});
     expect(compare(row('A34',{keys:name,kind:'pseudonymous'}),row('T2-03',{keys:name}),exact)).toEqual({decision:'apart',reason:'pseudo-with-other'});
     expect(compare(row('A34',{keys:name,kind:'conventional'}),row('T2-03',{keys:name}),exact)).toEqual({decision:'queue',reason:'kind'});
+  });
+  it('refuses a union that would carry two identifiers of one authority into one member',()=>{
+    const row=(batch,ids={})=>({batch,kind:'person',status:'verified',keys:new Map([['gottfried wilhelm leibniz','strong']]),heads:new Set(),
+      idSets:new Map(Object.entries(ids).map(([scheme,value])=>[scheme,new Set([value])])),years:{birth:{year:1646,certainty:'exact'},death:null}});
+    // Q1, a row with no identifier, Q2: each edge joins on the name and the year; the second would put Q1 and Q2 together.
+    const rows=[row('T3-06',{wikidata:'Q1'}),row('T3-15'),row('T3-33',{wikidata:'Q2'})],clusters=new Clusters(rows),exact=()=>0;
+    expect(tolerated(rows,clusters,0,1,new Set(),exact)).toBeNull();
+    clusters.union(0,1);
+    expect(tolerated(rows,clusters,1,2,new Set(),exact)).toBe('id-conflict');
+  });
+  it('gives a member split off a merge an ID of its own and keeps the old redirect',()=>{
+    const founding='T3-06:T3-06-A001',first=mintId(founding,new Set(),new Map());
+    expect(first).toMatch(/^m-[a-z2-7]{10}$/);
+    expect(mintId(founding,new Set([first]),new Map([[first,{id:first,founded_on:founding,slug:'leibniz'}]]))).toBe(first);
+    for(const state of ['redirect','retired']){
+      const fresh=mintId(founding,new Set([first]),new Map([[first,{id:first,founded_on:founding,slug:'leibniz',state,to:'m-bbbbbbbbbb'}]]));
+      expect(fresh).not.toBe(first);
+      expect(fresh.startsWith(first)).toBe(true);
+    }
   });
   it('holds a control case only as its requirement says',()=>{
     const keys=[{row:'A01:A01-A001',member:'m-aaaaaaaaaa',basis:'founding'},{row:'A02:A02-A001',member:'m-aaaaaaaaaa',basis:'name+year'},{row:'A03:A03-A001',member:'m-bbbbbbbbbb',basis:'founding'}];

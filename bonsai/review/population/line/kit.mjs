@@ -128,6 +128,12 @@ const packetFile=(packet,name)=>join(PACKETS,packet,name);
 const retired=packet=>existsSync(packetFile(packet,'retired.json'));
 const metaOf=packet=>JSON.parse(readFileSync(packetFile(packet,'packet.json'),'utf8'));
 
+/** Whether a queued question is cut into a reader packet: not one a packet already holds, and never a
+ *  `decision-conflict`, which readers cannot settle (accepting only adds decisions) and the operator withdraws. */
+export function cutsIntoPacket(entry,held){
+  return !held.has(entry.item)&&entry.reason!=='decision-conflict';
+}
+
 function packets(size,type='identity'){
   if(!TYPES.includes(type))throw new Error(`packets: type ${type} is not one of ${TYPES.join(', ')}`);
   const queue=readJsonl(join(REVIEW,'queue',`${type}.jsonl`));
@@ -153,7 +159,7 @@ function packets(size,type='identity'){
   // The identity questions about planted members come first: both sides planted, then one, then none.
   const planted=new Set(Object.keys(population.members));
   const weight=entry=>type==='identity'?2-[entry.a.member,entry.b.member].filter(member=>planted.has(member)).length:0;
-  const waiting=queue.map((entry,at)=>({entry,at})).filter(({entry})=>!held.has(entry.item))
+  const waiting=queue.map((entry,at)=>({entry,at})).filter(({entry})=>cutsIntoPacket(entry,held))
     .sort((x,y)=>weight(x.entry)-weight(y.entry)||x.at-y.at).map(({entry})=>entry);
   for(let i=0;i<waiting.length;i+=size){
     const packet=`p-${String(next++).padStart(4,'0')}`,chunk=waiting.slice(i,i+size);
@@ -163,7 +169,8 @@ function packets(size,type='identity'){
     writeJsonl(packetFile(packet,'items.jsonl'),items);
     made++;
   }
-  console.log(`packets (${type}): ${made} new, ${gone} retired, ${packetIds().length} in all; ${waiting.length} questions cut, ${held.size} already held`);
+  const operator=queue.filter(entry=>entry.reason==='decision-conflict').length;
+  console.log(`packets (${type}): ${made} new, ${gone} retired, ${packetIds().length} in all; ${waiting.length} questions cut, ${held.size} already held${operator?`, ${operator} decision conflicts left to the operator`:''}`);
 }
 
 /** The texts a quote may come from: every field of every row the question holds, by side (a member's question has side a). */

@@ -181,6 +181,12 @@ function dating(found,wording){
 }
 
 /** The modules the records give, in memory: {files: {path: text}, summary}. */
+/** The rows a member plants from, founding row first while keys.jsonl still assigns it to the member: a founder left
+ *  out stays in the ledger (founded_on) but gives the member neither its name, its kind nor its dates. */
+export function memberOrder(entry,list){
+  return list.includes(entry.founded_on)?[entry.founded_on,...list.filter(row=>row!==entry.founded_on)]:[...list];
+}
+
 export function plant({review=HERE,root=ROOT,files=null}={}){
   const {rows,digests,manifest,ledger,decisions,nodes,nodeTitles,keys,core,queue}=inputs(review,root,files);
   // Two readers' decisions on a member's rows: a row's kind, the member's name in Latin script, its years; the latest stands.
@@ -219,7 +225,7 @@ export function plant({review=HERE,root=ROOT,files=null}={}){
   for(const [id,list] of planted){
     const entry=ledger.get(id);
     if(!entry||entry.state)throw new Error(`plant: ${id} is not a member in the ledger`);
-    const ordered=[entry.founded_on,...list.filter(row=>row!==entry.founded_on)].map(row=>rows.get(row));
+    const ordered=memberOrder(entry,list).map(row=>rows.get(row));
     if(ordered.some(row=>!row))throw new Error(`plant: ${id} names a row the layer lacks`);
     for(const row of ordered)batches[row.batch].core_rows++;
     const kind=decided.kind.get(ordered[0].row)?.kind??ordered[0].kind;

@@ -3,8 +3,8 @@ import {join} from 'node:path';
 import {beforeAll,describe,expect,it} from 'vitest';
 import {semanticRegistry} from '../../../../bonsai/lib/objects.mjs';
 import {populationIssues} from '../../../../bonsai/lib/population.mjs';
-import {agreement,itemId,verdictProblems} from '../../../../bonsai/review/population/line/kit.mjs';
-import {plant} from '../../../../bonsai/review/population/plant.mjs';
+import {agreement,cutsIntoPacket,itemId,verdictProblems} from '../../../../bonsai/review/population/line/kit.mjs';
+import {memberOrder,plant} from '../../../../bonsai/review/population/plant.mjs';
 
 const root=new URL('../../../../',import.meta.url).pathname;
 const review=join(root,'bonsai','review','population');
@@ -88,6 +88,18 @@ describe('the Population line reads a member\'s questions',()=>{
     const same={item:'q-x',sha:'s',verdict:'same',basis:['name'],quotes:[{side:'a',row:'A01:A01-A001',field:'label_ru',text:'Платон'}],note:'n'};
     expect(verdictProblems(pair,same)).toContain('same needs a basis beyond the name');
     expect(agreement(pair,{verdict:'different'},{verdict:'related',relation:'namesake_of'})).toMatchObject({agreed:true,verdict:'different'});
+  });
+});
+
+describe('the Population line leaves to the operator what readers cannot settle',()=>{
+  it('cuts no packet for a decision conflict, nor for a question a packet already holds',()=>{
+    expect(cutsIntoPacket({item:'q-aaaaaaaaaaaa',reason:'decision-conflict'},new Set())).toBe(false);
+    expect(cutsIntoPacket({item:'q-bbbbbbbbbbbb',reason:'contained'},new Set())).toBe(true);
+    expect(cutsIntoPacket({item:'q-bbbbbbbbbbbb',reason:'contained'},new Set(['q-bbbbbbbbbbbb']))).toBe(false);
+  });
+  it('plants a member from the rows keys.jsonl gives it, its founder first only while it is one of them',()=>{
+    expect(memberOrder({founded_on:'A01:A01-A001'},['A02:A02-A001','A01:A01-A001','A03:A03-A001'])).toEqual(['A01:A01-A001','A02:A02-A001','A03:A03-A001']);
+    expect(memberOrder({founded_on:'A01:A01-A001'},['A02:A02-A001','A03:A03-A001'])).toEqual(['A02:A02-A001','A03:A03-A001']);
   });
 });
 

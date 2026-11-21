@@ -78,10 +78,12 @@ never join. Two years of one birth or death agree within one year from 1500 on
 and two before it when both are exact, within five and ten when either is
 approximate or uncertain (`yearTolerance`); a wider gap is a date conflict. An
 automatic union that would put two rows of one batch, two rows a reader called
-different, or two conflicting dates into one member is refused. A reader's
+different, two conflicting dates or two different identifiers of one authority
+into one member is refused. A reader's
 `same` may join rows of one batch, since a register can list one person twice;
 only a reader's `different` or `related` refuses it, and that contradiction
-goes back to the readers as a `decision-conflict`. Every other pair of members
+waits in the queue as a `decision-conflict` for the operator, who withdraws one
+of the two decisions. Every other pair of members
 that shares a key is a question in `queue/identity.jsonl`, and so is a name
 qualified by its origin beside the same name standing alone ("Hierocles of
 Alexandria" and "Hierocles", reason `contained`).

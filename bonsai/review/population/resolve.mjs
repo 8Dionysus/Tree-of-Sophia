@@ -13,7 +13,8 @@
 //
 // A member's ID is `m-` and ten base32 characters of the SHA-256 of the register row it was founded
 // on. The ledger keeps every ID ever minted: a merge leaves the later ID as a redirect, a split keeps
-// the ID with its founding row, and no ID is given twice. keys.jsonl is read back on the next run,
+// the ID with its founding row, a row split off a merge whose ID became a redirect gets a new ID, and
+// no ID is given twice. keys.jsonl is read back on the next run,
 // so a row keeps its member while the evidence for it stands.
 //
 // Two rows join only (strictly): on a shared authority identifier; on a shared strong name key with
@@ -175,7 +176,7 @@ export function compare(a,b,tolerance){
   return {decision:'queue',reason:'short-only'};
 }
 
-class Clusters{
+export class Clusters{
   constructor(rows){this.parent=rows.map((_,i)=>i);this.members=new Map(rows.map((_,i)=>[i,[i]]));}
   find(i){while(this.parent[i]!==i){this.parent[i]=this.parent[this.parent[i]];i=this.parent[i];}return i;}
   union(a,b){
@@ -188,16 +189,29 @@ class Clusters{
   }
 }
 
-function tolerated(rows,clusters,a,b,cannot,tolerance){
+export function tolerated(rows,clusters,a,b,cannot,tolerance){
   const left=clusters.members.get(clusters.find(a)),right=clusters.members.get(clusters.find(b));
   for(const x of left)for(const y of right){
     const rx=rows[x],ry=rows[y];
     if(rx.batch===ry.batch)return 'same-batch';
     if(cannot.has(`${Math.min(x,y)}|${Math.max(x,y)}`))return 'decided-different';
     if(dates(rx,ry,tolerance).conflict)return 'date-conflict';
+    // Two identifiers of one authority that differ refuse the union even when the edge itself joins rows with no
+    // identifier: an identifier-free row between Q1 and Q2 must not carry them into one member past a reader.
+    if(idsMeet(rx,ry).conflict)return 'id-conflict';
     if((rx.kind==='pseudonymous')!==(ry.kind==='pseudonymous')||(rx.kind==='collective')!==(ry.kind==='collective'))return 'kind';
   }
   return null;
+}
+
+/** The ID of a new member: the founding row's digest, longer while the ledger holds that ID for another row or holds
+ *  it redirected or retired (a member split off a merged one gets an ID of its own; the old redirect stays). */
+export function mintId(foundingRow,usedIds,ledger){
+  const digest=base32(sha(`tos.population|${foundingRow}`));
+  let length=10,id=`m-${digest.slice(0,length)}`;
+  const reusable=id=>{const entry=ledger.get(id);return entry?.founded_on===foundingRow&&!entry.state;};
+  while(usedIds.has(id)&&!reusable(id)){length+=2;id=`m-${digest.slice(0,length)}`;}
+  return id;
 }
 
 function readLedger(review){
@@ -475,10 +489,7 @@ export function resolve({review=HERE,root=ROOT,tolerance=yearTolerance}={}){
       for(const other of own.slice(1))additions.push({id:other,state:'redirect',to:id,by:'resolve:merge',run:run+1});
     }else{
       const foundingRow=rows[ids[0]].row;
-      const digest=base32(sha(`tos.population|${foundingRow}`));
-      let length=10;
-      id=`m-${digest.slice(0,length)}`;
-      while(usedIds.has(id)&&ledger.get(id)?.founded_on!==foundingRow){length+=2;id=`m-${digest.slice(0,length)}`;}
+      id=mintId(foundingRow,usedIds,ledger);
       const memberRows=ids.map(i=>rows[i]);
       const proposal=proposeSlug(memberRows,taken,tree,id);
       taken.add(proposal.slug);usedIds.add(id);
@@ -511,7 +522,7 @@ export function resolve({review=HERE,root=ROOT,tolerance=yearTolerance}={}){
   });
 
   // The queue: one item per pair of members, with its strongest reason.
-  const REASONS=['decision-conflict','blocked:date-conflict','blocked:kind','id-conflict','id-with-date-conflict','kind','disputed','date-conflict','strong-undated','short-partial','short-conflict','short-only','contained','blocked:same-batch','blocked:decided-different'];
+  const REASONS=['decision-conflict','blocked:date-conflict','blocked:kind','blocked:id-conflict','id-conflict','id-with-date-conflict','kind','disputed','date-conflict','strong-undated','short-partial','short-conflict','short-only','contained','blocked:same-batch','blocked:decided-different'];
   const items=new Map();
   const answered=new Set(settled.map(([x,y])=>{const mx=memberOf.get(x)?.id,my=memberOf.get(y)?.id;return [mx,my].sort().join('|');}));
   for(const pair of [...queued,...blocked]){
