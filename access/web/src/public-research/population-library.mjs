@@ -39,15 +39,17 @@ export function makePopulation({population}){
   const nodes=[],edges=[];
   const add=(id,kind,title,extra={})=>nodes.push({id,kind,title,parentId:null,demo:true,body:title,position:[0,0,0],...extra});
   const regions=REGION_ORDER.filter(key=>population.regions?.[key]);
-  for(const key of regions)add(regionMaterial(key),'tradition',REGION_NAMES[key]??population.regions[key],{region:key});
+  for(const key of regions){const title=REGION_NAMES[key]??population.regions[key];add(regionMaterial(key),'tradition',title,{region:key,aliases:[title.ru,title.en]});}
   for(const batch of Object.keys(population.batches).sort(order)){
     const node=population.batches[batch].node;
-    add(nodeMaterial(batch),'tradition',node.title,{batch,table:node.table,region:node.region});
+    add(nodeMaterial(batch),'tradition',node.title,{batch,table:node.table,region:node.region,aliases:[node.title.ru,node.title.en,batch]});
     edges.push({id:`population:region-node:${batch}`,from:regionMaterial(node.region),to:nodeMaterial(batch),kind:'contains',label:NODE_OF_REGION});
   }
   for(const [id,member] of Object.entries(population.members)){
     const own=[...new Set(member.grew_from.map(batchOfRow))].sort(order);
-    add(memberMaterial(id),'figure',{ru:member.name.ru,en:member.name.en},{legacyId:id,home:homeOf(member),batches:own,memberKind:member.kind});
+    // A member is found by every name it bears, whatever the page's language.
+    const names=[...new Set([member.name.ru,member.name.en,member.name.original].filter(Boolean))];
+    add(memberMaterial(id),'figure',{ru:member.name.ru,en:member.name.en},{legacyId:id,home:homeOf(member),batches:own,memberKind:member.kind,aliases:names});
     for(const batch of own)edges.push({id:`population:node-member:${batch}:${id}`,from:nodeMaterial(batch),to:memberMaterial(id),kind:'contains',label:ROWS_OF_NODE});
   }
   // The space opens on the regions alone: no member and no node stands out at rest, and no two of them are joined.
@@ -55,5 +57,7 @@ export function makePopulation({population}){
   return {schema:'tos_constructor_library_v1',rootId:defaultIds[0],fingerprint:'0'.repeat(64),nodes,
     atlas:{defaultIds,edges,clusters:[],assemblies:[],extensions:[],routes:[]},
     space:{profile:'population',title:{ru:'Популяция',en:'Population'},posture:population.posture,collection:nodes.map(node=>({...node,materialId:node.id})),routes:[],
-      lenses:[TREE_LENS],relationKinds:['contains']}};
+      lenses:[TREE_LENS],relationKinds:['contains'],
+      // A merged member's ID leads to the member it was merged into, so an old address still opens the person.
+      redirects:Object.fromEntries(Object.entries(population.redirects??{}).map(([from,to])=>[memberMaterial(from),memberMaterial(to)]))}};
 }

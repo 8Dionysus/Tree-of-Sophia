@@ -49,11 +49,14 @@ const LIST_LIMIT=60;
 const el=(tag,cls,text)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(text!=null)node.textContent=text;return node;};
 const kindOfMaterial=material=>String(material?.id??'').split(':')[1];
 
-/** The small line over a Population star's title: what kind of entry it is. */
-export function populationEyebrow(material,tr){
-  const kind=kindOfMaterial(material),said=kind==='member'?(material.memberKind==='person'?COPY.author:COPY[material.memberKind]??COPY.author):kind==='node'?COPY.node:COPY.region;
-  return el('p','eyebrow ps-population-kind',tr(said));
+/** What kind of entry a Population star is, in the reader's language: an author of a kind, a research node, a region. */
+export function populationKindWord(material,tr){
+  const kind=kindOfMaterial(material);
+  return tr(kind==='member'?(material.memberKind==='person'?COPY.author:COPY[material.memberKind]??COPY.author):kind==='node'?COPY.node:COPY.region);
 }
+
+/** The small line over a Population star's title: what kind of entry it is. */
+export function populationEyebrow(material,tr){return el('p','eyebrow ps-population-kind',populationKindWord(material,tr));}
 
 /** Fill a card with what the Population says of a member, a node or a region; false when the material is none of them. */
 export function renderPopulationCard(into,{material,bonsai,tr,open}){

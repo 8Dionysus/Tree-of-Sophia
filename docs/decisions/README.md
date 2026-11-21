@@ -2354,3 +2354,4 @@ Start from [TEMPLATE.md](TEMPLATE.md) and the [local card](AGENTS.md). Use a sta
 - [TOS-D-0081 — Media Captions in the Reader's Language](TOS-D-0081-media-captions-in-the-readers-language.md), 2026-11-11, accepted by explicit operator instruction.
 - [TOS-D-0082 — The Population Bonsai and the Core of a Population](TOS-D-0082-population-bonsai-and-the-core-of-a-population.md), 2026-11-20, accepted by explicit operator instruction.
 - [TOS-D-0083 — Research Registers: Memory, Research Layer and Claims](TOS-D-0083-research-registers-memory-layer-and-claims.md), 2026-11-20, accepted by explicit operator instruction.
+- [TOS-D-0084 — The Population in the Research Space](TOS-D-0084-the-population-in-the-research-space.md), 2026-11-20, accepted by explicit operator instruction.

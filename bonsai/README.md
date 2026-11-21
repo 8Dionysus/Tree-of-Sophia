@@ -394,12 +394,16 @@ check`, the review folder: every register row in exactly one member or left out
 with a reason, every member ID in the ledger, every control case held. Nothing
 here is admitted to the Tree.
 
-The stand is a page of its own (`access/web/src/population/`), not the research
-space of the other stands: it reads `population.json` and `chronology.json`,
-finds a member by any of its names, its kind or the century of its life, and
-shows its names, its years in the registers' words and the register rows it
-grew from, each batch linked to its register. Its tree in the site's choice is
-a banyan (`access/web/public/trees/population.svg`).
+The stand opens in the research space the other stands share
+([TOS-D-0084](../docs/decisions/TOS-D-0084-the-population-in-the-research-space.md)):
+`population-library.mjs` makes its library of regions, research nodes and
+members, `population-tree.mjs` stands the regions as the trunks of one grove
+with the nodes branching in tiers by table, and the members, too many for a star
+each, stand as dots on the sky until one is chosen. A member is found by any of
+its names, and its card (`population-card.mjs`) shows its names, its years in
+the words of the register or of the line's readers with their source and
+footing, the verdict that is not given, and each register row with its node.
+Its tree in the site's choice is a banyan (`access/web/public/trees/population.svg`).
 
 ### Graft map (`tos.bonsai.identities.v1`)
 

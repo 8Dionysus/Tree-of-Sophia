@@ -25,7 +25,7 @@ import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
 import {AREA_TITLES,SCHOOL_ERA,TREE_LABEL_FROM,antiquityTree,treeVia} from './space-tree.mjs';
 import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
 import {populationTree} from './population-tree.mjs';
-import {populationEyebrow,renderPopulationCard} from './population-card.mjs';
+import {populationEyebrow,populationKindWord,renderPopulationCard} from './population-card.mjs';
 import {PART_TITLES,zarathustraTree} from './space-tree-zarathustra.mjs';
 import {antiquityBook,zarathustraBook} from './reference-outline.mjs';
 import {createReferenceBook} from './reference-book.mjs';
@@ -1432,7 +1432,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // Every bonsai's stars fall into the kinds the tree grows by (space-glyphs.mjs). Each kind has one sign and one name
   // wherever a star is named, and the sign takes the star's own colour on the sky.
   function kindOfStar(material,node=null){return starKind({role:material?.id?treeLayout?.roles?.get(material.id):null,kind:material?.kind??node?.kind,personal:node?.ownerType==='personal-hypothesis'});}
-  function kindWord(material,node=null){const kind=kindOfStar(material,node);return kind?t(`kind_${kind}`):(partName(profile,material,locale(),{moveIds})||kindName(material?.kind??node?.kind));}
+  function kindWord(material,node=null){if(profile==='population'&&material)return populationKindWord(material,value=>tr(value,locale()));const kind=kindOfStar(material,node);return kind?t(`kind_${kind}`):(partName(profile,material,locale(),{moveIds})||kindName(material?.kind??node?.kind));}
   function signOf(material,node=null,kind=kindOfStar(material,node)){const mark=signElement(document,kind),color=node?.color??material?.color;if(mark&&color)mark.style.color=paint(color);return mark;}
   // What a star holds in a line: its thesis or question, else the start of its own words.
   function glimpse(material){if(!material)return '';const text=(material.coreId&&coreView?.glimpse?.(material.coreId))||tr(material.question,locale())||tr(material.atlasBody??material.body,locale());const line=String(text??'').replace(/\s+/g,' ').trim();return line.length>220?`${line.slice(0,219).replace(/\s+\S*$/,'')}…`:line;}
