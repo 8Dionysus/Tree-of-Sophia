@@ -5,7 +5,10 @@ use crate::source_command::{self, SourceCommandError as Error, SourceCommandResu
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue, RelativePath, SourceRevision};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, JsonValue, RelativePath,
+    SourceRevision, jcs_digest_v1, verify_canonical_digest_v1,
+};
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::source_cut::{
     CutSchemaExecutor, CutWorkerSchemaExecutor, InProcessCandidateSchemaExecutor,
@@ -809,7 +812,6 @@ fn run_form_command_with_source(
     if claim_owner {
         check_claim_form_changes(&config, changes, old.as_ref(), false)?;
     }
-    let request_digest = Digest256::of_bytes(&canonical_bytes(&request)?).to_prefixed();
     if let Some(receipt) = old
         .as_ref()
         .and_then(|set| set.object_get("growth_history"))
@@ -820,7 +822,7 @@ fn run_form_command_with_source(
             })
         })
     {
-        if text(receipt, "request_digest")? != request_digest {
+        if !verify_request_digest(&request, receipt)? {
             return Err(Error::Conflict("command identity reused"));
         }
         if claim_owner {
@@ -858,6 +860,10 @@ fn run_form_command_with_source(
             true,
         );
     }
+    let request_digest = jcs_digest_v1(&request, request_digest_limits())
+        .map_err(|_| Error::Invalid("source request canonical input"))?
+        .digest
+        .to_prefixed();
     if !same(field(&request, "expected_source")?, &subject)?
         || !same(field(&request, "expected_revision")?, &revision)?
         || text(&request, "expected_configuration")? != configuration
@@ -892,6 +898,7 @@ fn run_form_command_with_source(
     let mut receipt_entries = vec![
         ("command_id", string(command_id)),
         ("request_digest", string(&request_digest)),
+        ("request_digest_profile", string(JCS_DIGEST_TAG)),
         ("principal_id", field(&config, "principal_id")?.clone()),
         ("authority_ref", field(&config, "authority_ref")?.clone()),
         ("owner_configuration", string(&configuration)),
@@ -963,6 +970,32 @@ fn run_form_command_with_source(
 }
 fn canonical_bytes(value: &JsonValue) -> Result<Vec<u8>> {
     source_command::canonical(value)
+}
+fn request_digest_limits() -> JsonLimits {
+    JsonLimits {
+        max_bytes: 8_388_608,
+        ..JsonLimits::default()
+    }
+}
+fn verify_request_digest(request: &JsonValue, receipt: &JsonValue) -> Result<bool> {
+    let expected = Digest256::from_prefixed(text(receipt, "request_digest")?)
+        .map_err(|_| Error::Invalid("source request digest"))?;
+    let profile = match receipt.object_get("request_digest_profile") {
+        None => None,
+        Some(value) => Some(
+            value
+                .as_str()
+                .ok_or(Error::Invalid("source request digest profile"))?,
+        ),
+    };
+    verify_canonical_digest_v1(
+        request,
+        profile,
+        CanonicalProfile::SourceCommandInputV1,
+        expected,
+        request_digest_limits(),
+    )
+    .map_err(|_| Error::Invalid("source request digest profile or input"))
 }
 fn form_id(value: &str) -> bool {
     let Some(rest) = value.strip_prefix("tos.form.") else {
@@ -1343,6 +1376,38 @@ pub(crate) fn pg_form_projection_contribution(
 #[cfg(test)]
 mod projection_form_ids_tests {
     use super::*;
+
+    #[test]
+    fn request_digest_dispatch_preserves_historical_replay() {
+        let request = parse(br#"{"n":1.0,"extension":"9007199254740993"}"#).unwrap();
+        let digest = jcs_digest_v1(&request, request_digest_limits()).unwrap();
+        let tagged = object(vec![
+            ("request_digest", string(&digest.digest.to_prefixed())),
+            ("request_digest_profile", string(digest.profile)),
+        ]);
+        assert!(verify_request_digest(&request, &tagged).unwrap());
+        let historical = object(vec![(
+            "request_digest",
+            string(&Digest256::of_bytes(&canonical_bytes(&request).unwrap()).to_prefixed()),
+        )]);
+        assert!(verify_request_digest(&request, &historical).unwrap());
+        let wrong_tag = object(vec![
+            (
+                "request_digest",
+                field(&historical, "request_digest").unwrap().clone(),
+            ),
+            ("request_digest_profile", string(JCS_DIGEST_TAG)),
+        ]);
+        assert!(!verify_request_digest(&request, &wrong_tag).unwrap());
+        let unsupported_tag = object(vec![
+            (
+                "request_digest",
+                field(&tagged, "request_digest").unwrap().clone(),
+            ),
+            ("request_digest_profile", string("unknown")),
+        ]);
+        assert!(verify_request_digest(&request, &unsupported_tag).is_err());
+    }
 
     #[test]
     fn stable_projection_collapses_versions_but_keeps_history_uniqueness() {

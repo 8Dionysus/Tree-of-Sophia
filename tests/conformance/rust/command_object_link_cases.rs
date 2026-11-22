@@ -6,32 +6,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 use tos_command::source_creation_store::IsolatedCreationRoot;
-const FACTORY: &str = r#"
-import json,sys,tempfile
-from pathlib import Path
-repository,root,unused=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_link_commands as fixture
-class SelectedRoot:
-    def __init__(self,*a,**kw): self.name=str(root)
-    def cleanup(self): pass
-original=tempfile.TemporaryDirectory;tempfile.TemporaryDirectory=SelectedRoot
-try:
-    # Literal owner-source census precedes the fixture's first source copy.
-    refs=[p for p in (repository/'ToS/contracts').glob('*.schema.json')]
-    refs += [repository/'ToS/doctrine/semantic-interchange'/name for name in ('entity-types.v1.json','relation-types.v1.json')]
-    refs += [repository/ref for ref in fixture.links.IMPLEMENTATIONS]
-    refs += [repository/'rust/crates/tos-command/src/source_serialization.rs']
-    assert len(refs)<=256 and sum(p.stat().st_size for p in refs)<=8388608
-    assert all(not p.is_symlink() and p.is_file() and len(p.relative_to(repository).parts)<=16 and len(p.relative_to(repository).as_posix())<=512 for p in refs)
-    case=fixture.NativeObjectLinkTests(methodName='runTest');case.setUp()
-finally: tempfile.TemporaryDirectory=original
-case.owner.chmod(0o600)
-implementations=sorted(fixture.links.IMPLEMENTATIONS)
-for ref in implementations:
-    p=root/ref;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((repository/ref).read_bytes());p.chmod(0o644)
-print(json.dumps({'config':case.config,'proposal':case.proposal(),'implementations':implementations,'owner':str(case.owner)}))
-"#;
+const FACTORY_SCRIPT_SHA256: &str =
+    "a0559321d49533d7151e5329d32615eaebdbf9a3efc58651e0c7d7d4e8b538cd";
 
 fn cli(
     repository: &Path,
@@ -275,7 +251,7 @@ fn native_object_link_cli_creates_and_cold_replays_original_package() {
         &[("source-root", isolated.path())],
         &native_owner_paths,
     );
-    super::assert_native_python_fixture(&captured, FACTORY, &native_owner_paths);
+    super::assert_native_python_fixture(&captured, FACTORY_SCRIPT_SHA256, &native_owner_paths);
     let fixture = captured.packets.get("factory").unwrap();
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
     let config = &fixture["config"];

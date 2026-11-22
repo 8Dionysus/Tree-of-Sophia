@@ -404,7 +404,7 @@ pub(super) fn successor(
 }
 
 fn assert_form_oracle_response(response: &tos_foundation::JsonValue, expected: &Path) {
-    let actual: Value = serde_json::from_slice(
+    let mut actual: Value = serde_json::from_slice(
         &tos_foundation::canonical_bytes_v1(
             response,
             tos_foundation::CanonicalProfile::SourceCommandInputV1,
@@ -414,7 +414,167 @@ fn assert_form_oracle_response(response: &tos_foundation::JsonValue, expected: &
     )
     .unwrap();
     let oracle: Value = serde_json::from_slice(&fs::read(expected).unwrap()).unwrap();
+    if actual["receipt"]["request_digest_profile"] == "jcs1" {
+        actual["revision"] = oracle["revision"].clone();
+    }
+    normalize_profiled_form_digests(&mut actual, &oracle);
     assert_eq!(actual, oracle, "{}", expected.display());
+}
+
+fn form_request_digest(raw: &[u8]) -> String {
+    let limits = JsonLimits {
+        max_bytes: 8_388_608,
+        ..JsonLimits::default()
+    };
+    let request = tos_foundation::parse_json(raw, JsonMode::PublishedStrict, limits).unwrap();
+    tos_foundation::jcs_digest_v1(request.root(), limits)
+        .unwrap()
+        .digest
+        .to_prefixed()
+}
+
+fn assert_jcs_form_receipt(receipt: &tos_foundation::JsonValue, request_raw: &[u8]) {
+    assert_eq!(
+        receipt
+            .object_get("request_digest_profile")
+            .and_then(tos_foundation::JsonValue::as_str),
+        Some("jcs1")
+    );
+    assert_eq!(
+        receipt
+            .object_get("request_digest")
+            .and_then(tos_foundation::JsonValue::as_str),
+        Some(form_request_digest(request_raw).as_str())
+    );
+}
+
+fn normalize_profiled_form_digests(actual: &mut Value, oracle: &Value) {
+    match (actual, oracle) {
+        (Value::Object(actual), Value::Object(oracle)) => {
+            if let Some(profile) = actual.remove("request_digest_profile") {
+                assert_eq!(profile, "jcs1");
+                actual.insert(
+                    "request_digest".to_owned(),
+                    oracle
+                        .get("request_digest")
+                        .expect("historical form receipt digest")
+                        .clone(),
+                );
+            }
+            for (key, value) in actual {
+                if let Some(expected) = oracle.get(key) {
+                    normalize_profiled_form_digests(value, expected);
+                }
+            }
+        }
+        (Value::Array(actual), Value::Array(oracle)) => {
+            assert_eq!(actual.len(), oracle.len());
+            for (actual, oracle) in actual.iter_mut().zip(oracle) {
+                normalize_profiled_form_digests(actual, oracle);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn normalize_profiled_form_json(
+    actual: &mut tos_foundation::JsonValue,
+    oracle: &tos_foundation::JsonValue,
+) {
+    use tos_foundation::JsonValue;
+
+    match (actual, oracle) {
+        (JsonValue::Object(actual), JsonValue::Object(oracle)) => {
+            if let Some(profile) = actual
+                .iter()
+                .find(|(key, _)| key.as_str() == Some("request_digest_profile"))
+                .map(|(_, value)| value.clone())
+            {
+                assert_eq!(profile.as_str(), Some("jcs1"));
+                let historical_digest = oracle
+                    .iter()
+                    .find(|(key, _)| key.as_str() == Some("request_digest"))
+                    .map(|(_, value)| value.clone())
+                    .expect("historical published form receipt digest");
+                let digest = actual
+                    .iter_mut()
+                    .find(|(key, _)| key.as_str() == Some("request_digest"))
+                    .map(|(_, value)| value)
+                    .expect("published form request digest");
+                *digest = historical_digest;
+                actual.retain(|(key, _)| key.as_str() != Some("request_digest_profile"));
+            }
+            for (key, value) in actual {
+                if let Some(expected) = oracle
+                    .iter()
+                    .find(|(expected_key, _)| expected_key == key)
+                    .map(|(_, value)| value)
+                {
+                    normalize_profiled_form_json(value, expected);
+                }
+            }
+        }
+        (JsonValue::Array(actual), JsonValue::Array(oracle)) => {
+            assert_eq!(actual.len(), oracle.len());
+            for (actual, oracle) in actual.iter_mut().zip(oracle) {
+                normalize_profiled_form_json(actual, oracle);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn assert_form_publication_matches_oracle(
+    actual_raw: &[u8],
+    oracle_raw: &[u8],
+    request_raw: &[u8],
+) {
+    let limits = JsonLimits {
+        max_bytes: 8_388_608,
+        ..JsonLimits::default()
+    };
+    let mut actual = tos_foundation::parse_json(actual_raw, JsonMode::PublishedStrict, limits)
+        .unwrap()
+        .into_root();
+    let oracle = tos_foundation::parse_json(oracle_raw, JsonMode::PublishedStrict, limits).unwrap();
+    let request: Value = serde_json::from_slice(request_raw).unwrap();
+    let command_id = request["command_id"].as_str().unwrap();
+    let receipt = actual
+        .object_get("growth_history")
+        .and_then(tos_foundation::JsonValue::as_array)
+        .and_then(|history| {
+            history.iter().find(|receipt| {
+                receipt
+                    .object_get("command_id")
+                    .and_then(tos_foundation::JsonValue::as_str)
+                    == Some(command_id)
+            })
+        })
+        .expect("published receipt for form request");
+    assert_jcs_form_receipt(receipt, request_raw);
+    assert_eq!(
+        tos_foundation::emit_json_profile(
+            &actual,
+            JsonEmissionProfile::SourceFormSetPublishedV1,
+            limits,
+        )
+        .unwrap()
+        .bytes,
+        actual_raw,
+        "maintained canonical publication bytes"
+    );
+    normalize_profiled_form_json(&mut actual, oracle.root());
+    assert_eq!(
+        tos_foundation::emit_json_profile(
+            &actual,
+            JsonEmissionProfile::SourceFormSetPublishedV1,
+            limits,
+        )
+        .unwrap()
+        .bytes,
+        oracle_raw,
+        "all historical publication bytes outside the new digest profile"
+    );
 }
 
 #[test]
@@ -939,6 +1099,13 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         )
         .unwrap();
         assert_eq!(prepared.changes.len(), 1, "{profile}");
+        assert_jcs_form_receipt(
+            prepared
+                .response
+                .object_get("receipt")
+                .expect("form application receipt"),
+            &request,
+        );
         assert_form_oracle_response(
             &prepared.response,
             &packet.join(if independent_work || claim_profile {
@@ -948,16 +1115,21 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
             }),
         );
         let raw = prepared.changes[0].after.as_ref().unwrap();
+        let published_revision = Digest256::of_bytes(raw).to_prefixed();
         assert_eq!(
-            *raw,
-            fs::read(packet.join(if independent_work || claim_profile {
-                "published.json"
-            } else {
-                "form-set.published.json"
-            }))
-            .unwrap(),
-            "{profile}: maintained exact Python publication bytes"
+            prepared
+                .response
+                .object_get("revision")
+                .and_then(JsonValue::as_str),
+            Some(published_revision.as_str())
         );
+        let expected_publication = fs::read(packet.join(if independent_work || claim_profile {
+            "published.json"
+        } else {
+            "form-set.published.json"
+        }))
+        .unwrap();
+        assert_form_publication_matches_oracle(raw, &expected_publication, &request);
         assert_eq!(
             prepared.commit(),
             Err(SourceCommandError::MissingProductionAdmission)
@@ -1145,6 +1317,20 @@ fn maintained_forms_propose_exact_bytes_bind_real_cut_and_refuse_unissued_admiss
         .unwrap();
         assert!(replay.replayed);
         assert!(replay.changes.is_empty());
+        assert_eq!(
+            replay
+                .response
+                .object_get("revision")
+                .and_then(JsonValue::as_str),
+            Some(published_revision.as_str())
+        );
+        assert_jcs_form_receipt(
+            replay
+                .response
+                .object_get("receipt")
+                .expect("replayed form application receipt"),
+            &request,
+        );
         assert_form_oracle_response(
             &replay.response,
             &packet.join(if independent_work || claim_profile {

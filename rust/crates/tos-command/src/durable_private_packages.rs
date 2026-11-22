@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 use tos_foundation::{Digest256, Digest256Hasher};
 
 pub(crate) const PRIVATE_SCHEMA_PROFILE: &str =
-    super::durable_compatibility::PRIVATE_PACKAGE_ABI_PROFILE_V4;
+    super::durable_compatibility::PRIVATE_PACKAGE_ABI_PROFILE_V5;
 const MAX_TARGET_REF_BYTES: usize = 4096;
 const MAX_MEMBER_NAME_BYTES: usize = 128;
 const MAX_MEMBERS: usize = 64;
@@ -153,6 +153,7 @@ pub(crate) struct PrivateOwnerCommandReceiptMetadataV1 {
     pub(crate) target_matches: bool,
     pub(crate) family: PrivateOwnerPackageFamilyV1,
     pub(crate) request_digest: Digest256,
+    pub(crate) request_digest_profile: Option<String>,
     pub(crate) raw_request_digest: Digest256,
     pub(crate) owner_context_binding: Digest256,
     pub(crate) owner_configuration_digest: Digest256,
@@ -322,6 +323,7 @@ pub(crate) struct PrivateOwnerPackageWriteV1 {
     pub(crate) archives: Vec<PrivateOwnerPackageArchiveV1>,
     pub(crate) command_id: String,
     pub(crate) request_digest: Digest256,
+    pub(crate) request_digest_profile: Option<String>,
     pub(crate) raw_request_digest: Digest256,
     pub(crate) owner_configuration_digest: Digest256,
     pub(crate) source_binding: PrivateOwnerSourceBindingV1,
@@ -352,6 +354,7 @@ pub(crate) struct PrivateOwnerPackageHistoryEntryV1 {
     pub(crate) members: BTreeMap<String, Vec<u8>>,
     pub(crate) command_id: String,
     pub(crate) request_digest: Digest256,
+    pub(crate) request_digest_profile: Option<String>,
     pub(crate) raw_request_digest: Digest256,
     pub(crate) owner_configuration_digest: Digest256,
     pub(crate) source_binding: PrivateOwnerSourceBindingV1,
@@ -791,9 +794,15 @@ fn require_private_schema(client: &mut impl GenericClient) -> DurableResult<()> 
                ('cmd2_private_text_identity_point')),
              required_columns(table_name,column_name) AS (VALUES
                ('cmd2_private_package_current','text_identity_root'),
-               ('cmd2_private_package_current','text_identity_count')),
+               ('cmd2_private_package_current','text_identity_count'),
+               ('cmd2_private_package_history','request_digest_profile'),
+               ('cmd2_private_command_receipt','request_digest_profile'),
+               ('cmd2_private_log','request_digest_profile')),
              required_constraints(name) AS (VALUES
                ('cmd2_private_package_history_family_check'),
+               ('cmd2_private_package_history_request_digest_profile_check'),
+               ('cmd2_private_command_receipt_request_digest_profile_check'),
+               ('cmd2_private_log_request_digest_profile_check'),
                ('cmd2_private_package_history_assessment_shape_check'),
                ('cmd2_private_package_history_alignment_size_check'),
                ('cmd2_private_package_current_family_check'),
@@ -849,11 +858,11 @@ fn require_private_schema(client: &mut impl GenericClient) -> DurableResult<()> 
                  ON c.relname=r.name AND c.relkind='i'
                 JOIN pg_namespace n ON n.oid=c.relnamespace
                 WHERE n.nspname=current_schema())
-               AND (SELECT count(*)=2 FROM required_columns r
+               AND (SELECT count(*)=5 FROM required_columns r
                  JOIN information_schema.columns c
                    ON c.table_schema=current_schema()
                   AND c.table_name=r.table_name AND c.column_name=r.column_name)
-               AND (SELECT count(*)=14 FROM required_constraints r JOIN pg_constraint c
+               AND (SELECT count(*)=17 FROM required_constraints r JOIN pg_constraint c
                  ON c.conname=r.name JOIN pg_class t ON t.oid=c.conrelid
                 JOIN pg_namespace n ON n.oid=t.relnamespace
                 WHERE n.nspname=current_schema())
@@ -1023,9 +1032,10 @@ fn read_current_package_header(
                 h.target_ref,h.family,h.revision,h.package_digest,h.member_count,h.total_bytes,
                 h.command_id,h.commit_seq,h.owner_context_binding,h.owner_configuration_digest,
                 h.request_digest,h.raw_request_digest,h.private_owner_audit_generation,
+                h.request_digest_profile,
                 r.command_id,r.target_digest,r.family,r.request_digest,r.raw_request_digest,
                 r.owner_context_binding,r.owner_configuration_digest,r.package_digest,
-                r.commit_seq,r.private_audit_generation_after
+                r.commit_seq,r.private_audit_generation_after,r.request_digest_profile
          FROM cmd2_private_package_current c
          LEFT JOIN cmd2_private_package_history h
            ON h.domain=c.domain AND h.owner_scope=c.owner_scope
@@ -1125,28 +1135,30 @@ fn read_current_package_header(
     let history_raw_request = required!(20, String, "private package current history absent");
     let source_private_generation =
         as_u64(required!(21, i64, "private package current history absent"))?;
-    let receipt_command_id = required!(22, String, "private package current receipt absent");
+    let history_request_profile = parse_request_digest_profile(row.get::<_, Option<String>>(22))?;
+    let receipt_command_id = required!(23, String, "private package current receipt absent");
     let receipt_target_digest = parse_hex(required!(
-        23,
-        String,
-        "private package current receipt absent"
-    ))?;
-    let receipt_family = parse_family(required!(
         24,
         String,
         "private package current receipt absent"
     ))?;
-    let receipt_request = required!(25, String, "private package current receipt absent");
-    let receipt_raw_request = required!(26, String, "private package current receipt absent");
-    let receipt_context = required!(27, String, "private package current receipt absent");
-    let receipt_configuration = required!(28, String, "private package current receipt absent");
-    let receipt_digest = parse_hex(required!(
-        29,
+    let receipt_family = parse_family(required!(
+        25,
         String,
         "private package current receipt absent"
     ))?;
-    let receipt_commit_seq = as_u64(required!(30, i64, "private package current receipt absent"))?;
-    let generation_after = as_u64(required!(31, i64, "private package current receipt absent"))?;
+    let receipt_request = required!(26, String, "private package current receipt absent");
+    let receipt_raw_request = required!(27, String, "private package current receipt absent");
+    let receipt_context = required!(28, String, "private package current receipt absent");
+    let receipt_configuration = required!(29, String, "private package current receipt absent");
+    let receipt_digest = parse_hex(required!(
+        30,
+        String,
+        "private package current receipt absent"
+    ))?;
+    let receipt_commit_seq = as_u64(required!(31, i64, "private package current receipt absent"))?;
+    let generation_after = as_u64(required!(32, i64, "private package current receipt absent"))?;
+    let receipt_request_profile = parse_request_digest_profile(row.get::<_, Option<String>>(33))?;
     let exact_target_digest = Digest256::of_bytes(target_ref.as_bytes());
     if history_target != target_ref
         || history_family != family
@@ -1161,6 +1173,7 @@ fn read_current_package_header(
         || receipt_target_digest != exact_target_digest
         || receipt_family != family
         || receipt_request != history_request
+        || receipt_request_profile != history_request_profile
         || receipt_raw_request != history_raw_request
         || receipt_context != history_context
         || receipt_configuration != history_configuration
@@ -1232,7 +1245,7 @@ fn read_private_command_receipt_record(
     let receipt_row = client.query_opt(
         "SELECT target_digest,family,request_digest,raw_request_digest,
                 owner_context_binding,owner_configuration_digest,package_digest,
-                response_bytes,commit_seq,private_audit_generation_after
+                response_bytes,commit_seq,private_audit_generation_after,request_digest_profile
          FROM cmd2_private_command_receipt
          WHERE domain=$1 AND owner_scope=$2 AND command_id=$3",
         &[&scope.domain, &scope.owner_scope, &command_id],
@@ -1241,7 +1254,7 @@ fn read_private_command_receipt_record(
     let history_row = client.query_opt(
         "SELECT target_ref,family,package_digest,request_digest,raw_request_digest,
                 owner_context_binding,owner_configuration_digest,
-                private_owner_audit_generation,commit_seq,revision
+                private_owner_audit_generation,commit_seq,revision,request_digest_profile
          FROM cmd2_private_package_history
          WHERE domain=$1 AND owner_scope=$2 AND command_id=$3",
         &[&scope.domain, &scope.owner_scope, &command_id],
@@ -1262,6 +1275,7 @@ fn read_private_command_receipt_record(
                 target_matches: false,
                 family: parse_family(receipt.get(1))?,
                 request_digest: parse_hex(receipt.get(2))?,
+                request_digest_profile: parse_request_digest_profile(receipt.get(10))?,
                 raw_request_digest: parse_hex(receipt.get(3))?,
                 owner_context_binding: parse_hex(receipt.get(4))?,
                 owner_configuration_digest: parse_hex(receipt.get(5))?,
@@ -1275,6 +1289,7 @@ fn read_private_command_receipt_record(
             let history_family = parse_family(history.get(1))?;
             let history_digest = parse_hex(history.get(2))?;
             let history_request = parse_hex(history.get(3))?;
+            let history_request_profile = parse_request_digest_profile(history.get(10))?;
             let history_raw_request = parse_hex(history.get(4))?;
             let history_context = parse_hex(history.get(5))?;
             let history_configuration = parse_hex(history.get(6))?;
@@ -1284,6 +1299,7 @@ fn read_private_command_receipt_record(
                 || history_family != metadata.family
                 || history_digest != metadata.package_digest
                 || history_request != metadata.request_digest
+                || history_request_profile != metadata.request_digest_profile
                 || history_raw_request != metadata.raw_request_digest
                 || history_context != metadata.owner_context_binding
                 || history_configuration != metadata.owner_configuration_digest
@@ -1562,6 +1578,14 @@ fn read_current_text_identity_contributions(
         .collect()
 }
 
+fn parse_request_digest_profile(value: Option<String>) -> DurableResult<Option<String>> {
+    match value.as_deref() {
+        None => Ok(None),
+        Some("jcs1") | Some("tos_source_command_input_v1") => Ok(value),
+        Some(_) => Err(DurableError::Corrupt("private request digest profile")),
+    }
+}
+
 fn parse_family(value: String) -> DurableResult<PrivateOwnerPackageFamilyV1> {
     match value.as_str() {
         "text" => Ok(PrivateOwnerPackageFamilyV1::Text),
@@ -1628,7 +1652,7 @@ fn read_package_history(
                 owner_configuration_digest,source_head_seq,source_epoch,source_generation,
                 source_revision,source_audit_generation,private_owner_audit_generation,
                 rights_version,rule_version,contract_digest,job_id,job_fence,readset_digest,
-                dependency_digest,commit_seq
+                dependency_digest,commit_seq,request_digest_profile
          FROM cmd2_private_package_history
          WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3
          ORDER BY revision LIMIT $4",
@@ -1668,6 +1692,8 @@ fn read_package_history(
         let source_binding = history_source_binding(&row)?;
         let command_id: String = row.get("command_id");
         let request_digest = parse_hex(row.get("request_digest"))?;
+        let request_digest_profile =
+            parse_request_digest_profile(row.get("request_digest_profile"))?;
         let raw_request_digest = parse_hex(row.get("raw_request_digest"))?;
         let owner_configuration_digest = parse_hex(row.get("owner_configuration_digest"))?;
         if revision != previous_revision.saturating_add(1)
@@ -1732,7 +1758,7 @@ fn read_package_history(
             .query_opt(
                 "SELECT target_digest,family,request_digest,raw_request_digest,
                     owner_context_binding,owner_configuration_digest,package_digest,
-                    response_bytes,commit_seq,private_audit_generation_after
+                    response_bytes,commit_seq,private_audit_generation_after,request_digest_profile
              FROM cmd2_private_command_receipt
              WHERE domain=$1 AND owner_scope=$2 AND command_id=$3",
                 &[&scope.domain, &scope.owner_scope, &command_id],
@@ -1756,6 +1782,7 @@ fn read_package_history(
         if receipt.get::<_, String>(0) != target_digest
             || receipt.get::<_, String>(1) != row_family.as_str()
             || receipt.get::<_, String>(2) != request_digest.to_hex()
+            || parse_request_digest_profile(receipt.get(10))? != request_digest_profile
             || receipt.get::<_, String>(3) != raw_request_digest.to_hex()
             || receipt.get::<_, String>(4) != scope.context_binding.to_hex()
             || receipt.get::<_, String>(5) != owner_configuration_digest.to_hex()
@@ -1779,6 +1806,7 @@ fn read_package_history(
             members,
             command_id,
             request_digest,
+            request_digest_profile,
             raw_request_digest,
             owner_configuration_digest,
             source_binding,
@@ -2159,7 +2187,7 @@ impl<'connection> PrivateOwnerReadSession<'connection> {
         let row = self.transaction_mut()?.query_opt(
             "SELECT family,package_digest,member_count,total_bytes,command_id,commit_seq,
                     owner_context_binding,owner_configuration_digest,request_digest,
-                    raw_request_digest,private_owner_audit_generation
+                    raw_request_digest,private_owner_audit_generation,request_digest_profile
              FROM cmd2_private_package_history
              WHERE domain=$1 AND owner_scope=$2 AND target_ref=$3 AND revision=$4",
             &[
@@ -2184,6 +2212,7 @@ impl<'connection> PrivateOwnerReadSession<'connection> {
         let request_digest = parse_hex(row.get(8))?;
         let raw_request_digest = parse_hex(row.get(9))?;
         let source_private_generation = as_u64(row.get(10))?;
+        let request_digest_profile = parse_request_digest_profile(row.get(11))?;
         if family != PrivateOwnerPackageFamilyV1::Text
             || stored_digest != package_digest
             || stored_command_id != command_id
@@ -2226,6 +2255,7 @@ impl<'connection> PrivateOwnerReadSession<'connection> {
             || receipt.owner_context_binding != owner_context_binding
             || receipt.owner_configuration_digest != owner_configuration_digest
             || receipt.request_digest != request_digest
+            || receipt.request_digest_profile != request_digest_profile
             || receipt.raw_request_digest != raw_request_digest
             || receipt.source_private_generation != source_private_generation
         {
@@ -2414,6 +2444,7 @@ impl DurablePgCoordinator {
         family: PrivateOwnerPackageFamilyV1,
         command_id: &str,
         request_digest: Digest256,
+        request_digest_profile: Option<&str>,
         raw_request_digest: Digest256,
         owner_configuration_digest: Digest256,
         expected_private_generation: u64,
@@ -2456,6 +2487,7 @@ impl DurablePgCoordinator {
                 if !receipt.target_matches
                     || receipt.family != family
                     || receipt.request_digest != request_digest
+                    || receipt.request_digest_profile.as_deref() != request_digest_profile
                     || receipt.raw_request_digest != raw_request_digest
                     || receipt.owner_configuration_digest != owner_configuration_digest
                 {
@@ -2988,7 +3020,8 @@ impl DurablePgCoordinator {
                      WHERE h.domain=r.domain AND h.owner_scope=r.owner_scope
                        AND h.command_id=r.command_id
                        AND h.family=r.family AND h.commit_seq=r.commit_seq
-                       AND h.package_digest=r.package_digest)
+                       AND h.package_digest=r.package_digest),
+                    request_digest_profile
              FROM cmd2_private_command_receipt r
              WHERE domain=$1 AND owner_scope=$2 AND command_id=$3",
             &[
@@ -3012,6 +3045,7 @@ impl DurablePgCoordinator {
             if row.get::<_, String>(0) != target_digest
                 || row.get::<_, String>(1) != write.family.as_str()
                 || row.get::<_, String>(2) != write.request_digest.to_hex()
+                || parse_request_digest_profile(row.get(11))? != write.request_digest_profile
                 || row.get::<_, String>(3) != write.raw_request_digest.to_hex()
                 || row.get::<_, String>(4) != write.scope.context_binding.to_hex()
                 || row.get::<_, String>(5) != write.owner_configuration_digest.to_hex()
@@ -3178,13 +3212,13 @@ impl DurablePgCoordinator {
         tx.execute(
             "INSERT INTO cmd2_private_package_history(
                domain,owner_scope,target_ref,revision,family,package_digest,previous_digest,
-               member_count,total_bytes,command_id,request_digest,raw_request_digest,
+               member_count,total_bytes,command_id,request_digest,request_digest_profile,raw_request_digest,
                owner_context_binding,owner_configuration_digest,source_head_seq,source_epoch,
                source_generation,source_revision,source_audit_generation,
                private_owner_audit_generation,rights_version,rule_version,
                contract_digest,job_id,job_fence,readset_digest,dependency_digest,commit_seq)
-             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
-                    $21,$22,$23,$24,$25,$26,$27,$28)",
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,
+                    $22,$23,$24,$25,$26,$27,$28,$29)",
             &[
                 &write.scope.domain,
                 &write.scope.owner_scope,
@@ -3197,6 +3231,7 @@ impl DurablePgCoordinator {
                 &(after_total as i64),
                 &write.command_id,
                 &write.request_digest.to_hex(),
+                &write.request_digest_profile,
                 &write.raw_request_digest.to_hex(),
                 &write.scope.context_binding.to_hex(),
                 &write.owner_configuration_digest.to_hex(),
@@ -3307,13 +3342,13 @@ impl DurablePgCoordinator {
         }
         tx.execute(
             "INSERT INTO cmd2_private_command_receipt(
-               domain,owner_scope,command_id,target_digest,family,request_digest,raw_request_digest,
+               domain,owner_scope,command_id,target_digest,family,request_digest,request_digest_profile,raw_request_digest,
                owner_context_binding,owner_configuration_digest,package_digest,response_bytes,commit_seq,
                private_audit_generation_after)
-             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)",
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)",
             &[&write.scope.domain, &write.scope.owner_scope, &write.command_id,
               &Digest256::of_bytes(write.target_ref.as_bytes()).to_hex(), &write.family.as_str(),
-              &write.request_digest.to_hex(), &write.raw_request_digest.to_hex(),
+              &write.request_digest.to_hex(), &write.request_digest_profile, &write.raw_request_digest.to_hex(),
               &write.scope.context_binding.to_hex(), &write.owner_configuration_digest.to_hex(),
               &after_digest.to_hex(), &write.response_bytes, &commit_seq_i64,
               &as_i64(generation_after)?],
@@ -3322,8 +3357,8 @@ impl DurablePgCoordinator {
         let command_digest = Digest256::of_bytes(write.command_id.as_bytes()).to_hex();
         tx.execute(
             "INSERT INTO cmd2_private_log(domain,owner_scope,commit_seq,family,command_digest,
-               target_digest,request_digest,package_digest,member_count)
-             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+               target_digest,request_digest,request_digest_profile,package_digest,member_count)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
             &[
                 &write.scope.domain,
                 &write.scope.owner_scope,
@@ -3332,6 +3367,7 @@ impl DurablePgCoordinator {
                 &command_digest,
                 &target_digest,
                 &write.request_digest.to_hex(),
+                &write.request_digest_profile,
                 &after_digest.to_hex(),
                 &(write.members.len() as i32),
             ],
@@ -3396,6 +3432,22 @@ fn validate_write(write: &PrivateOwnerPackageWriteV1) -> DurableResult<()> {
         return Err(DurableError::Invalid(
             "private package write identity/budget",
         ));
+    }
+    if matches!(
+        write.family,
+        PrivateOwnerPackageFamilyV1::Text | PrivateOwnerPackageFamilyV1::Alignment
+    ) && write.request_digest_profile.as_deref() != Some(tos_foundation::JCS_DIGEST_TAG)
+    {
+        return Err(DurableError::Invalid(
+            "new private Text request digest must use jcs1",
+        ));
+    }
+    if write
+        .request_digest_profile
+        .as_deref()
+        .is_some_and(|profile| profile != tos_foundation::JCS_DIGEST_TAG)
+    {
+        return Err(DurableError::Invalid("new private request digest profile"));
     }
     if let Some(expected) = &write.expected_current {
         if expected.scope != write.scope

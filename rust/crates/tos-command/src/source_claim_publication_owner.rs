@@ -15,7 +15,10 @@ use std::os::fd::AsRawFd;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, atomic::AtomicBool};
 use std::time::Instant;
-use tos_foundation::{Digest256, RelativePath, SourceRevision};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, RelativePath, SourceRevision,
+    verify_canonical_digest_v1,
+};
 const FILES: [&str; 5] = [
     "source-claims.jsonl",
     "source-create-request.json",
@@ -42,6 +45,14 @@ fn keys(v: &Value, expected: &[&str]) -> Result<()> {
     let actual = v
         .as_object()
         .ok_or(Error::Invalid("Claim observer object"))?;
+    let profile_key = v.get("request_digest_profile");
+    let mut expected = expected.to_vec();
+    if let Some(profile) = profile_key {
+        if profile.as_str() != Some(JCS_DIGEST_TAG) {
+            return Err(Error::Invalid("Claim observer request digest profile"));
+        }
+        expected.push("request_digest_profile");
+    }
     if actual.len() != expected.len() || expected.iter().any(|k| !actual.contains_key(*k)) {
         return Err(Error::Invalid("Claim observer field closure"));
     }
@@ -671,11 +682,40 @@ impl CommittedClaimObservation {
     }
     fn verify_package(&self) -> Result<()> {
         let get = |name: &str| &*self.captured[&format!("{}/{name}", self.home)].bytes;
-        if Digest256::of_bytes(get("source-create-receipt.json")) != self.receipt_sha256
-            || Digest256::of_bytes(&canonical(&self.request)?) != self.request_digest
-        {
+        if Digest256::of_bytes(get("source-create-receipt.json")) != self.receipt_sha256 {
             return Err(Error::Conflict(
                 "Claim observer hash-selected package differs",
+            ));
+        }
+        let expected_request_digest =
+            Digest256::from_prefixed(text(&self.receipt, "request_digest")?)
+                .map_err(|_| Error::Invalid("Claim observer request digest"))?;
+        let request_bytes = serde_json::to_vec(&self.request)
+            .map_err(|_| Error::Invalid("Claim observer request emission"))?;
+        let request_value = cmd::parse(&request_bytes)?;
+        let profile = match self.receipt.get("request_digest_profile") {
+            None => None,
+            Some(value) => Some(
+                value
+                    .as_str()
+                    .ok_or(Error::Invalid("Claim observer request digest profile"))?,
+            ),
+        };
+        if expected_request_digest != self.request_digest
+            || !verify_canonical_digest_v1(
+                &request_value,
+                profile,
+                CanonicalProfile::SourceCommandInputV1,
+                expected_request_digest,
+                JsonLimits {
+                    max_bytes: 8_388_608,
+                    ..JsonLimits::default()
+                },
+            )
+            .map_err(|_| Error::Invalid("Claim observer request digest profile"))?
+        {
+            return Err(Error::Conflict(
+                "Claim observer hash-selected request differs",
             ));
         }
         keys(

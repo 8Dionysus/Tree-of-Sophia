@@ -1000,7 +1000,7 @@
         }
       ],
       "dating": {
-        "kind": "date-assertion",
+        "kind": "interval-assertion",
         "role": "historical-time",
         "calendar": null,
         "year_numbering": "astronomical",
@@ -1009,7 +1009,10 @@
           "text": "c. 1660 - c. 1690",
           "language": null
         },
-        "value": "1660"
+        "interval": {
+          "start": "1660",
+          "end": "1690"
+        }
       },
       "classification": [
         "print"
@@ -1251,7 +1254,7 @@
         }
       ],
       "dating": {
-        "kind": "date-assertion",
+        "kind": "interval-assertion",
         "role": "historical-time",
         "calendar": null,
         "year_numbering": "astronomical",
@@ -1260,7 +1263,10 @@
           "text": "c. 1540 - c. 1585",
           "language": null
         },
-        "value": "1540"
+        "interval": {
+          "start": "1540",
+          "end": "1585"
+        }
       },
       "classification": [
         "print"

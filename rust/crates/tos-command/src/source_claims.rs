@@ -2906,6 +2906,34 @@ pub(crate) fn validate_pg_complete_member(path: &RelativePath) -> SourceCommandR
     Ok(())
 }
 
+fn normalize_initial_claim_objects(request: &mut JsonValue) -> SourceCommandResult<()> {
+    if !matches!(
+        text(request, "operation")?,
+        "prepare-create" | "claims.create"
+    ) {
+        return Ok(());
+    }
+
+    let claims = array(request, "claims")?
+        .iter()
+        .map(|claim| {
+            let mut normalized = claim.clone();
+            let object = field(claim, "object")?;
+            let object = tos_foundation::stringify_non_jcs_numbers_v1(
+                object,
+                JsonLimits {
+                    max_bytes: 8_388_608,
+                    ..JsonLimits::default()
+                },
+            )
+            .map_err(|_| SourceCommandError::Invalid("new Claim object JCS representation"))?;
+            set(&mut normalized, "object", object)?;
+            Ok(normalized)
+        })
+        .collect::<SourceCommandResult<Vec<_>>>()?;
+    set(request, "claims", JsonValue::Array(claims))
+}
+
 fn run_claim_command_inner(
     ctx: &CommandContext,
     selected_context: Option<&CommandContext>,
@@ -2970,8 +2998,9 @@ fn run_claim_command_inner_with_members(
         ));
     }
 
-    let request = parse(&ctx.request_raw)?;
+    let mut request = parse(&ctx.request_raw)?;
     grammar(&request, create, version == 7)?;
+    normalize_initial_claim_objects(&mut request)?;
     let operation = text(&request, "operation")?;
     if !["describe", "inspect-version"].contains(&operation) && selected_context.is_none() {
         return Err(SourceCommandError::Unsupported(

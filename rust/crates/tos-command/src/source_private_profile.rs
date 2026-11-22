@@ -20,8 +20,8 @@ use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::time::Instant;
 use tos_foundation::{
-    Digest256, JsonLimits, JsonString, JsonValue, RelativePath, SourceRevision,
-    emit_ordered_compact_json_v1,
+    CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, JsonString, JsonValue, RelativePath,
+    SourceRevision, emit_ordered_compact_json_v1, jcs_digest_v1, verify_canonical_digest_v1,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::assessment::MAX_RECORD_BYTES;
@@ -1902,7 +1902,7 @@ fn validate_revision_history(
     let mut previous: Option<JsonValue> = None;
     let mut commands = BTreeSet::new();
     for receipt in receipts {
-        cmd::exact_keys(
+        exact_request_digest_keys(
             receipt,
             &[
                 "command_id",
@@ -1956,8 +1956,7 @@ fn validate_revision_history(
         let request = cmd::field(receipt, "request")?;
         if cmd::text(request, "operation")? != "record.revise"
             || cmd::text(request, "command_id")? != command_id
-            || Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()
-                != cmd::text(receipt, "request_digest")?
+            || !verify_request_digest(request, receipt)?
         {
             return Err(SourceCommandError::Invalid(
                 "private profile retained revision request",
@@ -2370,7 +2369,7 @@ fn validate_ready_forms(
 }
 
 fn validate_creation_receipt(receipt: &JsonValue, record: &JsonValue) -> SourceCommandResult<()> {
-    cmd::exact_keys(
+    exact_request_digest_keys(
         receipt,
         &[
             "schema_version",
@@ -2534,8 +2533,7 @@ fn inspect_state(
     validate_creation_receipt(&receipt, &record)?;
     let initial_request = cmd::parse(&files[CREATE_REQUEST])?;
     if cmd::text(&initial_request, "operation")? != "source.create"
-        || Digest256::of_bytes(&cmd::canonical(&initial_request)?).to_prefixed()
-            != cmd::text(&receipt, "request_digest")?
+        || !verify_request_digest(&initial_request, &receipt)?
     {
         return Err(SourceCommandError::Conflict(
             "private profile retained creation request differs from receipt",
@@ -3214,7 +3212,92 @@ fn package_file_refs(files: &PrivatePackage) -> JsonValue {
 }
 
 fn request_digest(request: &JsonValue) -> SourceCommandResult<String> {
-    Ok(Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed())
+    jcs_digest_v1(request, request_digest_limits())
+        .map(|digest| digest.digest.to_prefixed())
+        .map_err(|_| SourceCommandError::Invalid("private profile request digest input"))
+}
+
+fn verify_request_digest(request: &JsonValue, receipt: &JsonValue) -> SourceCommandResult<bool> {
+    let expected = Digest256::from_prefixed(cmd::text(receipt, "request_digest")?)
+        .map_err(|_| SourceCommandError::Invalid("private profile request digest"))?;
+    let profile = match receipt.object_get("request_digest_profile") {
+        None => None,
+        Some(value) => {
+            let profile = value.as_str().ok_or(SourceCommandError::Invalid(
+                "private profile request digest profile",
+            ))?;
+            if profile != JCS_DIGEST_TAG {
+                return Err(SourceCommandError::Invalid(
+                    "private profile request digest profile",
+                ));
+            }
+            Some(profile)
+        }
+    };
+    verify_canonical_digest_v1(
+        request,
+        profile,
+        CanonicalProfile::SourceCommandInputV1,
+        expected,
+        request_digest_limits(),
+    )
+    .map_err(|_| SourceCommandError::Invalid("private profile request digest profile or input"))
+}
+
+fn exact_request_digest_keys(receipt: &JsonValue, keys: &[&str]) -> SourceCommandResult<()> {
+    let mut keys = keys.to_vec();
+    if let Some(value) = receipt.object_get("request_digest_profile") {
+        if value.as_str() != Some(JCS_DIGEST_TAG) {
+            return Err(SourceCommandError::Invalid(
+                "private profile request digest profile",
+            ));
+        }
+        keys.push("request_digest_profile");
+    }
+    cmd::exact_keys(receipt, &keys)
+}
+
+fn form_growth_request_digest(request: &JsonValue) -> SourceCommandResult<String> {
+    jcs_digest_v1(request, request_digest_limits())
+        .map(|digest| digest.digest.to_prefixed())
+        .map_err(|_| SourceCommandError::Invalid("private form request digest input"))
+}
+
+fn verify_form_growth_request_digest(
+    request: &JsonValue,
+    receipt: &JsonValue,
+) -> SourceCommandResult<bool> {
+    let expected = Digest256::from_prefixed(cmd::text(receipt, "request_digest")?)
+        .map_err(|_| SourceCommandError::Invalid("private form request digest"))?;
+    let profile = match receipt.object_get("request_digest_profile") {
+        None => None,
+        Some(value) => {
+            let profile = value.as_str().ok_or(SourceCommandError::Invalid(
+                "private form request digest profile",
+            ))?;
+            if profile != JCS_DIGEST_TAG {
+                return Err(SourceCommandError::Invalid(
+                    "private form request digest profile",
+                ));
+            }
+            Some(profile)
+        }
+    };
+    verify_canonical_digest_v1(
+        request,
+        profile,
+        CanonicalProfile::SourceCommandInputV1,
+        expected,
+        request_digest_limits(),
+    )
+    .map_err(|_| SourceCommandError::Invalid("private form request digest profile or input"))
+}
+
+fn request_digest_limits() -> JsonLimits {
+    JsonLimits {
+        max_bytes: 8_388_608,
+        ..JsonLimits::default()
+    }
 }
 
 fn request_shape(request: &JsonValue) -> SourceCommandResult<String> {
@@ -3805,7 +3888,7 @@ fn history_with_receipts(
 
 fn validate_retained_request(receipt: &JsonValue, request: &JsonValue) -> SourceCommandResult<()> {
     let _ = request_shape(request)?;
-    if request_digest(request)? != cmd::text(receipt, "request_digest")? {
+    if !verify_request_digest(request, receipt)? {
         return Err(SourceCommandError::Conflict(
             "private retained request digest differs",
         ));
@@ -3828,20 +3911,26 @@ fn validate_form_growth_history(
     }
     let mut commands = BTreeSet::new();
     for receipt in receipts {
-        cmd::exact_keys(
-            receipt,
-            &[
-                "command_id",
-                "request_digest",
-                "principal_id",
-                "authority_ref",
-                "owner_configuration",
-                "recorded_at",
-                "source",
-                "previous_revision",
-                "results",
-            ],
-        )?;
+        let mut receipt_keys = vec![
+            "command_id",
+            "request_digest",
+            "principal_id",
+            "authority_ref",
+            "owner_configuration",
+            "recorded_at",
+            "source",
+            "previous_revision",
+            "results",
+        ];
+        if receipt.object_get("request_digest_profile").is_some() {
+            receipt_keys.push("request_digest_profile");
+            if cmd::text(receipt, "request_digest_profile")? != JCS_DIGEST_TAG {
+                return Err(SourceCommandError::Invalid(
+                    "private form request digest profile",
+                ));
+            }
+        }
+        cmd::exact_keys(receipt, &receipt_keys)?;
         let command_id = cmd::text(receipt, "command_id")?;
         if !(1..=256).contains(&command_id.chars().count())
             || !commands.insert(command_id.to_owned())
@@ -4129,9 +4218,8 @@ fn create_replay(
             ))?,
     )?;
     validate_creation_receipt(&receipt, &current_state.record)?;
-    let digest = request_digest(request)?;
     if cmd::text(&receipt, "command_id")? != check_command_id(request)?
-        || cmd::text(&receipt, "request_digest")? != digest
+        || !verify_request_digest(request, &receipt)?
         || cmd::text(&receipt, "source_path")? != grant.source_path.as_str()
         || cmd::field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
         || cmd::text(&receipt, "owner_configuration")? != grant.digest
@@ -4346,6 +4434,7 @@ fn create_package(
         ),
         ("command_id", cmd::string(check_command_id(request)?)),
         ("request_digest", cmd::string(&request_digest(request)?)),
+        ("request_digest_profile", cmd::string(JCS_DIGEST_TAG)),
         (
             "principal_id",
             cmd::field(&grant.value, "principal_id")?.clone(),
@@ -4454,11 +4543,15 @@ fn retained_command(
     } else {
         &forms_receipts[..]
     };
-    let digest = request_digest(request)?;
     if let Some(receipt) = target_receipts.iter().find(|receipt| {
         receipt.object_get("command_id").and_then(JsonValue::as_str) == Some(command_id)
     }) {
-        if cmd::text(receipt, "request_digest")? != digest {
+        let digest_matches = if operation == "record.revise" {
+            verify_request_digest(request, receipt)?
+        } else {
+            verify_form_growth_request_digest(request, receipt)?
+        };
+        if !digest_matches {
             return Err(SourceCommandError::Conflict(
                 "private command identity reused",
             ));
@@ -4547,7 +4640,11 @@ fn apply_form_successor(
         .collect::<SourceCommandResult<Vec<_>>>()?;
     let receipt = cmd::object(vec![
         ("command_id", cmd::string(check_command_id(request)?)),
-        ("request_digest", cmd::string(&request_digest(request)?)),
+        (
+            "request_digest",
+            cmd::string(&form_growth_request_digest(request)?),
+        ),
+        ("request_digest_profile", cmd::string(JCS_DIGEST_TAG)),
         (
             "principal_id",
             cmd::field(&grant.value, "principal_id")?.clone(),
@@ -4846,6 +4943,7 @@ pub(crate) fn prepare(
                     let receipt = cmd::object(vec![
                         ("command_id", cmd::string(check_command_id(&request)?)),
                         ("request_digest", cmd::string(&request_digest(&request)?)),
+                        ("request_digest_profile", cmd::string(JCS_DIGEST_TAG)),
                         (
                             "principal_id",
                             cmd::field(&grant.value, "principal_id")?.clone(),
@@ -5171,5 +5269,94 @@ mod identity_inventory_tests {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod form_request_digest_tests {
+    use super::*;
+
+    fn receipt(digest: String, profile: Option<&str>) -> JsonValue {
+        let mut fields = vec![("request_digest", cmd::string(&digest))];
+        if let Some(profile) = profile {
+            fields.push(("request_digest_profile", cmd::string(profile)));
+        }
+        cmd::object(fields)
+    }
+
+    #[test]
+    fn form_request_digest_dispatches_jcs_and_legacy_without_fallback() {
+        let request = cmd::parse(br#"{"number":1.0,"operation":"apply"}"#).unwrap();
+        let jcs_receipt = receipt(
+            form_growth_request_digest(&request).unwrap(),
+            Some(JCS_DIGEST_TAG),
+        );
+        assert!(verify_form_growth_request_digest(&request, &jcs_receipt).unwrap());
+
+        let historical_bytes = tos_foundation::canonical_bytes_v1(
+            &request,
+            CanonicalProfile::SourceCommandInputV1,
+            request_digest_limits(),
+        )
+        .unwrap();
+        let historical_receipt =
+            receipt(Digest256::of_bytes(&historical_bytes).to_prefixed(), None);
+        assert!(verify_form_growth_request_digest(&request, &historical_receipt).unwrap());
+
+        let mismatched_jcs = receipt(
+            Digest256::of_bytes(&historical_bytes).to_prefixed(),
+            Some(JCS_DIGEST_TAG),
+        );
+        assert!(!verify_form_growth_request_digest(&request, &mismatched_jcs).unwrap());
+
+        let tagged_legacy = receipt(
+            Digest256::of_bytes(&historical_bytes).to_prefixed(),
+            Some(CanonicalProfile::SourceCommandInputV1.as_str()),
+        );
+        assert!(verify_form_growth_request_digest(&request, &tagged_legacy).is_err());
+    }
+}
+
+#[cfg(test)]
+mod retained_request_digest_tests {
+    use super::{request_digest, verify_request_digest};
+    use crate::source_command as cmd;
+    use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, canonical_bytes_v1};
+
+    #[test]
+    fn private_profile_requests_dispatch_by_stored_profile() {
+        let request = cmd::parse(br#"{"operation":"source.create","number":1.0}"#).unwrap();
+        let legacy = Digest256::of_bytes(
+            &canonical_bytes_v1(
+                &request,
+                CanonicalProfile::SourceCommandInputV1,
+                JsonLimits::default(),
+            )
+            .unwrap(),
+        )
+        .to_prefixed();
+        let historical = cmd::object(vec![("request_digest", cmd::string(&legacy))]);
+        assert!(verify_request_digest(&request, &historical).unwrap());
+
+        let current = cmd::object(vec![
+            (
+                "request_digest",
+                cmd::string(&request_digest(&request).unwrap()),
+            ),
+            ("request_digest_profile", cmd::string("jcs1")),
+        ]);
+        assert!(verify_request_digest(&request, &current).unwrap());
+
+        let mismatched = cmd::object(vec![
+            ("request_digest", cmd::string(&legacy)),
+            ("request_digest_profile", cmd::string("jcs1")),
+        ]);
+        assert!(!verify_request_digest(&request, &mismatched).unwrap());
+
+        let unknown = cmd::object(vec![
+            ("request_digest", cmd::string(&legacy)),
+            ("request_digest_profile", cmd::string("unknown")),
+        ]);
+        assert!(verify_request_digest(&request, &unknown).is_err());
     }
 }

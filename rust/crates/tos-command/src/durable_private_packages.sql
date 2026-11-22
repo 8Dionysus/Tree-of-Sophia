@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_schema_profile (
   profile_id text NOT NULL
 );
 INSERT INTO cmd2_private_schema_profile(singleton,profile_id)
-VALUES (true,'tos-private-owner-package-abi-v4')
+VALUES (true,'tos-private-owner-package-abi-v5')
 ON CONFLICT (singleton) DO NOTHING;
 -- v1/v2 drafts lack the scoped Text identity index. They may be upgraded only
 -- when there is no Text current row whose identity contribution set is absent.
@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_package_history (
   total_bytes bigint NOT NULL CHECK (total_bytes BETWEEN 1 AND 16777216),
   command_id text NOT NULL CHECK (octet_length(command_id) BETWEEN 1 AND 1024),
   request_digest text NOT NULL CHECK (request_digest ~ '^[0-9a-f]{64}$'),
+  request_digest_profile text,
   raw_request_digest text NOT NULL CHECK (raw_request_digest ~ '^[0-9a-f]{64}$'),
   owner_context_binding text NOT NULL CHECK (owner_context_binding ~ '^[0-9a-f]{64}$'),
   owner_configuration_digest text NOT NULL CHECK (owner_configuration_digest ~ '^[0-9a-f]{64}$'),
@@ -222,6 +223,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_command_receipt (
   family text NOT NULL CONSTRAINT cmd2_private_command_receipt_family_check
     CHECK (family IN ('text', 'alignment', 'profile', 'claim', 'assessment')),
   request_digest text NOT NULL CHECK (request_digest ~ '^[0-9a-f]{64}$'),
+  request_digest_profile text,
   raw_request_digest text NOT NULL CHECK (raw_request_digest ~ '^[0-9a-f]{64}$'),
   owner_context_binding text NOT NULL CHECK (owner_context_binding ~ '^[0-9a-f]{64}$'),
   owner_configuration_digest text NOT NULL CHECK (owner_configuration_digest ~ '^[0-9a-f]{64}$'),
@@ -244,6 +246,7 @@ CREATE TABLE IF NOT EXISTS cmd2_private_log (
   command_digest text NOT NULL CHECK (command_digest ~ '^[0-9a-f]{64}$'),
   target_digest text NOT NULL CHECK (target_digest ~ '^[0-9a-f]{64}$'),
   request_digest text NOT NULL CHECK (request_digest ~ '^[0-9a-f]{64}$'),
+  request_digest_profile text,
   package_digest text NOT NULL CHECK (package_digest ~ '^[0-9a-f]{64}$'),
   member_count integer NOT NULL CHECK (member_count BETWEEN 0 AND 65),
   PRIMARY KEY (domain, owner_scope, commit_seq),
@@ -316,6 +319,32 @@ ALTER TABLE cmd2_private_outbox
 UPDATE cmd2_private_schema_profile
    SET profile_id='tos-private-owner-package-abi-v4'
  WHERE singleton AND profile_id='tos-private-owner-package-abi-v3';
+-- v5 records the canonical digest profile alongside each persisted command
+-- request digest. Existing rows retain NULL and their recorded hash bytes.
+ALTER TABLE cmd2_private_package_history
+  ADD COLUMN IF NOT EXISTS request_digest_profile text;
+ALTER TABLE cmd2_private_command_receipt
+  ADD COLUMN IF NOT EXISTS request_digest_profile text;
+ALTER TABLE cmd2_private_log
+  ADD COLUMN IF NOT EXISTS request_digest_profile text;
+ALTER TABLE cmd2_private_package_history
+  DROP CONSTRAINT IF EXISTS cmd2_private_package_history_request_digest_profile_check;
+ALTER TABLE cmd2_private_package_history
+  ADD CONSTRAINT cmd2_private_package_history_request_digest_profile_check
+    CHECK (request_digest_profile IS NULL OR request_digest_profile IN ('jcs1','tos_source_command_input_v1'));
+ALTER TABLE cmd2_private_command_receipt
+  DROP CONSTRAINT IF EXISTS cmd2_private_command_receipt_request_digest_profile_check;
+ALTER TABLE cmd2_private_command_receipt
+  ADD CONSTRAINT cmd2_private_command_receipt_request_digest_profile_check
+    CHECK (request_digest_profile IS NULL OR request_digest_profile IN ('jcs1','tos_source_command_input_v1'));
+ALTER TABLE cmd2_private_log
+  DROP CONSTRAINT IF EXISTS cmd2_private_log_request_digest_profile_check;
+ALTER TABLE cmd2_private_log
+  ADD CONSTRAINT cmd2_private_log_request_digest_profile_check
+    CHECK (request_digest_profile IS NULL OR request_digest_profile IN ('jcs1','tos_source_command_input_v1'));
+UPDATE cmd2_private_schema_profile
+   SET profile_id='tos-private-owner-package-abi-v5'
+ WHERE singleton AND profile_id='tos-private-owner-package-abi-v4';
 
 CREATE OR REPLACE FUNCTION cmd2_private_bump_audit_fence() RETURNS trigger
 LANGUAGE plpgsql AS $$

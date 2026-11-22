@@ -44,6 +44,7 @@
     "subject_ref": {"$ref": "#/$defs/tosId"},
     "predicate": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]*$"},
     "object": {
+      "description": "Store a number as a string with its exact decimal spelling whenever jcs1 would round it or normalize its sign, including integers outside the exact binary64 range and negative zero.",
       "oneOf": [
         {"type": "string"},
         {"type": "number"},

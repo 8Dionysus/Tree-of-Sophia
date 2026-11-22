@@ -125,7 +125,19 @@ Lucretius and Epictetus, the Choice of Hercules for the Memorabilia, Diogenes
 with his lantern for the Lives), and motifs of its schools and concepts; it
 keeps the copies of its file images in a layer store of its own. Plutarch,
 Porphyry, Lucretius, Sextus Empiricus and Diogenes Laertius have no portrait
-yet. The viewer writes no style of its own: its
+yet. Aesthetics binds its images to the records of its
+field: the areas show their motifs (Botticelli's Birth of Venus for the
+beautiful, Friedrich's Wanderer for the sublime, Massys' Ugly Duchess for the
+ugly, Hogarth's Gin Lane for the base and his Laughing Audience for the comic,
+Brosamer's Laocoön for the tragic, Callot's hunchbacks for the grotesque,
+Goya's Sleep of Reason for the uncanny and the horrible, a plate of Gilpin's
+Three Essays for the picturesque); 27 of its 47 authors have a portrait, among
+them Hogarth painting the Comic Muse, Manet's Baudelaire, Sarony's Wilde and
+Schmutzer's Freud; its works show the plate of the Analysis of Beauty, the
+Laocoön Lessing analyses, Dürer's draughtsman with Alberti's veil, the
+Wanderer for Burke's Enquiry, the laughing audience for Baudelaire's essence of
+laughter and Callot's figures for the Preface to Cromwell. A card of an area, a
+concept, an author, a work or a reading asks the field for its images. The viewer writes no style of its own: its
 one touch-screen rule lives in the stand's stylesheet. Stars stay stars; an
 image belongs to the card.
 

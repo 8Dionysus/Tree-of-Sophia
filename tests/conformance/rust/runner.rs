@@ -1745,13 +1745,13 @@ pub(crate) fn native_python_fixture(
 
 pub(crate) fn assert_native_python_fixture(
     fixture: &NativePythonFixture,
-    legacy_factory_script: &str,
+    expected_factory_script_sha256: &str,
     native_owner_paths: &[&str],
 ) {
     let identity = &fixture.capture_identity;
     assert_eq!(
-        Digest256::of_bytes(legacy_factory_script.as_bytes()).to_hex(),
-        identity.factory_script_sha256
+        expected_factory_script_sha256, identity.factory_script_sha256,
+        "captured historical Python factory script digest"
     );
     assert_eq!(
         Digest256::of_bytes(&fixture.raw_packet).to_hex(),
@@ -2042,6 +2042,19 @@ fn independent_python_canonical_profile_oracles() {
                 "{id}/{} digest",
                 profile.as_str()
             );
+            let recorded = Digest256::from_hex(required(expected, digest_key)).unwrap();
+            assert!(
+                tos_foundation::verify_canonical_digest_v1(
+                    parsed.root(),
+                    None,
+                    profile,
+                    recorded,
+                    JsonLimits::default()
+                )
+                .unwrap(),
+                "{id}/{} frozen verifier",
+                profile.as_str()
+            );
             assert_eq!(
                 canonical_raw_bytes_v1(raw, profile, JsonLimits::default()).unwrap(),
                 bytes,
@@ -2058,6 +2071,16 @@ fn independent_python_canonical_profile_oracles() {
             .unwrap(),
             required(expected, "source_record_v1_utf8").as_bytes(),
             "{id}/command byte profile only"
+        );
+        assert!(
+            tos_foundation::verify_canonical_digest_v1(
+                parsed.root(),
+                None,
+                CanonicalProfile::SourceCommandInputV1,
+                Digest256::from_hex(required(expected, "source_record_v1_sha256")).unwrap(),
+                JsonLimits::default(),
+            )
+            .unwrap()
         );
     }
     let duplicate = br#"{"id":1,"\u0069d":2}"#;

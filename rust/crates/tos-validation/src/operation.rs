@@ -10,8 +10,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
 
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode, RelativePath,
-    SourceRevision, canonical_bytes_v1, parse_json,
+    CanonicalDigestProfileV1, CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, JsonMode,
+    RelativePath, SourceRevision, parse_json,
 };
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 
@@ -70,10 +70,12 @@ pub struct OperationProposal {
     pub candidate_revision: SourceRevision,
     pub request_raw: Vec<u8>,
     pub request_canonical_sha256: Digest256,
+    pub request_digest_profile: CanonicalDigestProfileV1,
     pub configuration_path: RelativePath,
     pub configuration_raw: Vec<u8>,
     pub configuration_raw_sha256: Digest256,
     pub configuration_canonical_sha256: Digest256,
+    pub configuration_digest_profile: CanonicalDigestProfileV1,
     pub changes: Vec<OperationChange>,
 }
 
@@ -122,6 +124,7 @@ pub struct ProtectedConfigurationBinding {
     pub path: RelativePath,
     pub raw_sha256: Digest256,
     pub canonical_sha256: Digest256,
+    pub digest_profile: CanonicalDigestProfileV1,
 }
 
 /// No public constructor: only the exact cut reader can establish this binding.
@@ -132,6 +135,7 @@ pub struct BoundOperation {
     base_revision: SourceRevision,
     candidate_revision: SourceRevision,
     request_canonical_sha256: Digest256,
+    request_digest_profile: CanonicalDigestProfileV1,
     configuration: ProtectedConfigurationBinding,
     delta_sha256: Digest256,
     candidate_carrier: SourceMembershipV1,
@@ -154,6 +158,9 @@ impl BoundOperation {
     }
     pub fn request_canonical_sha256(&self) -> Digest256 {
         self.request_canonical_sha256
+    }
+    pub fn request_digest_profile(&self) -> CanonicalDigestProfileV1 {
+        self.request_digest_profile
     }
     pub fn configuration(&self) -> &ProtectedConfigurationBinding {
         &self.configuration
@@ -192,21 +199,32 @@ fn check(limits: OperationLimits, cancelled: &AtomicBool) -> Result<(), Operatio
     Ok(())
 }
 
-fn canonical_digest(raw: &[u8], limits: OperationLimits) -> Result<Digest256, OperationRefusal> {
+fn canonical_digest_matches(
+    raw: &[u8],
+    profile: CanonicalDigestProfileV1,
+    expected: Digest256,
+    limits: OperationLimits,
+) -> Result<bool, OperationRefusal> {
     let json_limits = JsonLimits::new(limits.max_member_bytes, 64, 300_000, 4_300)
         .map_err(|_| OperationRefusal::Budget)?;
     let document = parse_json(raw, JsonMode::PublishedStrict, json_limits).map_err(|error| {
         OperationRefusal::Unsupported(format!("operation strict JSON: {error:?}"))
     })?;
-    let canonical = canonical_bytes_v1(
-        document.root(),
-        CanonicalProfile::SourceCommandInputV1,
-        json_limits,
-    )
-    .map_err(|error| {
-        OperationRefusal::Unsupported(format!("operation canonical JSON: {error:?}"))
-    })?;
-    Ok(Digest256::of_bytes(&canonical))
+    let historical_profile = match profile {
+        CanonicalDigestProfileV1::Jcs1 => CanonicalProfile::SourceCommandInputV1,
+        CanonicalDigestProfileV1::Legacy(historical) => historical,
+    };
+    profile
+        .verify(
+            document.root(),
+            profile.wire_tag(),
+            historical_profile,
+            expected,
+            json_limits,
+        )
+        .map_err(|error| {
+            OperationRefusal::Unsupported(format!("operation canonical JSON: {error:?}"))
+        })
 }
 
 fn feed(hash: &mut Digest256Hasher, value: &[u8]) {
@@ -244,9 +262,18 @@ pub fn bind_operation_from_cut(
         .find(|snapshot| snapshot.revision() == proposal.base_revision)
         .ok_or(OperationRefusal::InvalidProposal("base outside source cut"))?;
     if Digest256::of_bytes(&proposal.configuration_raw) != proposal.configuration_raw_sha256
-        || canonical_digest(&proposal.configuration_raw, limits)?
-            != proposal.configuration_canonical_sha256
-        || canonical_digest(&proposal.request_raw, limits)? != proposal.request_canonical_sha256
+        || !canonical_digest_matches(
+            &proposal.configuration_raw,
+            proposal.configuration_digest_profile,
+            proposal.configuration_canonical_sha256,
+            limits,
+        )?
+        || !canonical_digest_matches(
+            &proposal.request_raw,
+            proposal.request_digest_profile,
+            proposal.request_canonical_sha256,
+            limits,
+        )?
     {
         return Err(OperationRefusal::InvalidProposal(
             "request or configuration digest mismatch",
@@ -416,10 +443,12 @@ pub fn bind_operation_from_cut(
         base_revision: proposal.base_revision,
         candidate_revision: proposal.candidate_revision,
         request_canonical_sha256: proposal.request_canonical_sha256,
+        request_digest_profile: proposal.request_digest_profile,
         configuration: ProtectedConfigurationBinding {
             path: proposal.configuration_path.clone(),
             raw_sha256: proposal.configuration_raw_sha256,
             canonical_sha256: proposal.configuration_canonical_sha256,
+            digest_profile: proposal.configuration_digest_profile,
         },
         delta_sha256: delta.finalize(),
         candidate_carrier,

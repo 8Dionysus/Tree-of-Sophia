@@ -1012,6 +1012,20 @@ fn checked_path(value: &str) -> Result<RelativePath> {
     RelativePath::parse(value).map_err(|_| Error::Invalid("navigation dependency path"))
 }
 
+fn source_create_receipt_profile_matches(receipt: &Value) -> bool {
+    let schema = receipt.get("schema_version").and_then(Value::as_str);
+    let profile = match receipt.get("request_digest_profile") {
+        None => None,
+        Some(Value::String(profile)) => Some(profile.as_str()),
+        Some(_) => return false,
+    };
+    matches!(
+        (schema, profile),
+        (Some("tos_local_source_create_receipt_v1"), None)
+            | (Some("tos_local_source_create_receipt_v2"), Some("jcs1"))
+    )
+}
+
 fn validate_event_record_binding(
     event: &Value,
     receipt: &Value,
@@ -1031,8 +1045,7 @@ fn validate_event_record_binding(
             .pointer("/record_binding/digest_scope")
             .and_then(Value::as_str)
             != Some("exact_event_record_bytes")
-        || receipt.get("schema_version").and_then(Value::as_str)
-            != Some("tos_local_source_create_receipt_v1")
+        || !source_create_receipt_profile_matches(receipt)
         || receipt.get("source_path").and_then(Value::as_str) != Some(source_path.as_str())
         || receipt.pointer("/source/id").and_then(Value::as_str)
             != source_record.get("record_id").and_then(Value::as_str)

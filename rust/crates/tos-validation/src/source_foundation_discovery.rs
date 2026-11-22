@@ -31,7 +31,7 @@ use std::time::Instant;
 use tos_foundation::{
     CanonicalProfile, Digest256, Digest256Hasher, JsonEmissionProfile, JsonLimits, JsonMode,
     JsonValue, RelativePath, SourceRevision, canonical_bytes_v1, emit_json_profile,
-    emit_value_preserved_json, parse_json,
+    emit_value_preserved_json, jcs_digest_v1, parse_json,
 };
 use tos_source_store::{CorpusCutReader, SourceMembershipV1, SourcePresenceV1};
 
@@ -7572,7 +7572,18 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 "retained request is not an unconditioned source.create request",
             )?;
         }
-        let expected_receipt_keys = BTreeSet::from([
+        let receipt_version = string(&receipt, "schema_version");
+        let receipt_is_v2 = receipt_version == Some("tos_local_source_create_receipt_v2");
+        let receipt_profile_valid = match receipt_version {
+            Some("tos_local_source_create_receipt_v1") => {
+                receipt.get("request_digest_profile").is_none()
+            }
+            Some("tos_local_source_create_receipt_v2") => {
+                string(&receipt, "request_digest_profile") == Some("jcs1")
+            }
+            _ => false,
+        };
+        let mut expected_receipt_keys = BTreeSet::from([
             "schema_version",
             "command_id",
             "request_digest",
@@ -7586,13 +7597,14 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
             "files",
             "grants_admission",
         ]);
+        if receipt_is_v2 {
+            expected_receipt_keys.insert("request_digest_profile");
+        }
         let actual_receipt_keys: BTreeSet<&str> = receipt
             .as_object()
             .map(|object| object.keys().map(String::as_str).collect())
             .unwrap_or_default();
-        if actual_receipt_keys != expected_receipt_keys
-            || string(&receipt, "schema_version") != Some("tos_local_source_create_receipt_v1")
-        {
+        if actual_receipt_keys != expected_receipt_keys || !receipt_profile_valid {
             inspector.issue(
                 receipt_path,
                 "native-artifact-receipt-shape-drift",
@@ -7643,12 +7655,25 @@ fn native_artifact_capture<S: LayerFamilySource + ?Sized, I: Copy + Eq>(
                 }
             }
         }
-        let canonical_request = serde_json::to_vec(&request)
-            .map_err(|_| ItemRefusal::Source("source request encoding failed".into()))?;
-        let request_digest = format!(
-            "sha256:{}",
-            Digest256::of_bytes(&canonical_request).to_hex()
-        );
+        let request_digest = if receipt_is_v2 {
+            let limits = JsonLimits::new(
+                inspector.limits.max_member_bytes.min(8_388_608),
+                64,
+                300_000,
+                4_300,
+            )
+            .map_err(|_| crate::item_budget_origin!())?;
+            jcs_digest_v1(&request_ordered, limits)
+                .map(|digest| digest.digest.to_prefixed())
+                .map_err(|_| ItemRefusal::Source("source request jcs1 digest failed".into()))?
+        } else {
+            let canonical_request = serde_json::to_vec(&request)
+                .map_err(|_| ItemRefusal::Source("source request encoding failed".into()))?;
+            format!(
+                "sha256:{}",
+                Digest256::of_bytes(&canonical_request).to_hex()
+            )
+        };
         if !python_optional_json_equal(
             receipt.get("source_path"),
             Some(&Value::String(artifact_path.to_owned())),

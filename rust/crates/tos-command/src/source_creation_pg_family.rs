@@ -6,7 +6,7 @@
 use super::forms;
 use super::{
     CreationFamily, PreparedCreation, configuration, historical_claims_with_schema,
-    initial_with_candidate_schema, prepare_source_forms,
+    initial_with_candidate_schema, prepare_source_forms, verify_creation_request_receipt,
 };
 use crate::source_cohort::creation::{self, PgCreationInput};
 use crate::source_cohort::revision::{
@@ -23,7 +23,10 @@ use crate::source_revisions::{
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
-use tos_foundation::{Digest256, JsonValue, RelativePath};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, JsonValue, RelativePath,
+    verify_canonical_digest_v1,
+};
 use tos_source_store::{SoftwareCaptureReader, SoftwareComponentSelectionV1};
 
 pub(crate) const PG_HISTORICAL_V1_FAMILY_TAG: &str =
@@ -1011,6 +1014,7 @@ impl PreparedPgFamilyCreation {
                 record_name.to_owned(),
                 format!("{}.human-forms.json", record_name.trim_end_matches(".json")),
                 "historical-claims.jsonl".to_owned(),
+                "source-create-request.json".to_owned(),
                 "source-create-receipt.json".to_owned(),
             ])
         } else if family.historical() {
@@ -1196,13 +1200,19 @@ pub(crate) fn recovery_package_contract(
         ));
     }
     let forms_name = format!("{}.human-forms.json", source_name.trim_end_matches(".json"));
+    let historical_v1_has_request = family == CreationFamily::HistoricalV1
+        && cmd::text(&receipt, "schema_version")? == "tos_local_historical_create_receipt_v2";
     let expected_members = if family == CreationFamily::HistoricalV1 {
-        BTreeSet::from([
+        let mut expected = BTreeSet::from([
             source_name.to_owned(),
             forms_name.clone(),
             "historical-claims.jsonl".to_owned(),
             "source-create-receipt.json".to_owned(),
-        ])
+        ]);
+        if historical_v1_has_request {
+            expected.insert("source-create-request.json".to_owned());
+        }
+        expected
     } else if family.historical() {
         BTreeSet::from([
             source_name.to_owned(),
@@ -1247,10 +1257,22 @@ pub(crate) fn recovery_package_contract(
             "Historical/Profile source identity differs",
         ));
     }
-    let expected_receipt_schema = if family.historical() {
-        "tos_local_historical_create_receipt_v1"
+    let receipt_schema = cmd::text(&receipt, "schema_version")?;
+    let (expected_receipt_schema_v1, expected_receipt_schema_v2) = if family.historical() {
+        (
+            "tos_local_historical_create_receipt_v1",
+            "tos_local_historical_create_receipt_v2",
+        )
     } else {
-        "tos_local_source_create_receipt_v1"
+        (
+            "tos_local_source_create_receipt_v1",
+            "tos_local_source_create_receipt_v2",
+        )
+    };
+    let profile_tagged = match receipt_schema {
+        schema if schema == expected_receipt_schema_v1 => false,
+        schema if schema == expected_receipt_schema_v2 => true,
+        _ => return Err(SourceCommandError::Conflict("creation receipt profile")),
     };
     let mut receipt_keys = vec![
         "schema_version",
@@ -1266,6 +1288,9 @@ pub(crate) fn recovery_package_contract(
         "files",
         "grants_admission",
     ];
+    if profile_tagged {
+        receipt_keys.push("request_digest_profile");
+    }
     receipt_keys.sort_unstable();
     let mut observed_keys = receipt
         .as_object()
@@ -1275,7 +1300,6 @@ pub(crate) fn recovery_package_contract(
         .collect::<Vec<_>>();
     observed_keys.sort_unstable();
     if observed_keys != receipt_keys
-        || cmd::text(&receipt, "schema_version")? != expected_receipt_schema
         || cmd::text(&receipt, "source_path")? != source_path
         || cmd::field(&receipt, "grants_admission")? != &JsonValue::Bool(false)
         || cmd::text(&receipt, "command_id")?.is_empty()
@@ -1295,6 +1319,14 @@ pub(crate) fn recovery_package_contract(
         return Err(SourceCommandError::Conflict(
             "creation receipt binding differs",
         ));
+    }
+    let request_raw = members.get("source-create-request.json").copied();
+    if profile_tagged || request_raw.is_some() {
+        let request_raw = request_raw.ok_or(SourceCommandError::Conflict(
+            "tagged creation receipt has no request preimage",
+        ))?;
+        let request = cmd::parse(request_raw)?;
+        verify_creation_request_receipt(&request, &receipt)?;
     }
     validate_receipt_files(&receipt, &members)?;
     let forms_raw = members[forms_name.as_str()];
@@ -1503,4 +1535,49 @@ fn validate_historical_claim_stream(
         // has been parsed; here the stream shape and ID set are sealed.
     }
     Ok(ids)
+}
+
+#[cfg(test)]
+mod creation_request_profile_tests {
+    use crate::{
+        source_command as cmd,
+        source_creation::{creation_request_digest, verify_creation_request_receipt},
+    };
+    use tos_foundation::{JCS_DIGEST_TAG, JsonLimits, JsonMode, parse_json};
+
+    #[test]
+    fn creation_request_receipts_write_jcs_and_read_both_profiles() {
+        let raw = br#"{"schema_version":"tos_local_source_command_v1","operation":"source.create","record":{"x":1,"y":2}}"#;
+        let request = parse_json(raw, JsonMode::PublishedStrict, JsonLimits::default()).unwrap();
+        let jcs_digest = creation_request_digest(request.root()).unwrap();
+        let jcs_receipt = cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_local_source_create_receipt_v2"),
+            ),
+            ("request_digest", cmd::string(&jcs_digest.to_prefixed())),
+            ("request_digest_profile", cmd::string(JCS_DIGEST_TAG)),
+        ]);
+        verify_creation_request_receipt(request.root(), &jcs_receipt).unwrap();
+
+        let legacy_digest = cmd::record_digest(request.root()).unwrap();
+        let legacy_receipt = cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_local_source_create_receipt_v1"),
+            ),
+            ("request_digest", cmd::string(&legacy_digest.to_prefixed())),
+        ]);
+        verify_creation_request_receipt(request.root(), &legacy_receipt).unwrap();
+
+        let mismatch = cmd::object(vec![
+            (
+                "schema_version",
+                cmd::string("tos_local_source_create_receipt_v2"),
+            ),
+            ("request_digest", cmd::string(&jcs_digest.to_prefixed())),
+            ("request_digest_profile", cmd::string("raw-bytes")),
+        ]);
+        assert!(verify_creation_request_receipt(request.root(), &mismatch).is_err());
+    }
 }

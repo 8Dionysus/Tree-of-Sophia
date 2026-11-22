@@ -11,8 +11,8 @@ use crate::{Error, Result};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{
-    CanonicalProfile, Digest256, Digest256Hasher, JsonLimits, RelativePath, SourceRevision,
-    canonical_raw_bytes_v1,
+    CanonicalProfile, Digest256, Digest256Hasher, JCS_DIGEST_TAG, JsonLimits, JsonMode,
+    RelativePath, SourceRevision, canonical_raw_bytes_v1, parse_json, verify_canonical_digest_v1,
 };
 use tos_source_store::{CorpusCutReader, SourceMembershipV1};
 
@@ -4518,6 +4518,71 @@ fn package_revision(files: &BTreeMap<String, Vec<u8>>, l: BibliographicLimits) -
         digest(&Value::Object(bindings), l.max_claim_cohort_bytes)?
     ))
 }
+fn creation_request_receipt_matches(
+    request_raw: &[u8],
+    receipt: &Value,
+    max_bytes: usize,
+) -> Result<bool> {
+    let schema = receipt["schema_version"].as_str();
+    let profile = match schema {
+        Some("tos_local_historical_create_receipt_v1")
+            if receipt.get("request_digest_profile").is_none() =>
+        {
+            None
+        }
+        Some("tos_local_historical_create_receipt_v2")
+            if receipt["request_digest_profile"] == JCS_DIGEST_TAG =>
+        {
+            Some(JCS_DIGEST_TAG)
+        }
+        _ => return Ok(false),
+    };
+    let mut expected_keys = vec![
+        "schema_version",
+        "command_id",
+        "request_digest",
+        "principal_id",
+        "authority_ref",
+        "owner_configuration",
+        "recorded_at",
+        "source_path",
+        "source",
+        "dependencies",
+        "files",
+        "grants_admission",
+    ];
+    if profile.is_some() {
+        expected_keys.push("request_digest_profile");
+    }
+    expected_keys.sort_unstable();
+    if receipt.as_object().map(|object| {
+        let mut observed = object.keys().map(String::as_str).collect::<Vec<_>>();
+        observed.sort_unstable();
+        observed
+    }) != Some(expected_keys)
+    {
+        return Ok(false);
+    }
+    let expected = receipt["request_digest"]
+        .as_str()
+        .ok_or(Error::Invalid("historical creation request digest"))?;
+    let expected = Digest256::from_prefixed(expected)
+        .map_err(|_| Error::Invalid("historical creation request digest"))?;
+    let limits = JsonLimits {
+        max_bytes: max_bytes.min(8_388_608),
+        ..JsonLimits::default()
+    };
+    let request = parse_json(request_raw, JsonMode::PublishedStrict, limits)
+        .map_err(|_| Error::Invalid("historical creation request JSON"))?;
+    verify_canonical_digest_v1(
+        request.root(),
+        profile,
+        CanonicalProfile::SourceCommandInputV1,
+        expected,
+        limits,
+    )
+    .map_err(|_| Error::Invalid("historical creation request digest profile"))
+}
 const HISTORICAL_CAPTURE: [&str; 4] = [
     "source-create-request.json",
     "source-create-receipt.json",
@@ -4637,6 +4702,105 @@ fn verify_historical_capture_with(
         }
         return Ok(());
     }
+    if present == 2
+        && files.contains_key("source-create-request.json")
+        && files.contains_key("source-create-receipt.json")
+        && !files.contains_key("source-create-environment.json")
+        && !files.contains_key("source-create-provenance.jsonl")
+    {
+        let request = owned(
+            &files["source-create-request.json"],
+            l.catalog.max_row_bytes,
+        )?;
+        let receipt = owned(
+            &files["source-create-receipt.json"],
+            l.catalog.max_row_bytes,
+        )?;
+        exact_keys(
+            &request,
+            &[
+                "schema_version",
+                "operation",
+                "record",
+                "claims",
+                "forms",
+                "command_id",
+                "expected_configuration",
+                "expected_source",
+                "expected_revision",
+                "expected_dependencies",
+            ],
+        )?;
+        let record = &request["record"];
+        let record_type = text(record, "record_type")?;
+        let record_path = text(&receipt, "source_path")?;
+        let receipt_files = receipt["files"]
+            .as_object()
+            .ok_or(Error::Invalid("historical V2 receipt files"))?;
+        let expected_files = files
+            .keys()
+            .filter(|name| name.as_str() != "source-create-receipt.json")
+            .cloned()
+            .collect::<BTreeSet<_>>();
+        let receipt_file_names = receipt_files.keys().cloned().collect::<BTreeSet<_>>();
+        let mut stream = Vec::new();
+        for claim in array(&request, "claims")? {
+            stream.extend_from_slice(&encode(claim, l.catalog.max_row_bytes)?);
+            stream.push(b'\n');
+        }
+        if record_type.is_empty() {
+            return Err(Error::Invalid("historical V2 record type"));
+        }
+        let stream_matches = files
+            .get("historical-claims.jsonl")
+            .is_some_and(|raw| raw == &stream);
+        if !stream_matches {
+            return Err(Error::Invalid("historical V2 claim stream binding"));
+        }
+        if !receipt_files
+            .keys()
+            .all(|key| files.contains_key(key.as_str()))
+            || receipt_file_names != expected_files
+            || receipt["schema_version"] != "tos_local_historical_create_receipt_v2"
+            || request["schema_version"] != "tos_local_source_command_v1"
+            || request["operation"] != "historical.create"
+            || !request["expected_source"].is_null()
+            || !request["expected_revision"].is_null()
+            || !matches!(
+                record_type,
+                "historical-event" | "historical-process" | "historical-state"
+            )
+            || record_path.rsplit_once('/').map(|(p, _)| p)
+                != reference.rsplit_once('/').map(|(p, _)| p)
+            || record_path.rsplit('/').next() != Some(format!("{record_type}.json").as_str())
+            || receipt["command_id"] != request["command_id"]
+            || !creation_request_receipt_matches(
+                &files["source-create-request.json"],
+                &receipt,
+                l.catalog.max_row_bytes,
+            )?
+            || receipt["owner_configuration"] != request["expected_configuration"]
+            || receipt["dependencies"] != request["expected_dependencies"]
+            || receipt["source"] != record_ref(record, false, l)?
+            || receipt["grants_admission"] != false
+            || files.contains_key("claim-revision-history.json")
+        {
+            return Err(Error::Invalid("historical V2 creation request receipt"));
+        }
+        for name in &expected_files {
+            let bytes = &files[name];
+            let binding = &receipt_files[name];
+            exact_keys(binding, &["sha256", "bytes"])?;
+            if binding["sha256"] != format!("sha256:{}", Digest256::of_bytes(bytes).to_hex())
+                || binding["bytes"].as_u64() != Some(bytes.len() as u64)
+            {
+                return Err(Error::Invalid(
+                    "historical V2 creation package member binding",
+                ));
+            }
+        }
+        return Ok(());
+    }
     if present != HISTORICAL_CAPTURE.len() {
         return Err(Error::Invalid(
             "historical Claim creation capture is partial",
@@ -4674,10 +4838,12 @@ fn verify_historical_capture_with(
         || record_source_path.rsplit_once('/').map(|(p, _)| p)
             != reference.rsplit_once('/').map(|(p, _)| p)
         || record_source_path.rsplit('/').next() != Some(format!("{record_type}.json").as_str())
-        || receipt["schema_version"] != "tos_local_historical_create_receipt_v1"
         || receipt["command_id"] != request["command_id"]
-        || receipt["request_digest"]
-            != format!("sha256:{}", digest(&request, l.catalog.max_row_bytes)?)
+        || !creation_request_receipt_matches(
+            &files["source-create-request.json"],
+            &receipt,
+            l.catalog.max_row_bytes,
+        )?
         || receipt["owner_configuration"] != request["expected_configuration"]
         || receipt["dependencies"] != request["expected_dependencies"]
         || receipt["source"] != record_ref(&request["record"], false, l)?

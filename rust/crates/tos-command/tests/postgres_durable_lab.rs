@@ -25,7 +25,7 @@ use tos_command::{
     StreamedGenerationProfile, durable_shadow_delta, durable_shadow_delta_prepared,
     lab_record_bytes,
 };
-use tos_foundation::Digest256;
+use tos_foundation::{Digest256, JCS_DIGEST_TAG, JsonLimits, JsonMode, jcs_digest_v1, parse_json};
 use tos_segment_store::{
     AttemptRecovery, FrameInput, GenerationNamespaceV1, GenerationReadLimits,
     GenerationShapeLimits, KeyComparatorV1, OwnerBinding, PackedPartitionRefV1, SegmentLimits,
@@ -2248,11 +2248,36 @@ fn maintained_agent_creation_operation<
             &cancelled,
         )
         .unwrap();
-        packages.push(
-            prepared
-                .serialize(&software, &components, &mut worker, deadline, &cancelled)
-                .unwrap(),
+        let serialized = prepared
+            .serialize(&software, &components, &mut worker, deadline, &cancelled)
+            .unwrap();
+        let files = serialized.prepared().files();
+        let receipt: serde_json::Value =
+            serde_json::from_slice(&files["source-create-receipt.json"]).unwrap();
+        let request = parse_json(
+            &files["source-create-request.json"],
+            JsonMode::PublishedStrict,
+            JsonLimits {
+                max_bytes: 8_388_608,
+                ..JsonLimits::default()
+            },
+        )
+        .unwrap();
+        let digest = jcs_digest_v1(
+            request.root(),
+            JsonLimits {
+                max_bytes: 8_388_608,
+                ..JsonLimits::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            receipt["schema_version"],
+            "tos_local_source_create_receipt_v2"
         );
+        assert_eq!(receipt["request_digest_profile"], JCS_DIGEST_TAG);
+        assert_eq!(receipt["request_digest"], digest.digest.to_prefixed());
+        packages.push(serialized);
         worker.finish(deadline, &cancelled).unwrap();
         contexts.push(context);
     }
