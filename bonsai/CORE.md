@@ -145,6 +145,48 @@ it, each witness with its edition, source and rights. A place is the formula
 of a conception: whole sentences of the work, read on the printed page where a
 transcription and the page differ.
 
+## A core of a population
+
+Version 1, 2026-11-20. Instance: [`population/population.json`](population/population.json).
+
+The core of a work measures one work, the core of a field one question across
+works. A population is measured as the people and the other bearers of
+responsibility a corpus is written by: who they are, how firmly each is told
+apart from the others, and which register rows say so. Its first circle is the
+authors of the Tree's philosophical corpus; translators, editors, schools,
+places and events grow on it as further rings.
+
+| Object | Minimal data | Invariants | Tree type |
+| --- | --- | --- | --- |
+| Register row | batch, record ID, the row as its workbook holds it | kept whole in the review layer; never edited; a corrected register comes in as a new version of its workbook | — |
+| Member | ID, kind, names (ru, en, original), the register's statuses, the reader's verdict, phases, gaps, the rows it grew from | every register row lies in exactly one member or is left out with a reason; an ID is never given twice | agent, organization |
+| Kind | person, pseudonymous author, conventional or traditional authorial identity, voice a tradition attributes a text to, unnamed hand, collective | a kind other than person rests on the register's own words, quoted | agent, organization |
+| Phase | a member's lifetime or years of activity | dated as a Tree `historicalDate` in the register's words, with the register's line; footing low | biographical-phase |
+| Join | two rows, the evidence and the tier that joined them | automatic only on a shared authority identifier, a strong name with an agreeing year of birth or death, or a short name with both years; a reader's decision for everything else | — |
+| Question | two members, the shared keys, the reason the join was not made | answered by two independent readers who read the rows, not the resolution's reasoning | assessment |
+
+**Identity before meaning.** A member is a claim that several rows speak of one
+bearer of responsibility; nothing about the member's thought is claimed. A wrong
+join of two people is worse than two members for one person, so the automatic
+joins are strict and everything else waits for a reader. A pseudonymous author
+never joins the one whose name he writes under; rows one register keeps apart
+stay apart.
+
+**Stable identity.** A member's ID comes from the row it was founded on and the
+ledger keeps it: a merge leaves the later ID as a redirect, a split keeps the ID
+with its founding row. Saved personal graphs keep resolving through the
+redirects.
+
+**The register speaks, the reader decides.** The register's `verified`,
+`provisional` and `disputed` stay its own statuses; the member's verdict is the
+reader's and stays `undecided` until a reader has read the rows. Dates, names
+and kinds are the register's words; a date the register leaves unchecked or
+writes in a form the parser does not read stays a gap, listed on the member.
+
+**Rings.** The skeleton holds identity and life. Works, places, events and
+references grow ring by ring from the registers of their batches, each joining
+the members by the row IDs the registers already use.
+
 ## Subject, claim and representation
 
 - **The place** is what the work says: the witness's text at a stable address.

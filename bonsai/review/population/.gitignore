@@ -1,0 +1,4 @@
+# The register rows and their parsed layer live in R2; layers.json is their digest manifest.
+# `node bonsai/lib/layers.mjs fetch bonsai/review/population` brings these files into a checkout.
+/registry/
+/layer/

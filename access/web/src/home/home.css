@@ -12,7 +12,7 @@ body{display:flex;flex-direction:column;min-height:100dvh;font:16px/1.5 system-u
 .home-select:hover{color:var(--ink)}
 .home-select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .home-select option{background:var(--ground);color:var(--ink)}
-.home{box-sizing:border-box;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(28px,5vh,52px);width:100%;max-width:1040px;margin:0 auto;padding:24px 20px 56px}
+.home{box-sizing:border-box;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(28px,5vh,52px);width:100%;max-width:1240px;margin:0 auto;padding:24px 20px 56px}
 .home-head{display:flex;flex-direction:column;align-items:center;gap:16px;max-width:600px;text-align:center}
 .home-mark{display:flex;flex-direction:column;align-items:center;gap:14px;margin:0;color:var(--ink);font:500 12px/1.2 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.22em;text-transform:uppercase}
 .home-mark::before{content:'';width:44px;height:44px;background:url(/tree-mark.svg) center/contain no-repeat}
@@ -21,7 +21,8 @@ body{display:flex;flex-direction:column;min-height:100dvh;font:16px/1.5 system-u
 .home-tagline{margin:0;color:var(--text);font:400 clamp(17px,2.3vw,20px)/1.6 Sophia,Georgia,'Times New Roman',serif}
 .home-choice{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%}
 .home-choose{margin:0;color:var(--muted);font:600 11px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.18em;text-transform:uppercase}
-.home-stands{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px;width:100%;max-width:980px;margin:0;padding:0;list-style:none}
+.home-stands{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;width:100%;max-width:1200px;margin:0;padding:0;list-style:none}
+.home-stand{flex:0 1 280px;min-width:min(100%,240px)}
 .home-stand a{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;padding:8px 24px 28px;border:1px solid transparent;border-radius:18px;color:inherit;text-align:center;text-decoration:none;transition:border-color .35s,background-color .35s,transform .35s}
 .home-stand a:hover{border-color:var(--rule);background:var(--raised);transform:translateY(-3px)}
 .home-stand a:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-color:var(--rule);background:var(--raised)}

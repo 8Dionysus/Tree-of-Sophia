@@ -7,6 +7,7 @@ test('public prototype paths map to their built pages', () => {
     ['/zarathustra', '/zarathustra/'], ['/zarathustra/', '/zarathustra/'],
     ['/antiquity', '/antiquity/'], ['/antiquity/', '/antiquity/'],
     ['/aesthetics', '/aesthetics/'], ['/aesthetics/', '/aesthetics/'],
+    ['/population', '/population/'], ['/population/', '/population/'],
   ]) {
     assert.equal(publicPrototypeAsset(path), page);
   }

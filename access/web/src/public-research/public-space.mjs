@@ -24,6 +24,9 @@ import {readPlaces} from '../../../../bonsai/lib/places.mjs';
 import {clipLinesRight,planeOfPlaces} from './space-geography.mjs';
 import {AREA_TITLES,SCHOOL_ERA,TREE_LABEL_FROM,antiquityTree,treeVia} from './space-tree.mjs';
 import {aestheticsTree,aestheticsSourceGroups} from './aesthetics-tree.mjs';
+import {populationTree} from './population-tree.mjs';
+import {populationEyebrow,populationKindWord,renderPopulationCard} from './population-card.mjs';
+import {populationTimeline} from './population-time.mjs';
 import {PART_TITLES,zarathustraTree} from './space-tree-zarathustra.mjs';
 import {antiquityBook,zarathustraBook} from './reference-outline.mjs';
 import {createReferenceBook} from './reference-book.mjs';
@@ -165,7 +168,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     // The node opens where the reader is: in the experience when it holds the page, on the map otherwise; an open book gives way to it.
     openNode:id=>{const book=fragments.reader?.dialog;if(book?.open)book.close();if(shell.dispatchEvent(new CustomEvent('public-research-open',{bubbles:true,cancelable:true,detail:{id}})))openResearch(id);}});
   // The lens "Time" exists where the data dates or orders its material: Antiquity by the years its bonsai gives the writings, Zarathustra by the order of the book.
-  const timeline=profile==='aesthetics'?aestheticsTimeline({field:bonsai.field,library,chronology:bonsai.chronology}):profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology}):null;
+  const timeline=profile==='aesthetics'?aestheticsTimeline({field:bonsai.field,library,chronology:bonsai.chronology}):profile==='antiquity'?antiquityTimeline({routes,entries:library.space?.collection??[],chronology:bonsai?.chronology}):profile==='zarathustra'?zarathustraTimeline({materials:[...materials.values()],references:atlas.references??{},clusters:atlas.clusters??[],chronology:bonsai?.chronology})
+    :profile==='population'&&bonsai?.population?populationTimeline({population:bonsai.population,chronology:bonsai.chronology}):null;
   // What a star's dating and place are about: the writing of its passage or work (Antiquity), of the text it first rests on (Zarathustra).
   const situationOf=materialId=>profile==='aesthetics'?(materials.get(materialId)?.dating??bonsai?.chronology?.compositions?.works?.[materials.get(materialId)?.workId]??materials.get(materialId)?.life??null):profile==='antiquity'?timeline?.timeOf?.(materialId)?.composition??null:bonsai?.chronology?.compositions?.references?.[timeline?.firstGround?.(materialId)]??bonsai?.chronology?.book?.parts?.find(item=>item.part===timeline?.placeOf?.(materialId)?.part)?.writing??null;
   const placesReader=bonsai?.places?readPlaces(bonsai.places):null;
@@ -177,7 +181,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // library and core. It is a view; the saved graph keeps its own places.
   const treeLayout=profile==='antiquity'&&bonsai?.collection?antiquityTree({collection:bonsai.collection,chronology:bonsai.chronology,
     materialOf:legacy=>{const id=collectionByLegacyId.get(legacy)?.materialId;return id&&materials.has(id)?id:null;}})
-    :profile==='zarathustra'&&library?.space?.core?zarathustraTree({library}):profile==='aesthetics'&&bonsai?.field?aestheticsTree({library,field:bonsai.field,catalog:bonsai.library,chronology:bonsai.chronology}):null;
+    :profile==='zarathustra'&&library?.space?.core?zarathustraTree({library}):profile==='aesthetics'&&bonsai?.field?aestheticsTree({library,field:bonsai.field,catalog:bonsai.library,chronology:bonsai.chronology})
+    :profile==='population'&&bonsai?.population?populationTree({library}):null;
   // The lens "Space" exists where the bonsai places the material; a star without a sourced place stands apart from the map.
   const geography=bonsai?.places?planeOfPlaces({stars:starIds,placeOf,places:bonsai.places.places}):null;
   // The lens "Proximity" measures from one star by one criterion its bonsai names; its direction groups by branch or circle.
@@ -190,7 +195,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   const passageOf=materialId=>collectionByLegacyId.get(String(materialId).replace(/^antiquity:reading:/,''));
   const distances=proximityCriteria({conceptsOf:id=>profile==='aesthetics'?materials.get(id)?.concepts??null:passageOf(id)?.concepts??null,groundsOf:id=>timeline?.groundsOf?.(id)??null,edges:nearEdges,spanOf:id=>timeline?.spanOf?.(id)??null,pointOf:id=>placeOf(id)?.point??null,chapterOf:id=>timeline?.placeOf?.(id)?.chapter??null});
   const criteria=(bonsai?.manifest?.lenses?.proximity?.criteria??[]).filter(item=>distances[item.id]&&(!item.requires||(item.requires==='places'?!!geography:item.requires==='chronology'?timeline?.kind==='years':true)));
-  const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:profile==='aesthetics'?{ru:'Годы написания; строки — группы областей',en:'Years of writing; rows are groups of areas'}:timeline.kind==='years'?{ru:'Годы написания; строки — ветви',en:'Years of writing; rows are branches'}:{ru:'Порядок книги, от Пролога до четвёртой части; строки — круги карты',en:'The order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
+  const timeLens=timeline?{id:'time',icon:'◷',title:{ru:'Время',en:'Time'},description:profile==='aesthetics'?{ru:'Годы написания; строки — группы областей',en:'Years of writing; rows are groups of areas'}:profile==='population'?{ru:'Годы жизни или деятельности; строки — регионы',en:'Years of life or activity; rows are regions'}:timeline.kind==='years'?{ru:'Годы написания; строки — ветви',en:'Years of writing; rows are branches'}:{ru:'Порядок книги, от Пролога до четвёртой части; строки — круги карты',en:'The order of the book, from the Prologue to Part Four; rows are the map’s circles'}}:null;
   const spaceLens=geography?{id:'space',icon:'⌖',title:{ru:'Пространство',en:'Space'},description:{ru:'Где написан текст или где жил его автор',en:'Where the text was written, or where its author lived'}}:null;
   const proximityLens=starIds.length&&criteria.length?{id:'proximity',icon:'⊙',title:{ru:'Близость',en:'Proximity'},description:{ru:'Расстояние от выбранной звезды',en:'Distance from the chosen star'}}:null;
   // A lens with no stars of its own in this library is not offered.
@@ -199,7 +204,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // A lens measures where its bonsai has the measure; it stands in volume as the tree does (space-volumes.mjs), but an open
   // branch on the scale of time keeps its own flat order, read top to bottom. A flat lens is a measured one.
   const measuredData=id=>(id==='time'&&!!timeline)||(id==='space'&&!!geography)||(id==='proximity'&&!!proximityLens);
-  const volumeLens=id=>measuredData(id)&&!(id==='time'&&(profile==='aesthetics'||stepView()));
+  const volumeLens=id=>measuredData(id)&&!(id==='time'&&(profile==='aesthetics'||profile==='population'||stepView()));
   const measuredLens=id=>measuredData(id)&&!volumeLens(id);
   // The lenses that gather stand in volume as the tree does, each in the form of what it gathers (space-gatherings.mjs).
   const GATHERING=new Set(['sources','meaning','tensions','images']),gatherings=new Map();
@@ -765,6 +770,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     else if(lens==='tree'&&treeLayout)applyTree(projected);
     else if(gathered)applyGathering(projected,gatheringNow(lens));
     else applyDepth(projected);
+    if(profile==='population')dotMembers(projected);
     // A choice turns the space toward itself on the lenses that group; a measure keeps its axes, a route its way and a
     // comparison or a new link its stars where the reader set them.
     aspect=null;
@@ -1109,6 +1115,18 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     projected.backdrop=treeBackdrop();
     projected.shade=treeShade();
   }
+  // The Population's members are too many for a star each: in every lens they stand as dots on the sky, and a member
+  // gets a star when it is chosen or compared, so its card, its threads and its name come with it.
+  function dotMembers(projected){
+    const keep=new Set([selected,...compareIds,...connectIds].filter(Boolean)),dots=[];
+    projected.nodes=projected.nodes.filter(node=>{
+      if(!String(node.materialId??'').startsWith('population:member:')||keep.has(node.id))return true;
+      dots.push({id:node.id,position:node.position,kind:node.kind,title:label(matForNode(node)??node)});return false;
+    });
+    const starIds=new Set(projected.nodes.map(node=>node.id));
+    projected.edges=projected.edges.filter(edge=>starIds.has(edge.from)&&starIds.has(edge.to));
+    projected.points=dots;
+  }
   // The tree's ground, where its shadow lies in the day: the centre and radius of its ground circle.
   let treeShadeMemo;
   function treeShade(){
@@ -1449,12 +1467,16 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(row.childElementCount)parent.append(row);
   }
   // A star's images live in the bonsai that owns it: a subject of the Antiquity collection in Antiquity's, on either stand
-  // that shows it, a star of Zarathustra in Zarathustra's, named by its core record or, without one, by its own id.
+  // that shows it, a star of Zarathustra in Zarathustra's, named by its core record or, without one, by its own id, and a
+  // record of the Aesthetics field in Aesthetics': an area, a concept, an author, a work or a reading.
   // They come after the card has drawn, into the place kept for them; a card that has moved on by then takes none.
   function mediaOwner(material){
     const id=material?.id;if(typeof id!=='string')return null;
     if(id.startsWith('antiquity:catalog:'))return {profile:'antiquity',subject:material.legacyId??id.slice('antiquity:catalog:'.length)};
     if(id.startsWith('antiquity:'))return null;
+    const field=/^aesthetics:(catalog|route|reading):(.+)$/.exec(id);
+    if(field)return {profile:'aesthetics',subject:material.legacyId??field[2]};
+    if(id.startsWith('aesthetics:'))return null;
     return profile==='zarathustra'?{profile:'zarathustra',subject:material.coreId??id}:null;
   }
   function appendMedia(parent,material){
@@ -1532,7 +1554,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // Every bonsai's stars fall into the kinds the tree grows by (space-glyphs.mjs). Each kind has one sign and one name
   // wherever a star is named, and the sign takes the star's own colour on the sky.
   function kindOfStar(material,node=null){return starKind({role:material?.id?treeLayout?.roles?.get(material.id):null,kind:material?.kind??node?.kind,personal:node?.ownerType==='personal-hypothesis'});}
-  function kindWord(material,node=null){const kind=kindOfStar(material,node);return kind?t(`kind_${kind}`):(partName(profile,material,locale(),{moveIds})||kindName(material?.kind??node?.kind));}
+  function kindWord(material,node=null){if(profile==='population'&&material)return populationKindWord(material,value=>tr(value,locale()));const kind=kindOfStar(material,node);return kind?t(`kind_${kind}`):(partName(profile,material,locale(),{moveIds})||kindName(material?.kind??node?.kind));}
   function signOf(material,node=null,kind=kindOfStar(material,node)){const mark=signElement(document,kind),color=node?.color??material?.color;if(mark&&color)mark.style.color=paint(color);return mark;}
   // What a star holds in a line: its thesis or question, else the start of its own words.
   function glimpse(material){if(!material)return '';const text=(material.coreId&&coreView?.glimpse?.(material.coreId))||tr(material.question,locale())||tr(material.atlasBody??material.body,locale());const line=String(text??'').replace(/\s+/g,' ').trim();return line.length>220?`${line.slice(0,219).replace(/\s+\S*$/,'')}…`:line;}
@@ -1567,16 +1589,20 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const material=matForNode(node),ownerHyp=(personalState?.hypotheses??[]).find(item=>item.id===node.workspaceHypothesisId||item.id===node.id||materializedHypotheses.get(item.id)===node.id);
     into.replaceChildren();into.dataset.termNode=material?.id??'';
     if(profile==='antiquity')into.dataset.termWorks=termWorks(material);
-    const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});into.append(kindLine(material,node),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
+    // A Population star says what kind of entry it is (an author, a research node, a region), not a step of reading.
+    const peopled=profile==='population'&&!!material;
+    const nodeTitle=label(node.ownerType==='personal-hypothesis'?node:material??node),part=partName(profile,material,locale(),{moveIds});into.append(peopled?populationEyebrow(material,value=>tr(value,locale())):kindLine(material,node),el('h1','',keepDots(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120?kindName(node.kind):nodeTitle)));
     // A move names its author, work and place right under its title.
-    const witness=part&&!material?.route?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)into.append(el('p','ps-source-line',witness));
-    // An author's portrait stands right under the name; every image a bonsai binds to this subject follows in the order of its role.
-    appendMedia(into,material);
-    // A star names when and where its text was written, in the bonsai's own kinds of dating and with their sources;
-    // on the lens of proximity, how far it stands from the centre and by what.
-    appendDating(into,material?.id);appendPlace(into,material?.id);
+    const witness=part&&!material?.route&&!peopled?sourceLine(material,{materials:previewMaterials,entryByLegacyId:collectionByLegacyId,locale:locale()}):'';if(witness)into.append(el('p','ps-source-line',witness));
+    if(!peopled){
+      // An author's portrait stands right under the name; every image a bonsai binds to this subject follows in the order of its role.
+      appendMedia(into,material);
+      // A star names when and where its text was written, in the bonsai's own kinds of dating and with their sources;
+      // on the lens of proximity, how far it stands from the centre and by what.
+      appendDating(into,material?.id);appendPlace(into,material?.id);
+    }
     if(lens==='proximity'&&proximityLens)appendDistance(into,material?.id);
-    into.append(ladderLine(ladderRung({material,node})));appendPaths(into,material);
+    if(!peopled){into.append(ladderLine(ladderRung({material,node})));appendPaths(into,material);}
     const branchRoute=profile!=='zarathustra'?routeItems().find(item=>item.source==='atlas'&&(item.id===material?.route?.id||`${profile}:route:${item.id}`===material?.id)):null;
     if(branchRoute&&!pane){const walk=button(`${t('walkBranch')} · ${countMoves(branchRoute.steps?.length??0)} →`,'primary ps-walk-branch');walk.addEventListener('click',()=>{closePanel();startRoute(branchRoute);});into.append(walk);}if(node.ownerType==='personal-hypothesis'&&nodeTitle.length>120)into.append(el('p','ps-personal-title',nodeTitle));
     if(node.ownerType==='personal-hypothesis'){
@@ -1586,6 +1612,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       appendPersonalProposals(into,proposals);
     }else if(material?.coreId&&coreView){
       (pane?paneCore(pane):coreView).node(into,material.coreId,{bench:pane?false:bench});appendResearchReferences(into,material.coreId);
+    }else if(peopled&&renderPopulationCard(into,{material,bonsai,tr:value=>tr(value,locale()),open:materialId=>previewMaterial(materialId)})){
+      // The Population's own card: names, years with their sources and footing, the verdict, the register rows.
     }else if(material){
       const source=sourceForMaterial(material,node);
       if(source?.exact){const open=button(`↗ ${sourceActionLabel(source)}`,'primary ps-source-open');open.addEventListener('click',()=>void openPublicAddress(source.binding).catch(()=>notify(t('unavailable'))));into.append(open);}
@@ -1875,8 +1903,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   // Choosing a star on the map leaves the map where it is. Choosing it from a list,
   // a link or a step brings it into view only if it would otherwise stay hidden.
   function selectActual(id,{reveal=false}={}){const changed=id!==selected;measureOpen=false;selected=id;selectedEdge=null;browsingRoutes=false;personal.hidden=true;columnOpen=true;
-    // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it.
-    if(changed&&!measuredLens(lens)&&(core||lens!=='tree'))refreshSky();
+    // In a lens that groups, the map is drawn again so that the chosen star's whole neighbourhood is on it; on the
+    // Population's tree a chosen member is drawn again as a star, out of the dots.
+    if(changed&&(profile==='population'||(!measuredLens(lens)&&(core||lens!=='tree'))))refreshSky();
     sky?.setCloseIn?.(treeView()||gatherView());sky?.select(id);sky?.selectEdge(null);renderColumn();
     // On the tree a chosen star turns to face the reader, with what grew from it and what it grew from.
     if(changed&&(treeView()||gatherView())){const at=shownView?.nodes?.find(node=>node.id===id)?.position;if(at&&Math.hypot(at[0],at[2])>1)sky?.turnTo?.(Math.atan2(at[0],at[2]));}
@@ -1888,7 +1917,10 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function openPanel(){columnOpen=true;renderColumn();sky?.refresh();}
   function closePanel(){const leaving=!!selected&&!route;selected=route?routeStepNode:null;selectedEdge=null;sky?.select(selected);sky?.selectEdge(null);
     // Leaving a chosen star on the tree, the view steps back to the whole tree, turned as the reader left it.
-    if(leaving&&(treeView()||gatherView()))sky?.frame?.();if(!route)columnOpen=false;reflect();sky?.refresh();}
+    if(leaving&&(treeView()||gatherView()))sky?.frame?.();if(!route)columnOpen=false;
+    // A member let go on the Population's tree goes back among the dots.
+    if(leaving&&profile==='population')refreshSky();
+    reflect();sky?.refresh();}
   function togglePersonal(){
     if(!personal.hidden){closePersonal();return;}
     personal.hidden=false;reading.hidden=true;columnTab.hidden=true;shell.dataset.bench='false';shell.dataset.reading='true';shell.dataset.column='personal';shell.dataset.columnOpen='true';

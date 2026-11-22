@@ -116,6 +116,34 @@
         "ru": "Карта прививки: какой идентичности Древа соответствует каждое произведение и каждый автор бонсая и держит ли её Древо.",
         "en": "The graft map: which Tree identity each work and author of the bonsai stands for, and whether the Tree holds it."
       }
+    },
+    {
+      "id": "media",
+      "path": "media.json",
+      "format": "tos.bonsai.media.v1",
+      "role": {
+        "ru": "Изображения произведений на карточках стенда: произведение с названиями, мастерами, датировкой и записью держателя, его воспроизведение через сервис изображений или копию файла с правами провайдера и роль изображения у предмета карточки — портрет автора, отклик на книгу, мотив, предмет анализа. Слова провайдеров хранятся дословно, с языком.",
+        "en": "Images of works on the stand’s cards: the work with its titles, makers, dating and the holder’s record, its reproduction through an image service or a copy of its file with the provider’s rights, and the image’s role for the card’s subject — an author’s portrait, a response to a book, a motif, an object of analysis. Provider texts are kept word for word, with their language."
+      }
+    },
+    {
+      "id": "media-names",
+      "path": "media-names.json",
+      "format": "tos.bonsai.media-names.v1",
+      "role": {
+        "ru": "Слова Древа об изображениях стенда на языках читателя: названия произведений, их серии, мастера и держатели там, где провайдер пишет на другом языке. Читатель видит подпись только на своём языке; надпись на самом предмете остаётся как написана.",
+        "en": "The Tree's words about the stand's images in its readers' languages: the titles of the works, their series, makers and holders where the provider writes in another language. A reader sees a caption in their own language alone; the words written on the object stand as written."
+      }
+    },
+    {
+      "id": "layers",
+      "path": "layers.json",
+      "format": "tos.bonsai.layers.v1",
+      "spec": "bonsai/README.md",
+      "role": {
+        "ru": "Где лежат копии файлов изображений стенда: хеш каждого файла, который хранится в R2; рабочая копия получает их по этим хешам.",
+        "en": "Where the stand's copies of image files live: the digest of every file, kept in R2; a checkout fetches them by these digests."
+      }
     }
   ],
   "lenses": {

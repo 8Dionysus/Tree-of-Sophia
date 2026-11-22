@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => {
         'zarathustra/index':fileURLToPath(new URL('./zarathustra/index.html',import.meta.url)),
         'antiquity/index':fileURLToPath(new URL('./antiquity/index.html',import.meta.url)),
         'aesthetics/index':fileURLToPath(new URL('./aesthetics/index.html',import.meta.url)),
+        'population/index':fileURLToPath(new URL('./population/index.html',import.meta.url)),
         'not-found/index':fileURLToPath(new URL('./not-found/index.html',import.meta.url)),
         'home/index':fileURLToPath(new URL('./home/index.html',import.meta.url)),
       },
