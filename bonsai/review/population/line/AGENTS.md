@@ -35,12 +35,15 @@ decisions, which `resolve.mjs` and `plant.mjs` read on their next run.
    memory alone.
 6. An authority identifier a reader gives must be valid (the gate checks the
    syntax and the check digits) and must be the one the reader actually opened.
-7. Write only your own `reader-<n>.jsonl` in your packet. Never open the other
-   reader's file, never write `decisions.jsonl`, `accepted.json`, the queue or
-   any file outside your packet; never run git, never install anything. Read
-   the questions with `node ../../kit.mjs show p-NNNN`.
-8. Stop when `node ../../kit.mjs gate p-NNNN --reader <n>` names no problem.
-   Never run the gate without `--reader`: it shows the other reader's problems.
+7. Write only your own verdicts: the file the driver names for you (it keeps
+   each reader's file outside the packet until both readers pass), or
+   `reader-<n>.jsonl` in your packet when you read by hand. Never open the
+   other reader's file, never write `decisions.jsonl`, `accepted.json`, the
+   queue or any other file; never run git, never install anything. Read the
+   questions with `node ../../kit.mjs show p-NNNN`.
+8. Stop when `node ../../kit.mjs gate p-NNNN --reader <n>` (with `--file` and
+   your file, when the driver named one) names no problem. Never run the gate
+   without `--reader`: it shows the other reader's problems.
 
 ## Operator
 
