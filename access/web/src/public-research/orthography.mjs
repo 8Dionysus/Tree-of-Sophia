@@ -76,7 +76,7 @@ export function modernWord(word,{kept=false}={}){
   let w=kept?lower.replace(/ия$/u,'ія'):lower;
   const endings=!kept||word[0]===lower[0];
   // A hard sign closing the word goes; inside the word it stays a separator (подъѣздъ → подъезд).
-  w=w.replace(/ъ$/u,'');
+  if(w.length>1)w=w.replace(/ъ$/u,'');
   // Endings, read before the letters change.
   if(endings)w=modernEnding(w,word);
   // Prefixes in -з before a voiceless consonant keep the -с the ear hears (разсказъ → рассказ, неизслѣдованный →

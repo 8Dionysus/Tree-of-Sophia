@@ -21,7 +21,7 @@ const STARTS=[
 const hash=text=>{let h=2166136261;for(const c of String(text)){h^=c.codePointAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 const shuffled=(items,seed)=>items.map((item,i)=>[hash(`${seed}:${i}:${JSON.stringify(item)}`),item]).sort((a,b)=>a[0]-b[0]).map(pair=>pair[1]);
 
-export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpenReference,onOpenSpace,getSession}){
+export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpenReference,onOpenSpace,getSession,onChange=null}){
   const key=`tos.public-research.knowing.v1.${profile}`;
   const t=(ru,en,values=[])=>copyLocale(locale)==='en'?localeText(en,locale(),values):ru.replace(/\{(\d+)\}/g,(m,i)=>values[i]??m);
   const tr=value=>localeValue(value,locale());
@@ -47,6 +47,8 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
   // A rumor names where it is heard; the link's own question joins it when it differs from its star's question.
   const rumorOf=(link,from)=>{const own=tr(link.record.question),general=tr(nodes.get(from)?.record?.question),place=placeOf(link);const target=other(link,from);return {head:`→ ${kindWord(target).toLocaleLowerCase()} ?${place?.c?` · ${chapterName(place.c)}`:''}`,question:own&&own!==general?own:''};};
 
+  const taskOf=(link,from)=>{const place=placeOf(link);return place?.c?t('Предстоит связать «{0}» с тем, к чему ведёт место в главе «{1}».','To be joined: “{0}” and what the place in “{1}” leads to.',[title(from),chapterName(place.c)]):t('Предстоит связать «{0}» с соседней звездой словом книги.','To be joined: “{0}” and a neighbouring star, in the book’s word.',[title(from)]);};
+
   // ── Layout: one deterministic constellation of the whole core ──
   const graph=new Graph({type:'undirected',multi:false});
   [...nodes.keys()].sort().forEach((id,i)=>{const a=i*2.399963229728653,r=10*Math.sqrt(i+1);graph.addNode(id,{x:Math.cos(a)*r,y:Math.sin(a)*r,size:1});});
@@ -57,12 +59,13 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
     const s=Math.min((W-2*pad)/((x1-x0)||1),(H-2*pad)/((y1-y0)||1));graph.forEachNode((n,a)=>pos.set(n,[pad+(a.x-x0)*s+((W-2*pad)-(x1-x0)*s)/2,pad+(a.y-y0)*s+((H-2*pad)-(y1-y0)*s)/2]));}
 
   // ── State: what this person has opened ──
-  let state={level:'light',start:null,known:[],found:[],hypotheses:[]},expected,anchor=null,trial=null,focus=null,view={x:0,y:0,w:W,h:H},disposed=false,saving=Promise.resolve();
+  // `last` is the threshold the person last opened and left unresolved; the next visit offers it first (I4).
+  let state={level:'light',start:null,known:[],found:[],hypotheses:[],last:null},expected,anchor=null,trial=null,focus=null,view={x:0,y:0,w:W,h:H},disposed=false,saving=Promise.resolve();
   const known=()=>new Set(state.known);
   const frontierLinks=()=>{const k=known();return links.filter(link=>k.has(link.record.from)!==k.has(link.record.to));};
   const frontier=()=>{const k=known(),out=new Set();for(const link of frontierLinks())out.add(k.has(link.record.from)?link.record.to:link.record.from);return out;};
   const foundLinks=()=>new Set(state.found.map(item=>item.link));
-  const clean=value=>({level:LEVELS.includes(value?.level)?value.level:'light',start:nodes.has(value?.start)?value.start:null,known:Array.isArray(value?.known)?value.known.filter(id=>nodes.has(id)):[],found:Array.isArray(value?.found)?value.found.filter(item=>links.some(link=>link.id===item?.link)):[],hypotheses:Array.isArray(value?.hypotheses)?value.hypotheses.slice(-200):[]});
+  const clean=value=>({level:LEVELS.includes(value?.level)?value.level:'light',start:nodes.has(value?.start)?value.start:null,known:Array.isArray(value?.known)?value.known.filter(id=>nodes.has(id)):[],found:Array.isArray(value?.found)?value.found.filter(item=>links.some(link=>link.id===item?.link)):[],hypotheses:Array.isArray(value?.hypotheses)?value.hypotheses.slice(-200):[],last:links.some(link=>link.id===value?.last?.link)&&nodes.has(value?.last?.target)?{link:value.last.link,target:value.last.target,at:String(value.last.at??'')}:null});
   function save(){
     const value=structuredClone(state),base=clean(expected);
     const mergeList=(before,local,remote,key)=>{
@@ -75,7 +78,8 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
       for(let attempt=0;attempt<3;attempt++){
         const current=await notebook.getPreference(key),remote=clean(current);
         const merged={level:value.level!==base.level?value.level:remote.level,start:value.start!==base.start?value.start:remote.start,
-          known:mergeList(base.known,value.known,remote.known,x=>x),found:mergeList(base.found,value.found,remote.found,x=>x.link),hypotheses:mergeList(base.hypotheses,value.hypotheses,remote.hypotheses,x=>JSON.stringify(x))};
+          known:mergeList(base.known,value.known,remote.known,x=>x),found:mergeList(base.found,value.found,remote.found,x=>x.link),hypotheses:mergeList(base.hypotheses,value.hypotheses,remote.hypotheses,x=>JSON.stringify(x)),
+          last:JSON.stringify(value.last)!==JSON.stringify(base.last)?value.last:remote.last};
         try{await notebook.setPreference(key,merged,{expectedValue:current});expected=merged;if(JSON.stringify(state)===JSON.stringify(value)){state=merged;paint();}return;}
         catch(error){if(error?.code!=='conflict'||attempt===2)throw error;}
       }
@@ -139,7 +143,10 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
     if(!state.known.length&&!trial&&!trialBox.classList.contains('is-start'))startPanel();
     hint.textContent=!state.known.length?'':state.level==='heavy'?t('Выберите открытую звезду, затем любую тёмную — и скажите, что их связывает.','Choose an opened star, then any dark one, and say what joins them.'):state.level==='medium'?t('Звёзды на пороге отмечены «?». Откройте их местом книги.','Stars at the threshold are marked “?”. Open them through a place in the book.'):t('Нажмите «?» рядом с открытой звездой.','Click a “?” next to an opened star.');
     if(journal)renderLog();
+    // The original mode shows what is opened here as its own layer (I1).
+    if(journal&&onChange){const shape=JSON.stringify([state.known,state.found.length]);if(shape!==lastShape){lastShape=shape;onChange({known:[...state.known],found:state.found.map(item=>item.link)});}}
   }
+  let lastShape='';
 
   // ── Camera ──
   const applyView=()=>{sky.setAttribute('viewBox',`${view.x} ${view.y} ${view.w} ${view.h}`);const cw=sky.clientWidth,ch=sky.clientHeight;sky.style.setProperty('--kz',(cw&&ch?Math.max(view.w/cw,view.h/ch):view.w/W).toFixed(4));placeNames();};
@@ -189,10 +196,11 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
   function openTrial(link,target){
     const origin=other(link,target),medium=state.level==='medium';
     const nearby=[...new Set((byNode.get(origin)??[]).map(item=>other(item,origin)).filter(id=>id!==target&&!known().has(id)))];
+    if(state.last?.link!==link.id){state={...state,last:{link:link.id,target,at:new Date().toISOString()}};save();}
     trial={link,target,origin,kind:medium?'target':'verb',candidates:medium?shuffled([target,...nearby.sort((a,b)=>hash(a+link.id)-hash(b+link.id)).slice(0,2)],link.id):[],wrong:new Set(),hinted:false};
     renderTrial();paint();frameAbove([origin,...(medium?trial.candidates:[target])]);
   }
-  function closeTrial(){trial=null;trialBox.hidden=true;trialBox.classList.remove('is-start');trialBox.replaceChildren();}
+  function closeTrial(){trial=null;trialBox.hidden=true;trialBox.classList.remove('is-start','is-resume');trialBox.replaceChildren();}
   // The dark sky opens with its entrances: each lights its star while chosen.
   function startPanel(){
     trialBox.replaceChildren();trialBox.hidden=false;trialBox.classList.add('is-start');
@@ -205,7 +213,9 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
     const {link,origin,target,kind}=trial,head=el('div','k-trial-head');
     const label=id=>kind==='target'&&id===target?'?':title(id);
     head.append(el('span','k-chip',kindWord(origin)),el('strong','',label(link.record.from)),el('span','k-arrow','→'),el('strong','',label(link.record.to)));
-    const q=tr(link.record.question);trialBox.append(head);if(q)trialBox.append(el('p','k-question',q));
+    const q=tr(link.record.question);trialBox.append(head);
+    // A threshold without a question of its own says what is to be joined and where (I3).
+    if(q)trialBox.append(el('p','k-question',q));else trialBox.append(el('p','k-question k-task',taskOf(link,origin)));
     const cite=placeOf(link);if(cite)trialBox.append(fragments.fragment(cite));
   }
   function renderTrial(){
@@ -232,6 +242,7 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
   function discover(link,{hinted=false,reading=''}={}){
     const {from,to}=link.record,target=known().has(from)?to:from;
     if(!state.known.includes(target))state.known=[...state.known,target];
+    if(state.last?.link===link.id)state={...state,last:null};
     if(!state.found.some(item=>item.link===link.id))state.found=[...state.found,{link:link.id,level:state.level,hinted,at:new Date().toISOString(),...(reading?{reading}:{})}];
     save();focus=target;anchor=target;
     // The reader's own reading goes to the interlocutor with the opened link.
@@ -306,7 +317,14 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
       for(const link of rumors){const from=k.has(link.record.from)?link.record.from:link.record.to;if(!groups.has(from))groups.set(from,[]);groups.get(from).push(link);}
       for(const [from,items] of groups){
         box.append(el('h4','k-group',title(from)));
-        for(const link of items.slice(0,12)){const target=other(link,from),rumor=rumorOf(link,from),row=btn('',()=>{anchor=from;openTrial(link,target);},'k-row');row.append(el('span','k-row-head',rumor.head));if(rumor.question)row.append(el('span','k-row-question',rumor.question));row.addEventListener('mouseenter',()=>{focus=target;paint(false);});box.append(row);}
+        // The star's own question stands once over its thresholds; a threshold that has none says what it joins (I3).
+        const general=tr(nodes.get(from)?.record?.question);if(general)box.append(el('p','k-group-question',general));
+        // Two thresholds that read alike (same kind of star, same chapter) are told apart by their number.
+        const heads=new Map();for(const link of items.slice(0,12)){const head=rumorOf(link,from).head;heads.set(head,(heads.get(head)??0)+1);}
+        const seen=new Map();
+        for(const link of items.slice(0,12)){const target=other(link,from),rumor=rumorOf(link,from),row=btn('',()=>{anchor=from;openTrial(link,target);},'k-row');
+          const nth=(seen.get(rumor.head)??0)+1;seen.set(rumor.head,nth);
+          row.append(el('span','k-row-head',heads.get(rumor.head)>1?`${rumor.head} · ${nth}`:rumor.head));if(rumor.question)row.append(el('span','k-row-question',rumor.question));else if(!general)row.append(el('span','k-row-question k-task',taskOf(link,from)));row.addEventListener('mouseenter',()=>{focus=target;paint(false);});box.append(row);}
       }
       log.append(box);
     }
@@ -320,6 +338,24 @@ export function mountKnowing({root,index,locale,notebook,profile,fragments,onOpe
     if(state.known.length){const reset=btn(t('Начать заново','Start over'),()=>{if(reset.dataset.armed){state={...state,start:null,known:[],found:[],hypotheses:state.hypotheses};anchor=null;focus=null;shown=null;closeTrial();save();paint();frame();}else{reset.dataset.armed='1';reset.textContent=t('Нажмите ещё раз, чтобы стереть открытия','Click again to erase discoveries');}},'k-reset');log.append(reset);}
   }
 
-  const ready=(async()=>{try{expected=await notebook.getPreference(key);state=clean(expected);}catch{}if(disposed)return;anchor=state.known.at(-1)??null;paint();frame();})();
-  return {agentRoot,ready,setHelpLevel(value){if(LEVELS.includes(value)&&state.level!==value){state.level=value;save();closeTrial();paint();}},focusItem(id){if(nodes.has(id)&&state.known.includes(id)){focus=id;anchor=id;show(id);paint();}},refreshLocale(){paint();if(trialBox.classList.contains('is-start'))startPanel();else if(trial?.kind==='revealed')revealed(trial.link);else if(trial&&trial.kind!=='reading')renderTrial();},destroy(){disposed=true;clearTimeout(flashTimer);root.classList.remove('k-root');root.replaceChildren();}};
+  // A return to the sky offers the threshold where the person stopped, or the nearest one from the last opened star (I4).
+  function resumeOffer(){
+    const open=frontierLinks(),k=known();
+    const last=state.last&&open.find(link=>link.id===state.last.link&&!k.has(state.last.target));
+    if(last)return {link:last,target:state.last.target,stopped:true};
+    const from=state.known.at(-1),near=open.find(link=>link.record.from===from||link.record.to===from)??open[0];
+    return near?{link:near,target:k.has(near.record.from)?near.record.to:near.record.from,stopped:false}:null;
+  }
+  function resumePanel(){
+    const offer=resumeOffer();if(!offer||trial)return false;
+    const origin=other(offer.link,offer.target),rumor=rumorOf(offer.link,origin),question=rumor.question||tr(nodes.get(origin)?.record?.question)||taskOf(offer.link,origin);
+    trialBox.replaceChildren();trialBox.hidden=false;trialBox.classList.add('is-resume');trial={kind:'resume',link:offer.link,candidates:[]};
+    trialBox.append(el('p','k-found',offer.stopped?t('Вы остановились здесь','You stopped here'):t('Ближайший порог','The nearest threshold')));
+    const head=el('div','k-trial-head');head.append(el('strong','',title(origin)),el('span','k-arrow',rumor.head));trialBox.append(head,el('p','k-question',question));
+    const row=el('div','k-trial-row');
+    row.append(btn(t('Продолжить с порога','Continue from the threshold'),()=>{trialBox.classList.remove('is-resume');anchor=origin;openTrial(offer.link,offer.target);},'k-button k-primary'),btn(t('Осмотреться','Look around'),()=>{trialBox.classList.remove('is-resume');closeTrial();paint();}));
+    trialBox.append(row);focus=offer.target;anchor=origin;paint();frameAbove([origin,offer.target]);return true;
+  }
+  const ready=(async()=>{try{expected=await notebook.getPreference(key);state=clean(expected);}catch{}if(disposed)return;anchor=state.known.at(-1)??null;paint();frame();if(state.known.length)resumePanel();})();
+  return {agentRoot,ready,setHelpLevel(value){if(LEVELS.includes(value)&&state.level!==value){state.level=value;save();closeTrial();paint();}},focusItem(id){if(nodes.has(id)&&state.known.includes(id)){focus=id;anchor=id;show(id);paint();}},refreshLocale(){paint();if(trialBox.classList.contains('is-start'))startPanel();else if(trial?.kind==='revealed')revealed(trial.link);else if(trial?.kind==='resume'){trial=null;resumePanel();}else if(trial&&trial.kind!=='reading')renderTrial();},destroy(){disposed=true;clearTimeout(flashTimer);root.classList.remove('k-root');root.replaceChildren();}};
 }

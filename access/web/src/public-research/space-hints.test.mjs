@@ -33,3 +33,24 @@ describe('where a hint stands',()=>{
     expect(huge.x).toBe(8);expect(huge.y).toBe(8);
   });
 });
+
+describe('a hint as the way into action',()=>{
+  it('names what can be done with the thing, and tells the keyboard from the pointer',async()=>{
+    const {Window}=await import('happy-dom');const {vi}=await import('vitest');const {mountHints}=await import('./space-hints.mjs');
+    const window=new Window({url:'http://localhost/'});
+    vi.stubGlobal('window',window);vi.stubGlobal('performance',window.performance??globalThis.performance);for(const name of ['document','getComputedStyle','innerWidth','innerHeight','NodeFilter','Node','Element','requestAnimationFrame','cancelAnimationFrame'])vi.stubGlobal(name,typeof window[name]==='function'&&!/^[A-Z]/.test(name)?window[name].bind(window):window[name]);
+    try{
+      document.body.innerHTML='<div id="root"><button class="tree-star" data-node="a">A</button></div>';
+      const root=document.querySelector('#root'),star=root.querySelector('.tree-star'),seen=[];
+      const hints=mountHints(root,{selector:'.tree-star',delay:0,describe:(element,via)=>{seen.push(via);return {eyebrow:'Concept',title:'A',lines:[],actions:via==='keyboard'?[{keys:['Enter'],text:'card'},{keys:['Shift','F10'],text:'every action'}]:[{keys:['Click'],text:'card'}]};}});
+      hints.showFor(star,{wait:0,via:'keyboard'});
+      await vi.waitFor(()=>expect(hints.element.hidden).toBe(false));
+      expect([...hints.element.querySelectorAll('.ps-hint-action')].map(node=>node.textContent)).toEqual(['Entercard','ShiftF10every action']);
+      expect(seen.at(-1)).toBe('keyboard');
+      hints.hide();hints.showFor(star,{wait:0});
+      await vi.waitFor(()=>expect(seen.at(-1)).toBe('pointer'));
+      expect(hints.element.querySelector('.ps-hint-action kbd').textContent).toBe('Click');
+      hints.dispose();
+    }finally{vi.unstubAllGlobals();}
+  });
+});

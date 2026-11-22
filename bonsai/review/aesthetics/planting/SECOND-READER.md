@@ -2,7 +2,8 @@
 
 You read a packet another reader made. Your working directory is the packet.
 The card `AGENTS.md` two levels up holds the laws. `K` stands for
-`python3 ../../kit.py`. You write one file, `review.json`, and change no other.
+`python3 ../../kit.py`. Record your review through the kit; its image and
+witness commands also record the evidence of your independent reading.
 
 Your question for every conception and every link is one: **do these sentences
 say this?** The maker's notes and the registers' theses are no ground. The
@@ -58,7 +59,12 @@ correction that rests on the eye alone, read its line at the size of the scan
 height in percent) and say in `review.images` what the enlarged line reads. Choose places where a slip would
 matter: a correction, many differences, the sentence a thesis leans on.
 
-## 3. Write review.json
+## 3. Prepare and import the review
+
+Prepare this object outside the packet and record it with
+`K import . review FILE`. Change packet files only through kit commands. An
+image entry is a statement that you actually opened and read that page; merely
+fetching an image or importing the object does not establish a reading.
 
 ```json
 {"reader": {"id": "terra-2026-11-10-hume-standard-second", "model": "gpt-6.1-terra", "date": "2026-11-10",
@@ -86,3 +92,21 @@ K gate . --second
 Settle what it prints, until `gate: open`. A `partly` or a `no` is a finished
 answer: the line returns it to the maker. Close with three lines: how many yes,
 partly, no; which pages you read; the one thing the operator should know.
+
+## Language witnesses
+
+For a new work, independently read every prepared language witness against its
+original place and the same page image. Fetch each page with
+`K witness-image . LANG URL --name FILE --by second`, then record the reading
+with `K witness-review . LANG 'LOC' --reader ID --alignment '…'`. The witness
+and packet second gates must open. The acceptance binds the exact reviewed
+language files; a changed text, source, person, page or rights record requires a
+new review. Search records for missing languages are evidence to inspect, not
+proof of a translation that was never looked for.
+
+## Bounded deaths
+
+A person with `died_before` carries the claims or the reference the bound
+rests on. Open the Wikidata item or the fetched reference and confirm that it
+bounds the death before the recorded year; a bound you cannot confirm is a
+`no` on the rights.

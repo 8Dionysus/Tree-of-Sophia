@@ -14,7 +14,11 @@ import {scaleLabelClear} from './scale-labels.mjs';
 // depthCue dims what lies further back; planarMoves keeps a moved star in its
 // own depth; onPose hears every turn of the view. Such a space may lay its
 // stars on named planes of depth (state.planes), shown while it turns.
-export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, onBackground=null, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null, onThreadSelect=null, threadsFor=null, obstacles=null}) {
+// Agents at work (C7): their marks' colour, and the zoom from which a ring names their roles.
+const AGENT_COLOR='#7fd0c4',AGENT_NEAR_ZOOM=2.6;
+export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}, onBackground=null, getViewport=null, rotate=true, dragNodes=true, rest=null, intro=false, holdToMove=0, turnFromStars=false, touch=false, secondaryPan=false, inertia=false, depthCue=false, planarMoves=false, onPose=null, nativeTitles=true, onEdgeHover=null, onThreadSelect=null, threadsFor=null, obstacles=null, controls=null}) {
+  // The device's own steering (turn and zoom speed, coasting, inversion), read at every gesture.
+  const steer=()=>controls?.()??{};
   let canvas=root.querySelector('canvas'),ctx;
   try {ctx=new SophiaGpuCanvas(canvas);root.dataset.renderer='three-webgl2';}
   catch {const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;ctx=canvas.getContext('2d',{alpha:false});root.dataset.renderer='canvas-fallback';}
@@ -236,6 +240,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         el.addEventListener('focus',()=>{hover=item.id;kick()});el.addEventListener('blur',()=>{hover=null;kick()});
       }
       n.target=[...item.position];n.kind=item.kind;n.color=item.color;n.prominent=!!item.prominent;n.dimmed=!!item.dim;n.labelSide=['left','right','above','below'].includes(item.labelSide)?item.labelSide:null;n.quiet=!!item.quiet;n.form=item.form==='proposal'||item.form==='personal'?item.form:'source';n.el.dataset.form=n.form;n.major=item.major??['work','concept','dossier','figure'].includes(item.kind);n.labelFrom=Number.isFinite(item.labelFrom)?item.labelFrom:0;
+      n.agents=item.agents?.count>0?{count:item.agents.count,roles:[...(item.agents.roles??[])]}:null;if(n.agents)n.el.dataset.agents=String(n.agents.count);else delete n.el.dataset.agents;
       n.titleText=labels[item.id]??item.title??item.id;n.subtitle=typeof item.subtitle==='string'?item.subtitle:'';
       n.labelMaxWidth=Number.isFinite(item.labelMaxWidth)?Math.max(80,Math.min(320,item.labelMaxWidth)):null;n.labelLines=item.labelLines===2?2:1;
       const clampStyle={whiteSpace:n.labelLines>1?'normal':'',display:n.labelLines>1?'-webkit-box':'',webkitBoxOrient:n.labelLines>1?'vertical':'',webkitLineClamp:n.labelLines>1?String(n.labelLines):''};
@@ -677,6 +682,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     // Within its rank a name already standing goes first, so that it keeps its room.
     // Among equals the nearer star names itself first.
     const rank=n=>priority(n)+(n.labelShown?4:0),ordered=[...nodes].sort((a,b)=>rank(b)-rank(a)||(b.screen?.d??1)-(a.screen?.d??1));
+    const chosenLink=edges.find(e=>e.id===selectedEdgeId),always=new Set([selectedId,chosenLink?.from,chosenLink?.to].filter(Boolean));
     for(const n of ordered){
       if(!kept.has(n.id)||n.el.hidden)continue;
       // A kept name keeps its source line where there is free room for it, else its name alone where that is free;
@@ -685,6 +691,10 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       const whole=placeAlways([...around(n,height,19,width),...around(n,height,40,width)],occupied,nodeObstacles,n.id);
       let chosen=whole?.area??null,short=false;
       if(whole&&!whole.clear&&n.subtitle&&titleHeight){const brief=placeAlways([...around(n,titleHeight,19,width),...around(n,titleHeight,40,width)],occupied,nodeObstacles,n.id);if(brief?.clear){chosen=brief.area;short=true;}}
+      // A crowded neighbourhood stays legible: a linked star's name that finds no room free of other names is not laid
+      // over them; it stands once the star is pointed at or reached by the keyboard, and the chosen star's card lists
+      // every link. The chosen star's own name, and both ends of a chosen link, always stand.
+      if(chosen&&!always.has(n.id)&&n.id!==hover&&occupied.some(o=>overlaps(chosen,o,0)))chosen=null;
       showLabel(n,chosen,short,true);
     }
     // An aspect's names take their own rows first; a name whose row is taken, and every other kept name, looks along its link after.
@@ -986,6 +996,18 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
       // A source is a disc; an authored proposal a ring; a personal record a broken ring.
       if(n.form==='source'){ctx.fillStyle=color;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff9ea';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(.75,radius*.32),0,Math.PI*2);ctx.fill();}
       else ring(p.x,p.y,radius+.9,color,n.form==='personal',warm);
+      // Agents at work on this star (C7): one agent is a small mark beside it, several a ring whose size grows with
+      // their number; near enough, the ring names their roles. The legend of the agents' sky says so.
+      if(n.agents?.count&&!n.el.hidden){
+        const count=n.agents.count;ctx.strokeStyle=ctx.fillStyle=AGENT_COLOR;
+        if(count===1){const dx=radius+6,dy=-(radius+6);ctx.globalAlpha=.9*fade;ctx.beginPath();ctx.moveTo(p.x+dx,p.y+dy-3.2);ctx.lineTo(p.x+dx+3.2,p.y+dy);ctx.lineTo(p.x+dx,p.y+dy+3.2);ctx.lineTo(p.x+dx-3.2,p.y+dy);ctx.closePath();ctx.fill();}
+        else{const around=radius+5+3.2*Math.log2(count);ctx.globalAlpha=.75*fade;ctx.lineWidth=1.3;ctx.setLineDash([2.5,2.5]);ctx.beginPath();ctx.arc(p.x,p.y,around,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}
+        if(zoom>=AGENT_NEAR_ZOOM&&n.agents.roles?.length){
+          ctx.globalAlpha=.9*fade;ctx.font='11px system-ui,sans-serif';ctx.textBaseline='middle';
+          ctx.fillText(n.agents.roles.slice(0,3).join(' · ')+(n.agents.roles.length>3?' …':''),p.x+radius+12,p.y+radius+9);
+        }
+        ctx.globalAlpha=starAlpha;
+      }
       // Its four rays narrow and fade towards their tips, as a star's light does in the telescope; a faint star far
       // back keeps only its point.
       const restRay=big?12:6.5,restLight=dim?.12:big?.52:.34,ray=restRay+(19-restRay)*warm,rayAlpha=(restLight+(.92-restLight)*warm)*(1-.9*away);
@@ -1022,7 +1044,8 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     frameCount++;drawSum+=performance.now()-started;frameSum+=elapsed*1000;
     if(frameCount%90===0){root.dataset.drawMs=(drawSum/90).toFixed(2);root.dataset.frameMs=(frameSum/90).toFixed(2);root.dataset.frames=String(frameCount);drawSum=frameSum=0;}
     root.dataset.camera=[yaw,pitch,zoom,pan.x,pan.y].map(x=>x.toFixed(3)).join(',');
-    if(onPose){const heard=`${yaw.toFixed(3)},${pitch.toFixed(3)},${!!measured}`;if(heard!==heardPose){heardPose=heard;onPose({yaw,pitch,restYaw,restPitch,measured:!!measured});}}
+    // The pose names the zoom too, so a stand can show more of a chosen star the nearer the reader comes.
+    if(onPose){const heard=`${yaw.toFixed(3)},${pitch.toFixed(3)},${zoom.toFixed(2)},${!!measured}`;if(heard!==heardPose){heardPose=heard;onPose({yaw,pitch,zoom,restYaw,restPitch,measured:!!measured});}}
     const unsettled=Math.abs(yaw-tyaw)+Math.abs(pitch-tpitch)+Math.abs(zoom-tzoom)+Math.abs(pan.x-tpan.x)+Math.abs(pan.y-tpan.y)>.005;
     if(!still&&(playing||unsettled||layoutMoving||drag||velocity||reveal>0||litGlow!==(lit?1:0)))kick();else last=0;
   }
@@ -1132,7 +1155,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   let zoomCeiling=4;
   const zoomTo=(value,max=zoomCeiling)=>{tzoom=measured?clamp(value,1,measured.axes==='xy'?8:4):clamp(value,.5,Math.max(max,Math.min(tzoom,16)));kick();};
   const wheel=e=>{
-    e.preventDefault();const before=tzoom;zoomTo(tzoom*Math.exp(-e.deltaY*.0012));
+    e.preventDefault();const c=steer(),before=tzoom;zoomTo(tzoom*Math.exp(-e.deltaY*.0012*(c.zoomSpeed??1)*(c.invertZoom?-1:1)));
     // On a measured scale the moment under the pointer stays under it.
     if(measured&&before>0){const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left-(targetViewport.left+targetViewport.right)/2,y=e.clientY-rect.top-(targetViewport.top+targetViewport.bottom)/2;tpan={x:x-(x-tpan.x)*tzoom/before,y:measured.axes==='xy'?y-(y-tpan.y)*tzoom/before:0};kick();}
   };
@@ -1143,8 +1166,9 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
   function dragBy(state,dx,dy){
     introUntil=0;
     if(measured||state.forcePan||(rotate?state.shift:!state.shift)){tpan={x:state.pan.x+dx,y:measured?.axes==='x'?0:state.pan.y+dy};kick();return;}
-    const nextYaw=state.yaw+dx*.0025,nextPitch=clamp(state.pitch+dy*.0025,...PITCH);
-    if(inertia&&!reduced.matches){
+    const c=steer(),turn=.0025*(c.turnSpeed??1)*(c.invertTurn?-1:1);
+    const nextYaw=state.yaw+dx*turn,nextPitch=clamp(state.pitch+dy*turn,...PITCH);
+    if(inertia&&c.inertia!==false&&!reduced.matches){
       const now=performance.now();
       if(lastTurn&&now>lastTurn.t){const dt=(now-lastTurn.t)/1000,vy=(nextYaw-lastTurn.yaw)/dt,vp=(nextPitch-lastTurn.pitch)/dt,limit=v=>clamp(v,-3,3);velocity={yaw:limit(velocity?velocity.yaw*.35+vy*.65:vy),pitch:limit(velocity?velocity.pitch*.35+vp*.65:vp),t:now};}
       lastTurn={t:now,yaw:nextYaw,pitch:nextPitch};
@@ -1152,7 +1176,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
     tyaw=nextYaw;tpitch=nextPitch;kick();
   }
   // A turn let go while still moving coasts; one that had already stopped stays.
-  function letGo(){if(!(inertia&&velocity&&performance.now()-velocity.t<90))velocity=null;lastTurn=null;}
+  function letGo(){if(!(inertia&&steer().inertia!==false&&velocity&&performance.now()-velocity.t<90))velocity=null;lastTurn=null;}
   // Two fingers move and pinch the view wherever they land, on the sky or on its stars; the turn belongs to one finger.
   const touches=new Map(),presses=new Set();let gesture=null,touchHeld=false;
   const touchPair=()=>{const [a,b]=[...touches.values()];return {distance:Math.max(1,Math.hypot(b.x-a.x,b.y-a.y)),mid:{x:(a.x+b.x)/2,y:(a.y+b.y)/2}};};

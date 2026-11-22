@@ -262,6 +262,7 @@ separate evidence. The native `tos serve` exposes the API, not these pages.
 | Reader interaction | [`src/reader/README.md`](src/reader/README.md) |
 | Personal shelf and notebook | [`src/research-shelf/README.md`](src/research-shelf/README.md) |
 | Lens constructor and demo | [`constructor/README.md`](constructor/README.md) |
+| Interface plan for work with agents | [`INTERFACE_PLAN.md`](INTERFACE_PLAN.md) |
 | Native/browser API and authority | [Access guide](../README.md), [contracts](../contracts/README.md) |
 
 The `software_browser` validation lane covers the shipped entry and selected

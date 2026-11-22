@@ -4,6 +4,8 @@
 //! descriptor never advertises a capability: a trusted selected session and
 //! current-rights fence must be installed by the source owner first.
 
+#[cfg(not(target_arch = "wasm32"))]
+pub mod bridge;
 pub mod cli;
 pub mod concept_search;
 #[cfg(not(target_arch = "wasm32"))]

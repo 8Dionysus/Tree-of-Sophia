@@ -1,0 +1,112 @@
+{
+ "reader": {
+  "id": "codex-2026-11-12-poetics-forms",
+  "model": "gpt-6",
+  "date": "2026-11-12",
+  "reads": "Aristotle, Poetics XI and XXI–XXII, in the Greek text of the public corpus, beside the registers' readings."
+ },
+ "library": {
+  "agents": {
+   "aristotle": {
+    "tree": "tos.agent.aristotle"
+   }
+  },
+  "works": {
+   "aristotle.poetics": {
+    "title": {
+     "ru": "Поэтика",
+     "en": "Poetics"
+    },
+    "original": "grc",
+    "tree": "tos.work.retained-antiquity.poetics"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "aristotle.poetics:reversal-of-action",
+   "of": [
+    "A:C148",
+    "A:C150"
+   ],
+   "areas": [
+    "AE05"
+   ],
+   "work": "aristotle.poetics",
+   "locus": "11, 1452a",
+   "formula": [
+    {
+     "unit": "Глава 11",
+     "from": "ἔστι δὲ περιπέτεια μὲν",
+     "to": "τὸν δὲ σωθῆναι."
+    }
+   ],
+   "thesis": {
+    "ru": "Перипетия — переход совершаемого к противоположному по вероятности или необходимости; в «Эдипе» вестник, желавший обрадовать героя, добивается противоположного.",
+    "en": "Reversal is a change of the action to its opposite according to probability or necessity; in Oedipus the messenger who intended to cheer the hero achieves the opposite."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "A:E075"
+   ],
+   "note": "The register also discusses recognition; this conception follows the definition and examples of reversal."
+  },
+  {
+   "id": "aristotle.poetics:suffering-in-the-plot",
+   "of": [
+    "A:C046",
+    "A:C005"
+   ],
+   "areas": [
+    "AE05"
+   ],
+   "work": "aristotle.poetics",
+   "locus": "11, 1452b",
+   "formula": [
+    {
+     "unit": "Глава 11",
+     "from": "δύο μὲν οὖν τοῦ μύθου μέρη",
+     "to": "καὶ τρώσεις καὶ ὅσα τοιαῦτα."
+    }
+   ],
+   "thesis": {
+    "ru": "Наряду с перипетией и узнаванием часть фабулы составляет страдание — гибельное или болезненное действие, например смерть на сцене, мучение или рана.",
+    "en": "Alongside reversal and recognition, suffering is a part of the plot: a destructive or painful action, such as a death on stage, agony or a wound."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E076"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:clarity-of-diction",
+   "of": [
+    "C:A-C030"
+   ],
+   "areas": [
+    "AE24"
+   ],
+   "work": "aristotle.poetics",
+   "locus": "22, 1458a",
+   "formula": [
+    {
+     "unit": "Глава 22",
+     "from": "λέξεως δὲ ἀρετὴ",
+     "to": "ἡ Κλεοφῶντος ποίησις καὶ ἡ Σθενέλου."
+    }
+   ],
+   "thesis": {
+    "ru": "Достоинство речи — быть ясной и не низменной; речь из обычных слов яснее всего, но низменна.",
+    "en": "The excellence of diction is to be clear and not low; diction made of ordinary words is clearest, but low."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I081"
+   ]
+  }
+ ],
+ "links": []
+}

@@ -1,0 +1,2691 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-c6a516b0df9f3248b061a5d7df055e44",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.rhetoric",
+    "expression_ref": "tos.expression.retained.antiquity.rhetoric.rhetoric-ru-platonova1894-book1-ch1",
+    "edition_ref": "tos.edition.retained.antiquity.rhetoric.rhetoric-ru-platonova1894-book1-ch1",
+    "item_ref": "tos.item.retained.antiquity.rhetoric.rhetoric-ru-platonova1894-book1-ch1",
+    "file_ref": "tos.file.sha256.a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+    "file_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+    "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+    "language": "ru",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-ea8e9fe9d60fa542ca1ec2826deceaa2",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Platonova 1894 print chapters and bounded reading chunks",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.rhetoric-publication.20261120",
+        "method_name": "print-chapter-segmentation",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.segmentation.rhetoric-platonova-full.20261120",
+        "made_at": "2026-11-20T04:44:30Z",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-06ab6602c4799d3981537996d3498a8a",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 400917,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9f83a467d94378a2bba33067a32110c9",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 10939,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b40426b40371ae309ef339adde5a0ba7178d2bde01dd477378cbdf248ede4faa",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n13/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6826fd5bee7922766322343935cf665c",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 10939,
+        "end": 26556,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "379d0381af9122d2ffb64898e69ac91fc85269dd2c7909439e28a1406a6ecacc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n19/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d664b1b7ad5e2b0793bf5ddafbd50b00",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 26556,
+        "end": 32275,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "34b8b4fc308102d87cfd5a5861b361f2959f18ca74bf7db9990b907f974b5507",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n27/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cbe2610083d76e9652015ad3c88b00db",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 32275,
+        "end": 39087,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b4eeb539a0374d972e7f1badd3b1aaceb50f15a0fcb7ad23b27a091b14ae376e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n30/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2e7dc2716cb8b1576a970692fd22d2a4",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 39087,
+        "end": 49877,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "dce2352b9a235b15d8621b65804ab81862328c9cff4223b76845018e7c1619bf",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n33/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-bc82903481ce2c807c4b3d8eb5a69e47",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 49877,
+        "end": 58592,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "149313c4447c1e3eafdae559ecfc6b779ebcb05542271afe05e9134d6382b53c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n38/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6038486ee6574ab7efc95f38949f2cf0",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 58592,
+        "end": 73313,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "bb8f7ce9974dcc4ec2ac02828ee4dac38aa898713a8b7da3ddff29d45c6ab9d3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n43/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f53eba7533f6cf0f42c3a13a390637e6",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 73313,
+        "end": 76352,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0c23f712302720fd33a6c941c9b1c6ea600154cc258271d7ca8046371af5b20b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n50/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-58c679d609077f56ce98bf312852a7c7",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 76352,
+        "end": 91475,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "923726c4d615dc901d7eeff01d6fd57c10919417aa4e591ef343ca3e921d9622",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n52/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-83626592ea405d8d1ef52994f0e3f9d7",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 91475,
+        "end": 100051,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2ba892b184c564974dcb3f8b299c446467865ee01dbd57feba386310388ab69a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n59/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0558c2e1066369778e5509f5014556fb",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 100051,
+        "end": 111868,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8a08147c6dc9730794921533501c84914b3b71e57d5b7b595caa1af0ecd76692",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n63/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-488827250ed71141bdfebe6e7ffed728",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 111868,
+        "end": 123468,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cbaa8bce80d1343a64413027336ad5ca141e445d428559588ed757b2f0a2db0b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n69/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3fa1ab9e8d8794b9489423fdd9b51249",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 123468,
+        "end": 132114,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "0039d5ff638b467cbfe12a2bf6218ffcd70662b1683fc96429ecf70eca1a3d70",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n75/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-afe846f7a21ab9e8bb62d469370d938f",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 132114,
+        "end": 135931,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7e05806b839fe4e9416138379d9ac07f9f16f5cca4b0398bd06350fb6fcab600",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n79/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f0f68711aa981cedd11e0ff421434de2",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 135931,
+        "end": 150953,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8be016bdf2228ba3f0176af9ea4e0ad8f58d4dfb3af52ff243d066f62a4184d0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n81/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9fa6470509d3f7f5fd998d87930ebd4e",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 150953,
+        "end": 154617,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "18a6c65125ac6222e408f3e01652919598c4c5f703fdfd07ea79fed326cb7088",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n89/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cb81065963cfa7d5e53efe4e221c82f3",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 154617,
+        "end": 165874,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ea829f28fcb177a6a9ef71b6f7f02ef29a58e4c5e5bbdc9f3ed00602317d76ba",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n91/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4aeae932adbafd94bdc321cd3778a1ba",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 165874,
+        "end": 171726,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8f6c7e3eb754bb5053a4f4ae0d441a7bd180a4a28d11928915e4d0fe3c25442e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n96/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3053bd50ad7eb710e10c7b00cc17e8ae",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 171726,
+        "end": 179667,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "503aa1fc1fd1f22d07e650eb7cf1a9632fb7d3cddf17e3cb2e115e133c6fa781",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n99/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2161e398c543c2f1eea6e5f84af912a0",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 179667,
+        "end": 188135,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e6a84b5a0bad18be78dd6fff4b6e29d64ecbe2202d45b85c6b8a0655958bbd93",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n102/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ee8ea7cb1d4673aa1321dfa6cb898d08",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 188135,
+        "end": 197580,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "650f09622249c25f5dc21ceedd0d404518880fd106496c51408ca61faae04559",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n106/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-1ed64902ed81615d1e86d18d5f2c4367",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 197580,
+        "end": 200447,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "39ea6c019017b23d3ccd64d49ff1c181f90d5169899a220cbf206e9e06c0f0ba",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n110/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5f5b31b5d69fd42e9d854375c08a5c4b",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 200447,
+        "end": 206229,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8acdd3733fd3b76f2bcfb6330285a91fc653a72e246847143156939eacc421cc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n112/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8f61ab957afb3e6ee8aa3bd38b7b7329",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 206229,
+        "end": 212930,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "674f7e96c860ffc5e321d786275ac3e1c8703aa8a49d5f55a2a18435deac0349",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n115/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-96ca8f1a95295ad637db4fa2b1c421d7",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 212930,
+        "end": 216733,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "83873ec5c92536e8d32d01c97012891d7078d897f5aede01327adb2d974ad0dc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n118/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-55a3fbc9115d0280f8aaa131306c2198",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 216733,
+        "end": 220143,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a926b5cf4b0a3029ae1bc92ea66be62722711ea010afea5b497d7c3d02f2fc40",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n119/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7a28e2112797f6e1c7f9d502fac10c8c",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 220143,
+        "end": 223669,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "67567a049e55999214eab22aaf6346acdf939f40879b8ceadc426263b42da310",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n121/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3a22a495c93428fbeb13a8f8fecb7b94",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 223669,
+        "end": 227282,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c0f1b4fd9291a60ec204966b4826047ac24c482ce2fcdf4eb143955b52691d25",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n123/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a0cdce466fb4a3d6dc4d0ac2b4057c26",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 227282,
+        "end": 228510,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "eca9c4c00bd6844a0b56b7d5a0f242a7442672f070c854af5def9b6692e366e2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n125/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-66124701e0c5fbd9346b18ae9c6ea69d",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 228510,
+        "end": 229948,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "794a6887657302c9161c598159387d99d6f07617e021f69518bfaf4ed461e778",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n125/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0909c272c65e21dee9f2ae3c742a3fe5",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 229948,
+        "end": 231652,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "04ca92cccacffbc2741d90125f77914f452c98a11f27c9023b0cff00ba8a2dbb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n126/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-598c975311d10613aab6595301d01b05",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 231652,
+        "end": 233105,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c48e13781d0b2cfbd91684dbb8ca422e84e2f9bf0b96845aedbd780ea2f553b5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n127/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6967070d90961a90742f48fb46bf4d74",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 233105,
+        "end": 235418,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5d2fdb21b1d670bf8d7581c6643a92bc82f76824c8c3d9b71123d1d03c49f10b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n128/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-186a36fefe692ca66d76bb5d11ccd08a",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 235418,
+        "end": 241380,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8023c88125350acf6acefc412ab4341658272d318657c92fe7f30bcacd90d09a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n129/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-78c47628936d23b8a997fdbf0ac13f4b",
+      "ordinal": 36,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 241380,
+        "end": 246001,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "49fdeb18160a503f0ccd3f25a1282b69aae439ddad128b84f9d409b4c81d9b4f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n132/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a671e841391033ca54fe97f92d586f63",
+      "ordinal": 37,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 246001,
+        "end": 254178,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "64364965b7870f20a38e58a4ada982a565c98807ec21c2e83684816f4b096016",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n134/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-86e895148dc838056a12ec77294e6b32",
+      "ordinal": 38,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 254178,
+        "end": 260721,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e6fe67bdc2e14afa1b936bc38b597388358d6185ee380eae28606cee31ac6fbe",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n139/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-60a5b3ec66c2c8d066c7f226f2624cf1",
+      "ordinal": 39,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 260721,
+        "end": 282695,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "87d331c2fdbc533c2070aa90d456a43ae207570045302bf17158674612ce6cf4",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n142/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3f0b4188d243afffcb2e910d5daa473d",
+      "ordinal": 40,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 282695,
+        "end": 292035,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4e2c99e8d3eb478ee32dc7a2f2455fdce37d0fcd50b65db56df5a2aa6cc3d389",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n154/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-719c65e8f316870f8353cfb323d83496",
+      "ordinal": 41,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 292035,
+        "end": 297616,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d9898ac624b8f041b8388ecdaaa9ec64c6d7987da60f4c00433b983cf498a3e0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n158/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0be833d140c4ecd58bcee90296d55a89",
+      "ordinal": 42,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 297616,
+        "end": 299509,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cfada3f28b63160b99a13c982c8af305377f75b8d0154cfc6671779f46486b99",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n160/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8b9d8cfecfda5c8ff62c4279092d7df1",
+      "ordinal": 43,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 299509,
+        "end": 304745,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3084d3cbe55c99a55a57e3bda7eec3022847eda803f54a0951569bcf11bfd23d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n162/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4166823bb0c3cbc1868555928874244d",
+      "ordinal": 44,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 304745,
+        "end": 314099,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "86c9e8b70e29152964fd619f9d75b81679398653aebf1d59f1942251b9a3bad3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n165/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b5506aad5c84985c7e41344f0fdd83f5",
+      "ordinal": 45,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 314099,
+        "end": 318918,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4a0cdb5a97f454cdc7119434f592e11cc549a8fe4a9370eedc151f143753ead7",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n169/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-467fb62c9d089d908dfb8cf39c15bc1c",
+      "ordinal": 46,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 318918,
+        "end": 321554,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "559002863ff37d812192de023c1e8eb2f63dbf8c42277e97295a89a52480cb70",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n172/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-a7afcb73b577b8b7061f1eb9df80aafd",
+      "ordinal": 47,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 321554,
+        "end": 325356,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "8d77621112648dd92c174d67fe89b065c58beab99f4ec965a7e118b9c575996d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n173/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5be4e292b4182409914b061389be9af7",
+      "ordinal": 48,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 325356,
+        "end": 327436,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e15029570c3bbabe0b559c53ad74a87ac32d3b4c907c4a0f92894f5aec5d1bdb",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n175/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ce04e8c997f0e9b45af9931eb8624783",
+      "ordinal": 49,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 327436,
+        "end": 331844,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e5d35248d878de87adb6cdee736fe5b80e1e533e82e59d9c90fa5fba5a3ee1c5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n176/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c16094790a060bddd7aca433896d7d76",
+      "ordinal": 50,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 331844,
+        "end": 334934,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7c2cd0f5d256414dac1f61826deed9ef0b327845af1e8903b92c36f91bbfd817",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n178/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3e3d2153c487ec47f23a6e1859b62549",
+      "ordinal": 51,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 334934,
+        "end": 341981,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "2610e6b65ecb4ea86ca6294bcaf679c0b7155f3f3cb8193eb7ff99ba11e03025",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n180/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-98829283fbea1e5732b2b226c6b1b4f4",
+      "ordinal": 52,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 341981,
+        "end": 348651,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e0c7a7f2eb2a97f421b04450121e7c9699209cd6452b8ade327bd11139e6bea3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n184/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ac5f4eedcd0e806f477587761d3692e4",
+      "ordinal": 53,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 348651,
+        "end": 358829,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3a3f04c65742f08a07dea3b3a5b935d2e66c3b04aec1d7ebaebbc57cfff4fc87",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n188/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-10b780140ecd4f69730ea25b07e8e34b",
+      "ordinal": 54,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 358829,
+        "end": 363886,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5385c782028c8244c5107d48c066c608e6097acff8049329f4ff7f45973a03e9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n194/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fea0793c45909226a387a773a4bcbf70",
+      "ordinal": 55,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 363886,
+        "end": 366127,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "981c788fd247a32eb57b9d09dc231ecd78e36f768971a9ea6f39c77c3e1f66db",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n197/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-520630e30cbe269b9dbc5336e8b910e0",
+      "ordinal": 56,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 366127,
+        "end": 374656,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b196e3ac51f185bf7a0106664f374315bfd035636ec49bf1d2e84ae52f66632e",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n198/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-01ad28c8cccbef50bb33173730e5e9ec",
+      "ordinal": 57,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 374656,
+        "end": 379241,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d0bc72c014ff03017353ef47194a0852ed9aad5b813ec564aabeac177497f029",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n203/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c099e878442c8364ce50c8be317c586b",
+      "ordinal": 58,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 379241,
+        "end": 385952,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "056a52cbec19cfe49a407ff4bf2f1375b9529fd476b0f9916660316123558012",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n205/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2798be911f1ff8ccfc3a920cc521a700",
+      "ordinal": 59,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 385952,
+        "end": 394043,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1885053505d04facf4c77026d43513247ba2dff6a4d5425182b2fbeb34cdd17b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n209/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-c310f622fa529e545b1c6dd45fb7cb9d",
+      "ordinal": 60,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 394043,
+        "end": 397936,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7d35d81dc3405956c1f31761ccb5e494138711f85416bdfd448d42d8eb7c4f16",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n213/mode/1up"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7b302ed8caae7cc81dec7305fa3a1d1c",
+      "ordinal": 61,
+      "text_layer_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer-full.txt",
+      "text_layer_sha256": "a8c396079a66f7eb4e62075c8d918c094e552e9a8ecb4ec22911dd5c347a120e",
+      "selector": {
+        "type": "text_position",
+        "start": 397936,
+        "end": 400917,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ab5c52e93bac95b58f1fad43e221fe17504fcbb3f67f4216a489eea064dc505f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/aristotle_rhetoric/page/n215/mode/1up"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-da5ddba69b975bbbfbdeb6becffe9791",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9f83a467d94378a2bba33067a32110c9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e127b457f17e5a2d8dc803c935b0e4fa",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6826fd5bee7922766322343935cf665c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-29815e3d802fc3cc337604e663bbe1bb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d664b1b7ad5e2b0793bf5ddafbd50b00"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-17f3e0558859d8e744c057b752930fb6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cbe2610083d76e9652015ad3c88b00db"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-65d264edbf46378066860de88b75021a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2e7dc2716cb8b1576a970692fd22d2a4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-06ab481556ef446d331da6811130fc0c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-bc82903481ce2c807c4b3d8eb5a69e47"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-aa0f87faa88124d74dafea5918c332d8",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6038486ee6574ab7efc95f38949f2cf0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2409ee2cfd5f859f4f5ac7a1d4d81179",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f53eba7533f6cf0f42c3a13a390637e6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0e33915a6475f60cce277282ebbe5f5a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-58c679d609077f56ce98bf312852a7c7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-31cac157dec6ef28a13732987bd0a5bc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-83626592ea405d8d1ef52994f0e3f9d7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f559a6ef5fd501d34a69cb34cd5dc48b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0558c2e1066369778e5509f5014556fb"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9a70b30be34da36001cdb983cbdcd2cc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-488827250ed71141bdfebe6e7ffed728"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-90950ee22bc25932f58684fd87f91abd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3fa1ab9e8d8794b9489423fdd9b51249"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-adf47570b82debda1a70ae55978fd2f2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-afe846f7a21ab9e8bb62d469370d938f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-861d5c082b64d62623528bff1bd3f9ba",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f0f68711aa981cedd11e0ff421434de2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4399db0a3b91395820a39a080a9cf02f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9fa6470509d3f7f5fd998d87930ebd4e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e6036e665c3fcf0cd619d87f54992a2e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cb81065963cfa7d5e53efe4e221c82f3"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4cd179e563486726bdb9a2dceace56f3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4aeae932adbafd94bdc321cd3778a1ba"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4d80eb61799c1627e13861a85cc58d9f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3053bd50ad7eb710e10c7b00cc17e8ae"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7f95deddfed0c4187a50e4ecf143c0ab",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2161e398c543c2f1eea6e5f84af912a0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8573f07bc87315c758f115f1107720ea",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ee8ea7cb1d4673aa1321dfa6cb898d08"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-95e7aee08ca7699e2766b9c770394b64",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-1ed64902ed81615d1e86d18d5f2c4367"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8332a7a1ec53db399cb1801c2dfa77a6",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5f5b31b5d69fd42e9d854375c08a5c4b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-df9ffb0722bb0510b22fc0544d8fc27b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8f61ab957afb3e6ee8aa3bd38b7b7329"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-df6671478feb307d4a12370d224a5569",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-96ca8f1a95295ad637db4fa2b1c421d7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c5031efba379fa02a2dfb08fe6e25aed",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-55a3fbc9115d0280f8aaa131306c2198"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-35da8acf934d83b16fa927ae9bcfb994",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7a28e2112797f6e1c7f9d502fac10c8c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6a3af198d067d1b988fe9fb5fd3a75c4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3a22a495c93428fbeb13a8f8fecb7b94"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-294a9b192ba8015c2a86e2511b553eb4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a0cdce466fb4a3d6dc4d0ac2b4057c26"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b3f2b3ff17d024507ae4bde36152ae82",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-66124701e0c5fbd9346b18ae9c6ea69d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fbc079aa8d118487a64122c7165bd53c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0909c272c65e21dee9f2ae3c742a3fe5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-64678daad56cbb9c3a4afaaec6b2c845",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-598c975311d10613aab6595301d01b05"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c01df18f1d082edbe405663fd4cd8a03",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6967070d90961a90742f48fb46bf4d74"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5c0502f21574ac0b8e48fb0f98d2a348",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-186a36fefe692ca66d76bb5d11ccd08a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-be2ccaaef8183c7d8beb28d7d7c37675",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-78c47628936d23b8a997fdbf0ac13f4b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e777899bce8c5cdd07d6705a43ab2eca",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a671e841391033ca54fe97f92d586f63"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e9b16920648d78e5e9883488094da44f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-86e895148dc838056a12ec77294e6b32"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-17213e1145bdac83c3f961d3aae9ad19",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-60a5b3ec66c2c8d066c7f226f2624cf1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-768d7ff58cabb44671c1f2acdd98b268",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3f0b4188d243afffcb2e910d5daa473d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-056b884b2bbc27e02d658035abe50d74",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-719c65e8f316870f8353cfb323d83496"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4ab9b2b76ec92ed6140ae6a6c853df0d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0be833d140c4ecd58bcee90296d55a89"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-336deea84feb043a49253510283fc8f3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8b9d8cfecfda5c8ff62c4279092d7df1"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3d95badbeeb1f91340b1d7fbe67149dc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4166823bb0c3cbc1868555928874244d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2744f393f78b56b6cdca225ab82a9e0c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b5506aad5c84985c7e41344f0fdd83f5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-427c896901a7fc20e1cd260f7c29b101",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-467fb62c9d089d908dfb8cf39c15bc1c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d64e26116de5a37618fa98fe63e7353d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-a7afcb73b577b8b7061f1eb9df80aafd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-65388bdc85fb991d9fe3ba1ff6c5abb9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5be4e292b4182409914b061389be9af7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-178ffd14cc4b85072e34b87ee351909a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ce04e8c997f0e9b45af9931eb8624783"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-0d58450ece3dd0b0e914bc0de6a8ae02",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c16094790a060bddd7aca433896d7d76"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8059ea2853f7ff8e397b8442288ad9f9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3e3d2153c487ec47f23a6e1859b62549"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ecf57054c5e744b5c3ec979aeddd9b04",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-98829283fbea1e5732b2b226c6b1b4f4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-eb651ab5f6b28ce29e30c1151cc2d3db",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ac5f4eedcd0e806f477587761d3692e4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3f48e9556fc9deb7a4f0efb6876954ce",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-10b780140ecd4f69730ea25b07e8e34b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a088d55405b3019c66a7e26e360a0394",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fea0793c45909226a387a773a4bcbf70"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1f5e44c2b995f5201b980e9d379d9888",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-520630e30cbe269b9dbc5336e8b910e0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-684f2b19d15936177f4c169d73cdb928",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-01ad28c8cccbef50bb33173730e5e9ec"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e6ad71f27cb4dd07c60e6f871f41657e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c099e878442c8364ce50c8be317c586b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8b5edb8f8c090500dda49ff6c28586fa",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2798be911f1ff8ccfc3a920cc521a700"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a30c03d35a546625d159b700c3187f3e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-c310f622fa529e545b1c6dd45fb7cb9d"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-62c2aa727a6220b63436761a8d8bf377",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7b302ed8caae7cc81dec7305fa3a1d1c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Navigation bound to the printed chapter; OCR outside the five checked chapters remains provisional.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-7bd645c37650db65f093e8f4cd241aa2",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-ea8e9fe9d60fa542ca1ec2826deceaa2",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-da5ddba69b975bbbfbdeb6becffe9791",
+        "tos.text-unit.sid-e127b457f17e5a2d8dc803c935b0e4fa",
+        "tos.text-unit.sid-29815e3d802fc3cc337604e663bbe1bb",
+        "tos.text-unit.sid-17f3e0558859d8e744c057b752930fb6",
+        "tos.text-unit.sid-65d264edbf46378066860de88b75021a",
+        "tos.text-unit.sid-06ab481556ef446d331da6811130fc0c",
+        "tos.text-unit.sid-aa0f87faa88124d74dafea5918c332d8",
+        "tos.text-unit.sid-2409ee2cfd5f859f4f5ac7a1d4d81179",
+        "tos.text-unit.sid-0e33915a6475f60cce277282ebbe5f5a",
+        "tos.text-unit.sid-31cac157dec6ef28a13732987bd0a5bc",
+        "tos.text-unit.sid-f559a6ef5fd501d34a69cb34cd5dc48b",
+        "tos.text-unit.sid-9a70b30be34da36001cdb983cbdcd2cc",
+        "tos.text-unit.sid-90950ee22bc25932f58684fd87f91abd",
+        "tos.text-unit.sid-adf47570b82debda1a70ae55978fd2f2",
+        "tos.text-unit.sid-861d5c082b64d62623528bff1bd3f9ba",
+        "tos.text-unit.sid-4399db0a3b91395820a39a080a9cf02f",
+        "tos.text-unit.sid-e6036e665c3fcf0cd619d87f54992a2e",
+        "tos.text-unit.sid-4cd179e563486726bdb9a2dceace56f3",
+        "tos.text-unit.sid-4d80eb61799c1627e13861a85cc58d9f",
+        "tos.text-unit.sid-7f95deddfed0c4187a50e4ecf143c0ab",
+        "tos.text-unit.sid-8573f07bc87315c758f115f1107720ea",
+        "tos.text-unit.sid-95e7aee08ca7699e2766b9c770394b64",
+        "tos.text-unit.sid-8332a7a1ec53db399cb1801c2dfa77a6",
+        "tos.text-unit.sid-df9ffb0722bb0510b22fc0544d8fc27b",
+        "tos.text-unit.sid-df6671478feb307d4a12370d224a5569",
+        "tos.text-unit.sid-c5031efba379fa02a2dfb08fe6e25aed",
+        "tos.text-unit.sid-35da8acf934d83b16fa927ae9bcfb994",
+        "tos.text-unit.sid-6a3af198d067d1b988fe9fb5fd3a75c4",
+        "tos.text-unit.sid-294a9b192ba8015c2a86e2511b553eb4",
+        "tos.text-unit.sid-b3f2b3ff17d024507ae4bde36152ae82",
+        "tos.text-unit.sid-fbc079aa8d118487a64122c7165bd53c",
+        "tos.text-unit.sid-64678daad56cbb9c3a4afaaec6b2c845",
+        "tos.text-unit.sid-c01df18f1d082edbe405663fd4cd8a03",
+        "tos.text-unit.sid-5c0502f21574ac0b8e48fb0f98d2a348",
+        "tos.text-unit.sid-be2ccaaef8183c7d8beb28d7d7c37675",
+        "tos.text-unit.sid-e777899bce8c5cdd07d6705a43ab2eca",
+        "tos.text-unit.sid-e9b16920648d78e5e9883488094da44f",
+        "tos.text-unit.sid-17213e1145bdac83c3f961d3aae9ad19",
+        "tos.text-unit.sid-768d7ff58cabb44671c1f2acdd98b268",
+        "tos.text-unit.sid-056b884b2bbc27e02d658035abe50d74",
+        "tos.text-unit.sid-4ab9b2b76ec92ed6140ae6a6c853df0d",
+        "tos.text-unit.sid-336deea84feb043a49253510283fc8f3",
+        "tos.text-unit.sid-3d95badbeeb1f91340b1d7fbe67149dc",
+        "tos.text-unit.sid-2744f393f78b56b6cdca225ab82a9e0c",
+        "tos.text-unit.sid-427c896901a7fc20e1cd260f7c29b101",
+        "tos.text-unit.sid-d64e26116de5a37618fa98fe63e7353d",
+        "tos.text-unit.sid-65388bdc85fb991d9fe3ba1ff6c5abb9",
+        "tos.text-unit.sid-178ffd14cc4b85072e34b87ee351909a",
+        "tos.text-unit.sid-0d58450ece3dd0b0e914bc0de6a8ae02",
+        "tos.text-unit.sid-8059ea2853f7ff8e397b8442288ad9f9",
+        "tos.text-unit.sid-ecf57054c5e744b5c3ec979aeddd9b04",
+        "tos.text-unit.sid-eb651ab5f6b28ce29e30c1151cc2d3db",
+        "tos.text-unit.sid-3f48e9556fc9deb7a4f0efb6876954ce",
+        "tos.text-unit.sid-a088d55405b3019c66a7e26e360a0394",
+        "tos.text-unit.sid-1f5e44c2b995f5201b980e9d379d9888",
+        "tos.text-unit.sid-684f2b19d15936177f4c169d73cdb928",
+        "tos.text-unit.sid-e6ad71f27cb4dd07c60e6f871f41657e",
+        "tos.text-unit.sid-8b5edb8f8c090500dda49ff6c28586fa",
+        "tos.text-unit.sid-a30c03d35a546625d159b700c3187f3e",
+        "tos.text-unit.sid-62c2aa727a6220b63436761a8d8bf377"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-06ab6602c4799d3981537996d3498a8a",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.rhetoric-publication.20261120",
+        "method_name": "print-chapter-segmentation",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "ru",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.segmentation.rhetoric-platonova-full.20261120",
+        "made_at": "2026-11-20T04:44:30Z",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/aristotle/rhetoric/expressions/retained-rhetoric-ru-platonova1894-book1-ch1/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

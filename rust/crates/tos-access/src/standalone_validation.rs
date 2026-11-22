@@ -80,6 +80,11 @@ const PAGE_COMMANDS: &[&str] = &[
     "tos.page.read-source",
     "tos.page.cognitive-next",
     "tos.page.cognitive-action",
+    "tos.page.set-layer",
+    "tos.page.set-lens",
+    "tos.page.compare",
+    "tos.page.start-route",
+    "tos.page.lay-on-bench",
 ];
 const ACCESS_SCHEMAS: &[&str] = &[
     "access/contracts/deployment-profile.v1.schema.json",

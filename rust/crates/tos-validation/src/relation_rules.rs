@@ -878,10 +878,22 @@ impl TopologyState<'_> {
         code: &'static str,
         location: &str,
     ) -> Result<(), crate::item_rules::ItemRefusal> {
-        if self.shadow.issues.len() < MAX_ISSUES {
+        let limit = self.limits.map_or(MAX_ISSUES, |limits| limits.max_issues);
+        if self.shadow.issues.len() < limit {
             self.report(std::mem::size_of::<RelationIssue>() + location.len())?;
+            self.shadow.issues.push(RelationIssue {
+                code,
+                location: location.into(),
+            });
+        } else if self.limits.is_some() {
+            return Err(crate::item_rules::ItemRefusal::BudgetCheck {
+                check: "bibliography topology issue count",
+                used: (self.shadow.issues.len() as u64).checked_add(1),
+                limit: Some(limit as u64),
+            });
+        } else {
+            self.shadow.issue(code, location);
         }
-        self.shadow.issue(code, location);
         Ok(())
     }
     fn skip(&mut self, profile: impl AsRef<str>) -> Result<(), crate::item_rules::ItemRefusal> {
@@ -2091,6 +2103,65 @@ mod tests {
                 .issues
                 .iter()
                 .any(|issue| issue.code == "reference-member-type-or-missing")
+        );
+    }
+
+    #[test]
+    fn bounded_topology_reports_issues_up_to_the_caller_limit() {
+        use crate::item_rules::{ItemLimits, ItemRefusal};
+        use std::sync::atomic::AtomicBool;
+        use std::time::{Duration, Instant};
+
+        let issue_count = MAX_ISSUES + 1;
+        let records = (0..issue_count)
+            .map(|i| json!({"record_id":format!("tos.work.{i}"),"record_type":"work"}))
+            .collect::<Vec<_>>();
+        let limits = ItemLimits {
+            max_member_bytes: 4096,
+            max_total_bytes: 1024 * 1024,
+            max_state_bytes: 1024 * 1024,
+            max_issues: issue_count,
+            deadline: Instant::now() + Duration::from_secs(2),
+        };
+        let cancelled = AtomicBool::new(false);
+        let items = BTreeMap::new();
+        let legacy = inspect_current_topology(&records, &[], &items, true, "test-union");
+        assert_eq!(legacy.issues.len(), MAX_ISSUES);
+        assert!(legacy.issue_sink_truncated);
+
+        let (report, _) = inspect_current_topology_bounded(
+            &records,
+            &[],
+            &items,
+            true,
+            "test-union",
+            limits,
+            &cancelled,
+        )
+        .unwrap();
+        assert_eq!(report.issues.len(), issue_count);
+        assert!(!report.issue_sink_truncated);
+
+        let refused = inspect_current_topology_bounded(
+            &records,
+            &[],
+            &items,
+            true,
+            "test-union",
+            ItemLimits {
+                max_issues: 1,
+                ..limits
+            },
+            &cancelled,
+        )
+        .unwrap_err();
+        assert_eq!(
+            refused,
+            ItemRefusal::BudgetCheck {
+                check: "bibliography topology issue count",
+                used: Some(2),
+                limit: Some(1),
+            }
         );
     }
 

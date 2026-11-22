@@ -218,7 +218,16 @@ impl FoundationOrchestratorError {
             FoundationDefaultReadError::Owner(ItemRefusal::BudgetCheck { check, used, limit }),
         ) = self
         {
-            if matches!(*check, "record_issue_sink" | "biblio_sink") {
+            if matches!(
+                *check,
+                "record_issue_sink"
+                    | "biblio_sink"
+                    | "default labs"
+                    | "default goldsets"
+                    | "default discovery"
+                    | "default closure"
+                    | "foundation current member bytes"
+            ) {
                 let stage = match stage {
                     FoundationDefaultStage::CapturedCurrentPaths => {
                         "source-foundation default captured current paths"
@@ -3772,7 +3781,7 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         deadline,
         cancelled,
     );
-    let schema_set = match selected_schema_set {
+    let mut schema_set = match selected_schema_set {
         Ok(set) => set,
         Err(error) => {
             return fail_window(
@@ -4381,6 +4390,14 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             return fail_window(execution_limits, remaining_budget, default_ticket, error);
         }
     };
+    if let Err(error) = schema_set.bind_evaluation_limits(default_schema_limits) {
+        return fail_window(
+            execution_limits,
+            remaining_budget,
+            default_ticket,
+            schema_load(error),
+        );
+    }
     // Check the existing selected-schema preparation allowance before allocation.
     if schema_preparation_state > default_operation.state_bytes {
         return fail_window(
@@ -4547,11 +4564,14 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         FoundationBiblioEvidence::Complete { report, .. } => report.shadow.issues.len(),
         FoundationBiblioEvidence::NotSelected | FoundationBiblioEvidence::RecordsIncomplete => 0,
     };
+    // Resolved diagnostics carry forward the ordered Records issues. The
+    // Record-kernel and Item issues remain in their separate owner reports.
+    let carried_records_issues = evaluated.rules.owner_report.records.ordered_issues.len();
     let default_new_issues = evaluated
         .rules
         .cost
         .issue_count
-        .checked_sub(records_issues)
+        .checked_sub(carried_records_issues)
         .and_then(|count| count.checked_add(biblio_issues));
     let Some(default_new_issues) = default_new_issues else {
         return fail_window(
@@ -4857,7 +4877,6 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
         max_total_raw_bytes: catalog_operation
             .source_read_bytes
             .min(catalog_operation.worker_wire_bytes)
-            .min(BatchBudget::MAX_RAW_BYTES as u64)
             .max(1),
         max_total_wire_bytes: catalog_operation.worker_wire_bytes,
         max_distinct_selectors: catalog_max_checks.max(1).min(1024),
@@ -5489,6 +5508,14 @@ fn run<'work, 'receive, 'observe, 'cancel, 'signal>(
             return fail_window(execution_limits, remaining_budget, persisted_ticket, error);
         }
     };
+    if let Err(error) = schema_set.bind_evaluation_limits(persisted_schema_limits) {
+        return fail_window(
+            execution_limits,
+            remaining_budget,
+            persisted_ticket,
+            schema_load(error),
+        );
+    }
     let persisted_before = match worker_quota.usage() {
         Ok(usage) => usage,
         Err(_) => {
