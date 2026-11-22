@@ -186,7 +186,8 @@ export function createMediaView({t,locale,hint=()=>{}}){
         animationTime:0.6,gestureSettingsMouse:{clickToZoom:false,dblClickToZoom:true},
       }));
       state.osd.addHandler('open-failed',()=>{stage.replaceChildren(el('p','ps-media-missing',t('mediaMissing')));});
-    }catch{stage.replaceChildren(el('p','ps-media-missing',t('mediaMissing')));}
+    // A viewer closed while the viewer's code was loading stays closed.
+    }catch{if(viewer===state)stage.replaceChildren(el('p','ps-media-missing',t('mediaMissing')));}
   }
 
   function closeViewer(){

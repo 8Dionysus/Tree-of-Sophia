@@ -4,6 +4,9 @@ import {createMediaView} from './media-view.mjs';
 import {readMedia} from '../../../../bonsai/lib/media.mjs';
 import zarathustraMedia from '../../../../bonsai/zarathustra/media.json' with {type:'json'};
 
+// The viewer loads its code on opening; the test waits for that load to settle while the page's globals stand.
+const settled=()=>import('openseadragon').catch(()=>null).then(()=>new Promise(resolve=>setTimeout(resolve,0)));
+
 function setup(){
   const window=new Window({url:'http://localhost/zarathustra/'});
   vi.stubGlobal('document',window.document);
@@ -14,7 +17,7 @@ function setup(){
   return {window,card,view,items};
 }
 
-test('closing the viewer gives focus back to the image that opened it',()=>{
+test('closing the viewer gives focus back to the image that opened it',async()=>{
   const {window,card,view,items}=setup();
   view.render(card,items.slice(0,1));
   const open=card.querySelector('.ps-media-open');
@@ -22,10 +25,11 @@ test('closing the viewer gives focus back to the image that opened it',()=>{
   expect(window.document.querySelector('dialog.ps-media-viewer')).not.toBeNull();
   view.close();
   expect(window.document.activeElement).toBe(open);
+  await settled();
   vi.unstubAllGlobals();
 });
 
-test('when the opening picture fails while the viewer is open, focus returns to its place on the card',()=>{
+test('when the opening picture fails while the viewer is open, focus returns to its place on the card',async()=>{
   const {window,card,view,items}=setup();
   view.render(card,items.slice(0,1));
   const open=card.querySelector('.ps-media-open'),figure=open.parentElement;
@@ -36,10 +40,11 @@ test('when the opening picture fails while the viewer is open, focus returns to 
   view.close();
   expect(window.document.activeElement).toBe(figure);
   expect(window.document.querySelector('dialog.ps-media-viewer')).toBeNull();
+  await settled();
   vi.unstubAllGlobals();
 });
 
-test('a small copy in a link strip that fails while open returns focus to its row',()=>{
+test('a small copy in a link strip that fails while open returns focus to its row',async()=>{
   const {window,card,view,items}=setup();
   view.renderStrip(card,[{label:null,items:items.slice(0,1)}]);
   const open=card.querySelector('.ps-media-thumb'),row=open.parentElement;
@@ -47,5 +52,6 @@ test('a small copy in a link strip that fails while open returns focus to its ro
   open.querySelector('img').dispatchEvent(new window.Event('error'));
   view.close();
   expect(window.document.activeElement).toBe(row);
+  await settled();
   vi.unstubAllGlobals();
 });
