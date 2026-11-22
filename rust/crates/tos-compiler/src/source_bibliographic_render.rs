@@ -5,7 +5,7 @@ use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 use tos_foundation::{
     CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, JsonMode, canonical_raw_bytes_v1,
-    jcs_digest_v1, parse_json,
+    jcs_digest_v1, parse_json, stringify_non_jcs_numbers_v1,
 };
 
 pub(crate) fn text<'a>(v: &'a Value, key: &str) -> Result<&'a str> {
@@ -80,7 +80,10 @@ pub(crate) fn receipt_request_digest_matches(
             };
             let parsed = parse_json(&raw, JsonMode::PublishedStrict, limits)
                 .map_err(|_| Error::Invalid("receipt request JSON"))?;
-            jcs_digest_v1(parsed.root(), limits)
+            // A number JCS refuses stands as its exact decimal spelling (TOS-D-0088).
+            let request = stringify_non_jcs_numbers_v1(parsed.root(), limits)
+                .map_err(|_| Error::Invalid("receipt request JSON"))?;
+            jcs_digest_v1(&request, limits)
                 .map_err(|_| Error::Invalid("receipt request jcs1 digest"))?
                 .digest
                 .to_prefixed()

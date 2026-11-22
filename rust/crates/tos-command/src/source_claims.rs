@@ -17,7 +17,8 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{
     CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, JsonString, JsonValue, RelativePath,
-    canonical_count_v1, jcs_digest_v1, python_strip_unicode16_v1, verify_canonical_digest_v1,
+    canonical_count_v1, jcs_digest_v1, python_strip_unicode16_v1, stringify_non_jcs_numbers_v1,
+    verify_canonical_digest_v1,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::PredicateRead;
@@ -1868,7 +1869,8 @@ fn serialize_claim_creation_preview(
         deadline,
         cancelled,
     )?;
-    let recorded_at = if let Some(original) = retained {
+    // A retained creation replays as it was written: its instant and the profile of its request digest.
+    let (recorded_at, jcs1) = if let Some(original) = retained {
         let raw =
             original
                 .get("source-create-receipt.json")
@@ -1878,12 +1880,21 @@ fn serialize_claim_creation_preview(
         let receipt = parse(raw)?;
         let instant = text(&receipt, "recorded_at")?;
         validate_instant(instant)?;
-        instant.to_owned()
+        (
+            instant.to_owned(),
+            claim_request_digest_profile(&receipt)?.is_some(),
+        )
     } else {
-        crate::source_serialization::instant()?
+        (crate::source_serialization::instant()?, true)
     };
-    let receipt =
-        claim_creation_receipt(&config, &request, &preview.response, &files, &recorded_at)?;
+    let receipt = claim_creation_receipt(
+        &config,
+        &request,
+        &preview.response,
+        &files,
+        &recorded_at,
+        jcs1,
+    )?;
     let mut receipt_raw = canonical(&receipt)?;
     receipt_raw.push(b'\n');
     files.insert("source-create-receipt.json".into(), receipt_raw);
@@ -1953,7 +1964,7 @@ fn serialize_claim_creation_preview(
 fn claim_request_digest_fields(
     request: &JsonValue,
 ) -> SourceCommandResult<[(&'static str, JsonValue); 2]> {
-    let digest = jcs_digest_v1(request, claim_request_digest_limits())
+    let digest = jcs_digest_v1(&claim_request_jcs(request)?, claim_request_digest_limits())
         .map_err(|_| SourceCommandError::Invalid("Claim request digest input"))?;
     Ok([
         ("request_digest", string(&digest.digest.to_prefixed())),
@@ -1971,6 +1982,13 @@ fn claim_request_digest_profile(receipt: &JsonValue) -> SourceCommandResult<Opti
     }
 }
 
+/// The request as its jcs1 digest reads it: a number JCS refuses stands as its exact decimal
+/// spelling in a string (TOS-D-0088); the receipt keeps the request as the owner received it.
+fn claim_request_jcs(request: &JsonValue) -> SourceCommandResult<JsonValue> {
+    stringify_non_jcs_numbers_v1(request, claim_request_digest_limits())
+        .map_err(|_| SourceCommandError::Invalid("Claim request digest input"))
+}
+
 /// Verify a retained receipt's request digest under the one profile it names.
 fn verify_claim_request_digest(
     request: &JsonValue,
@@ -1978,9 +1996,17 @@ fn verify_claim_request_digest(
 ) -> SourceCommandResult<bool> {
     let expected = Digest256::from_prefixed(text(receipt, "request_digest")?)
         .map_err(|_| SourceCommandError::Invalid("Claim request digest"))?;
+    let profile = claim_request_digest_profile(receipt)?;
+    let jcs;
+    let request = if profile.is_some() {
+        jcs = claim_request_jcs(request)?;
+        &jcs
+    } else {
+        request
+    };
     verify_canonical_digest_v1(
         request,
-        claim_request_digest_profile(receipt)?,
+        profile,
         CanonicalProfile::SourceCommandInputV1,
         expected,
         claim_request_digest_limits(),
@@ -2004,27 +2030,36 @@ fn claim_request_digest_limits() -> JsonLimits {
     }
 }
 
+/// A creation receipt written now carries the jcs1 request digest with its tag (TOS-D-0088); `jcs1`
+/// false rebuilds a retained receipt written before, with the untagged SourceCommandInputV1 digest.
 fn claim_creation_receipt(
     config: &JsonValue,
     request: &JsonValue,
     preview: &JsonValue,
     files: &BTreeMap<String, Vec<u8>>,
     recorded_at: &str,
+    jcs1: bool,
 ) -> SourceCommandResult<JsonValue> {
     let claims = array(request, "claims")?
         .iter()
         .map(metadata_subject)
         .collect::<SourceCommandResult<Vec<_>>>()?;
-    Ok(object(vec![
+    let mut entries = vec![
         (
             "schema_version",
             string("tos_local_claim_create_receipt_v1"),
         ),
         ("command_id", field(request, "command_id")?.clone()),
-        (
+    ];
+    if jcs1 {
+        entries.extend(claim_request_digest_fields(request)?);
+    } else {
+        entries.push((
             "request_digest",
             string(&record_digest(request)?.to_prefixed()),
-        ),
+        ));
+    }
+    entries.extend([
         ("principal_id", field(config, "principal_id")?.clone()),
         ("authority_ref", field(config, "authority_ref")?.clone()),
         (
@@ -2044,7 +2079,8 @@ fn claim_creation_receipt(
         ("claims", JsonValue::Array(claims)),
         ("files", refs(files)),
         ("grants_admission", JsonValue::Bool(false)),
-    ]))
+    ]);
+    Ok(object(entries))
 }
 
 const CLAIM_CAPTURE_PROVENANCE_SCHEMA: &str = "ToS/contracts/provenance-event-v2.schema.json";
@@ -11611,6 +11647,37 @@ mod retained_history_reader_regression {
             ("request_digest_profile", string("legacy")),
         ]);
         assert!(verify_claim_request_digest(&request, &unknown).is_err());
+
+        // A number JCS refuses is digested as its exact decimal spelling; the receipt keeps the request as received.
+        let precise = object(vec![
+            ("operation", string("claim.revise")),
+            (
+                "fields",
+                object(vec![(
+                    "object",
+                    JsonValue::Number(tos_foundation::JsonNumber {
+                        kind: tos_foundation::JsonNumberKind::Int,
+                        lexeme: "9007199254740993".into(),
+                    }),
+                )]),
+            ),
+        ]);
+        let [digest, profile] = claim_request_digest_fields(&precise).unwrap();
+        let stringified = object(vec![
+            ("operation", string("claim.revise")),
+            (
+                "fields",
+                object(vec![("object", string("9007199254740993"))]),
+            ),
+        ]);
+        assert_eq!(
+            text(&object(vec![digest.clone()]), "request_digest").unwrap(),
+            jcs_digest_v1(&stringified, claim_request_digest_limits())
+                .unwrap()
+                .digest
+                .to_prefixed()
+        );
+        assert!(verify_claim_request_digest(&precise, &object(vec![digest, profile])).unwrap());
 
         // The retained history holds older receipts beside a receipt written now; each verifies as it was written.
         let context = selected_linguistic_owner_with(|receipts| {

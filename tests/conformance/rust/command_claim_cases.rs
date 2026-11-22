@@ -3427,23 +3427,28 @@ fn rich_package(
     let matches = match profile {
         None => legacy_request_digest == expected_request_digest,
         Some(tag) if tag == tos_foundation::JCS_DIGEST_TAG => {
-            tos_foundation::verify_canonical_digest_v1(
-                receipt_request,
-                Some(tag),
-                tos_foundation::CanonicalProfile::SourceCommandInputV1,
-                expected_request_digest,
-                tos_foundation::JsonLimits {
-                    max_bytes: RICH_DIGEST_WIRE_BYTES,
-                    ..tos_foundation::JsonLimits::default()
-                },
-            )
-            .map_err(|error| {
-                if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
-                    ClaimReferenceError::Limit
-                } else {
-                    ClaimReferenceError::InvalidInput
-                }
-            })?
+            let limits = tos_foundation::JsonLimits {
+                max_bytes: RICH_DIGEST_WIRE_BYTES,
+                ..tos_foundation::JsonLimits::default()
+            };
+            // A number JCS refuses stands as its exact decimal spelling (TOS-D-0088).
+            tos_foundation::stringify_non_jcs_numbers_v1(receipt_request, limits)
+                .and_then(|request| {
+                    tos_foundation::verify_canonical_digest_v1(
+                        &request,
+                        Some(tag),
+                        tos_foundation::CanonicalProfile::SourceCommandInputV1,
+                        expected_request_digest,
+                        limits,
+                    )
+                })
+                .map_err(|error| {
+                    if error.code == tos_foundation::FoundationErrorCode::BudgetExceeded {
+                        ClaimReferenceError::Limit
+                    } else {
+                        ClaimReferenceError::InvalidInput
+                    }
+                })?
         }
         Some(_) => return Err(ClaimReferenceError::UnsupportedProfile),
     };
@@ -6450,6 +6455,8 @@ fn initial_claim_creation_publishes_five_native_files_and_cold_replays() {
         "tos_local_claim_create_receipt_v1"
     );
     assert_eq!(result["receipt"]["grants_admission"], false);
+    // A creation receipt written now carries the jcs1 request digest with its tag (TOS-D-0088).
+    assert_eq!(result["receipt"]["request_digest_profile"], "jcs1");
     // The operational sidecar is private metadata outside the five authored
     // creation files; native writer cases exercise its lock exclusion.
     let form_name = format!(

@@ -21,7 +21,7 @@ use std::time::Instant;
 use tos_foundation::{
     CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonEmissionProfile, JsonLimits, JsonMode,
     JsonValue, RelativePath, SourceRevision, canonical_bytes_v1, canonical_count_v1,
-    emit_json_profile, jcs_digest_v1, parse_json,
+    emit_json_profile, jcs_digest_v1, parse_json, stringify_non_jcs_numbers_v1,
 };
 use tos_source_store::{CorpusCutReader, SourceMembershipV1, SourcePresenceV1};
 
@@ -2612,6 +2612,9 @@ impl<'a> NativeCompoundReader<'a> {
             Some(Value::String(tag)) if tag == JCS_DIGEST_TAG => {
                 let request =
                     ordered(&serde_json::to_vec(request).map_err(|_| bad("serialization"))?)?;
+                // A number JCS refuses stands as its exact decimal spelling (TOS-D-0088).
+                let request = stringify_non_jcs_numbers_v1(&request, limits())
+                    .map_err(|_| bad("membership correction request jcs1 digest"))?;
                 let digest = jcs_digest_v1(&request, limits())
                     .map_err(|_| bad("membership correction request jcs1 digest"))?;
                 Ok(recorded == digest.digest.to_prefixed())
