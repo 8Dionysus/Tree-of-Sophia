@@ -1007,7 +1007,7 @@ export function mountConstructorSky(root, {onSelect, onMove, onEdgeSelect=()=>{}
         ctx.globalAlpha=hot?1:(day?.38+.5*near01:.42+.48*near01)*(focused?.5:1)*(1-.8*focusMix);
         ctx.fillStyle=day&&!hot&&near01<1?mixHex(dot.color,night('#B3B6C4'),(1-near01)*.6):dot.color;
         ctx.fillRect(q.x-size/2,q.y-size/2,size,size);
-        if(hot){ctx.strokeStyle=dot.color;ctx.lineWidth=1;ctx.globalAlpha=.85;ctx.beginPath();ctx.arc(q.x,q.y,size+3,0,Math.PI*2);ctx.stroke();}
+        if(hot){ctx.strokeStyle=dot.color;ctx.lineWidth=1;ctx.globalAlpha=.85;circle(q.x,q.y,size+3,16);}
       }
       ctx.globalAlpha=1;
       // How many dots are in view, and where the last of them stands (the outermost of the last group, clear of its star):
