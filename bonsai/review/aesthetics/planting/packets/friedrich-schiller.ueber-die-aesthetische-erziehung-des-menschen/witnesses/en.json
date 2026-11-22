@@ -1,0 +1,186 @@
+{
+ "language": "en",
+ "witness": {
+  "edition": "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy",
+  "year": 1845,
+  "url": "https://archive.org/details/stheticletterses01schi",
+  "licence": "Public-domain 1845 translation and book; Internet Archive machine OCR of Duke University Libraries copy corrected against its page images, with line-wrap hyphens removed. No separate OCR licence is asserted.",
+  "maker": "codex-2026-11-19-education-weiss-maker",
+  "attribution": "Friedrich Schiller, The Æsthetic Letters, translated by John Weiss, in The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller (Boston, 1845), pp. 68 and 108; IA OCR of Duke copy compared and corrected against the page images.",
+  "rights": {
+   "russia": {
+    "basis": "public-domain",
+    "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: Шиллер умер в 1805, переводчик Вейсс в 1879, сроки истекли до 1993 года."
+   },
+   "usa": {
+    "basis": "public-domain",
+    "law": "US copyright: translation published in the United States in 1845, before 1931, and is in the public domain."
+   },
+   "eu": {
+    "basis": "public-domain",
+    "law": "Directive 2006/116/EC art. 1: author died 1805 and translator died 1879; the ordinary life plus 70 years terms have expired."
+   }
+  },
+  "persons": [
+   {
+    "role": "author",
+    "qid": "Q22670",
+    "name": {
+     "en": "Friedrich Schiller",
+     "ru": "Фридрих Шиллер"
+    },
+    "born": 1759,
+    "died": 1805,
+    "source": "https://www.wikidata.org/wiki/Q22670",
+    "evidence": {
+     "file": "wikidata-Q22670.json",
+     "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+    }
+   },
+   {
+    "role": "translator",
+    "qid": "Q6263392",
+    "name": {
+     "en": "John Weiss",
+     "ru": "Джон Уайсс"
+    },
+    "born": 1818,
+    "died": 1879,
+    "source": "https://www.wikidata.org/wiki/Q6263392",
+    "evidence": {
+     "file": "wikidata-Q6263392.json",
+     "sha256": "a0bd8ec47bc32753a296951c8154c2d461dc8eb5fb6abbde1a2326f0d13118be",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q6263392.json"
+    }
+   }
+  ]
+ },
+ "sources": [
+  {
+   "file": "weiss-1845-ocr.txt",
+   "url": "https://archive.org/download/stheticletterses01schi/stheticletterses01schi_djvu.txt",
+   "sha256": "93ff86fbde974e4da0530ae6e2905dd573613bf0feea2fabd1607a2b2ad5ad21",
+   "fetched": "2026-11-19"
+  }
+ ],
+ "images": [
+  {
+   "file": "weiss-n109.jpg",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n109.jpg",
+   "sha256": "9d75c77f302fdcaa6bb592ba05137e717fd6d91495f8540902ea3e57b1816be9",
+   "by": "maker"
+  },
+  {
+   "file": "weiss-n149.jpg",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+   "sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b",
+   "by": "maker"
+  },
+  {
+   "file": "weiss-second-n109.jpg",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n109.jpg",
+   "sha256": "9d75c77f302fdcaa6bb592ba05137e717fd6d91495f8540902ea3e57b1816be9",
+   "by": "second"
+  },
+  {
+   "file": "weiss-second-n149.jpg",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+   "sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b",
+   "by": "second"
+  }
+ ],
+ "places": {
+  "XV p164": {
+   "text": "The object of the play-impulse, expressed in a general proposition, can then be called living shape, an idea which serves to indicate all æsthetic qualities of phenomena, and in a word, what in its widest signification we call Beauty.",
+   "source": "weiss-1845-ocr.txt",
+   "page": "p. 68",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n109.jpg",
+   "image_sha256": "9d75c77f302fdcaa6bb592ba05137e717fd6d91495f8540902ea3e57b1816be9",
+   "alignment": "German pp. 164–165: object of the play-impulse is living shape, the term for all aesthetic properties of appearances and beauty in its broadest sense. Weiss prints living shape and Beauty in italics; page 68 is unnumbered, followed by numbered p. 69.",
+   "corrections": [
+    {
+     "from": "play-im- pulse",
+     "to": "play-impulse",
+     "offset": 18,
+     "reason": "p. 68 n109 divides impulse at the line end; preserve the lexical hyphen.",
+     "url": "https://archive.org/download/stheticletterses01schi/page/n109.jpg",
+     "page": "p. 68",
+     "image_sha256": "9d75c77f302fdcaa6bb592ba05137e717fd6d91495f8540902ea3e57b1816be9"
+    },
+    {
+     "from": "aesthetic",
+     "to": "æsthetic",
+     "offset": 138,
+     "reason": "p. 68 n109 prints the æ ligature.",
+     "url": "https://archive.org/download/stheticletterses01schi/page/n109.jpg",
+     "page": "p. 68",
+     "image_sha256": "9d75c77f302fdcaa6bb592ba05137e717fd6d91495f8540902ea3e57b1816be9"
+    }
+   ]
+  },
+  "XXIII p236a": {
+   "text": "Then the passage from the passive condition of perception to the active one of reflection and volition, is only effected by an intermediate condition of æsthetic freedom, and although this condition determines of itself nothing either for our judgments or dispositions, consequently leaving our intellectual and moral worth entirely problematical, yet it is the necessary stipulation, by which alone we can attain to a judgment and a disposition.",
+   "source": "weiss-1845-ocr.txt",
+   "page": "p. 108",
+   "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+   "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b",
+   "alignment": "German p. 236: the passage from passive sensation to active thinking and willing requires an intermediate condition of aesthetic freedom; that condition decides nothing about insight or disposition yet is their necessary condition. Weiss renders Einsichten and Gesinnungen as judgments and dispositions and Bedingung as stipulation. The unnumbered first page of the letter is p. 108, followed by numbered p. 109.",
+   "corrections": [
+    {
+     "from": "per- ception",
+     "to": "perception",
+     "offset": 47,
+     "reason": "p. 108 n149 divides perception at the line end.",
+     "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+     "page": "p. 108",
+     "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+    },
+    {
+     "from": "aes- thetic",
+     "to": "æsthetic",
+     "offset": 153,
+     "reason": "p. 108 n149 divides æsthetic at the line end and prints æ ligature.",
+     "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+     "page": "p. 108",
+     "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+    },
+    {
+     "from": "disposi- tions",
+     "to": "dispositions",
+     "offset": 256,
+     "reason": "p. 108 n149 divides dispositions at the line end.",
+     "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+     "page": "p. 108",
+     "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+    },
+    {
+     "from": "judg- ment",
+     "to": "judgment",
+     "offset": 419,
+     "reason": "p. 108 n149 divides judgment at the line end.",
+     "url": "https://archive.org/download/stheticletterses01schi/page/n149.jpg",
+     "page": "p. 108",
+     "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+    }
+   ]
+  }
+ },
+ "review": {
+  "reader": "codex-2026-11-19-schiller-education-second",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-19",
+  "places": {
+   "XV p164": {
+    "reads": "as the packet",
+    "alignment": "Read German 1801 pp. 164–165 n173–174 and Weiss p. 68 n109: complete sentence from object of play impulse through beauty in its broadest sense. Living shape renders lebende Gestalt; all aesthetic properties of appearances and beauty are retained. Both OCR corrections match print: line-end play-im-pulse and æ ligature.",
+    "image_sha256": "9d75c77f302fdcaa6bb592ba05137e717fd6d91495f8540902ea3e57b1816be9"
+   },
+   "XXIII p236a": {
+    "reads": "as the packet",
+    "alignment": "Read German 1801 p. 236 n245 and Weiss p. 108 n149: complete sentence from transition to necessary condition for insight and disposition. Weiss uses judgments and dispositions for Einsichten and Gesinnungen, and stipulation for Bedingung; transition, absence of determination, and necessary condition are preserved. All four OCR corrections match line-end divisions and printed æ.",
+    "image_sha256": "998981db1c45a8e073cd95b31981f54b12c6df86629da50139adda37cc8f837b"
+   }
+  }
+ }
+}

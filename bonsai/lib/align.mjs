@@ -176,24 +176,29 @@ export function alignRun(source,target,ratio,variance,{model=null,beta=ALIGNMENT
   // A group's words and what they account for are worked out once per group, not once per candidate.
   const groupsOf=(units,size)=>{const cache=new Map();return (from,to,cover)=>{const k=from*(size+1)+to;let value=cache.get(k);if(!value){const tokens=units.slice(from,to).flatMap(unit=>unit.tok);value={tokens,cover:model?cover(tokens):null};cache.set(k,value);}return value;};};
   const sourceGroup=groupsOf(source,n),targetGroup=groupsOf(target,m);
+  const baseMoves=ALIGNMENT.beads.concat(beads),targetVerse=ALIGNMENT.verse.map(([a,b])=>[b,a]);
   for(let i=0;i<=n;i++){
     const centre=Math.trunc(i*m/Math.max(1,n)),lo=Math.max(0,centre-band),hi=Math.min(m,centre+band);
     for(let j=lo;j<=hi;j++){
-      for(let state=0;state<3;state++){
-        const base=cost.get(key(i,j,state));
-        if(base===undefined)continue;
-        const moves=ALIGNMENT.beads.map(([a,b])=>[a,b]).concat(beads);
-        if(i<n&&source[i].cue[4])moves.push(...ALIGNMENT.verse);
-        if(j<m&&target[j].cue[4])moves.push(...ALIGNMENT.verse.map(([a,b])=>[b,a]));
-        for(const [di,dj] of moves){
-          const ni=i+di,nj=j+dj;
-          if(ni>n||nj>m)continue;
-          const s=source.slice(i,ni),t=target.slice(j,nj);
-          const next=dj===0?1:di===0?2:0;
-          let k=lengthCost(s,t,ratio,variance);
+      const bases=[cost.get(key(i,j,0)),cost.get(key(i,j,1)),cost.get(key(i,j,2))];
+      if(bases.every(base=>base===undefined))continue;
+      let moves=baseMoves;
+      if(i<n&&source[i].cue[4])moves=moves.concat(ALIGNMENT.verse);
+      if(j<m&&target[j].cue[4])moves=moves.concat(targetVerse);
+      // Length and lexical costs depend on the group. Only continuing a source omission depends on its predecessor.
+      for(const [di,dj] of moves){
+        const ni=i+di,nj=j+dj;
+        if(ni>n||nj>m)continue;
+        const s=source.slice(i,ni),t=target.slice(j,nj);
+        const next=dj===0?1:di===0?2:0;
+        const groupCost=lengthCost(s,t,ratio,variance);
+        let lex=0;
+        if(model){const a=sourceGroup(i,ni,tokens=>model.sourceCover(tokens)),b=targetGroup(j,nj,tokens=>model.targetCover(tokens));lex=beta*model.uncovered(a.tokens,b.tokens,a.cover,b.cover);}
+        for(let state=0;state<3;state++){
+          const base=bases[state];
+          if(base===undefined)continue;
+          let k=groupCost;
           if(next===1&&state===1)k+=ALIGNMENT.gapExtend-prior(di,dj);
-          let lex=0;
-          if(model){const a=sourceGroup(i,ni,tokens=>model.sourceCover(tokens)),b=targetGroup(j,nj,tokens=>model.targetCover(tokens));lex=beta*model.uncovered(a.tokens,b.tokens,a.cover,b.cover);}
           const value=base+k+lex,at=key(ni,nj,next);
           if(value<(cost.get(at)??Infinity)){cost.set(at,value);back.set(at,[i,j,state,Math.round(k*1000)/1000]);}
         }
@@ -280,17 +285,86 @@ export function sentenceSpans(raw,language=null){
 }
 
 /** Sentences of one side of a group, carrying [unit index, start, end]. */
+function sentenceItem(index,start,text,language){
+  // A Greek question mark reads as one for the cues.
+  return {id:[index,start,start+chars(text).length],len:chars(collapse(text)).length,cue:cues(language==='grc'?text.replace(/[;\u037e]/g,'?'):text),tok:tokens(text,language),section:null,text};
+}
+
 export function sentencesOf(units,language){
   const items=[];
   for(const unit of units){
     const text=chars(unit.raw);
     for(const [s,e] of sentenceSpans(unit.raw,language)){
-      const sentence=text.slice(s,e).join('');
-      // A Greek question mark reads as one for the cues.
-      items.push({id:[unit.index,s,e],len:chars(collapse(sentence)).length,cue:cues(language==='grc'?sentence.replace(/[;\u037e]/g,'?'):sentence),tok:tokens(sentence,language),section:null,text:sentence});
+      items.push(sentenceItem(unit.index,s,text.slice(s,e).join(''),language));
     }
   }
   return items;
+}
+
+// The lexical comparison normalizes words, while sentence IDs retain the
+// offsets of the exact source characters.
+const anchorWords=text=>text.normalize('NFKC').toLowerCase().replace(/ς/gu,'σ').normalize('NFC').match(/\p{L}[\p{L}\p{M}]*/gu)??[];
+
+/** Split only at uniquely identified clause openings, keeping coordinates in the source unit. */
+export function splitSentenceClauses(sentences,starts,language){
+  if(!starts.length)return sentences;
+  const openings=sentences.flatMap(sentence=>[...sentence.text.matchAll(/[:;：；··]\s*(?=\p{L})/gu)].map(match=>{
+    const at=match.index+match[0].length;
+    return {sentence,offset:chars(sentence.text.slice(0,at)).length,words:anchorWords(sentence.text.slice(at))};
+  }));
+  const cuts=new Map();
+  for(const start of starts){
+    const words=start.flatMap(anchorWords);
+    const matches=openings.filter(opening=>words.every((word,index)=>word===opening.words[index]));
+    if(matches.length!==1)throw new Error('Clause opening keywords are missing or ambiguous in the selected reference');
+    const {sentence,offset}=matches[0],offsets=cuts.get(sentence)??[];
+    if(offsets.includes(offset))throw new Error('Clause opening keywords identify the same break');
+    cuts.set(sentence,[...offsets,offset]);
+  }
+  return sentences.flatMap(sentence=>{
+    const offsets=cuts.get(sentence);
+    if(!offsets)return [sentence];
+    const text=chars(sentence.text),[unit,start]=sentence.id;
+    let previous=0;
+    return [...offsets.sort((a,b)=>a-b),text.length].map(end=>{
+      const item=sentenceItem(unit,start+previous,text.slice(previous,end).join('').trimEnd(),language);
+      previous=end;
+      return item;
+    });
+  });
+}
+
+function anchorRange(sentences,keywords){
+  const words=keywords.flatMap(anchorWords);
+  const tokens=sentences.map(sentence=>anchorWords(sentence.text));
+  // A translation can render one sentence in several. Prefer the shortest
+  // complete match and require it to be unique within the selected reference.
+  for(let size=1;size<=3;size++){
+    const matches=[];
+    for(let start=0;start+size<=tokens.length;start++){
+      const window=new Set(tokens.slice(start,start+size).flat());
+      if(words.every(word=>window.has(word)))matches.push([start,start+size]);
+    }
+    if(matches.length===1)return matches[0];
+    if(matches.length>1)break;
+  }
+  throw new Error('Sentence keywords are missing or ambiguous in the selected reference');
+}
+
+/** Align between unique, ordered keyword matches. Sentence IDs remain those of the inputs. */
+export function alignAnchoredSentences(source,target,ratio,variance,options,anchors){
+  const matches=anchors.map(anchor=>[anchorRange(source,anchor.source),anchorRange(target,anchor.target)])
+    .sort((a,b)=>a[0][0]-b[0][0]);
+  const result=[];
+  let sourceEnd=0,targetEnd=0;
+  for(const [[a,b],[c,d]] of matches){
+    if(a<sourceEnd||c<targetEnd)throw new Error('Sentence keyword matches overlap or cross');
+    result.push(...alignRun(source.slice(sourceEnd,a),target.slice(targetEnd,c),ratio,variance,options));
+    result.push({s:source.slice(a,b).map(item=>item.id),t:target.slice(c,d).map(item=>item.id),shape:`${b-a}:${d-c}`,cost:0});
+    sourceEnd=b;
+    targetEnd=d;
+  }
+  return result.concat(alignRun(source.slice(sourceEnd),target.slice(targetEnd),ratio,variance,options));
 }
 
 /** Sentence pairs inside one group of paragraphs: [[source spans], [target spans]] for each sentence group that has both sides. */

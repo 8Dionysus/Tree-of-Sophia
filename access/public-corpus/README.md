@@ -178,3 +178,11 @@ versions and IDs are retained separately. DWDSmor candidates are reused only
 for exactly equal forms, unranked and without a contextual correctness claim.
 The bonsai's automatic sentence alignment is displayed as unreviewed and
 only after target text agrees exactly with the selected reader version.
+
+The Platonova 1894 reading of Aristotle's *Rhetoric* covers the main text of
+all 60 chapters in three books, printed pp. 1–204. The five chapters quoted
+by the stand use transcriptions compared with the scan. The other chapters
+use independent OCR with its proofreading status shown in the attribution.
+The introduction, chapter synopses and footnotes stay with the linked
+edition. The historical I.1 version remains addressable. The stand also flags
+the difference in meaning at 1356a. [Source comparison](../../bonsai/review/anti/2026-11-20-rhetoric-platonova-full-review.md).

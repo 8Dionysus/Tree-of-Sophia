@@ -5,6 +5,11 @@
 //! execute a query, interpret a cursor, grant source access or alter the
 //! direct knowledge API's legacy default.
 
+mod act_journal;
+pub use act_journal::{
+    ACT_KINDS_SCHEMA, ACT_SCHEMA, AGENT_TIERS, ActJournal, Appended, CheckedRecord,
+    PERSON_ONLY_KINDS, PROPOSING_KINDS, act_digest_v1, check_stored_record, utc_iso,
+};
 #[cfg(feature = "wasm")]
 mod browser_lens_spec;
 mod claim_reading;

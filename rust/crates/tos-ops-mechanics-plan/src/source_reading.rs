@@ -18,8 +18,9 @@ const MAX_INPUT: usize = 64 * 1024 * 1024;
 const MAX_OUTPUT: usize = 16 * 1024 * 1024;
 const MAX_ENTRIES: usize = 10_000;
 /// Absolute ceiling for callers that have priced a larger whole-source pass.
+/// This includes repeated full-cut verification and root descriptor reopens.
 /// Ordinary route APIs still receive `MAX_OPERATIONS`.
-pub const MAX_BUDGETED_ROUTE_OPERATIONS: usize = 1_000_000;
+pub const MAX_BUDGETED_ROUTE_OPERATIONS: usize = 4_000_000;
 /// Upper finite ceiling available only to callers that budget a wider tree.
 /// Maintained whole-repository card readers select this streamed ceiling;
 /// generic source discovery keeps its smaller historical ceiling.

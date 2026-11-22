@@ -96,9 +96,13 @@ export function createStandOrigin({root,locale,openPlace=null,renderings=null,te
   const translations=renderings&&fragment?{get label(){return renderingsWord('translations',locale());},
     when:(value,found)=>Promise.resolve(found??known(value)).then(found=>termsFor(found).length>0),
     run:(value,found)=>void Promise.resolve(found??known(value)).then(showRenderingsFor)}:null;
-  const menu=createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest('[data-unit][data-chapter]')),
-    actions:[{get label(){return label();},when:value=>known(value).then(Boolean),run:value=>void show(value)},...(translations?[translations]:[]),layAction]});
+  const ownActions=[{get label(){return label();},when:value=>known(value).then(Boolean),run:value=>void show(value)},...(translations?[translations]:[]),layAction];
+  const menu=createSelectionMenu({container:root,accept:value=>Boolean(value.element.closest('[data-unit][data-chapter]')),actions:ownActions});
   return {
+    /** The host's actions for any selected passage of a witness, told the passage's witness, chapter, unit and display offsets. */
+    setPassageActions(actions=[]){
+      menu.setActions([...ownActions,...actions.map(action=>({get label(){return action.label;},phrases:true,when:value=>Boolean(passageOf(value)),run:value=>action.run(value,passageOf(value))}))]);
+    },
     /** The actions the reader adds for a word its layer reads: how the translations render the word's term. */
     readerActions:translations?[translations]:[],
     dispose(){menu.dispose();dialog?.remove();dialog=null;},

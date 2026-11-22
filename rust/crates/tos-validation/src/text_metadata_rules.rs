@@ -22,6 +22,7 @@ impl TextMetadataLimits {
     // smaller selected limits; a packet is not one emitted navigation row.
     pub const MAX_PACKET_BYTES: usize = 16 * 1024 * 1024;
     pub const MAX_STATE_BYTES: usize = 256 * 1024 * 1024;
+    pub const MAX_ISSUES: usize = 8192;
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextMetadataState {
@@ -919,7 +920,7 @@ fn inspect(
         || limits.max_state_bytes == 0
         || limits.max_state_bytes > TextMetadataLimits::MAX_STATE_BYTES
         || limits.max_issues == 0
-        || limits.max_issues > 8192
+        || limits.max_issues > TextMetadataLimits::MAX_ISSUES
     {
         return Err(ItemRefusal::Budget);
     }

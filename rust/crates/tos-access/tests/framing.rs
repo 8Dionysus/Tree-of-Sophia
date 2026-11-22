@@ -2060,7 +2060,7 @@ fn mcp_maintained_resources_prompts_and_packet_associations() {
             .as_array()
             .unwrap()
             .len(),
-        3
+        4
     );
     // FastMCP keeps an empty description for functions without docstrings;
     // absence (None) changes the complete imported Resource packet.

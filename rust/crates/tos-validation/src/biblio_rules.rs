@@ -34,6 +34,23 @@ const LEGACY_TOPOLOGY: [&str; 3] = [
     "expression-edition-claims.jsonl",
     "edition-item-claims.jsonl",
 ];
+// A bounded migration of already retained witnesses. The historical July
+// streams remain the evidence for their own batch.
+const RHETORIC_TOPOLOGY_HOME: &str =
+    "ToS/source-witnesses/works/aristotle/rhetoric/topology/retained-2026-11-19/";
+const RHETORIC_TOPOLOGY_EVENT: &str = "tos.event.annotation.rhetoric-topology.retained-2026-11-19";
+pub(crate) const RHETORIC_TOPOLOGY_PROVENANCE: &str = concat!(
+    "ToS/source-witnesses/works/aristotle/rhetoric/topology/retained-2026-11-19/",
+    "provenance.jsonl",
+);
+const RHETORIC_TOPOLOGY_PROVENANCE_SHA256: &str =
+    "b5d6b5102e2de1aa72863b136fe45dc13323241e7b5953648a5efba3bebe15d5";
+
+pub(crate) fn rhetoric_topology_reconciliation(path: &str) -> bool {
+    path.strip_prefix(RHETORIC_TOPOLOGY_HOME)
+        .is_some_and(|basename| LEGACY_TOPOLOGY.contains(&basename))
+}
+
 const TOPOLOGY_EVENT: &str =
     "tos.event.annotation.source-witness-bibliographic-topology.2026-07-31";
 const CHRONOLOGY_EVENT: &str =
@@ -991,6 +1008,58 @@ fn claim_stream(path: &str) -> bool {
     owned(path) && path.ends_with("-claims.jsonl")
 }
 
+// Nonstandard textual journals declare their event profile beside the
+// journal. Their events never become evidence for a bibliographic Claim.
+fn bibliography_event_id<'a>(
+    path: &str,
+    value: &'a Value,
+    source: &impl BiblioSourceAccess,
+    rules: &mut Rules<'_>,
+) -> Result<Option<&'a str>, ItemRefusal> {
+    let id = s(value, "event_id");
+    let schema = s(value, "schema_version");
+    let (Some(schema), Some(directory), Some(_)) =
+        (schema, path.strip_suffix("/provenance.jsonl"), id)
+    else {
+        return Ok(id);
+    };
+    if matches!(
+        schema,
+        "tos_provenance_event_v1" | "tos_provenance_event_v2"
+    ) {
+        return Ok(id);
+    }
+    let route = format!("{directory}/bibliography-provenance-route.json");
+    if !source.path_presence(&route, rules)? {
+        return Ok(id);
+    }
+    let ceiling = rules.limits.max_member_bytes;
+    rules.limits.max_member_bytes = ceiling.min(1024);
+    let raw = source.read_current(&route, rules);
+    rules.limits.max_member_bytes = ceiling;
+    let raw = raw?;
+    let raw_state =
+        raw.len() + route.len() + std::mem::size_of::<Vec<u8>>() + std::mem::size_of::<String>();
+    reserve(&mut rules.state, raw_state, rules.limits.max_state_bytes)?;
+    let (declaration, declaration_state) = strict_decoded(&raw, rules)?;
+    reserve(
+        &mut rules.state,
+        declaration_state,
+        rules.limits.max_state_bytes,
+    )?;
+    rules.read(route.len() + 71, || PredicateRead::ExactPath {
+        path: route.clone(),
+        digest: Digest256::of_bytes(&raw).to_prefixed(),
+    })?;
+    let routed = declaration.as_object().is_some_and(|obj| obj.len() == 2)
+        && s(&declaration, "schema_version") == Some("tos_text_provenance_route_v1")
+        && s(&declaration, "event_schema") == Some(schema);
+    drop(declaration);
+    drop(raw);
+    rules.state -= raw_state + declaration_state;
+    Ok(if routed { None } else { id })
+}
+
 /// Requires record-family output from the same exact current cut. EOF is
 /// checked again for this family's Claim/event/Item-manifest traversal.
 pub fn inspect_bibliography_from_cut<S: CutSchemaExecutor + CutSchemaReceiptRange>(
@@ -1194,7 +1263,7 @@ fn inspect_bibliography_on_cut(
                     raw_sha256: Digest256::of_bytes(&member.raw).to_hex(),
                     native: path.ends_with("/source-claims.jsonl"),
                 });
-            } else if let Some(id) = s(&value, "event_id") {
+            } else if let Some(id) = bibliography_event_id(path, &value, &source, &mut rules)? {
                 let contract = match s(&value, "schema_version") {
                     Some("tos_provenance_event_v1") => "ToS/contracts/provenance-event.schema.json",
                     Some("tos_provenance_event_v2") => {
@@ -1532,6 +1601,7 @@ fn inspect_bibliography_on_cut(
             && !s(&claim.value, "claim_id").is_some_and(|id| verified_native.contains(id))
     });
     let mut topology_limits = rules.limits;
+    topology_limits.max_issues -= rules.shadow.issues.len();
     topology_limits.max_state_bytes = rules
         .limits
         .max_state_bytes
@@ -2104,7 +2174,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
                         rules.state -= claim_meta_state + value_state;
                         continue;
                     }
-                    if let Some(id) = s(&value, "event_id") {
+                    if let Some(id) = bibliography_event_id(path, &value, &source, &mut rules)? {
                         let contract = match s(&value, "schema_version") {
                             Some("tos_provenance_event_v1") => {
                                 "ToS/contracts/provenance-event.schema.json"
@@ -2277,6 +2347,7 @@ pub fn inspect_bibliography_from_input_stored<I: Copy + Eq>(
     )?;
     let generation = scanned.membership().digest.to_prefixed();
     let mut topology_limits = limits;
+    topology_limits.max_issues -= rules.shadow.issues.len();
     topology_limits.max_state_bytes = limits
         .max_state_bytes
         .checked_sub(rules.state)
@@ -3197,11 +3268,16 @@ fn inspect_claim_inner(
                 rules.issue("legacy-Claim-object", &location)?;
             }
         }
+        let reconciled_topology = rhetoric_topology_reconciliation(&claim.path);
         if LEGACY_TOPOLOGY.contains(&basename) {
+            let topology_event = if reconciled_topology {
+                RHETORIC_TOPOLOGY_EVENT
+            } else {
+                TOPOLOGY_EVENT
+            };
             if s(row, "assertion_layer") != Some("bibliographic_assertion")
                 || !model_maker(&row["maker"])
-                || s(row, "provenance_event_ref")
-                    != Some("tos.event.annotation.source-witness-bibliographic-topology.2026-07-31")
+                || s(row, "provenance_event_ref") != Some(topology_event)
                 || s(row, "epistemic_status") != Some("observed")
                 || s(row, "review_status") != Some("unreviewed")
                 || !empty_array(&row["reviews"])
@@ -3228,6 +3304,7 @@ fn inspect_claim_inner(
             let supplied: BTreeSet<_> = string_iter(row, "evidence_refs").collect();
             let mut expected_evidence = BTreeSet::new();
             let mut missing_expected = false;
+            let mut outside_work = false;
             // Keep only references into this Claim's supplied evidence. Provider
             // records may be scoped owned values and cannot lend retained strings.
             let mut expect = |path: &str| {
@@ -3240,6 +3317,13 @@ fn inspect_claim_inner(
             for field in ["subject_ref", "object"] {
                 if let Some(id) = s(row, field) {
                     if let Some(record) = records.current_record(id)? {
+                        if reconciled_topology
+                            && !record
+                                .path
+                                .starts_with("ToS/source-witnesses/works/aristotle/rhetoric/")
+                        {
+                            outside_work = true;
+                        }
                         expect(record.path.as_str());
                         if record.kind == "item" {
                             if let Some(manifest) = s(&record.value, "item_manifest_ref") {
@@ -3249,7 +3333,7 @@ fn inspect_claim_inner(
                     }
                 }
             }
-            let result = if missing_expected || supplied != expected_evidence {
+            let result = if outside_work || missing_expected || supplied != expected_evidence {
                 rules.issue("legacy-topology-exact-endpoint-evidence", &location)
             } else {
                 Ok(())
@@ -3260,6 +3344,7 @@ fn inspect_claim_inner(
             result?;
         }
         if LEGACY_TOPOLOGY.contains(&basename)
+            && !reconciled_topology
             && claim
                 .path
                 .strip_prefix("ToS/source-witnesses/relations/")
@@ -3373,7 +3458,49 @@ fn inspect_claim_inner(
                 rules.issue("responsibility-event-output-role", &location)?;
             }
         }
-        if let Some(role) = role {
+        if reconciled_topology {
+            let digest = Digest256::from_hex(RHETORIC_TOPOLOGY_PROVENANCE_SHA256)
+                .map_err(|_| ItemRefusal::Unsupported("Rhetoric topology receipt digest".into()))?;
+            if source.resolve_recorded_input(
+                RHETORIC_TOPOLOGY_PROVENANCE,
+                digest,
+                rules,
+                &location,
+            )? != RecordedInputResolution::Resolved
+            {
+                rules.issue("rhetoric-topology-reconciliation-receipt", &location)?;
+            }
+            if let Some(event) = events.event(RHETORIC_TOPOLOGY_EVENT)? {
+                event_posture(
+                    &event,
+                    "declared-bibliographic-topology-reconciliation",
+                    rules,
+                    &location,
+                )?;
+                for output in event["outputs"].as_array().into_iter().flatten() {
+                    let (Some(path), Some(digest)) = (s(output, "ref"), s(output, "sha256")) else {
+                        rules.issue("rhetoric-topology-reconciliation-output", &location)?;
+                        continue;
+                    };
+                    let digest = Digest256::from_hex(digest).map_err(|_| {
+                        ItemRefusal::Unsupported("Rhetoric topology output digest".into())
+                    })?;
+                    if source.resolve_recorded_input(path, digest, rules, &location)?
+                        != RecordedInputResolution::Resolved
+                    {
+                        rules.issue("rhetoric-topology-reconciliation-output", &location)?;
+                    }
+                }
+            }
+            bind_event(
+                source,
+                claim,
+                "public-metadata-topology-reconciliation",
+                events,
+                rules,
+                &location,
+            )?;
+        } else if let Some(role) = role {
             bind_event(source, claim, role, events, rules, &location)?;
         } else if !matches!(
             basename,
@@ -4260,6 +4387,56 @@ fn inspect_closure_stored<C: SourceFoundationDefaultClaims + ?Sized>(
 mod tests {
     use super::*;
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn routes_only_the_declared_sibling_text_event_profile() {
+        struct Source;
+        impl BiblioSourceAccess for Source {
+            fn read_current(&self, path: &str, _: &mut Rules<'_>) -> Result<Vec<u8>, ItemRefusal> {
+                assert_eq!(path, "works/item/bibliography-provenance-route.json");
+                Ok(br#"{"schema_version":"tos_text_provenance_route_v1","event_schema":"alignment_example_v1"}"#.to_vec())
+            }
+            fn path_presence(&self, path: &str, _: &Rules<'_>) -> Result<bool, ItemRefusal> {
+                Ok(path == "works/item/bibliography-provenance-route.json")
+            }
+            fn resolve_recorded_input(
+                &self,
+                _: &str,
+                _: Digest256,
+                _: &mut Rules<'_>,
+                _: &str,
+            ) -> Result<RecordedInputResolution, ItemRefusal> {
+                unreachable!("event routing reads only the exact current route")
+            }
+        }
+
+        let cancelled = AtomicBool::new(false);
+        let mut rules = rules(&cancelled);
+        let source = Source;
+        let same = "works/item/provenance.jsonl";
+        let other = "works/other/provenance.jsonl";
+        let row = |schema| json!({"schema_version": schema, "event_id": "test-event"});
+        let declared = row("alignment_example_v1");
+        let unknown = row("another_text_profile_v1");
+        let bibliography = row("tos_provenance_event_v2");
+        assert_eq!(
+            bibliography_event_id(same, &declared, &source, &mut rules).unwrap(),
+            None
+        );
+        assert_eq!(
+            bibliography_event_id(other, &declared, &source, &mut rules).unwrap(),
+            Some("test-event")
+        );
+        assert_eq!(
+            bibliography_event_id(same, &unknown, &source, &mut rules).unwrap(),
+            Some("test-event")
+        );
+        assert_eq!(
+            bibliography_event_id(same, &bibliography, &source, &mut rules).unwrap(),
+            Some("test-event")
+        );
+    }
+
     fn rules(cancelled: &AtomicBool) -> Rules<'_> {
         Rules {
             limits: ItemLimits {
@@ -4946,6 +5123,7 @@ fn inspect_batches(
 ) -> Result<(), ItemRefusal> {
     let topology = claims.iter().filter(|c| {
         !c.native
+            && !rhetoric_topology_reconciliation(&c.path)
             && LEGACY_TOPOLOGY
                 .iter()
                 .any(|basename| c.path.ends_with(basename))

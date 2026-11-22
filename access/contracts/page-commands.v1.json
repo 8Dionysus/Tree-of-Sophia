@@ -170,6 +170,31 @@
       "command_id": "tos.page.cognitive-action",
       "availability": "public Bonsai research host",
       "effect": "Join, resume, pause or respond to a version-bound learning session in the local notebook."
+    },
+    {
+      "command_id": "tos.page.set-lens",
+      "availability": "always",
+      "effect": "turn the space to a lens the stand offers"
+    },
+    {
+      "command_id": "tos.page.set-layer",
+      "availability": "always",
+      "effect": "set the presence layer: reading, research or with agents"
+    },
+    {
+      "command_id": "tos.page.start-route",
+      "availability": "a route the stand offers",
+      "effect": "start a route or reading route and walk to its first step"
+    },
+    {
+      "command_id": "tos.page.lay-on-bench",
+      "availability": "an open card",
+      "effect": "lay the open card on the workbench"
+    },
+    {
+      "command_id": "tos.page.compare",
+      "availability": "a subject in the active view",
+      "effect": "begin comparing a subject with another"
     }
   ],
   "shared_actuation_rule": "Human UI handlers and WebMCP tools invoke this same command registry.",
