@@ -4,7 +4,7 @@ import {existsSync,readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 
 test('every stand page has the sky between pages in its first frame, and the home page keeps it ready',()=>{
-  for(const page of ['zarathustra','antiquity']){
+  for(const page of ['zarathustra','antiquity','population']){
     const html=read(`../../${page}/index.html`);
     // In the head, after the theme and the sky's style: the page that arrives is never painted without its sky.
     expect(html).toMatch(new RegExp(`<script src="/theme.js"></script>[\\s\\S]*<link rel="stylesheet" href="/cosmos.css" />\\s*<script src="/cosmos.js" data-stand="${page}"></script>\\s*</head>`));

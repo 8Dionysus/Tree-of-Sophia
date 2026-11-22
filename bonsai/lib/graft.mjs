@@ -24,6 +24,7 @@ import {renderingsIssues,spellingIssues,termFormGaps,tokenChapterIssues,TOKENS_S
 import {corpusReader} from './corpus-align.mjs';
 import {mediaIssues,mediaNamesIssues} from './media.mjs';
 import {fieldCites,fieldIssues,fieldSubjects,libraryIssues} from './field.mjs';
+import {populationIssues} from './population.mjs';
 
 export const MANIFEST_SCHEMA='tos.bonsai.v1';
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
@@ -222,10 +223,12 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
     problems.push(...mediaNamesIssues(modules['media-names']??null,modules.media).map(issue=>`media names: ${issue}`));
   }
   let registry=null;
-  if(modules.objects||modules.core||modules.field){try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}}
+  if(modules.objects||modules.core||modules.field||modules.population){try{registry=semanticRegistry(root);}catch(error){problems.push(`entity registry: ${error.message}`);}}
   if(modules.objects&&registry)problems.push(...objectsIssues(modules.objects,registry,placeChecker(chapters,modules.fragments??null)).map(issue=>`objects: ${issue}`));
   // The core of a field (bonsai/CORE.md, "A core across works"): its areas, concepts, conceptions and links.
   if(modules.library)problems.push(...libraryIssues(modules.library).map(issue=>`library: ${issue}`));
+  // The core of a population (bonsai/CORE.md, "A core of a population"): its members, their kinds, phases and graft.
+  if(modules.population)problems.push(...populationIssues(modules.population,{chronology:modules.chronology??null,identities:modules.identities??null,registry}).map(issue=>`population: ${issue}`));
   if(modules.field){
     const cited=new Set([...Object.keys(modules.identities?.works??{}),...Object.keys(modules.fragments?.works??{})]);
     problems.push(...fieldIssues(modules.field,{registry,library:modules.library??null,works:cited,placeIssues:placeChecker(chapters,modules.fragments??null)}).map(issue=>`field: ${issue}`));
@@ -244,7 +247,11 @@ export function checkBonsai(root,id,{validator=treeContracts(root),relations,ide
   for(const module of manifest.modules??[])if(module.borrowed){for(const path of [].concat(module.borrowed))if(!existsSync(join(root,path)))problems.push(`borrowed module ${module.id}: ${path} is missing`);}
   let packet=null;
   if(modules.chronology){
-    packet=exportBonsai({manifest,chronology:modules.chronology,places:modules.places??null,identities:modules.identities??{}});
+    // A situation whose subject the graft map lacks makes the export refuse; the check reports it rather than stopping.
+    try{packet=exportBonsai({manifest,chronology:modules.chronology,places:modules.places??null,identities:modules.identities??{}});}
+    catch(error){problems.push(`export: ${error.message}`);}
+  }
+  if(packet){
     for(const item of [...packet.records,...packet.claims]){
       const contract=contractOf(item);if(!contract){problems.push(`export: no Tree contract for ${item.schema_version}`);continue;}
       for(const error of validator.validate(contract,item))problems.push(`export ${item.claim_id??item.record_id}${error.path}: ${error.message}`);

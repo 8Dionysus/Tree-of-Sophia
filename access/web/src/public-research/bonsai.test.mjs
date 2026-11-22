@@ -166,8 +166,8 @@ describe('every bonsai',()=>{
   // A bonsai exports datings once it keeps a chronology, and places once it keeps their module; Aesthetics dates its authors and works and names no places yet.
   const dated=ids.filter(id=>loadBonsai(root,id).modules.chronology);
   it('is found at the repository root, one per stand',()=>{
-    expect(ids).toEqual(['aesthetics','antiquity','zarathustra']);
-    expect(dated).toEqual(['aesthetics','antiquity','zarathustra']);
+    expect(ids).toEqual(['aesthetics','antiquity','population','zarathustra']);
+    expect(dated).toEqual(['aesthetics','antiquity','population','zarathustra']);
     for(const id of ids)expect(bonsaiFor(id)?.manifest?.id).toBe(id);
   });
   for(const id of ids)it(`${id}: its modules keep their contracts and its export fits the Tree's contracts`,()=>{
@@ -210,7 +210,7 @@ describe('every bonsai',()=>{
     }
     const {packet}=checkBonsai(root,'zarathustra',{validator:contracts,relations});
     expect(packet.records.find(record=>record.record_id==='tos.historical-event.friedrich-nietzsche.recurrence-thought')).toMatchObject({schema_version:'tos_historical_record_v1',record_type:'historical-event'});
-  });
+  },30000);
   it('marks every lens of its stand as a measure or a grouping, and says what',()=>{
     for(const id of ids){
       const {manifest}=loadBonsai(root,id);

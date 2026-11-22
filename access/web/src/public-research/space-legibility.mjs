@@ -147,7 +147,9 @@ export function searchScore(item,query,{locale,authorTitle=''}={}){
   const fold=value=>String(value??'').toLocaleLowerCase().replaceAll('ё','е').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
   const q=fold(query);if(!q)return 0;
   const words=q.split(' ').filter(Boolean);
-  const fields=[[item?.title,6],[item?.question,3],[authorTitle,3],[item?.atlasBody,1],[item?.body,1]];
+  // A material may name itself in other forms too (a member of a population by every name it bears, in any script),
+  // and is found by each of them whatever the page's language.
+  const fields=[[item?.title,6],...(Array.isArray(item?.aliases)?item.aliases.map(alias=>[alias,5]):[]),[item?.question,3],[authorTitle,3],[item?.atlasBody,1],[item?.body,1]];
   let best=0;
   for(const [value,weight]of fields){
     const text=fold(pick(value,locale));if(!text)continue;

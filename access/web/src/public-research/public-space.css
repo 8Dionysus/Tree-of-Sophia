@@ -516,6 +516,8 @@
 #tree .ps-dating-footing[data-confidence=low]{color:#e0a58c}
 /* Labels and cluster names keep a dark halo, so lines never cross the words. */
 #tree .tree-star span,#tree .tree-cluster{text-shadow:0 0 3px #04070e,0 0 8px #04070e,0 1px 12px #04070ecc}
+/* The name of the dot the pointer is at, under it; a dot has no star of its own. */
+#tree .tree-dot-label{z-index:2900;max-width:240px;font-size:11px;line-height:1.4;color:#d8d9dd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 3px #04070e,0 0 8px #04070e,0 1px 12px #04070ecc}
 #tree .tree-cluster small{opacity:.75}
 /* The tree names its strata at its left in small capitals, and its areas in the colour of their limbs. */
 #tree .tree-cluster[data-tone=stratum] .cluster-title{font:600 10.5px/16px var(--ps-sans);letter-spacing:.16em;text-transform:uppercase;color:#8194ab}
