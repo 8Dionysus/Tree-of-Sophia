@@ -31,32 +31,8 @@ impl Drop for ItemFailureFixture {
     }
 }
 
-const FACTORY: &str = r#"
-import json,sys,tempfile
-from pathlib import Path
-repository,root,recovery=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_item_commands as fixture
-class SelectedRoot:
-    calls=0
-    def __init__(self,*args,**kwargs):
-        self.name=str(root if SelectedRoot.calls==0 else recovery)
-        SelectedRoot.calls+=1
-        Path(self.name).mkdir(parents=True,exist_ok=True,mode=0o700)
-    def cleanup(self): pass
-original=tempfile.TemporaryDirectory
-tempfile.TemporaryDirectory=SelectedRoot
-try:
-    case=fixture.NativeItemTests(methodName='runTest');case.setUp()
-finally:
-    tempfile.TemporaryDirectory=original
-case.owner.chmod(0o600);case.input.chmod(0o600);case.payload_root.chmod(0o700);case.recovery_root.chmod(0o700)
-implementations=sorted(fixture.item.IMPLEMENTATIONS)
-for reference in implementations:
-    target=root/reference;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes((repository/reference).read_bytes())
-print(json.dumps({'config':case.config,'proposal':case.proposal(),'implementations':implementations,
-    'edition_ref':case.edition_ref,'owner':str(case.owner),'input':str(case.input)},ensure_ascii=False,separators=(',',':')))
-"#;
+const ITEM_BASE_FACTORY_SCRIPT_SHA256: &str =
+    "5aa2102d4243a0b186fb10b3bfded58b6ccd3e8961ea85e73d8e1950b9fee41c";
 const NATIVE_OWNER_PATHS: &[&str] = &[
     "rust/crates/tos-command/src/source_item_adoption.rs",
     "rust/crates/tos-command/src/source_item_deposit.rs",
@@ -180,7 +156,11 @@ fn native_item_cli_adopts_replays_and_retains_unavailable_inventory() {
         ],
         NATIVE_OWNER_PATHS,
     );
-    super::assert_native_python_fixture(&captured, FACTORY, NATIVE_OWNER_PATHS);
+    super::assert_native_python_fixture(
+        &captured,
+        ITEM_BASE_FACTORY_SCRIPT_SHA256,
+        NATIVE_OWNER_PATHS,
+    );
     let fixture = captured.packets.get("factory").unwrap();
     fixture_preflight(isolated.path(), &recovery, &fixture);
     let owner = PathBuf::from(fixture["owner"].as_str().unwrap());
@@ -338,21 +318,8 @@ fn native_item_cli_adopts_replays_and_retains_unavailable_inventory() {
     assert_eq!(fs::read(&input).unwrap(), original);
     // The maintained fixture only refreshes its derived catalog and selects a
     // second tiny opaque input. It creates no Item metadata or ready verdict.
-    let second = r#"
-import json,sys,hashlib
-from pathlib import Path
-repository,root,recovery=map(Path,sys.argv[1:]);supplied=json.load(sys.stdin)
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-import test_source_item_commands as fixture
-case=fixture.NativeItemTests(methodName='runTest');case.root=root;case.config=supplied['config'];case.owner=root/'item-owner.json';case.edition_ref=supplied['edition_ref'];case.edition_path=root/case.edition_ref;case.edition=json.loads(case.edition_path.read_bytes());case.write=lambda ref,value:fixture.edition_fixture.expression_fixture.NativeExpressionTests.write(case,ref,value)
-case.origin=fixture.edition_fixture.NativeEditionTests(methodName='runTest');case.origin.root=root;case.origin.expression_path=case.edition_path.parent.parent.parent/'expression.json';case.origin.extra_records=[];case.origin.extra_claims=[];case.origin.origin=fixture.edition_fixture.expression_fixture.NativeExpressionTests(methodName='runTest');case.origin.origin.work_path=case.origin.expression_path.parent.parent.parent/'work.json'
-case.input=root/'opaque-input.bin';case.input.write_bytes(b'Synthetic opaque retained File.\n');case.input.chmod(0o600);case.config.update(input_path=str(case.input),media_type='application/octet-stream',byte_size=case.input.stat().st_size,sha256=hashlib.sha256(case.input.read_bytes()).hexdigest(),payload_basename='opaque.bin',original_basename='opaque.bin')
-case.select_item('opaque');case.owner.chmod(0o600);case.rebuild()
-# Reuse the original proposal's supplied rights posture and explicit Claim
-# grammar with only the separately delegated second identities and locators.
-p=supplied['proposal'];p['record'].update(record_id=case.config['item_id'],item_manifest_ref=str(Path(case.config['item_source_path']).with_name('item.manifest.json')));p['claim'].update(claim_id=case.config['claim_id'],object=case.config['item_id'],provenance_event_ref=case.config['provenance_event_id'],evidence_refs=[case.edition_ref,case.config['item_source_path']]);p['rights'].update(rights_id=case.config['rights_id'],scope_refs=[case.config['item_id'],case.config['file_id']]);p['item_forms'][0]['form_id']=case.config['allowed_item_form_ids'][0];p['claim_forms'][0]['form_id']=case.config['allowed_claim_form_ids'][0]
-print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ensure_ascii=False,separators=(',',':')))
-"#;
+    let item_opaque_factory_script_sha256 =
+        "a8bc3770f5ef8888b192d732de496f93d9f69644ee5249c714afab26478a977f";
     let opaque_root = temporary.path().join("item-opaque-root");
     fs::create_dir(&opaque_root).unwrap();
     fs::set_permissions(&opaque_root, fs::Permissions::from_mode(0o700)).unwrap();
@@ -367,7 +334,11 @@ print(json.dumps({'config':case.config,'proposal':p,'input':str(case.input)},ens
         ],
         NATIVE_OWNER_PATHS,
     );
-    super::assert_native_python_fixture(&opaque_capture, second, NATIVE_OWNER_PATHS);
+    super::assert_native_python_fixture(
+        &opaque_capture,
+        item_opaque_factory_script_sha256,
+        NATIVE_OWNER_PATHS,
+    );
     let second_fixture = opaque_capture.packets.get("factory").unwrap();
     let owner = opaque_root.join("item-owner.json");
     config = second_fixture["config"].clone();

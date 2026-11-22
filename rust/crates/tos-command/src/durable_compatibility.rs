@@ -195,3 +195,5 @@ outbox-oldest-event-seek=cmd2_outbox-unique-domain-commit-seq;query-domain-and-s
 /// Dedicated owner-private package profile. Private package bytes, archives,
 /// receipts, and audit generations remain outside the public CMD.2 source ABI.
 pub(super) const PRIVATE_PACKAGE_ABI_PROFILE_V4: &str = "tos-private-owner-package-abi-v4";
+
+pub(super) const PRIVATE_PACKAGE_ABI_PROFILE_V5: &str = "tos-private-owner-package-abi-v5";

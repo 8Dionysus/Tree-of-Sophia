@@ -33,38 +33,19 @@ fn assert_authored_text_unchanged(root: &Path, expected: &BTreeMap<String, Vec<u
 }
 
 fn text_fixture(root: &Path) -> Value {
-    let script = r#"
-import json,sys
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts'),str(repository/'tests')]
-import test_source_text_unit_commands as unit
-import test_source_text_layer_commands as layer
-class ExistingRoot:
-    def __init__(self,*args,**kwargs): self.name=str(root)
-    def cleanup(self): pass
-original=unit.tempfile.TemporaryDirectory
-unit.tempfile.TemporaryDirectory=ExistingRoot
-try:
-    case=layer.NativeLayerCommandTests(methodName='runTest')
-    case.setUp()
-finally:
-    unit.tempfile.TemporaryDirectory=original
-print(json.dumps({'public':str(case.public),'private':str(case.store),
-    'context':str(case.context_path),'owner':str(case.owner),
-    'source_ref':case.source_ref,'payload':str(case.payload),'content_sha256':layer.source._digest(case.content)[7:],
-    'content_bytes':len(case.content),'config':case.config,
-    'unit_config':case.seed.config,'unit_proposal':case.seed.proposal,
-    'unit_layer_schema':unit.native.LAYER_CONFIG,
-    'implementations':sorted(set(layer.layers.IMPLEMENTATIONS))},ensure_ascii=False,separators=(',',':')))
-"#;
+    const OWNER_TEXT_BASE_FACTORY_SCRIPT_SHA256: &str =
+        "5f265a8961bb29a3069423117db89b23a7810ee365651d189b4bb5d59d7fbe8d";
     let native_owner_paths = OWNER_TEXT_NATIVE_OWNER_PATHS;
     let captured = super::native_python_fixture(
         "owner-text-base",
         &[("source-root", root)],
         &native_owner_paths,
     );
-    super::assert_native_python_fixture(&captured, script, &native_owner_paths);
+    super::assert_native_python_fixture(
+        &captured,
+        OWNER_TEXT_BASE_FACTORY_SCRIPT_SHA256,
+        &native_owner_paths,
+    );
     captured.packets.get("factory").unwrap().clone()
 }
 
@@ -1545,71 +1526,11 @@ fn assessment_feature_sources() -> [&'static str; 12] {
 }
 
 fn native_layer_journal_fixture(root: &Path, derived: bool) -> Value {
-    let template = r#"
-import copy,json,sys,tempfile,unittest
-from pathlib import Path
-repository,root=map(Path,sys.argv[1:])
-sys.dont_write_bytecode=True
-sys.path[:0]=[str(repository/'mechanics/growth-cycle/tests'),str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts'),str(repository/'tests')]
-from datetime import datetime,timedelta,timezone
-import test_knowledge_assessment as policy_fixture
-# Native commands use real time; retain a finite synthetic grant window.
-policy_fixture.END=(datetime.now(timezone.utc)+timedelta(days=7)).isoformat()
-class ExistingRoot:
-    serial=0
-    def __init__(self,*args,**kwargs):
-        type(self).serial+=1
-        path=root/('synthetic-layer-'+str(type(self).serial))
-        path.mkdir(mode=0o700)
-        self.name=str(path)
-    def cleanup(self): pass
-    def __enter__(self): return self.name
-    def __exit__(self,*args): pass
-original=tempfile.TemporaryDirectory
-try:
-    tempfile.TemporaryDirectory=ExistingRoot
-    test=unittest.TestCase(methodName='runTest')
-    import test_native_layer_quality_journal as maintained
-    if JOURNAL_DERIVED_METHOD:
-        from test_native_text_layer_assessment import NativeDerivedLayerAssessmentFixture
-        # Late handler imports must use this exact fixture source tree.
-        sys.path[:0]=[str(repository/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repository/'scripts')]
-        layer=NativeDerivedLayerAssessmentFixture(test)
-        layer.member=layer.seed.member
-        layer.payload=layer.seed.payload
-        fx=maintained.QualityJournalFixture(test,layer_fixture=layer)
-    else:
-        fx=maintained.QualityJournalFixture(test)
-    # Keep these synthetic native grants finite and independent of Python's fixed NOW.
-    for grant in fx.config['authorities']+fx.config['competencies']:
-        grant['payload']['valid_until']='2099-01-01T00:00:00Z'
-    for index,competency in enumerate(fx.config['competencies']):
-        fx.config['authorities'][index]['payload']['competence_refs']=[maintained.Record.from_payload(**competency).ref]
-    fx.save()
-    assert fx.fx.layer['admission']['human_review_performed'] is False
-    index=next(i for i,g in enumerate(fx.config['authorities']) if g['payload']['actor_id']==fx.config['principal_id'])
-    def template(record,profile,name):
-        review=copy.deepcopy(fx.policy_fixture.review(index).assessment)
-        review.update(assessment_id='tos.review.'+name,subject=record.ref,policy=fx.policy.ref,profile_id=profile,
-            decision='admit',limits=[],supersedes=[],authority=maintained.Record.from_payload(**fx.config['authorities'][index]).ref,
-            competence=maintained.Record.from_payload(**fx.config['competencies'][index]).ref,evidence=[])
-        return {'schema_version':'tos_local_assessment_command_v1','operation':'append','subject_id':record.id,
-            'expected_subject':record.ref,'command_id':name,'assessments':[review]}
-    result={'public':str(fx.fx.public),'context':str(fx.fx.context_path),'owner':str(fx.owner),
-        'layer_subject':fx.layer_record.ref,'unit_subject':fx.unit.ref,
-        'layer_template':template(fx.layer_record,'text-layer-quality','synthetic-native-layer-admit'),
-        'unit_template':template(fx.unit,'source-observation','synthetic-native-unit-admit'),
-        'source_member':fx.fx.member.decode(),'content':fx.fx.content.decode(),
-        'derived':JOURNAL_DERIVED_METHOD,
-        'preserved':([str(path) for path in sorted(fx.fx.store.rglob('*')) if path.is_file() and fx.journal not in path.parents] if JOURNAL_DERIVED_METHOD else [str(fx.fx.store/fx.fx.source_ref),str(fx.fx.store/fx.packet_ref),str(fx.fx.payload)])}
-finally:
-    tempfile.TemporaryDirectory=original
-print(json.dumps(result,ensure_ascii=False,separators=(',',':')))
-"#;
-    let script = template.replace(
-        "JOURNAL_DERIVED_METHOD",
-        if derived { "True" } else { "False" },
-    );
+    let factory_script_sha256 = if derived {
+        "d33f8abf48b47d1fc7635f43dfe455d4ba7f4b818ec77c3efbbf6a693c87167e"
+    } else {
+        "3833c81e608b9808423e22f4b5f4b90a0cdaacc50c9c8eca049d674e19529fd4"
+    };
     let native_owner_paths = [
         "rust/crates/tos-command/src/source_text_owner.rs",
         "rust/crates/tos-command/src/source_assessment_journal.rs",
@@ -1623,7 +1544,7 @@ print(json.dumps(result,ensure_ascii=False,separators=(',',':')))
         "owner-text-journal"
     };
     let captured = super::native_python_fixture(id, &[("journal-root", root)], &native_owner_paths);
-    super::assert_native_python_fixture(&captured, &script, &native_owner_paths);
+    super::assert_native_python_fixture(&captured, factory_script_sha256, &native_owner_paths);
     captured.packets.get("factory").unwrap().clone()
 }
 

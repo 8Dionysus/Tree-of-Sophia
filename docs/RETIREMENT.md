@@ -95,7 +95,7 @@ The retained profiles are specified by byte rules and fixed vectors in `tos-foun
 
 `tos-foundation/src/json.rs` defines `CorpusSnapshotV1`, `SourceRecordDigestV1` and `SourceCommandInputV1`. Command, source-store and access writers use them for snapshots, record digests and command inputs; readers and verifiers recompute their bytes. Only the snapshot profile adds a final LF. Zero tracked JSON/JSONL files contain each of the three exact profile identifiers; unlabelled preimages and digests remain uncounted. Inspect retained manifests, revision and command receipts, selected publications, backups and external verifiers.
 
-**Removal condition:** A new explicitly named profile has independent vectors and a documented byte/number/Unicode contract; every retained preimage, digest, identity and locator remains verifiable through a tested mapping or retained old reader, and all active writers and consumers switch. **Package:** New canonical profile, source-store re-baseline and later per-profile retirement. A new JCS profile alone does not reinterpret old digests.
+**Removal condition:** All active canonical-JSON writers use tagged `jcs1`, and no tracked record or operator store uses the historical profile being removed. Preserve verification for each retained historical record until that condition is met. **Package:** Forward-only writer and verifier cutover, followed by per-profile retirement under [TOS-D-0088](decisions/TOS-D-0088-forward-only-canonical-profile.md).
 
 ## Corpus schema families
 

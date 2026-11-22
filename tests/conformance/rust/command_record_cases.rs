@@ -153,6 +153,14 @@ fn retained_sign_source_seed(repository: &Path, root: &Path) -> Value {
         fs::write(&path, canonical_json(&config)).unwrap();
         fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
     }
+    // Select the current schema in this disposable materialization before
+    // building its authored cut; the archived fixture remains unchanged.
+    let form_set_schema = "ToS/contracts/human-form-set.schema.json";
+    fs::write(
+        root.join(form_set_schema),
+        fs::read(repository.join(form_set_schema)).unwrap(),
+    )
+    .unwrap();
     let mut authored = serde_json::Map::new();
     let mut modes = serde_json::Map::new();
     for name in files.iter().filter(|name| name.starts_with("ToS/")) {
@@ -2152,9 +2160,9 @@ fn initial_source_packages_use_real_native_capture_and_isolated_atomic_publicati
             record["schema_version"] = example["schema_version"].clone();
             record["semantic_content"] = example["semantic_content"].clone();
             // Explicit synthetic source evidence, outside mapping rules/bounds.
-            // The owner preserves this Int; JavaScript receives only opaque text.
+            // New records retain integers beyond 2^53 as exact decimal strings.
             record["semantic_content"]["provenance"]["synthetic_opaque_integer"] =
-                serde_json::json!(9007199254740993u64);
+                serde_json::json!("9007199254740993");
         }
         let operation = if kind == "historical-event" {
             "historical.create"
@@ -11364,6 +11372,12 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
     )
     .unwrap();
     let public_root = fixture.public_root.clone();
+    let form_set_schema = "ToS/contracts/human-form-set.schema.json";
+    fs::write(
+        public_root.join(form_set_schema),
+        fs::read(repository.join(form_set_schema)).unwrap(),
+    )
+    .unwrap();
     let content_path = public_root.join(
         "ToS/source-witnesses/works/synthetic-native-binding/technical-markup/synthetic-binding/public-synthetic-content.txt",
     );
@@ -11439,7 +11453,21 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
     let (capture, _software, components) =
         super::command_record_cases::captured_components(&captured, deadline, &cancelled);
     let store = temporary.path().join("sign-native-entry-cut");
-    let initial_revision = super::validation_cut_cases::write_cut_store(&authored, &store);
+    let modes = authored
+        .keys()
+        .map(|path| {
+            (
+                path.clone(),
+                fs::metadata(public_root.join(path))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+            )
+        })
+        .collect();
+    let initial_revision =
+        super::validation_cut_cases::write_cut_store_with_modes(&authored, &store, &modes);
     let images = [
         std::env::current_exe().unwrap(),
         PathBuf::from(
@@ -11676,10 +11704,24 @@ fn sign_promotion_native_entry_v3_assesses_prepares_commits_reads_and_replays() 
 
     let mut current_files = super::command_text_cases::authored_text_files(&public_root);
     current_files.remove("ToS/source-witnesses/.historical-create.writer.lock");
-    let successor = super::validation_cut_cases::write_cut_store_on_base(
+    let current_modes = current_files
+        .keys()
+        .map(|path| {
+            (
+                path.clone(),
+                fs::metadata(public_root.join(path))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+            )
+        })
+        .collect();
+    let successor = super::validation_cut_cases::write_cut_store_with_optional_modes(
         &current_files,
         &store,
         Some(initial_revision),
+        Some(&current_modes),
     );
     invocation["source_revision"] = Value::from(successor.0.to_prefixed());
     let replayed = invoke(&mut invocation, &sign_owner, None, &command);

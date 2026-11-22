@@ -431,12 +431,15 @@ fn load_frozen_claim_fixture(workspace: &Path) -> PathBuf {
     let mut request: Value = serde_json::from_slice(&fs::read(&request_path).unwrap()).unwrap();
     request["expected_configuration"] = json!(configuration_digest.to_prefixed());
     let request_raw = canonical_lf(&request);
-    let request_digest = Digest256::of_bytes(&source_command_canonical_bytes(&request));
+    let request_digest = Digest256::of_bytes(
+        &tos_foundation::jcs_bytes_v1(&typed(&request), JsonLimits::default()).unwrap(),
+    );
     fs::write(&request_path, &request_raw).unwrap();
 
     let mut receipt: Value = serde_json::from_slice(&fs::read(&receipt_path).unwrap()).unwrap();
     receipt["owner_configuration"] = json!(configuration_digest.to_prefixed());
     receipt["request_digest"] = json!(request_digest.to_prefixed());
+    receipt["request_digest_profile"] = json!("jcs1");
     receipt["files"]["source-create-request.json"] = json!({
         "bytes": request_raw.len(),
         "sha256": Digest256::of_bytes(&request_raw).to_prefixed()
@@ -574,7 +577,18 @@ fn bind_agent_oracle_provenance(
         (&old_time, &receipt["recorded_at"]),
         (&old_request, &receipt["request_digest"]),
     ];
-    fn bind(v: &mut Value, replacements: &[(&Value, &Value)], counts: &mut [usize; 3]) {
+    let request_profile = receipt.get("request_digest_profile");
+    if let Some(profile) = request_profile {
+        assert!(profile.as_str().is_some());
+    }
+    fn bind(
+        v: &mut Value,
+        replacements: &[(&Value, &Value)],
+        counts: &mut [usize; 3],
+        request_digest: &Value,
+        request_profile: Option<&Value>,
+        profile_bindings: &mut usize,
+    ) {
         for (index, (old, new)) in replacements.iter().enumerate() {
             if v == *old {
                 *v = (*new).clone();
@@ -585,22 +599,53 @@ fn bind_agent_oracle_provenance(
         match v {
             Value::Object(o) => {
                 for v in o.values_mut() {
-                    bind(v, replacements, counts);
+                    bind(
+                        v,
+                        replacements,
+                        counts,
+                        request_digest,
+                        request_profile,
+                        profile_bindings,
+                    );
+                }
+                if let Some(profile) = request_profile {
+                    if o.get("request_digest") == Some(request_digest) {
+                        assert!(
+                            o.insert("request_digest_profile".into(), profile.clone())
+                                .is_none()
+                        );
+                        *profile_bindings += 1;
+                    }
                 }
             }
             Value::Array(a) => {
                 for v in a {
-                    bind(v, replacements, counts);
+                    bind(
+                        v,
+                        replacements,
+                        counts,
+                        request_digest,
+                        request_profile,
+                        profile_bindings,
+                    );
                 }
             }
             _ => {}
         }
     }
     let mut counts = [0; 3];
+    let mut profile_bindings = 0;
     let mut changed = 0;
     for node in expected["nodes"].as_array_mut().unwrap() {
         let mut bound = node.clone();
-        bind(&mut bound, &replacements, &mut counts);
+        bind(
+            &mut bound,
+            &replacements,
+            &mut counts,
+            &receipt["request_digest"],
+            request_profile,
+            &mut profile_bindings,
+        );
         if bound == *node {
             continue;
         }
@@ -627,6 +672,10 @@ fn bind_agent_oracle_provenance(
         changed += 1;
     }
     assert_eq!(counts, [6, 2, 2]);
+    assert_eq!(
+        profile_bindings,
+        if request_profile.is_some() { 2 } else { 0 }
+    );
     assert_eq!(changed, 3);
 }
 

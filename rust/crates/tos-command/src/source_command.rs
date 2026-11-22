@@ -9,9 +9,9 @@ use std::collections::BTreeSet;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonNumber,
-    JsonNumberKind, JsonString, JsonValue, RelativePath, SourceRevision, canonical_bytes_v1,
-    emit_json_profile, parse_json,
+    CanonicalDigestProfileV1, CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits,
+    JsonMode, JsonNumber, JsonNumberKind, JsonString, JsonValue, RelativePath, SourceRevision,
+    canonical_bytes_v1, emit_json_profile, parse_json,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 
@@ -311,6 +311,8 @@ pub struct PreparedCommand {
     pub request_canonical_sha256: Digest256,
     pub configuration_raw_sha256: Digest256,
     pub configuration_canonical_sha256: Digest256,
+    pub request_digest_profile: CanonicalDigestProfileV1,
+    pub configuration_digest_profile: CanonicalDigestProfileV1,
     pub response: JsonValue,
     pub changes: Vec<SourceChange>,
     pub reads: Vec<SourceDependency>,
@@ -339,6 +341,12 @@ impl CommandPlan {
             request_canonical_sha256: self.request_canonical_sha256,
             configuration_raw_sha256: self.configuration_raw_sha256,
             configuration_canonical_sha256: self.configuration_canonical_sha256,
+            request_digest_profile: CanonicalDigestProfileV1::Legacy(
+                CanonicalProfile::SourceCommandInputV1,
+            ),
+            configuration_digest_profile: CanonicalDigestProfileV1::Legacy(
+                CanonicalProfile::SourceCommandInputV1,
+            ),
             response: self.response,
             changes: self.changes,
             reads: self.reads,
