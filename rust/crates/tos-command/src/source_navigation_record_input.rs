@@ -157,7 +157,9 @@ pub(crate) fn direct_source_create_records_for_range_v1(
                 {
                     continue;
                 }
-                Some("tos_local_source_create_receipt_v1") => {}
+                Some("tos_local_source_create_receipt_v1")
+                | Some("tos_local_source_create_receipt_v2")
+                    if source_create_receipt_profile_matches(&receipt) => {}
                 _ => {
                     return Err(DurableError::Invalid(
                         "range direct Record creation receipt profile",
@@ -1271,6 +1273,20 @@ fn record_type(record: &Value, owner_id: &str) -> DurableResult<String> {
     Ok(kind.to_owned())
 }
 
+fn source_create_receipt_profile_matches(receipt: &Value) -> bool {
+    let schema = receipt.get("schema_version").and_then(Value::as_str);
+    let profile = match receipt.get("request_digest_profile") {
+        None => None,
+        Some(Value::String(profile)) => Some(profile.as_str()),
+        Some(_) => return false,
+    };
+    matches!(
+        (schema, profile),
+        (Some("tos_local_source_create_receipt_v1"), None)
+            | (Some("tos_local_source_create_receipt_v2"), Some("jcs1"))
+    )
+}
+
 fn verify_creation_receipt(
     entry: &Value,
     source_path: &str,
@@ -1287,8 +1303,7 @@ fn verify_creation_receipt(
         .get("record_id")
         .and_then(Value::as_str)
         .ok_or(DurableError::Invalid("Record create entry ID absent"))?;
-    if receipt.get("schema_version").and_then(Value::as_str)
-        != Some("tos_local_source_create_receipt_v1")
+    if !source_create_receipt_profile_matches(&receipt)
         || receipt.get("source_path").and_then(Value::as_str) != Some(source_path)
         || receipt.pointer("/source/id").and_then(Value::as_str) != Some(id)
         || receipt.pointer("/source/version").and_then(Value::as_u64) != Some(1)

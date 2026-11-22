@@ -249,17 +249,25 @@ export function layerSources(repo,env=process.env){
 
 /**
  * The site's copy of every home's layers in dir/sha256/<hex>. A file missing from the checkout comes from the stores
- * first; one that no store holds stops the copy, so a site is never built without the layers its pages address.
+ * first, and once more from fresh stores (the transfer branch moves while files wait on it). Every file present is
+ * copied; one that no store holds then stops the build, so a site is never published without the layers its pages
+ * address, and a local build keeps every other home's files in place.
  */
 export async function placeLayers(repo,dir,{sources=null,log=()=>{}}={}){
-  const homes=layerHomes(repo);let files=0;
-  for(const home of homes){
-    if(layerStatus(home).some(entry=>entry.state!=='present')){
-      const {unresolved}=await fetchLayers(home,{sources:sources??layerSources(repo),log});
-      if(unresolved.length)throw new Error(`${relative(repo,home)||'.'}: layer files no store holds:\n${unresolved.join('\n')}`);
+  const homes=layerHomes(repo),unresolved=new Map();
+  for(const attempt of [0,1]){
+    const stores=sources??layerSources(repo);
+    for(const home of homes){
+      if(attempt&&!unresolved.has(home))continue;
+      if(!layerStatus(home).some(entry=>entry.state!=='present')){unresolved.delete(home);continue;}
+      const {unresolved:left}=await fetchLayers(home,{sources:stores,log});
+      if(left.length)unresolved.set(home,left);else unresolved.delete(home);
     }
-    files+=mirrorLayers(home,dir);
+    if(!unresolved.size)break;
   }
+  let files=0;
+  for(const home of homes)files+=mirrorLayers(home,dir,{present:true});
+  if(unresolved.size)throw new Error([...unresolved].map(([home,paths])=>`${relative(repo,home)||'.'}: layer files no store holds:\n${paths.join('\n')}`).join('\n'));
   return {homes:homes.map(home=>relative(repo,home)||'.'),files};
 }
 
@@ -276,14 +284,15 @@ export async function uploadLayers(home,{r2,log=()=>{}}){
   return {uploaded};
 }
 
-/** Copy every file into dir/sha256/<hex>. */
-export function mirrorLayers(home,dir){
-  const layers=readLayers(home);
+/** Copy every file into dir/sha256/<hex>; with `present`, every file the checkout holds with its manifest bytes. */
+export function mirrorLayers(home,dir,{present=false}={}){
+  const layers=readLayers(home);let copied=0;
   for(const entry of layers.entries){
-    const bytes=localBytes(home,entry,layers);if(!bytes)throw new Error(`${entry.path} is not present with its manifest bytes`);
-    writeAtomically(join(dir,objectKey(entry.sha256)),bytes);
+    const bytes=localBytes(home,entry,layers);
+    if(!bytes){if(present)continue;throw new Error(`${entry.path} is not present with its manifest bytes`);}
+    writeAtomically(join(dir,objectKey(entry.sha256)),bytes);copied++;
   }
-  return layers.entries.length;
+  return copied;
 }
 
 /** Put on the transfer branch the files that neither R2 (when reachable), the site nor the branch holds. */

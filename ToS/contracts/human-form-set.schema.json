@@ -22,6 +22,7 @@
       "properties": {
         "command_id": {"type": "string", "minLength": 1, "maxLength": 256},
         "request_digest": {"$ref": "#/$defs/digest"},
+        "request_digest_profile": {"const": "jcs1"},
         "principal_id": {"type": "string", "minLength": 1},
         "authority_ref": {"type": "string", "minLength": 1},
         "owner_configuration": {"$ref": "#/$defs/digest"},

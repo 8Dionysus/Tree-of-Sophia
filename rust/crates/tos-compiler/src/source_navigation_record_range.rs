@@ -1070,8 +1070,7 @@ fn seal_record_mutation_cause(
             let receipt = strict_value(receipt_bytes, MAX_RANGE_BYTES)?;
             let source_id = record_identity(&record)?;
             if source_id != owner.record_id
-                || receipt.get("schema_version").and_then(Value::as_str)
-                    != Some("tos_local_source_create_receipt_v1")
+                || !source_create_receipt_profile_matches(&receipt)
                 || receipt.get("command_id").and_then(Value::as_str) != Some(input.command_id)
                 || receipt.get("source_path").and_then(Value::as_str) != Some(source_path.as_str())
                 || receipt.pointer("/source/id").and_then(Value::as_str)
@@ -2231,6 +2230,20 @@ fn valid_id(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= MAX_ID_BYTES
         && !value.bytes().any(|byte| byte.is_ascii_control())
+}
+
+fn source_create_receipt_profile_matches(receipt: &Value) -> bool {
+    let schema = receipt.get("schema_version").and_then(Value::as_str);
+    let profile = match receipt.get("request_digest_profile") {
+        None => None,
+        Some(Value::String(profile)) => Some(profile.as_str()),
+        Some(_) => return false,
+    };
+    matches!(
+        (schema, profile),
+        (Some("tos_local_source_create_receipt_v1"), None)
+            | (Some("tos_local_source_create_receipt_v2"), Some("jcs1"))
+    )
 }
 
 fn strict_value(raw: &[u8], cap: usize) -> Result<Value> {

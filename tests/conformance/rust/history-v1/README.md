@@ -1,7 +1,7 @@
 # Legacy whole HumanForm-set byte oracle
 
-`legacy-whole-form-set.jsonl` is derived by `generate_oracle.py` with CPython
-3.14.7 from the exact owner writer expression in
+`legacy-whole-form-set.jsonl` records CPython 3.14.7 outputs from the exact
+owner writer expression in
 [historical source writer](https://github.com/8Dionysus/Tree-of-Sophia/blob/60e96eceb0903d74e287217fe5e8c1a891f4ab74/mechanics/growth-cycle/parts/branch-growth-cycle/scripts/source_commands.py) (line 1709):
 `(json.dumps(value, ensure_ascii=False, allow_nan=False, indent=2) + "\n").encode("utf-8")`.
 It preserves insertion order, default separators, Python float spelling and
@@ -18,11 +18,6 @@ the exact 2,097,152-byte cap and one byte over without storing megabytes of
 expected text. Two negatives record Python's nonfinite and unpaired-surrogate
 failure classes. They are byte-serializer cases, not request decoding rules.
 
-Run `PYTHONDONTWRITEBYTECODE=1 python3
-tests/conformance/rust/history-v1/generate_oracle.py` from the repository
-root to verify the checked-in oracle. It fails on drift and writes nothing;
-`--update` is an intentional regeneration operation. FND can compare the
-positive output bytes/digests and error cases with a named Rust profile after
-its public API exists. CMD must separately compare a complete isolated
-`public-source-forms apply` and replay under the same root/configuration bytes
-and injected clock; this package alone does not prove writer or receipt parity.
+`independent_python_whole_form_set_history_bytes` in `runner.rs` exercises
+these retained observations against the live Rust whole-form-set serializer.
+The command conformance cases cover isolated form apply and replay separately.

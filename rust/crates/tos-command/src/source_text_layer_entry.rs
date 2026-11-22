@@ -690,7 +690,7 @@ fn verify_retained_initial(
         .get("source-create-receipt.json")
         .ok_or(SourceCommandError::Conflict("native Text receipt absent"))?;
     let receipt = cmd::parse(receipt_raw)?;
-    cmd::exact_keys(
+    crate::source_text_private_store::exact_keys_with_request_profile(
         &receipt,
         &[
             "schema_version",
@@ -708,10 +708,12 @@ fn verify_retained_initial(
         ],
     )?;
     let source_path = cmd::text(&prepared.grant.config, "source_path")?;
-    if cmd::text(&receipt, "schema_version")? != "tos_local_source_create_receipt_v1"
-        || cmd::field(&receipt, "command_id")? != cmd::field(request, "command_id")?
-        || cmd::text(&receipt, "request_digest")?
-            != Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()
+    if !crate::source_text_private_store::request_receipt_profile_matches(
+        &receipt,
+        "tos_local_source_create_receipt_v1",
+        "tos_local_source_create_receipt_v2",
+    )? || cmd::field(&receipt, "command_id")? != cmd::field(request, "command_id")?
+        || !crate::source_text_private_store::verify_request_digest(request, &receipt)?
         || cmd::field(&receipt, "principal_id")?
             != cmd::field(&prepared.grant.config, "principal_id")?
         || cmd::field(&receipt, "authority_ref")?
@@ -1076,12 +1078,18 @@ fn assemble_initial_package(
     let receipt = cmd::object(vec![
         (
             "schema_version",
-            cmd::string("tos_local_source_create_receipt_v1"),
+            cmd::string("tos_local_source_create_receipt_v2"),
         ),
         ("command_id", cmd::field(request, "command_id")?.clone()),
         (
             "request_digest",
-            cmd::string(&Digest256::of_bytes(&cmd::canonical(request)?).to_prefixed()),
+            cmd::string(
+                &crate::source_text_private_store::jcs_request_digest(request)?.to_prefixed(),
+            ),
+        ),
+        (
+            "request_digest_profile",
+            cmd::string(tos_foundation::JCS_DIGEST_TAG),
         ),
         (
             "principal_id",
@@ -1195,7 +1203,7 @@ pub(crate) fn prepare_pg_initial_text_package(
         receipt,
         replayed,
         context_binding,
-        request_digest: Digest256::of_bytes(&cmd::canonical(request)?),
+        request_digest: crate::source_text_private_store::jcs_request_digest(request)?,
     })
 }
 

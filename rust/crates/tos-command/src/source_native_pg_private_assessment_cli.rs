@@ -1946,6 +1946,7 @@ pub(crate) fn run(
                 archives: Vec::new(),
                 command_id: command_id.to_owned(),
                 request_digest,
+                request_digest_profile: None,
                 raw_request_digest: Digest256::of_bytes(&request_raw),
                 owner_configuration_digest: Digest256::of_bytes(&attempt.config_raw),
                 source_binding: attempt.source_binding,

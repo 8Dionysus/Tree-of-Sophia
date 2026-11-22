@@ -46,6 +46,17 @@ fn request_digest(value: &Value) -> String {
     .to_prefixed()
 }
 
+fn jcs_request_digest(value: &Value) -> String {
+    Digest256::of_bytes(
+        &tos_foundation::jcs_raw_bytes_v1(
+            &serde_json::to_vec(value).unwrap(),
+            JsonLimits::default(),
+        )
+        .unwrap(),
+    )
+    .to_prefixed()
+}
+
 // A test-owned reference for the configuration binding, built solely from the
 // selected fixture inputs before describe. Native context validation remains
 // the authority; this model checks the complete digest domain independently.
@@ -244,6 +255,7 @@ fn stable_form_payload(value: &Value) -> Value {
                     for receipt in history {
                         if let Some(receipt) = receipt.as_object_mut() {
                             receipt.remove("request_digest");
+                            receipt.remove("request_digest_profile");
                             receipt.remove("recorded_at");
                             receipt.remove("previous_revision");
                         }
@@ -473,150 +485,7 @@ fn selected_capture(
 }
 
 fn fixture(_repository: &Path, root: &Path, _deadline: Instant) -> Value {
-    let script = r#"
-import json,sys,stat,resource
-resource.setrlimit(resource.RLIMIT_CPU,(90,90))
-resource.setrlimit(resource.RLIMIT_AS,(1073741824,1073741824))
-from pathlib import Path
-repo,root=map(Path,sys.argv[1:])
-sys.path[:0]=[str(repo/'mechanics/growth-cycle/tests'),str(repo/'mechanics/growth-cycle/parts/branch-growth-cycle/scripts'),str(repo/'scripts'),str(repo/'tests')]
-import test_source_owner_claim_commands as maintained
-import source_commands as commands
-class ExistingRoot:
-    def __init__(self,*args,**kwargs): self.name=str(root)
-    def cleanup(self): pass
-original=maintained.tempfile.TemporaryDirectory
-maintained.tempfile.TemporaryDirectory=ExistingRoot
-try:
-    case=maintained.PrivateClaimCommandTests(methodName='runTest')
-    case.setUp()
-finally:
-    maintained.tempfile.TemporaryDirectory=original
-
-def private_snapshot(directory):
-    pending=[directory]
-    entries=0
-    directories=0
-    members=[]
-    file_bytes=0
-    while pending:
-        current=pending.pop()
-        for path in current.iterdir():
-            entries+=1
-            if entries>4352: raise RuntimeError('synthetic private fixture entry cap')
-            if path.is_symlink(): raise RuntimeError('synthetic private fixture symlink')
-            relative=path.relative_to(directory).as_posix()
-            if len(relative.encode('utf-8'))>512 or len(relative.split('/'))>16:
-                raise RuntimeError('synthetic private fixture path cap')
-            info=path.lstat()
-            if path.is_dir():
-                directories+=1
-                if directories>4096: raise RuntimeError('synthetic private fixture directory cap')
-                pending.append(path)
-            else:
-                if not path.is_file(): raise RuntimeError('synthetic private fixture non-file')
-                size=info.st_size
-                if info.st_nlink!=1: raise RuntimeError('synthetic private fixture alias')
-                if len(members)>=256 or size>8388608:
-                    raise RuntimeError('synthetic private fixture file cap')
-                file_bytes+=size
-                if file_bytes>8388608: raise RuntimeError('synthetic private fixture byte cap')
-                members.append((path,relative,size,stat.S_IMODE(info.st_mode)))
-    result={}
-    for path,relative,size,mode in members:
-        raw=path.read_bytes()
-        if len(raw)!=size or stat.S_IMODE(path.stat().st_mode)!=mode:
-            raise RuntimeError('synthetic private fixture changed during census')
-        result[relative]=(raw,mode)
-    return result
-
-def remove_tree(path):
-    if path.is_symlink(): raise RuntimeError('synthetic private cleanup symlink')
-    if path.is_dir():
-        for child in path.iterdir(): remove_tree(child)
-        path.rmdir()
-    elif path.exists():
-        path.unlink()
-
-def restore_private(directory, saved):
-    private_snapshot(directory)  # Bound the exact tree before deleting this disposable fixture.
-    for child in list(directory.iterdir()): remove_tree(child)
-    for relative,(raw,mode) in saved.items():
-        target=directory/relative
-        target.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
-        target.write_bytes(raw)
-        target.chmod(mode)
-    for path in sorted(directory.rglob('*'),key=lambda item:len(item.parts),reverse=True):
-        if path.is_dir(): path.chmod(0o700)
-    directory.chmod(0o700)
-
-initial_private=private_snapshot(case.local.private)
-calls={'oracle':0}
-def oracle(request):
-    calls['oracle']+=1
-    print(f"private Claim oracle enter {calls['oracle']} {request['operation']}",file=sys.stderr,flush=True)
-    result=commands.run_legacy_oracle_command(case.owner,
-        {'schema_version':'tos_local_source_command_v1',**request})
-    print(f"private Claim oracle exit {calls['oracle']} {request['operation']}",file=sys.stderr,flush=True)
-    return result
-
-before=oracle({'operation':'describe'})
-preview=oracle({'operation':'prepare-create','claims':[case.claim],'forms':case.forms})
-creation={'operation':'claims.create','command_id':'synthetic-create','claims':[case.claim],
-    'forms':case.forms,'expected_configuration':preview['owner_configuration'],
-    'expected_source':None,'expected_revision':None,
-    'expected_dependencies':preview['expected_dependencies'],'expected_inputs':preview['source_bindings']}
-created=oracle(creation)
-creation_replay=oracle(creation)
-created_forms=json.loads((case.path.parent/commands.claim_forms_path(case.path,case.claim['claim_id']).name).read_bytes())
-
-form_preview=oracle({'operation':'prepare','claim_id':case.claim['claim_id'],
-    'form_id':case.form_id,'field_id':'claim.statement'})
-form_request={'operation':'apply','claim_id':case.claim['claim_id'],'command_id':'synthetic-form',
-    'expected_source':form_preview['source'],'expected_revision':form_preview['revision'],
-    'expected_configuration':form_preview['owner_configuration'],
-    'expected_dependencies':form_preview['expected_dependencies'],
-    'expected_inputs':form_preview['source_bindings'],'changes':[form_preview['prepared_change']]}
-formed=oracle(form_request)
-form_replay=oracle(form_request)
-formed_forms=json.loads((case.path.parent/commands.claim_forms_path(case.path,case.claim['claim_id']).name).read_bytes())
-
-proposal={'claim_id':case.claim['claim_id'],
-    'fields':{'qualifiers':{'statement':'Исправленная синтетическая возможность; не установленный разбор.'}},
-    'forms':[{key:value for key,value in case.forms[0].items() if key!='claim_id'}],
-    'reason':'Synthetic description correction without a new relation identity.'}
-revision_preview=oracle({'operation':'prepare-revise',**proposal})
-revision={'operation':'claim.revise','command_id':'synthetic-revise',**proposal,
-    'expected_configuration':revision_preview['owner_configuration'],
-    'expected_source':revision_preview['source'],'expected_revision':revision_preview['revision'],
-    'expected_dependencies':revision_preview['expected_dependencies'],
-    'expected_inputs':revision_preview['source_bindings']}
-revised=oracle(revision)
-revision_replay=oracle(revision)
-creation_replay_after=oracle(creation)
-inspected=oracle({'operation':'inspect-version','claim_id':case.claim['claim_id'],
-    'source':created['sources'][0]})
-after=oracle({'operation':'describe'})
-current_record=json.loads(case.path.read_bytes())
-form_file=commands.claim_forms_path(case.path,case.claim['claim_id']).name
-current_forms=json.loads((case.path.parent/form_file).read_bytes())
-oracle_calls=calls['oracle']
-
-# All oracle mutations were confined to this private fixture root. Restore its
-# exact initial source files before invoking the native owner path.
-restore_private(case.local.private,initial_private)
-print(json.dumps({'public':str(case.local.public),'private':str(case.local.private),
-    'owner':str(case.owner),'context':str(case.local.config_path),'source_ref':case.source_ref,
-    'form_file':form_file,'claim':case.claim,'forms':case.forms,'config':case.config,
-    'before':before,'preview':preview,'creation':creation,'created':created,
-    'creation_replay':creation_replay,'created_forms':created_forms,
-    'form_preview':form_preview,'form_request':form_request,
-    'formed':formed,'form_replay':form_replay,'formed_forms':formed_forms,'proposal':proposal,
-    'revision_preview':revision_preview,'revision':revision,'revised':revised,
-    'revision_replay':revision_replay,'creation_replay_after':creation_replay_after,
-    'inspected':inspected,'after':after,'current_record':current_record,
-    'current_forms':current_forms,'oracle_calls':oracle_calls},ensure_ascii=False,allow_nan=False))
-"#;
+    let factory_script_sha256 = "182648c603bdc66a6a60879fd7cf3ba40fa945e612fdf73af3968a5038591929";
     let native_owner_paths = [
         "rust/crates/tos-command/src/source_private_claim.rs",
         "rust/crates/tos-command/src/source_private_owner_store.rs",
@@ -628,7 +497,7 @@ print(json.dumps({'public':str(case.local.public),'private':str(case.local.priva
         &[("private-root", root)],
         &native_owner_paths,
     );
-    super::assert_native_python_fixture(&captured, script, &native_owner_paths);
+    super::assert_native_python_fixture(&captured, factory_script_sha256, &native_owner_paths);
     captured.packets.get("factory").unwrap().clone()
 }
 
@@ -801,6 +670,14 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let owner = PathBuf::from(selected["owner"].as_str().unwrap());
     let context = PathBuf::from(selected["context"].as_str().unwrap());
     assert!(owner.is_absolute() && context.is_absolute());
+    // The legacy Python fixture retains its old contract. Exercise the new
+    // receipt using the current selected schema in this disposable source cut.
+    let form_set_schema = "ToS/contracts/human-form-set.schema.json";
+    fs::write(
+        public.join(form_set_schema),
+        fs::read(repository.join(form_set_schema)).unwrap(),
+    )
+    .unwrap();
 
     let (authored_count, authored_bytes) = authored_preflight(&public, deadline);
     let mut authored = super::command_text_cases::authored_text_files(&public);
@@ -955,9 +832,10 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     );
     assert_eq!(created["publication_authorized"], false);
     assert_eq!(created["grants_admission"], false);
+    assert_eq!(created["receipt"]["request_digest_profile"], "jcs1");
     assert_eq!(
         created["receipt"]["request_digest"],
-        request_digest(&creation_request)
+        jcs_request_digest(&creation_request)
     );
     assert_eq!(created["receipt"]["command_id"], creation["command_id"]);
     assert_eq!(
@@ -1069,9 +947,10 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let oracle_formed = &selected["formed"];
     assert_eq!(formed["publication_authorized"], false);
     assert_eq!(formed["grants_admission"], false);
+    assert_eq!(formed["receipt"]["request_digest_profile"], "jcs1");
     assert_eq!(
         formed["receipt"]["request_digest"],
-        request_digest(&form_request)
+        jcs_request_digest(&form_request)
     );
     assert_eq!(formed["receipt"]["command_id"], form_request["command_id"]);
     assert_eq!(formed["receipt"]["source"], form_preview["source"]);
@@ -1086,10 +965,16 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         oracle_formed["materializations"]
     );
     assert_ne!(formed["revision"], oracle_formed["revision"]);
-    let formed_forms: Value = serde_json::from_slice(
-        &fs::read(home.join(selected["form_file"].as_str().unwrap())).unwrap(),
-    )
-    .unwrap();
+    let form_path = home.join(selected["form_file"].as_str().unwrap());
+    let formed_forms: Value = serde_json::from_slice(&fs::read(&form_path).unwrap()).unwrap();
+    assert_eq!(
+        formed_forms["growth_history"][0]["request_digest_profile"],
+        "jcs1"
+    );
+    assert_eq!(
+        formed_forms["growth_history"][0]["request_digest"],
+        jcs_request_digest(&form_request)
+    );
     let mut expected_formed_forms = selected["formed_forms"].clone();
     assert_eq!(
         expected_formed_forms["growth_history"]
@@ -1108,11 +993,26 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         stable_form_payload(&formed_forms),
         stable_form_payload(&expected_formed_forms)
     );
-    let after_form = private_snapshot(&private, deadline);
-    let form_replay = call(&form_request, &mut native_calls);
-    assert_eq!(form_replay["replayed"], true);
-    assert_eq!(form_replay["receipt"], formed["receipt"]);
-    same_file_set(&after_form, &private_snapshot(&private, deadline));
+    let after_jcs_form = private_snapshot(&private, deadline);
+    let jcs_replay = call(&form_request, &mut native_calls);
+    assert_eq!(jcs_replay["replayed"], true);
+    assert_eq!(jcs_replay["receipt"], formed["receipt"]);
+    same_file_set(&after_jcs_form, &private_snapshot(&private, deadline));
+
+    let mut legacy_forms = formed_forms.clone();
+    let legacy_receipt = legacy_forms["growth_history"][0].as_object_mut().unwrap();
+    legacy_receipt.remove("request_digest_profile");
+    legacy_receipt.insert(
+        "request_digest".into(),
+        Value::String(request_digest(&form_request)),
+    );
+    let legacy_receipt = legacy_forms["growth_history"][0].clone();
+    fs::write(&form_path, serde_json::to_vec(&legacy_forms).unwrap()).unwrap();
+    let after_legacy_form = private_snapshot(&private, deadline);
+    let legacy_replay = call(&form_request, &mut native_calls);
+    assert_eq!(legacy_replay["replayed"], true);
+    assert_eq!(legacy_replay["receipt"], legacy_receipt);
+    same_file_set(&after_legacy_form, &private_snapshot(&private, deadline));
 
     let revision_preview = call(
         &request("prepare-revise", selected["proposal"].clone()),
@@ -1152,7 +1052,7 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
         oracle_revision_preview["prepared_materializations"]
     );
     assert_eq!(revision_preview["source"], created["sources"][0]);
-    assert_eq!(revision_preview["revision"], formed["revision"]);
+    assert_eq!(revision_preview["revision"], legacy_replay["revision"]);
     let mut revision = selected["revision"].clone();
     revision["expected_configuration"] = revision_preview["owner_configuration"].clone();
     revision["expected_source"] = revision_preview["source"].clone();
@@ -1174,9 +1074,10 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     assert_eq!(revised["source"]["version"], 2);
     assert_eq!(revised["publication_authorized"], false);
     assert_eq!(revised["grants_admission"], false);
+    assert_eq!(revised["receipt"]["request_digest_profile"], "jcs1");
     assert_eq!(
         revised["receipt"]["request_digest"],
-        request_digest(&revision_request)
+        jcs_request_digest(&revision_request)
     );
     assert_eq!(revised["receipt"]["command_id"], revision["command_id"]);
     assert_eq!(
@@ -1255,7 +1156,7 @@ fn native_private_claim_cli_preserves_create_forms_revision_and_cold_replay() {
     let after_cold_form_replay = private_snapshot(&private, deadline);
     let form_replay_after_revision = call(&form_request, &mut native_calls);
     assert_eq!(form_replay_after_revision["replayed"], true);
-    assert_eq!(form_replay_after_revision["receipt"], formed["receipt"]);
+    assert_eq!(form_replay_after_revision["receipt"], legacy_receipt);
     same_file_set(
         &after_cold_form_replay,
         &private_snapshot(&private, deadline),
