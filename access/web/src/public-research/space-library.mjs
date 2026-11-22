@@ -3,7 +3,8 @@ import {createZarathustraGroundTargets,createZarathustraRouteGroundTargets} from
 import {extendPublicCollection} from './collection-data.mjs';
 import {loadBonsai,corpusProfile} from './bonsai.mjs';
 import {attachCore} from './core-projection.mjs';
-import {canonicalJSON,createResearchIndex} from './research-index.mjs';
+import {createResearchIndex} from './research-index.mjs';
+import {buildIdentity,researchRevision} from 'virtual:tos-build-facts';
 
 const PUBLIC_PROFILE_IDS = Object.freeze({
   zarathustra: 'tos.work.friedrich-nietzsche.also-sprach-zarathustra',
@@ -260,6 +261,21 @@ async function makeAntiquity(sources, structureByDocument) {
   return {library, bindings, documentBindings};
 }
 
+// The library's fingerprint names the reader's saved graphs. It follows from the build, the corpus snapshot, the library
+// before its core and the core's revision, so a built page remembers it for exactly these and the next visit reads it
+// instead of hashing the whole library again before the first view. A page served from source always hashes.
+const FINGERPRINT_KEY='tos.public-research.library-fingerprint.v1.';
+async function rememberedFingerprint(library,profile,inputs){
+  const identity=buildIdentity&&inputs.every(value=>typeof value==='string'&&value)?[buildIdentity,...inputs].join(':'):null;
+  let storage=null;try{storage=globalThis.localStorage??null;}catch{}
+  if(identity&&storage){
+    try{const held=JSON.parse(storage.getItem(FINGERPRINT_KEY+profile)??'null');if(held?.identity===identity&&/^[a-f0-9]{64}$/.test(held.fingerprint))return held.fingerprint;}catch{}
+  }
+  const fingerprint=await digest({...library,fingerprint:undefined});
+  if(identity&&storage)try{storage.setItem(FINGERPRINT_KEY+profile,JSON.stringify({identity,fingerprint}));}catch{}
+  return fingerprint;
+}
+
 /** Prepare a profile-specific, metadata-bounded Constructor library for the public space. */
 export async function createPublicSpace({profile, provider} = {}) {
   if (!['zarathustra', 'antiquity', 'aesthetics', 'population'].includes(profile)) throw new TypeError('An explicit public space profile is required.');
@@ -286,9 +302,10 @@ export async function createPublicSpace({profile, provider} = {}) {
     prepared.graphPredecessors??=[];
     prepared.graphPredecessors.unshift({fingerprint:prepared.library.fingerprint,materialIds:prepared.library.nodes.map(node=>node.id)});
     const rawCore=(await loadBonsai(profile)).core;
-    prepared.library.space.researchRevision=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonicalJSON(rawCore)))),byte=>byte.toString(16).padStart(2,'0')).join('');
+    // The core's revision is the digest of its canonical form, taken when the page is built (vite.config.ts).
+    prepared.library.space.researchRevision=researchRevision;
     attachCore(prepared.library,rawCore);
-    prepared.library.fingerprint=await digest({...prepared.library,fingerprint:undefined});
+    prepared.library.fingerprint=await rememberedFingerprint(prepared.library,profile,[sources.manifest.revision,prepared.graphPredecessors[0].fingerprint,researchRevision]);
   }
   return {...prepared, index:createResearchIndex(prepared.library,{placeTitle:await placeTitles(profile)}), profile, provider, sourceRevision: sources.manifest.revision};
 }

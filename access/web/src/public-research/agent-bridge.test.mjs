@@ -1,9 +1,12 @@
 import '../observatory/human-forms-wasm-test-runtime.mjs';
-import {expect, it} from 'vitest';
+import {beforeAll, expect, it} from 'vitest';
 import {createReference} from '../corpus-reader/model.mjs';
+import {loadRetainedLibrary} from '../corpus-reader/retained-library.mjs';
 import {selectedSourceContext} from '../corpus-reader/source-context.mjs';
 import {AGENT_RESPONSE_SCHEMA, AGENT_TASK_SCHEMA, AGENT_TASK_SCHEMA_V2, mergeSourceBasket, parseSavedSourceBasket, responsePacket, selectAgentProposals, taskPacket} from './agent-bridge.mjs';
 import {THOUGHT_DRAFT_SCHEMA, validateThoughtDraft} from './workspace-view.mjs';
+
+beforeAll(() => loadRetainedLibrary());
 
 const instructions = 'Read the exact excerpts and references. Return only the response JSON contract below. Keep claims and objections separate, cite only the supplied source ids, and state uncertainty. Do not claim canon or review.';
 const reference = createReference({source:{workId:'w',expressionId:'x',editionId:'e',itemId:'i',fileId:'f',fileSha256:'a'.repeat(64),textLayerRef:'fixture/text.txt',textLayerSha256:'b'.repeat(64)},versionId:'v',unitId:'u',start:1,end:3});

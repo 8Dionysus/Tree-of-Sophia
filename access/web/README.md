@@ -148,6 +148,47 @@ The scene uses Canvas2D when only a software WebGL renderer is available;
 the same graph and actions remain available. Browser-local graph exports and
 the complete research transfer preserve personal work without source admission.
 
+The sky ([`sky.mjs`](constructor/sky.mjs)) draws two kinds of frame. While the
+view, a layout, a chosen star or a name is on its way, a full frame lays out
+the names and moves the stars' buttons with the drawing, as often as the
+device's own frame cost allows, up to the display's rate. Once only the sky
+moves (its dust, fog and light, a chosen star's orbit, a chosen link's spark),
+the resting middle of the scene is laid again as the last full frame drew it,
+the names and buttons stay where they stand, and the sky goes on at about
+twenty frames a second. While the scene moves, a star's button follows its
+star when the star shows (its name stands or fades, it is pointed at, chosen,
+held, focused or aimed at) and moves in a layer of its own; the other buttons
+are clear, lie in the page's layer and come to their stars once the scene
+rests, and until then a click on the sky beside such a star chooses it. Every
+style and attribute is written only when it changes. A name's place is tested
+against the stars near it, which the frame finds by cells of the screen
+([`star-cells.mjs`](constructor/star-cells.mjs)). The GPU
+painter draws a whole ring in one quad, at the weight of the polygon the
+Canvas2D painter draws. Panels whose ground is at least 93% opaque carry the same ground made
+opaque in place of a backdrop blur: the picture stays the same, and the moving
+sky behind them is composited once per frame.
+
+The GPU painter ([`gpu-canvas.js`](src/observatory/gpu-canvas.js)) speaks
+WebGL2 itself: one program for a buffer of quads with four corners each, one
+for stars, each laid from a single record (its glow, disc, ring and rays), and
+one atlas texture to which an image travels alone when it is first drawn or
+changes. A dashed link's whole dashes and a dotted link's dots lie in one quad
+whose shader repeats them. In the day the painter turns the scene over with
+the page's own colour filter and lays it on the page's paper in one pass of its
+own ([`sky-paper.mjs`](constructor/sky-paper.mjs)), where the page would add a
+filter and a multiply blend to every frame; what it cannot read from the page
+stays with the page. While the reader's opaque page covers the whole sky
+(on a narrow screen), the sky rests as in a hidden tab. A space's first view
+carries what it shows. Spanish, German and
+Chinese catalogs come when a reader picks the language; the retained library's
+map and the editorial annotations come with the first opened text, the first
+search or Antiquity's collection; the Zarathustra occurrence sets come with the
+research panel. The build knows the research core's revision, the digest the
+history capture records for it, and an identity of everything it writes; a
+built page remembers the library's fingerprint for its build, corpus snapshot,
+library before its core and core revision, so a later visit reads it instead of
+hashing the whole library before the first view.
+
 The complete research export contains saved notebook, workspace, shelf and graph
 records. An open thought form has its own guarded export/import. The temporary
 exact-source basket survives profile changes in the same tab; saving a thought
@@ -253,6 +294,13 @@ generated and remain outside Git.
 The standalone validation route is documented in
 [`VALIDATION.md`](../../VALIDATION.md); browser checks, CI and deployment are
 separate evidence. The native `tos serve` exposes the API, not these pages.
+
+`npm run budget` (and `npm run budget:public-research` for the public build)
+weighs what each space carries before its first view: the scripts and styles
+its page names, with the modules Vite preloads for them. The limits live in
+[`tools/first-view-budget.json`](tools/first-view-budget.json) with the
+measurement they come from; the release check and the public publication run
+it after their builds.
 
 ## Owner guides
 

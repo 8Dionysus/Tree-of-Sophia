@@ -1,6 +1,9 @@
-import {expect,test} from 'vitest';
+import {beforeAll,expect,test} from 'vitest';
+import {loadRetainedLibrary} from './retained-library.mjs';
 import data from '../../../public-corpus/editorial-annotations.v1.json' with {type:'json'};
 import {editorialRanges,editorialKindForMatch,quotationWithEditorialRoles,sourceLayerKind} from './editorial.mjs';
+
+beforeAll(()=>loadRetainedLibrary());
 
 test('source roles are bound to the exact layer, unit, offsets, and characters',()=>{
   const projected=data.versions.find(value=>value.versionId==='perseus-rackham-1934-en');

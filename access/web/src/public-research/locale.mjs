@@ -1,12 +1,21 @@
-import es from './locales/es.json' with {type:'json'};
-import de from './locales/de.json' with {type:'json'};
-import zh from './locales/zh-Hans.json' with {type:'json'};
-import {BONSAI_LOCALES,DEFAULT_LOCALE,resolveLocale,copyLocale,initialLocale,translationLanguage,shownLanguages,bonsaiTranslation} from '../../../../bonsai/lib/locales.mjs';
+import {BONSAI_LOCALES,DEFAULT_LOCALE,resolveLocale,copyLocale,initialLocale,translationLanguage,shownLanguages,bonsaiTranslation,loadBonsaiCatalog} from '../../../../bonsai/lib/locales.mjs';
 
 export {DEFAULT_LOCALE,resolveLocale,copyLocale,initialLocale,translationLanguage,shownLanguages};
 export const PUBLIC_LOCALES=BONSAI_LOCALES;
 export const LOCALE_NAMES=Object.freeze({en:'English',ru:'Русский',es:'Español',de:'Deutsch','zh-Hans':'简体中文'});
-const catalogs=Object.freeze({ru:Object.freeze({'Interface language':'Язык интерфейса'}),es,de,'zh-Hans':zh});
+// The site's own catalog of a language comes with the bonsais' one, when a reader first chooses that language.
+const sources={
+  es:()=>import('./locales/es.json',{with:{type:'json'}}),
+  de:()=>import('./locales/de.json',{with:{type:'json'}}),
+  'zh-Hans':()=>import('./locales/zh-Hans.json',{with:{type:'json'}}),
+};
+const catalogs={ru:Object.freeze({'Interface language':'Язык интерфейса'})},loading={};
+/** Bring the catalogs of `locale`; the page awaits it before it speaks that language. */
+export function loadLocale(locale){
+  const language=resolveLocale(locale);
+  const own=catalogs[language]||!sources[language]?Promise.resolve():loading[language]??=sources[language]().then(module=>{catalogs[language]=Object.freeze(module.default);},error=>{delete loading[language];throw error;});
+  return Promise.all([own,loadBonsaiCatalog(language)]).then(()=>{});
+}
 const translation=(source,language)=>{const catalog=catalogs[language];return catalog&&Object.hasOwn(catalog,source)?catalog[source]:bonsaiTranslation(source,language);};
 
 /** Only call for authored presentation messages, never raw user/provider text. */

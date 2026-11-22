@@ -10,7 +10,7 @@ export const CORE_SNAPSHOT_SCHEMA='tos_bonsai_research_snapshot_v1';
 export const CURRENT_REVISION_SCHEMA='tos_bonsai_research_revision_v1';
 export const CORE_SNAPSHOT_PROFILE='zarathustra';
 
-const CORE_FILES=Object.freeze([
+export const CORE_FILES=Object.freeze([
   {key:'manifest',file:'core.json',path:'bonsai/zarathustra/core/core.json'},
   {key:'concepts',file:'concepts.json',path:'bonsai/zarathustra/core/concepts.json'},
   {key:'figures',file:'figures.json',path:'bonsai/zarathustra/core/figures.json'},
@@ -65,15 +65,10 @@ function writeOrReuseRevisionFile(path,bytes,packet,coreCanonical,metadataCanoni
   }
 }
 
-/** Capture the current Zarathustra core as a content-addressed historical packet. */
-export function captureCoreSnapshot(root,{sourceCommit}={}) {
-  if (typeof root !== 'string' || !root.trim()) throw new TypeError('A bonsai root path is required.');
-  if (typeof sourceCommit !== 'string' || !sourceCommit.trim() || sourceCommit !== sourceCommit.trim())
-    throw new TypeError('A trimmed source commit is required.');
-
-  const standRoot=resolve(root),coreDir=join(standRoot,'core');
+/** Read the Zarathustra core as the stand loads it, with its canonical form and revision. */
+export function readCore(standRoot) {
+  const coreDir=join(resolve(standRoot),'core');
   if (!existsSync(coreDir)) throw new Error(`The core directory does not exist: ${coreDir}`);
-
   const core={},missingMembers=[];
   for (const item of CORE_FILES) {
     const path=join(coreDir,item.file);
@@ -92,9 +87,19 @@ export function captureCoreSnapshot(root,{sourceCommit}={}) {
       throw new SyntaxError(`Invalid JSON in ${path}: ${error.message}`);
     }
   }
-
   const coreCanonical=canonicalJSON(core);
   const revision=createHash('sha256').update(coreCanonical,'utf8').digest('hex');
+  return {core,missingMembers,coreCanonical,revision,paths:CORE_FILES.map(item=>join(coreDir,item.file))};
+}
+
+/** Capture the current Zarathustra core as a content-addressed historical packet. */
+export function captureCoreSnapshot(root,{sourceCommit}={}) {
+  if (typeof root !== 'string' || !root.trim()) throw new TypeError('A bonsai root path is required.');
+  if (typeof sourceCommit !== 'string' || !sourceCommit.trim() || sourceCommit !== sourceCommit.trim())
+    throw new TypeError('A trimmed source commit is required.');
+
+  const standRoot=resolve(root),coreDir=join(standRoot,'core');
+  const {core,missingMembers,coreCanonical,revision}=readCore(standRoot);
   const metadata={missing_members:missingMembers};
   const metadataCanonical=canonicalJSON(metadata);
   const packet={

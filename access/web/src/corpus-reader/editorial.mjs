@@ -1,12 +1,20 @@
 import {copyLocale,localeText} from '../public-research/locale.mjs';
-import annotations from '../../../public-corpus/editorial-annotations.v1.json' with {type:'json'};
-import retained from '../../../public-corpus/retained-library-map.v1.json' with {type:'json'};
+import {retainedLibrary} from './retained-library.mjs';
 
-const versionSpans = new Map(annotations.versions.map(version => [version.versionId, version]));
-const apparatus = new Map(retained.books.flatMap(book=>book.versions.flatMap(version=>[
-  ...(version.bookNotesUnitIds??[]).map(id=>[id,{kind:'notes',versionId:version.versionId,revision:version.revision}]),
-  ...(version.adjustmentUnitIds??[]).map(id=>[id,{kind:'adjustments',versionId:version.versionId,revision:version.revision}]),
-])));
+// Read from the retained library once it has come (retained-library.mjs).
+let indexed=null;
+const indexes=()=>{
+  const library=retainedLibrary();if(!library)return null;
+  return indexed??={
+    versionSpans:new Map(library.annotations.versions.map(version => [version.versionId, version])),
+    apparatus:new Map(library.map.books.flatMap(book=>book.versions.flatMap(version=>[
+      ...(version.bookNotesUnitIds??[]).map(id=>[id,{kind:'notes',versionId:version.versionId,revision:version.revision}]),
+      ...(version.adjustmentUnitIds??[]).map(id=>[id,{kind:'adjustments',versionId:version.versionId,revision:version.revision}]),
+    ]))),
+  };
+};
+const versionSpans={get:id=>indexes()?.versionSpans.get(id)};
+const apparatus={get:id=>indexes()?.apparatus.get(id)};
 const labels = {
   ru:{note:'Примечание Rackham',addition:'Редакторское дополнение',deletion:'Исключение издателя',gap:'Пропуск в издании',
     notes:'Примечания к произведению',adjustments:'Сведения обработки текста',publication:'Материалы публикации и лицензии Project Gutenberg',

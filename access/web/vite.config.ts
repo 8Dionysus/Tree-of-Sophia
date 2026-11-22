@@ -1,15 +1,50 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
+// The research core's revision is the same digest the history capture records for it.
+import { readCore } from "../../bonsai/lib/history.mjs";
 // Every light theme of the public site is the night's stylesheets in its own colours, added at build time.
 import { themePostcss } from "./src/public-research/themes.mjs";
 // The public site's build writes the site's copy of the layers into its output.
 import { siteLayers } from "./site-layers.mjs";
 
+// What a page would otherwise compute before its first view, known when it is built:
+// - the research core's revision, the digest of its canonical form (bonsai/lib/history.mjs);
+// - the build's identity, a digest of every file the build writes, which lets a page remember what it derived from
+//   exactly this build. A page served from source carries no identity and remembers nothing.
+const BUILD_FACTS = "virtual:tos-build-facts";
+const IDENTITY_MARK = "tos-build-identity:";
+const UNSET_IDENTITY = IDENTITY_MARK + "0".repeat(64);
+function buildFacts(): Plugin {
+  const stand = fileURLToPath(new URL("../../bonsai/zarathustra", import.meta.url));
+  return {
+    name: "tos-build-facts",
+    resolveId: id => id === BUILD_FACTS ? "\0" + BUILD_FACTS : null,
+    load(id) {
+      if (id !== "\0" + BUILD_FACTS) return null;
+      const {revision, paths} = readCore(stand);
+      for (const path of paths) this.addWatchFile(path);
+      return `export const researchRevision=${JSON.stringify(revision)};
+const mark=${JSON.stringify(UNSET_IDENTITY)};
+export const buildIdentity=/^${IDENTITY_MARK}(?!0{64}$)[0-9a-f]{64}$/.test(mark)?mark.slice(${IDENTITY_MARK.length}):null;`;
+    },
+    generateBundle(_options, bundle) {
+      const hash = createHash("sha256");
+      for (const name of Object.keys(bundle).sort()) {
+        const item = bundle[name];
+        hash.update(name).update("\0").update(item.type === "chunk" ? item.code : item.source).update("\0");
+      }
+      const identity = IDENTITY_MARK + hash.digest("hex");
+      for (const item of Object.values(bundle)) if (item.type === "chunk" && item.code.includes(UNSET_IDENTITY)) item.code = item.code.replaceAll(UNSET_IDENTITY, identity);
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const publicResearch = mode === "public-research";
   return {
   base: "/__research/",
-  plugins: publicResearch ? [siteLayers()] : [],
+  plugins: publicResearch ? [buildFacts(), siteLayers()] : [buildFacts()],
   css: { postcss: { plugins: [themePostcss()] } },
   server: {
     host: "127.0.0.1",
