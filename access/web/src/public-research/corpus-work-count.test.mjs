@@ -21,3 +21,7 @@ it('prefers the stand profile when a matching public snapshot is available',()=>
 it('leaves full-profile reader counts unchanged',()=>{
   expect(publicCorpusWorkCount('antiquity',manifest)).toBe(51);
 });
+
+it('counts no works for the Population, which reads through Antiquity but holds people',()=>{
+  expect(publicCorpusWorkCount('population',manifest)).toBeNull();
+});

@@ -40,7 +40,7 @@ export function bookPlace(reference){
   return Number.isFinite(chapter)?{part:Number.isFinite(part)?part:null,chapter}:null;
 }
 
-const centuryLabel=(start,locale)=>{
+export const centuryLabel=(start,locale)=>{
   const {n,era}=centuryOf(start),roman=['I','II','III','IV','V','VI','VII','VIII','IX','X'][n-1]??String(n);
   if(!['ru','en'].includes(resolveLocale(locale)))return localeText('Century {0}',locale,[resolveLocale(locale)==='zh-Hans'?n:roman]);
   return copyLocale(locale)==='en'?`${n}${n===1?'st':n===2?'nd':n===3?'rd':'th'} c.`:`${roman} в.`;
@@ -88,7 +88,7 @@ export function stackColumns(xs,minDx,dy){
 }
 
 // The scale's strip above the map, in pixels from the map's top edge to each row's top.
-const YEAR_ROWS={side:22,axis:46,era1:72,era0:98},BOOK_ROWS={side:22,axis:46,era0:72,era1:98};
+export const YEAR_ROWS={side:22,axis:46,era1:72,era0:98};const BOOK_ROWS={side:22,axis:46,era0:72,era1:98};
 const LANE=36,GAP=12,STACK=7;
 
 /**
