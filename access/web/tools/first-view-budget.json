@@ -1,15 +1,15 @@
 {
   "schema": "tos_web_first_view_budget_v1",
-  "note": "Bytes of script and style a page carries before its first view (tools/first-view-budget.mjs). Measured 2026-11-19: each stand 2,647,932 bytes in the default build, the home page 57,050; the limits leave room for ordinary growth and stop a large data file or library coming back into the first view.",
+  "note": "Bytes of script and style a page carries before its first view (tools/first-view-budget.mjs). Measured 2026-11-19: each stand 2,647,932 bytes in the default build, the home page 57,050. Measured again 2026-11-22 in the publication's own build, with the layers present, after the agents' interface (#501) and the Population (#500) joined the stands' first view: each stand 2,962,003 bytes (2,861,271 without the layers), the home page 58,066. The limits keep a tenth of room for ordinary growth and stop a large data file or library coming back into the first view.",
   "pages": {
     "zarathustra/index.html": {
-      "max_bytes": 2900000
+      "max_bytes": 3250000
     },
     "antiquity/index.html": {
-      "max_bytes": 2900000
+      "max_bytes": 3250000
     },
     "aesthetics/index.html": {
-      "max_bytes": 2900000
+      "max_bytes": 3250000
     },
     "home/index.html": {
       "max_bytes": 120000
