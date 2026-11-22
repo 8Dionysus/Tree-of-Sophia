@@ -90,6 +90,8 @@ export function createResearchIndex(library,{revision=library.space?.researchRev
     item.dependencies=[...new Set(item.dependencies.filter(Boolean))];
   }
   for(const [old,targets] of oldCitationTargets)if(targets.size===1&&!items.has(old)&&!aliases.has(old))aliases.set(old,[...targets][0]);
+  // A space may say where an earlier material now lives (a merged member of a population); its old address leads there.
+  for(const [old,next] of Object.entries(library?.space?.redirects??{}))if(!items.has(old)&&!aliases.has(old))aliases.set(old,next);
   const resolveId=id=>items.has(String(id))?String(id):aliases.get(String(id))??String(id);
   for(const item of items.values())for(const dependency of item.dependencies){const id=resolveId(dependency);if(!incoming.has(id))incoming.set(id,new Set());incoming.get(id).add(item.id);}
   const get=id=>items.get(resolveId(id))??null;

@@ -32,14 +32,14 @@ it('mounts Aesthetics and opens its four lenses',async()=>{
   }finally{view.destroy();vi.unstubAllGlobals();window.happyDOM.abort();}
 });
 
-it('offers the three stands in their current order with the Aesthetics tree',async()=>{
+it('offers the four stands in their current order with the Aesthetics tree',async()=>{
   const window=new Window({url:'http://localhost/home/'});
   for(const key of ['window','document','location','history','localStorage','navigator','getComputedStyle','CustomEvent','Event','HTMLElement','Element','Node','CSS'])vi.stubGlobal(key,key==='window'?window:window[key]);
   vi.stubGlobal('fetch',vi.fn(async()=>({ok:false,status:404})));
   document.body.innerHTML='<div class="home-bar"></div><div class="home-head"></div><div class="home-choice"></div>';
   try{
     await import('../home/home.mjs');
-    const links=[...document.querySelectorAll('.home-stand a')];expect(links.map(link=>new URL(link.href).pathname)).toEqual(['/antiquity/','/zarathustra/','/aesthetics/']);
+    const links=[...document.querySelectorAll('.home-stand a')];expect(links.map(link=>new URL(link.href).pathname)).toEqual(['/antiquity/','/zarathustra/','/aesthetics/','/population/']);
     expect(links[2].querySelector('.home-tree')).not.toBeNull();expect(links[2].textContent).toContain('The philosophy of beauty, art and sensory experience');
   }finally{vi.unstubAllGlobals();window.happyDOM.abort();}
 });

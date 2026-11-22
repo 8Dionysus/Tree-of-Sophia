@@ -1,0 +1,112 @@
+{
+  "schema": "tos.bonsai.v1",
+  "id": "population",
+  "title": {
+    "ru": "Популяция",
+    "en": "Population"
+  },
+  "stand": {
+    "path": "/population/",
+    "profile": "population",
+    "consumer": "access/web/src/public-research/"
+  },
+  "posture": {
+    "ru": "Мини-Древо стенда «Популяция»: все авторы философского корпуса Древа — люди, псевдоавторы, традиционные авторы и коллективы — по реестрам персон и произведений, в формах Древа. Скелет держит авторов корпуса; кольца произведений, мест, событий и ссылок нарастают на нём по мере готовности реестров. Всё здесь — предложение стенда; в Древо оно попадает только через экспорт кандидатов и маршруты владельцев источников.",
+    "en": "The Population stand's mini-Tree: every author of the Tree's philosophical corpus — persons, pseudonymous authors, traditional authors and collectives — from the registers of persons and works, in the Tree's shapes. The skeleton holds the corpus authors; the rings of works, places, events and references grow on it as the registers are ready. Everything here is the stand's proposal; it reaches the Tree only as exported candidates through the source owners' routes."
+  },
+  "graft": {
+    "tree_revision": "55cd06253c54bfe8fd825edb623cd2cd4d4e2596",
+    "grafted": "2026-11-20",
+    "note": {
+      "ru": "Ревизия Древа и дайджесты контрактов и реестров, по которым бонсай сложен. Изменение контракта или реестра сообщается как сдвиг.",
+      "en": "The Tree revision and the digests of the contracts and registries the bonsai was shaped by. A changed contract or registry is reported as drift."
+    },
+    "contracts": {
+      "historicalDate": {
+        "path": "ToS/contracts/historical-claim.schema.json",
+        "sha256": "b3e9a2163e5b8b46f342643d7d0f84949017106fa50e942f83d2306abb887750"
+      },
+      "temporal_claim": {
+        "path": "ToS/contracts/source-temporal-claim.schema.json",
+        "schema_version": "tos_source_temporal_claim_v1",
+        "sha256": "b18e447fe2b6a0e3905c29f0705799fc40293c6e0d635d16bc71294c99d711b4"
+      },
+      "context_claim": {
+        "path": "ToS/contracts/historical-context-claim.schema.json",
+        "schema_version": "tos_historical_context_claim_v1",
+        "sha256": "15e5823b6b812494853076223025250afa9922636ff9509ec20129d8972f894d"
+      },
+      "claim_record": {
+        "path": "ToS/contracts/source-claim-record.schema.json",
+        "sha256": "fb69069171350fb7c0a7bf744201a05855a67d33e4b8ff4f9d2784dcb7eb47c7"
+      },
+      "relation_types": {
+        "path": "ToS/doctrine/semantic-interchange/relation-types.v1.json",
+        "sha256": "15a865261f47d0369923ad921eaa6baac23b109e80f6ed2f39b5fd127ff30fc7"
+      },
+      "entity_types": {
+        "path": "ToS/doctrine/semantic-interchange/entity-types.v1.json",
+        "sha256": "11963383a99b2ff1f86de963c84b301a9a8ac39a2a7e4ca5981221968f2d89ef"
+      }
+    }
+  },
+  "modules": [
+    {
+      "id": "population",
+      "path": "population.json",
+      "format": "tos.bonsai.population.v1",
+      "spec": "bonsai/CORE.md",
+      "role": {
+        "ru": "Ядро популяции: члены — каждый с видом, который типизирует реестр сущностей Древа, именами, статусами реестров рядом с решением читателя, фазами жизни, пробелами и строками реестров, из которых он вырос; перенаправления слитых ID.",
+        "en": "The core of a population: members, each with a kind the Tree's entity registry types, names, the registers' statuses beside the reader's verdict, life phases, gaps and the register rows it grew from; the redirects of merged IDs."
+      },
+      "identities": "a member's ID is m- and ten base32 characters of the SHA-256 of the register row it was founded on (bonsai/review/population/ids.jsonl); a merge leaves a redirect, no ID is given twice"
+    },
+    {
+      "id": "chronology",
+      "path": "chronology.json",
+      "format": "tos.bonsai.chronology.v1",
+      "role": {
+        "ru": "Годы жизни и деятельности членов: слова реестров персон с исходной строкой реестра или годы, которые дали два читателя линии, с их источником.",
+        "en": "The members' years of life and activity: the persons registers' words with the register's own line, or the years two readers of the line gave, with their source."
+      }
+    },
+    {
+      "id": "identities",
+      "path": "identities.json",
+      "format": "tos.bonsai.identities.v1",
+      "role": {
+        "ru": "Карта прививки: какое действующее лицо Древа означает каждый член и держит ли его Древо.",
+        "en": "The graft map: which Tree agent each member stands for and whether the Tree holds it."
+      }
+    }
+  ],
+  "lenses": {
+    "tree": {
+      "positions": "group",
+      "short": {
+        "ru": "Древо",
+        "en": "Tree"
+      },
+      "groups": {
+        "ru": "регионы, узлы исследования ярусами по таблицам и авторы у узла своей основной строки",
+        "en": "regions, the research nodes in tiers by table, and the authors at the node of their founding row"
+      }
+    },
+    "time": {
+      "positions": "measure",
+      "short": {
+        "ru": "Время",
+        "en": "Time"
+      },
+      "measures": {
+        "ru": "годы жизни или деятельности, по хронологии бонсая",
+        "en": "years of life or activity, as the bonsai's chronology dates them"
+      },
+      "groups": {
+        "ru": "строки — регионы узлов основной строки; авторы без годов — вне шкалы",
+        "en": "rows are the regions of the founding nodes; authors without years stand off the scale"
+      }
+    }
+  }
+}

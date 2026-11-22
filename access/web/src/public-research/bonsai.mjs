@@ -7,6 +7,7 @@
 
 import aestheticsManifest from '../../../../bonsai/aesthetics/bonsai.json' with {type:'json'};
 import antiquityManifest from '../../../../bonsai/antiquity/bonsai.json' with {type:'json'};
+import populationManifest from '../../../../bonsai/population/bonsai.json' with {type:'json'};
 import zarathustraManifest from '../../../../bonsai/zarathustra/bonsai.json' with {type:'json'};
 import {readMedia} from '../../../../bonsai/lib/media.mjs';
 
@@ -58,10 +59,16 @@ const LOADERS=Object.freeze({
     ]).then(([manifest,concepts,figures,links,chains,proposed,voices,placeRelations,semanticUses])=>({manifest:json(manifest),concepts:json(concepts),figures:json(figures),links:json(links),chains:json(chains),proposed:json(proposed),voices:json(voices),placeRelations:json(placeRelations),semanticUses:json(semanticUses)})),
     renderingsOf('zarathustra'),
   ]).then(([chronology,places,identities,basemap,core,renderings])=>({chronology:json(chronology),places:json(places),identities:json(identities),basemap:json(basemap),core,renderings})),
+  // The Population stand reads its members and their lives; the graft map stays with the export.
+  population:()=>Promise.all([
+    import('../../../../bonsai/population/population.json'),
+    import('../../../../bonsai/population/chronology.json'),
+  ]).then(([population,chronology])=>({population:json(population),chronology:json(chronology)})),
 });
 const BONSAI={
   aesthetics:Object.freeze({manifest:aestheticsManifest}),
   antiquity:Object.freeze({manifest:antiquityManifest}),
+  population:Object.freeze({manifest:populationManifest}),
   zarathustra:Object.freeze({manifest:zarathustraManifest}),
 };
 const loading=new Map();
@@ -111,4 +118,5 @@ export function lensPositions(profile,lensId){
 // manifest only with the next corpus publication. Until `profiles.aesthetics` is published (it is declared in
 // access/public-corpus/selection.v1.json), Aesthetics reads the three corpus works its alignment names through
 // Antiquity's selection, which holds them. Remove this mapping when the manifest carries the profile.
-export const corpusProfile=profile=>profile==='aesthetics'?'antiquity':profile;
+// The Population holds people, not texts: its space reads the corpus through Antiquity's selection as well.
+export const corpusProfile=profile=>profile==='aesthetics'||profile==='population'?'antiquity':profile;
