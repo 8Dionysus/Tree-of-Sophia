@@ -89,7 +89,17 @@ describe('the layer store',()=>{
     expect(lines).toEqual(['tokens/I.02.json ← site']);
     for(const entry of layers.entries)expect(sha256(readFileSync(join(dir,objectKey(entry.sha256))))).toBe(entry.sha256);
     rmSync(join(home,'spelling.json'));
-    await expect(placeLayers(root,join(root,'other'),{sources:[memory('empty')]})).rejects.toThrow(/bonsai\/x: layer files no store holds:\nspelling\.json/);
+    const other=join(root,'other');
+    await expect(placeLayers(root,other,{sources:[memory('empty')]})).rejects.toThrow(/bonsai\/x: layer files no store holds:\nspelling\.json/);
+    // The files the stores and the checkout hold are in place all the same.
+    for(const entry of layers.entries.filter(entry=>entry.path!=='spelling.json'))expect(sha256(readFileSync(join(other,objectKey(entry.sha256))))).toBe(entry.sha256);
+  });
+  it('asks the stores once more for a file the first pass did not find',async()=>{
+    const {root,home}=stand();const layers=writeManifest(home);git(root,'init','--quiet');
+    const missing=layers.entries[0],bytes=readFileSync(join(home,missing.path));rmSync(join(home,missing.path));
+    let asked=0;const late={name:'transfer',async get(hex){asked++;return asked>1&&hex===missing.sha256?bytes:null;}};
+    expect(await placeLayers(root,join(root,'dist'),{sources:[late]})).toEqual({homes:['bonsai/x'],files:3});
+    expect(asked).toBe(2);
   });
   it('writes the site\'s copy into a public-research build\'s output, and into no other build',async()=>{
     const {root,home}=stand();const layers=writeManifest(home);git(root,'init','--quiet');
