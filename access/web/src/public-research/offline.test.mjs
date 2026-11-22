@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {expect,test,vi} from 'vitest';
-import {mediaFiles,standFiles} from './offline.mjs';
+import {corpusFiles,mediaFiles,standFiles} from './offline.mjs';
 import {readMedia} from '../../../../bonsai/lib/media.mjs';
 import zarathustraMedia from '../../../../bonsai/zarathustra/media.json' with {type:'json'};
 
@@ -79,4 +79,26 @@ test('the page may ask the service worker to keep a stand at once, and hears how
   expect(heard.at(-1)).toEqual({done:2,total:3,failed:1,running:false});
   sw.online=false;
   expect(await (await sw.fetchEvent('https://treeofsophia.com/__research/assets/a.js')).text()).toBe('net:/__research/assets/a.js');
+});
+
+test('a stand keeps the texts of its works: every work\'s manifest, all its pages in every edition and its word forms',async()=>{
+  const root='/__research/public-corpus/';
+  const files={
+    [`${root}manifest.json`]:{profiles:{antiquity:{documentIds:['w1']},zarathustra:{documentIds:['w2']}},documents:[
+      {id:'w1',manifest:{path:'documents/a.json',bytes:10}},{id:'w2',manifest:{path:'documents/b.json',bytes:20}}]},
+    [`${root}documents/a.json`]:{mappings:{path:'mappings/a.json',bytes:1},versions:[
+      {pages:[{path:'pages/a1.json',bytes:100},{path:'pages/a2.json',bytes:200}],analysis:{path:'analyses/a.json',bytes:5000},searchIndex:{path:'indexes/a.json',bytes:90000}},
+      {pages:[{path:'pages/a3.json',bytes:300}]}]},
+    [`${root}documents/b.json`]:{versions:[{pages:[{path:'pages/b1.json',bytes:1000}]}]},
+  };
+  const read=vi.fn(async url=>{if(!(url in files))throw new Error(`unexpected ${url}`);return files[url];});
+  // Aesthetics reads the corpus of Antiquity (bonsai.mjs corpusProfile).
+  const aesthetics=await corpusFiles(read,{profile:'aesthetics'});
+  expect(aesthetics.urls).toEqual([`${root}analyses/a.json`,`${root}documents/a.json`,`${root}manifest.json`,`${root}mappings/a.json`,`${root}pages/a1.json`,`${root}pages/a2.json`,`${root}pages/a3.json`]);
+  // The search index stays with the network.
+  expect(aesthetics.bytes).toBe(5611);
+  expect(read).not.toHaveBeenCalledWith(`${root}documents/b.json`);
+  const zarathustra=await corpusFiles(read,{profile:'zarathustra'});
+  expect(zarathustra.urls).toContain(`${root}pages/b1.json`);
+  expect(zarathustra.urls).not.toContain(`${root}pages/a1.json`);
 });
