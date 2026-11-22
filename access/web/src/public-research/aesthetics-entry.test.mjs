@@ -15,7 +15,7 @@ vi.mock('./experience-view.mjs',()=>({mountResearchExperience:()=>({cognitiveRoo
 vi.mock('./cognitive-session.mjs',()=>({mountCognitiveSession:()=>({destroy(){}})}));
 vi.mock('./page-agent.mjs',()=>({connectResearchPage:()=>({destroy(){}})}));
 
-it('starts the page, lists the three stands and enables the selected corpus reader',async()=>{
+it('starts the page, lists the four stands and enables the selected corpus reader',async()=>{
   const window=new Window({url:'http://localhost/aesthetics/'});
   providerFixture.manifest=corpusManifest;
   expect(corpusManifest.profiles.aesthetics).toBeUndefined();
@@ -27,7 +27,7 @@ it('starts the page, lists the three stands and enables the selected corpus read
     await import('./app.mjs');
     await vi.waitFor(()=>{expect(document.querySelector('#tree')?.dataset.ready).toBe('true');expect(document.querySelector('.test-reader-open')?.disabled).toBe(false);},{timeout:10000});
     expect(window.tosPublicResearch.profile).toBe('aesthetics');
-    expect([...document.querySelectorAll('.pr-spaces > *')].map(node=>node.textContent)).toEqual(['Antiquity','Zarathustra','Aesthetics']);
+    expect([...document.querySelectorAll('.pr-spaces > *')].map(node=>node.textContent)).toEqual(['Antiquity','Zarathustra','Aesthetics','Population']);
     expect(document.querySelector('.test-reader-open').disabled).toBe(false);
     const standWorks=new Set(Object.values(aestheticsIdentities.works).map(work=>work.tree));
     const expectedCount=corpusManifest.profiles.antiquity.documentIds.filter(id=>standWorks.has(id)).length;

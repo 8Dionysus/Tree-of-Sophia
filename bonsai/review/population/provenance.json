@@ -1,0 +1,1740 @@
+{
+ "made": "bonsai/review/population/intake.py",
+ "posture": {
+  "ru": "Файлы, из которых собран слой реестров персон. Сами книги в репозитории не хранятся: здесь их путь в зеркале реестров, размер и SHA-256.",
+  "en": "The files the persons register layer is built from. The workbooks are not kept here: only their path in the registers mirror, size and SHA-256."
+ },
+ "mirror": {
+  "manifest": {
+   "path": "MANIFEST_SHA256.csv",
+   "bytes": 242613,
+   "sha256": "410b3afc8524824de15083f5fbecdfea1b356ff5c89d3d20c38d797a47a97bd7"
+  },
+  "identity_workbooks": 190
+ },
+ "table": {
+  "path": "ToS_Авторы_для_бонсая.xlsx",
+  "bytes": 1078150,
+  "sha256": "a5f81b27c0a007ebd8c9f52ebbcb30b481363f454f7322d0ae2308589825dc38",
+  "sheets": {
+   "names": 3470,
+   "works": 17141
+  }
+ },
+ "workbooks": [
+  {
+   "batch": "A01",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A01_registry.xlsx",
+   "bytes": 851625,
+   "sha256": "b203d7f14d87f9190c74d6e1eb5aef9225eb1428963d1625a40a807dd78adebc",
+   "rows": 16,
+   "columns": 19,
+   "works": 25
+  },
+  {
+   "batch": "A02",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A02_registry.xlsx",
+   "bytes": 7013737,
+   "sha256": "1ff014a2b78958e7f2bd77fda7eda270e0ae40af7e53dec4be649a43b49546d6",
+   "rows": 21,
+   "columns": 19,
+   "works": 264
+  },
+  {
+   "batch": "A03",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A03_registry.xlsx",
+   "bytes": 4468548,
+   "sha256": "5b9a5bf0a473eaf13be895c11882ef28bd5deabffb98c6b78f4537d932038098",
+   "rows": 146,
+   "columns": 19,
+   "works": 599
+  },
+  {
+   "batch": "A04",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A04_registry.xlsx",
+   "bytes": 1414982,
+   "sha256": "ffaf78c6c2014511f623df51b85c8772ca56c0d8904e8f8f70ee01bf5866e8e5",
+   "rows": 33,
+   "columns": 19,
+   "works": 84
+  },
+  {
+   "batch": "A05",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A05_registry.xlsx",
+   "bytes": 3042078,
+   "sha256": "679678cacf6f9062e189aa66c990834d791e2818dd50fa8849d78d871ec91a82",
+   "rows": 63,
+   "columns": 19,
+   "works": 296
+  },
+  {
+   "batch": "A06",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A06_registry.xlsx",
+   "bytes": 385726,
+   "sha256": "4a8c9103d12d68f6ba6551ec77c3e865ff3f16532352d30b5f49845c860ecd32",
+   "rows": 20,
+   "columns": 19,
+   "works": 183
+  },
+  {
+   "batch": "A07",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A07_registry.xlsx",
+   "bytes": 279196,
+   "sha256": "cb1bf8003c1aadcdd87887400196b82baf81121ceac5fb1987ae884a303c15df",
+   "rows": 49,
+   "columns": 19,
+   "works": 51
+  },
+  {
+   "batch": "A08",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A08_registry.xlsx",
+   "bytes": 359723,
+   "sha256": "29f014f4d9a8edf889987cf60a00dfbd5c49716a2d647fc659ae8b70fddff2cd",
+   "rows": 106,
+   "columns": 19,
+   "works": 332
+  },
+  {
+   "batch": "A09",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A09_registry.xlsx",
+   "bytes": 2147336,
+   "sha256": "54985e4e58a1aab2f6e688211f9a30feecd859b6b009233aa1802c5c99c89db4",
+   "rows": 64,
+   "columns": 19,
+   "works": 45
+  },
+  {
+   "batch": "A10",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A10_registry.xlsx",
+   "bytes": 8342660,
+   "sha256": "ac902f5ba132824995f3f1ccd993cd1a20ccf4ef18d663043e924f10bf8d168c",
+   "rows": 214,
+   "columns": 19,
+   "works": 1325
+  },
+  {
+   "batch": "A11",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A11_registry.xlsx",
+   "bytes": 879370,
+   "sha256": "580edbed47feb2c5dcbe35cd70cd376357e841b960887feb425faac870e4b0e6",
+   "rows": 78,
+   "columns": 19,
+   "works": 193
+  },
+  {
+   "batch": "A12",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A12_registry.xlsx",
+   "bytes": 81130,
+   "sha256": "880877a83d2c6fef195afa59d3b826a4de0a1f030eca600a0d201b9261ac627b",
+   "rows": 41,
+   "columns": 19,
+   "works": 44
+  },
+  {
+   "batch": "A13",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A13_registry.xlsx",
+   "bytes": 153962,
+   "sha256": "c4560966750b1025ff9bd214b9cb814676d47f48592d9228e17b49739248845d",
+   "rows": 42,
+   "columns": 19,
+   "works": 293
+  },
+  {
+   "batch": "A14",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A14_registry.xlsx",
+   "bytes": 160120,
+   "sha256": "872cee2bdd854dc192935721f69b7a0ca0add0b38b3a28351da13bb7b9c69213",
+   "rows": 85,
+   "columns": 19,
+   "works": 205
+  },
+  {
+   "batch": "A15",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A15_registry.xlsx",
+   "bytes": 250395,
+   "sha256": "f30f7c7793b270fe85f24a9d7ffe30c9727df4d7ef9b19a9539d20a81181da57",
+   "rows": 105,
+   "columns": 19,
+   "works": 763
+  },
+  {
+   "batch": "A16",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A16_registry.xlsx",
+   "bytes": 219636,
+   "sha256": "5d9e1e35f855c293473d25480f08afcbda1ca336c11fdbda527aecfbaa167f90",
+   "rows": 126,
+   "columns": 19,
+   "works": 511
+  },
+  {
+   "batch": "A17",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A17_registry.xlsx",
+   "bytes": 261566,
+   "sha256": "168ef87c05720b458f2f831df27f7eba755a50271bcfaa438bb5b58c5e00fd08",
+   "rows": 40,
+   "columns": 19,
+   "works": 1245
+  },
+  {
+   "batch": "A18",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A18_registry.xlsx",
+   "bytes": 167155,
+   "sha256": "72e5200028dd73c897ed23e50c2e0aeda230de8ea34271345492eee72c31079c",
+   "rows": 99,
+   "columns": 19,
+   "works": 422
+  },
+  {
+   "batch": "A19",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A19_registry.xlsx",
+   "bytes": 201083,
+   "sha256": "001bd316cc99e3d9dbccfd12a60414e92724f05e0aa037b8a6302b86c6da5419",
+   "rows": 190,
+   "columns": 19,
+   "works": 366
+  },
+  {
+   "batch": "A20",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A20_registry.xlsx",
+   "bytes": 201013,
+   "sha256": "172dd13c49f33326694185bee53e9129145e66f2a7fcb5111736bc8d20d5283e",
+   "rows": 136,
+   "columns": 19,
+   "works": 345
+  },
+  {
+   "batch": "A21",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A21_registry.xlsx",
+   "bytes": 5668339,
+   "sha256": "6c39f4dccafb4d7beeac23a9771c59ddec4aa69f1a5f747cef16fb9a219c9735",
+   "rows": 961,
+   "columns": 19,
+   "works": 6862
+  },
+  {
+   "batch": "A22",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A22_registry.xlsx",
+   "bytes": 154205,
+   "sha256": "e3e6314da80d84515454c133eea8480b6e1bbffb51a94ee797a877161b052332",
+   "rows": 48,
+   "columns": 19,
+   "works": 214
+  },
+  {
+   "batch": "A23",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A23_registry.xlsx",
+   "bytes": 161154,
+   "sha256": "6fcfa1ec331d4d8be67702c542f80d39e5c57cf9d40da707bfb84f3a35d9056e",
+   "rows": 66,
+   "columns": 19,
+   "works": 220
+  },
+  {
+   "batch": "A24",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A24_registry.xlsx",
+   "bytes": 201464,
+   "sha256": "6ba3e31f8edbc9183990fc5e33754f0fb85b8f3db545afe188a9b29998612bde",
+   "rows": 102,
+   "columns": 19,
+   "works": 370
+  },
+  {
+   "batch": "A25",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A25_registry.xlsx",
+   "bytes": 255164,
+   "sha256": "50af4d0d9b84917f4349ac629eac3394b420c9f0dad01bda7def1ceb14dc9197",
+   "rows": 81,
+   "columns": 19,
+   "works": 783
+  },
+  {
+   "batch": "A26",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A26_registry.xlsx",
+   "bytes": 294307,
+   "sha256": "d710fbe5f906ccdd57df340bef8c8c57839a7c1f3b20e3b6daa81eff983ef634",
+   "rows": 134,
+   "columns": 19,
+   "works": 1101
+  },
+  {
+   "batch": "A27",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A27_registry.xlsx",
+   "bytes": 281878,
+   "sha256": "0d63a37c21837e8f31a84ae755b7fb9b2f394e650ebbb7643c77d65e3402e71b",
+   "rows": 102,
+   "columns": 19,
+   "works": 779
+  },
+  {
+   "batch": "A28",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A28_registry.xlsx",
+   "bytes": 179552,
+   "sha256": "1b14df2c8e5203bba9670c5d0ef8c8ea5968fa44bd7be854925d64d3f25422d8",
+   "rows": 65,
+   "columns": 19,
+   "works": 328
+  },
+  {
+   "batch": "A29",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A29_registry.xlsx",
+   "bytes": 218414,
+   "sha256": "0f5674b350ca0203eb2b6373a594c5c4a46b699b7bcb363ad94256f163d31935",
+   "rows": 46,
+   "columns": 19,
+   "works": 536
+  },
+  {
+   "batch": "A30",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A30_registry.xlsx",
+   "bytes": 160006,
+   "sha256": "ae25e2c22f4bed7ad3a21a3c79092366ec48d5368b50d4896e7af17cadc634c6",
+   "rows": 29,
+   "columns": 19,
+   "works": 243
+  },
+  {
+   "batch": "A31",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A31_registry.xlsx",
+   "bytes": 197397,
+   "sha256": "85aac9793cd2b902811aaeb052cc38725b3855fa4b85aa711a2794cafc1f91fd",
+   "rows": 127,
+   "columns": 19,
+   "works": 475
+  },
+  {
+   "batch": "A32",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A32_registry.xlsx",
+   "bytes": 367471,
+   "sha256": "786870be2ea4c39a80267eb10a0d22a9ae6b769588378758ea9708237e48deb3",
+   "rows": 61,
+   "columns": 19,
+   "works": 1394
+  },
+  {
+   "batch": "A33",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A33_registry.xlsx",
+   "bytes": 291516,
+   "sha256": "5475d769b769113782f07d6decca98195d2da2e6db6851d67565575946f20d28",
+   "rows": 62,
+   "columns": 19,
+   "works": 998
+  },
+  {
+   "batch": "A34",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A34_registry.xlsx",
+   "bytes": 194682,
+   "sha256": "a70120265d91083f5081c28f1b378722598c9610bdb4d458ec0c737e212d5027",
+   "rows": 65,
+   "columns": 19,
+   "works": 509
+  },
+  {
+   "batch": "A35",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A35_registry.xlsx",
+   "bytes": 164674,
+   "sha256": "89dbf996054a21d6bd037ed7da437e07a00ca1a398d84d034b27682414c8fed9",
+   "rows": 66,
+   "columns": 19,
+   "works": 273
+  },
+  {
+   "batch": "A36",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A36_registry.xlsx",
+   "bytes": 141308,
+   "sha256": "10bde9eef73cc295420c8ddba8edc766d6b15b4e6a5aec6779817ff55245ee08",
+   "rows": 84,
+   "columns": 19,
+   "works": 200
+  },
+  {
+   "batch": "A37",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A37_registry.xlsx",
+   "bytes": 181940,
+   "sha256": "7daf8655aff13398af90cf1c3c923de423917756ebf1f45109b21d4cc37cc547",
+   "rows": 49,
+   "columns": 19,
+   "works": 312
+  },
+  {
+   "batch": "A38",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A38_registry.xlsx",
+   "bytes": 129646,
+   "sha256": "31db75d208c3155eb1eadee5eadc34d6638943ef953bd5c0a8d8bc281d86aa1e",
+   "rows": 43,
+   "columns": 19,
+   "works": 196
+  },
+  {
+   "batch": "A39",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A39_registry.xlsx",
+   "bytes": 153136,
+   "sha256": "9fabf8989ec13b0eb3a7be7795fc3d0f5e0960f2c31b0abb60f904d0f08e2f94",
+   "rows": 61,
+   "columns": 19,
+   "works": 139
+  },
+  {
+   "batch": "A40",
+   "path": "Реестры/Реестр персон и произведений/1/1.1/ToS_Identity_A40_registry.xlsx",
+   "bytes": 136130,
+   "sha256": "848c62d12999569e65a2f33ee96a9c505b0f53dbfed334b6d3c85242e65504d7",
+   "rows": 98,
+   "columns": 19,
+   "works": 23
+  },
+  {
+   "batch": "A41",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A41_registry.xlsx",
+   "bytes": 178879,
+   "sha256": "b10162fd4741b4b7c97f4b4d98f8875a7b5c705ce532cf733eb3032a2de4642c",
+   "rows": 103,
+   "columns": 19,
+   "works": 252
+  },
+  {
+   "batch": "A42",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A42_registry.xlsx",
+   "bytes": 203165,
+   "sha256": "cd5bf0ee0d28127f5a974f24ed1b6b2ef681d2dc93b82a111e286e861c11bc53",
+   "rows": 115,
+   "columns": 19,
+   "works": 407
+  },
+  {
+   "batch": "A43",
+   "path": "Реестры/Реестр персон и произведений/1/1.2/ToS_Identity_A43_registry.xlsx",
+   "bytes": 137068,
+   "sha256": "b5c13775514956590a34ab442af25c55765bd27c699d0d0f484c12b45c28c54a",
+   "rows": 68,
+   "columns": 19,
+   "works": 67
+  },
+  {
+   "batch": "A44",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A44_registry.xlsx",
+   "bytes": 106775,
+   "sha256": "75de137101db66e6826375dbf70e7478dc6ffc4b3209928da074f21b5e2a4cfc",
+   "rows": 95,
+   "columns": 19,
+   "works": 64
+  },
+  {
+   "batch": "A45",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A45_registry.xlsx",
+   "bytes": 123110,
+   "sha256": "027cdd0f014ea7bda348338b986d01e26554aafb3a79c0e003abaa0ad61a115b",
+   "rows": 18,
+   "columns": 19,
+   "works": 18
+  },
+  {
+   "batch": "A46",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A46_registry.xlsx",
+   "bytes": 161904,
+   "sha256": "fa495e6c39c530ec87d1e1a24a193521f5d22406795316d9b5f40597dcb8dd76",
+   "rows": 112,
+   "columns": 19,
+   "works": 153
+  },
+  {
+   "batch": "A47",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A47_registry.xlsx",
+   "bytes": 79266,
+   "sha256": "9f5a8cea4f596b0ac42640e1c78dc863912699638b2d9ebe08943fcdbef0568b",
+   "rows": 9,
+   "columns": 19,
+   "works": 14
+  },
+  {
+   "batch": "A48",
+   "path": "Реестры/Реестр персон и произведений/1/1.3/ToS_Identity_A48_registry.xlsx",
+   "bytes": 125730,
+   "sha256": "3b5853cc4c6955892137d7db152ad95353cf8b39931c6097da1543d6d2e24f75",
+   "rows": 80,
+   "columns": 19,
+   "works": 31
+  },
+  {
+   "batch": "T2-01",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-01_registry.xlsx",
+   "bytes": 149338,
+   "sha256": "0330e534f9cdcef9509afc22ea1a0e7337512f4aa3eec2c41b004b9022f1e70d",
+   "rows": 59,
+   "columns": 19,
+   "works": 187
+  },
+  {
+   "batch": "T2-02",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-02_registry.xlsx",
+   "bytes": 111618,
+   "sha256": "ea780c113026d685913fa123dbc087a9bb8cc125a236d2b9c554fe694b5bc33a",
+   "rows": 51,
+   "columns": 19,
+   "works": 159
+  },
+  {
+   "batch": "T2-03",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-03_registry.xlsx",
+   "bytes": 163238,
+   "sha256": "8abad9ccf64984825e38cf04c49e37cbf9ebb6b364db6dfce5cf0c5a8af24d3f",
+   "rows": 64,
+   "columns": 19,
+   "works": 328
+  },
+  {
+   "batch": "T2-04",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-04_registry.xlsx",
+   "bytes": 87152,
+   "sha256": "bdd560935b40fd48c12a0c568778f15f463a59973130dcb3d35a773354b0e8b1",
+   "rows": 45,
+   "columns": 19,
+   "works": 72
+  },
+  {
+   "batch": "T2-05",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-05_registry.xlsx",
+   "bytes": 155356,
+   "sha256": "e8e13aec53d7d8991f3380a1a3eac3c2992c75989410f7fdc1176a269eeb8869",
+   "rows": 93,
+   "columns": 19,
+   "works": 193
+  },
+  {
+   "batch": "T2-06",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-06_registry.xlsx",
+   "bytes": 103258,
+   "sha256": "beb3836ed47e9fca62cd68f1342f9acf7315d83c1be9c76538ce1b912458b95c",
+   "rows": 37,
+   "columns": 19,
+   "works": 161
+  },
+  {
+   "batch": "T2-07",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-07_registry.xlsx",
+   "bytes": 126367,
+   "sha256": "d577f303d26b0e8dc43a9c26b0fbb3c173bce9743c4f539bb6100780dc43b611",
+   "rows": 45,
+   "columns": 19,
+   "works": 140
+  },
+  {
+   "batch": "T2-08",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-08_registry.xlsx",
+   "bytes": 201411,
+   "sha256": "8d38280d695393bed6ce71ba3b13264fb4bc9f725122bc1ecf5df9ad2a9333a6",
+   "rows": 94,
+   "columns": 19,
+   "works": 387
+  },
+  {
+   "batch": "T2-09",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-09_registry.xlsx",
+   "bytes": 136485,
+   "sha256": "8528c73eaff397330764523ff99fe6070ce88bc0ce1b50b247e2d46276a43656",
+   "rows": 70,
+   "columns": 19,
+   "works": 331
+  },
+  {
+   "batch": "T2-10",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-10_registry.xlsx",
+   "bytes": 99331,
+   "sha256": "fae1b0c6ab68b78e86216b1c9b345f25ebec7ae7500274bf39ef60f6aada9f9a",
+   "rows": 43,
+   "columns": 19,
+   "works": 159
+  },
+  {
+   "batch": "T2-11",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-11_registry.xlsx",
+   "bytes": 143008,
+   "sha256": "32a4ce306d56a5d4c9ca3cc98afd2a1fdaa25b3fea0183955613c4a531e458c2",
+   "rows": 37,
+   "columns": 19,
+   "works": 397
+  },
+  {
+   "batch": "T2-12",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-12_registry.xlsx",
+   "bytes": 114641,
+   "sha256": "4c3040d4cd413fbd56e4076c1c2ef505ea00135d2a6354b9fadc69d805dc2184",
+   "rows": 42,
+   "columns": 19,
+   "works": 185
+  },
+  {
+   "batch": "T2-13",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-13_registry.xlsx",
+   "bytes": 100287,
+   "sha256": "0ecd6318753c940ee4936e5c3bde3ed25f002d454033c06caf2a41046285becb",
+   "rows": 46,
+   "columns": 19,
+   "works": 112
+  },
+  {
+   "batch": "T2-14",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-14_registry.xlsx",
+   "bytes": 164869,
+   "sha256": "2ec8766a128bb65928b2a4fe9dc3dfe2d0cc79759d6d5afcf3666df03733de22",
+   "rows": 75,
+   "columns": 19,
+   "works": 340
+  },
+  {
+   "batch": "T2-15",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-15_registry.xlsx",
+   "bytes": 127800,
+   "sha256": "f5722208a6a06bb89a5704bcbe080bfe70e8250f6609a4d72358bb3e77f0c471",
+   "rows": 56,
+   "columns": 19,
+   "works": 250
+  },
+  {
+   "batch": "T2-16",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-16_registry.xlsx",
+   "bytes": 548658,
+   "sha256": "c22aa59a3931c10c97fc98f0218ee6de3cfebb83c6645d1b86bddf970c15a2dd",
+   "rows": 60,
+   "columns": 19,
+   "works": 251
+  },
+  {
+   "batch": "T2-17",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-17_registry.xlsx",
+   "bytes": 112867,
+   "sha256": "3fc07f616b5a1910c1db267e681e268394af2521eb68f23fd330b3f3c5802286",
+   "rows": 44,
+   "columns": 19,
+   "works": 131
+  },
+  {
+   "batch": "T2-18",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-18_registry.xlsx",
+   "bytes": 76019,
+   "sha256": "19a5e97c838d01d2ba469dfa7ace37d1bd6a9f8a9dddb0798766bedb079bf64a",
+   "rows": 55,
+   "columns": 19,
+   "works": 68
+  },
+  {
+   "batch": "T2-19",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-19_registry.xlsx",
+   "bytes": 121404,
+   "sha256": "49969efe9b6382cad0993e4d31ed3b2d3e1cb8fae5c42a7e062d9bfe7ff35e4c",
+   "rows": 65,
+   "columns": 19,
+   "works": 184
+  },
+  {
+   "batch": "T2-20",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-20_registry.xlsx",
+   "bytes": 100446,
+   "sha256": "2f291176bc80bbc850548d96082f8de6026f67803bea39d746e1e8c2b3b97298",
+   "rows": 39,
+   "columns": 19,
+   "works": 170
+  },
+  {
+   "batch": "T2-21",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-21_registry.xlsx",
+   "bytes": 114197,
+   "sha256": "2502b5edaca6988e8d5c3b8b6600d865efc943934f01b26ced5de55f19741839",
+   "rows": 40,
+   "columns": 19,
+   "works": 190
+  },
+  {
+   "batch": "T2-22",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-22_registry.xlsx",
+   "bytes": 648720,
+   "sha256": "26f5267053a430ad33670c194cb855a94170a85847ec236a0d5505d269c9272c",
+   "rows": 74,
+   "columns": 22,
+   "works": 441
+  },
+  {
+   "batch": "T2-23",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-23_registry.xlsx",
+   "bytes": 305518,
+   "sha256": "54f3659fbe02d35128bb89bf95c745ec200c35c6a9a2ec42cae20623bf084b84",
+   "rows": 83,
+   "columns": 19,
+   "works": 157
+  },
+  {
+   "batch": "T2-24",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-24_registry.xlsx",
+   "bytes": 131340,
+   "sha256": "5445a56e88b4a14adffe1f015a8e5de171cf6b0a4dfb1947c07db2715e4079f1",
+   "rows": 66,
+   "columns": 19,
+   "works": 364
+  },
+  {
+   "batch": "T2-25",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-25_registry.xlsx",
+   "bytes": 791134,
+   "sha256": "be89165d72b944fc70a167c6f33ed47d4471ccd86b584476e47ccaf770b75859",
+   "rows": 38,
+   "columns": 26,
+   "works": 468
+  },
+  {
+   "batch": "T2-26",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-26_registry.xlsx",
+   "bytes": 120581,
+   "sha256": "9128a136f498993af183a50246538790e64e434656e2d6cfd9ab15f2f55ab888",
+   "rows": 53,
+   "columns": 19,
+   "works": 211
+  },
+  {
+   "batch": "T2-27",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-27_registry.xlsx",
+   "bytes": 104233,
+   "sha256": "9aed9766bdce2c0e174efaf8f99fe80cf54237415d1b7ae2a5187c95b5a6c22b",
+   "rows": 54,
+   "columns": 19,
+   "works": 145
+  },
+  {
+   "batch": "T2-28",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-28_registry.xlsx",
+   "bytes": 108245,
+   "sha256": "486db97019b392efa632f60e7d94e31b8ae6a08ccf1c4cee73e8e9c87a9a2a12",
+   "rows": 53,
+   "columns": 19,
+   "works": 123
+  },
+  {
+   "batch": "T2-29",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-29_registry.xlsx",
+   "bytes": 597863,
+   "sha256": "b0cef4079b21c4b32dd989ae72f439128d6dcd6464b422b93e66871f215224f1",
+   "rows": 87,
+   "columns": 19,
+   "works": 450
+  },
+  {
+   "batch": "T2-30",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-30_registry.xlsx",
+   "bytes": 124424,
+   "sha256": "4e32e41dd7007d76953a1534979f3899000a4b5387074718737ccd29be9b1e51",
+   "rows": 61,
+   "columns": 19,
+   "works": 258
+  },
+  {
+   "batch": "T2-31",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-31_registry.xlsx",
+   "bytes": 256802,
+   "sha256": "4671af6b00f4890ac96fac45f786078adb3a168342ca6caa93990be27946fa7c",
+   "rows": 201,
+   "columns": 19,
+   "works": 269
+  },
+  {
+   "batch": "T2-32",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-32_registry.xlsx",
+   "bytes": 160067,
+   "sha256": "232370b98445f301995e8d860615ac51f5c56369b0a15acdc62433449777372d",
+   "rows": 98,
+   "columns": 19,
+   "works": 378
+  },
+  {
+   "batch": "T2-33",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-33_registry.xlsx",
+   "bytes": 222618,
+   "sha256": "88eb921b90018e251a575a0b9b42ed62161455f5ae13b26c24636a74c337eb80",
+   "rows": 81,
+   "columns": 19,
+   "works": 532
+  },
+  {
+   "batch": "T2-34",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-34_registry.xlsx",
+   "bytes": 138471,
+   "sha256": "2502d180392938aefbe50b5da45ee72db83525765c8acd417c1823faee1e369b",
+   "rows": 117,
+   "columns": 19,
+   "works": 188
+  },
+  {
+   "batch": "T2-35",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-35_registry.xlsx",
+   "bytes": 155344,
+   "sha256": "c1028ee367ffa27bd00332a4530a243a95a6e0c631c0152ca4b67600d52f2cb1",
+   "rows": 135,
+   "columns": 19,
+   "works": 213
+  },
+  {
+   "batch": "T2-36",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-36_registry.xlsx",
+   "bytes": 203175,
+   "sha256": "e634a5d01208e3c76d74bff2bbc4ee9923aa1dc019be4cd8e74d6614affb3796",
+   "rows": 112,
+   "columns": 19,
+   "works": 289
+  },
+  {
+   "batch": "T2-37",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-37_registry.xlsx",
+   "bytes": 130349,
+   "sha256": "09c8f547181bf9fd245cbf4ef4d837cc3fbbd32231cecceca0d1c3d1023fc041",
+   "rows": 80,
+   "columns": 19,
+   "works": 203
+  },
+  {
+   "batch": "T2-38",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-38_registry.xlsx",
+   "bytes": 142578,
+   "sha256": "b9ffdf599d8d46391aa5e6f432d90019ca78be6129504e8e0471cc95a72dc5f3",
+   "rows": 81,
+   "columns": 19,
+   "works": 365
+  },
+  {
+   "batch": "T2-39",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-39_registry.xlsx",
+   "bytes": 150078,
+   "sha256": "188e7052a7c90f98e4f750d04e01fb76a9d826d78c4097a8333cfe0068b5291b",
+   "rows": 85,
+   "columns": 19,
+   "works": 272
+  },
+  {
+   "batch": "T2-40",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-40_registry.xlsx",
+   "bytes": 258186,
+   "sha256": "c4b27d8ca98904cacdbc06e8c9a766b55b3401e393c2e5be8f88febecb585cdf",
+   "rows": 124,
+   "columns": 19,
+   "works": 394
+  },
+  {
+   "batch": "T2-41",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-41_registry.xlsx",
+   "bytes": 125118,
+   "sha256": "d2fb3cfb08ee59e7c6b5d554442942879b7ee781a3d6779d1384b6482d6b2b11",
+   "rows": 70,
+   "columns": 19,
+   "works": 131
+  },
+  {
+   "batch": "T2-42",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-42_registry.xlsx",
+   "bytes": 385398,
+   "sha256": "a70caa8b93eee53552fd9a516b12e7df23a11a3f3519330f89bdf6a4c1e562d4",
+   "rows": 191,
+   "columns": 19,
+   "works": 945
+  },
+  {
+   "batch": "T2-43",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-43_registry.xlsx",
+   "bytes": 263517,
+   "sha256": "6868248eb18588611daf8fa951568e2da099294318be944a39b078d47d290be8",
+   "rows": 78,
+   "columns": 19,
+   "works": 814
+  },
+  {
+   "batch": "T2-44",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-44_registry.xlsx",
+   "bytes": 234671,
+   "sha256": "051db850b3c972935340c7c8594575c91a37c6222ee448c2f02eec00a64b2bde",
+   "rows": 169,
+   "columns": 19,
+   "works": 463
+  },
+  {
+   "batch": "T2-45",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-45_registry.xlsx",
+   "bytes": 159062,
+   "sha256": "e5f5b58f6d57f7b6b7b87f648bdaebfbbc986a13103d07887ef2b4132275908c",
+   "rows": 101,
+   "columns": 19,
+   "works": 236
+  },
+  {
+   "batch": "T2-46",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-46_registry.xlsx",
+   "bytes": 157329,
+   "sha256": "b03463033a09e1bbef6fcacd672135a2305eb9ed30a2e9519f6cd45cbfe82327",
+   "rows": 161,
+   "columns": 19,
+   "works": 177
+  },
+  {
+   "batch": "T2-47",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-47_registry.xlsx",
+   "bytes": 193132,
+   "sha256": "89fdc6080614688b68a85a2c3b287a8005c5b875a9fe47ecf50447849c32125e",
+   "rows": 102,
+   "columns": 19,
+   "works": 370
+  },
+  {
+   "batch": "T2-48",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-48_registry.xlsx",
+   "bytes": 165264,
+   "sha256": "ea7cfb3d664574e1f5559f0975348e17665a52e78f0905a1490ba2110d24a285",
+   "rows": 37,
+   "columns": 19,
+   "works": 217
+  },
+  {
+   "batch": "T2-49",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-49_registry.xlsx",
+   "bytes": 336131,
+   "sha256": "29379d5c2963ad8c077a02f1e5ccc94d88f387cfbf07d05398466035e8175f6a",
+   "rows": 152,
+   "columns": 19,
+   "works": 1143
+  },
+  {
+   "batch": "T2-50",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-50_registry.xlsx",
+   "bytes": 167676,
+   "sha256": "70ed30c9b89efcaea95dea72b0a9ae6c835ae2bf1cee798c38ed1e365c0e3a70",
+   "rows": 85,
+   "columns": 19,
+   "works": 192
+  },
+  {
+   "batch": "T2-51",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-51_registry.xlsx",
+   "bytes": 146214,
+   "sha256": "6aa1608e53f900f2d09c63366ec064dc42fc25afaa50f12c0784f70074ad91a6",
+   "rows": 65,
+   "columns": 19,
+   "works": 130
+  },
+  {
+   "batch": "T2-52",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-52_registry.xlsx",
+   "bytes": 162735,
+   "sha256": "0f0e364e928f39813dc5c9d6a1319f2ade977120ee2f12ae30e26079cdecc776",
+   "rows": 134,
+   "columns": 19,
+   "works": 198
+  },
+  {
+   "batch": "T2-53",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-53_registry.xlsx",
+   "bytes": 136076,
+   "sha256": "36b907f1cba44f06f415a43ae895386bb0fe4fec328fc39dc4888c9937c65673",
+   "rows": 113,
+   "columns": 19,
+   "works": 181
+  },
+  {
+   "batch": "T2-54",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-54_registry.xlsx",
+   "bytes": 124130,
+   "sha256": "e69ab8f7fa1d6c037a3c8c2ae0f4c114acebc7b5355d2b7342ca98cf7591aac5",
+   "rows": 40,
+   "columns": 19,
+   "works": 153
+  },
+  {
+   "batch": "T2-55",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-55_registry.xlsx",
+   "bytes": 495371,
+   "sha256": "c0691997bd8297ef619bbd605359d61776243d1837ca1d996e839c00a6bb790a",
+   "rows": 143,
+   "columns": 19,
+   "works": 152
+  },
+  {
+   "batch": "T2-56",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-56_registry.xlsx",
+   "bytes": 115446,
+   "sha256": "2de25b3b408b4c071a1679d9da8ebee628d0c09bd170e5019e63bf8649359bcb",
+   "rows": 46,
+   "columns": 19,
+   "works": 18
+  },
+  {
+   "batch": "T2-57",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-57_registry.xlsx",
+   "bytes": 140671,
+   "sha256": "c318959aa0f5393521ff84ff1fe4216ac30cb1bd4a79be4ee350556e82f3fe39",
+   "rows": 58,
+   "columns": 19,
+   "works": 224
+  },
+  {
+   "batch": "T2-58",
+   "path": "Реестры/Реестр персон и произведений/2/ToS_Identity_T2-58_registry.xlsx",
+   "bytes": 163407,
+   "sha256": "be636d487fc64ddc66eb42e64ff7af854528f6fa7d98a6f5b309996f751f3fbb",
+   "rows": 69,
+   "columns": 19,
+   "works": 304
+  },
+  {
+   "batch": "T3-01",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-01_registry.xlsx",
+   "bytes": 2722078,
+   "sha256": "53b05ecb92e0847d15fd1776e5e193a597a8727116082d4f36b9a9e9c55b039e",
+   "rows": 120,
+   "columns": 19,
+   "works": 1308
+  },
+  {
+   "batch": "T3-02",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-02_registry.xlsx",
+   "bytes": 120718,
+   "sha256": "67981c1caf6b61def987c42501084e7236cf24cc3e521ebdd856ef1966caca0a",
+   "rows": 27,
+   "columns": 19,
+   "works": 283
+  },
+  {
+   "batch": "T3-03",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-03_registry.xlsx",
+   "bytes": 106658,
+   "sha256": "917dc140ad0f30dd15a75bf584d25161b153df1c993e74ba7572bbc0c9dabd79",
+   "rows": 53,
+   "columns": 19,
+   "works": 145
+  },
+  {
+   "batch": "T3-04",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-04_registry.xlsx",
+   "bytes": 114048,
+   "sha256": "3c83e1ff73d3917710b325c84432b3482b5c4b0752241d5c1251f7b297674178",
+   "rows": 33,
+   "columns": 19,
+   "works": 200
+  },
+  {
+   "batch": "T3-05",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-05_registry.xlsx",
+   "bytes": 111383,
+   "sha256": "34b038b5a8c477ce59c7101cc5422fc9ddad1187aa7d2fc96357071a1dd48e06",
+   "rows": 45,
+   "columns": 19,
+   "works": 163
+  },
+  {
+   "batch": "T3-06",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-06_registry.xlsx",
+   "bytes": 120992,
+   "sha256": "d0b1f3d4a643bcdb9668ed8a9230a1f56ec72bef00d43ddda9cb1eb10eb79f1b",
+   "rows": 47,
+   "columns": 19,
+   "works": 163
+  },
+  {
+   "batch": "T3-07",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-07_registry.xlsx",
+   "bytes": 159124,
+   "sha256": "1a3ac16c71d959247ec17fb3e50487f9f0d8a20a9d9e436c808ef887d35f6d23",
+   "rows": 63,
+   "columns": 19,
+   "works": 287
+  },
+  {
+   "batch": "T3-08",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-08_registry.xlsx",
+   "bytes": 136889,
+   "sha256": "b90c5b4477c9744fa819ad7ec236e8b7374e4a31ce909dbcdc95eea72e319088",
+   "rows": 37,
+   "columns": 19,
+   "works": 318
+  },
+  {
+   "batch": "T3-09",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-09_registry.xlsx",
+   "bytes": 147114,
+   "sha256": "214fb6564dd801b3fb86609705b1af3271eeeffe02aa6d8469ef842935eac6c6",
+   "rows": 29,
+   "columns": 19,
+   "works": 382
+  },
+  {
+   "batch": "T3-10",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-10_registry.xlsx",
+   "bytes": 111850,
+   "sha256": "ce190228dcf2f3a3e7781904fb96b306bb2ed3e88e60212b86d7f2e8b7d337fc",
+   "rows": 37,
+   "columns": 19,
+   "works": 234
+  },
+  {
+   "batch": "T3-11",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-11_registry.xlsx",
+   "bytes": 135165,
+   "sha256": "ada6ff17ec3bb8d7c8e23addc873a28faebc7eec6858ecadd4ce9bb3666bb5ef",
+   "rows": 30,
+   "columns": 19,
+   "works": 320
+  },
+  {
+   "batch": "T3-12",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-12_registry.xlsx",
+   "bytes": 160280,
+   "sha256": "319aae611861acf2fac72f6a2e2a9b571a872523d25d75644de95721da0c3e12",
+   "rows": 35,
+   "columns": 19,
+   "works": 220
+  },
+  {
+   "batch": "T3-13",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-13_registry.xlsx",
+   "bytes": 170202,
+   "sha256": "945fde956bf94b2a426bfa8233cbb6f18ddb51ef8d9964ba41f07811f252f683",
+   "rows": 112,
+   "columns": 19,
+   "works": 333
+  },
+  {
+   "batch": "T3-14",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-14_registry.xlsx",
+   "bytes": 211862,
+   "sha256": "d4a610ee8988af7a336c9207e63426f868b168f043a7d0748c683ce66115fa3a",
+   "rows": 75,
+   "columns": 19,
+   "works": 442
+  },
+  {
+   "batch": "T3-15",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-15_registry.xlsx",
+   "bytes": 200612,
+   "sha256": "25b502e6afb3d6cc5ac3cd165b6dc5071cfcf81d74daffe0112106332428ebaf",
+   "rows": 55,
+   "columns": 19,
+   "works": 531
+  },
+  {
+   "batch": "T3-16",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-16_registry.xlsx",
+   "bytes": 137142,
+   "sha256": "f41766adf1b2204334d3947171f3350f60582f9dc6d4d10158cb2e2f9eeeda16",
+   "rows": 58,
+   "columns": 19,
+   "works": 291
+  },
+  {
+   "batch": "T3-17",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-17_registry.xlsx",
+   "bytes": 154164,
+   "sha256": "2b2266fccb1c6d4f47ce6300ec6919d385f56c931e2d60a1412c134ccaecc227",
+   "rows": 77,
+   "columns": 19,
+   "works": 316
+  },
+  {
+   "batch": "T3-18",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-18_registry.xlsx",
+   "bytes": 825147,
+   "sha256": "c402c1cc6188f4c36ec10eddead7586249c54e8861b7111b7c9ced929b7e8e1f",
+   "rows": 315,
+   "columns": 19,
+   "works": 971
+  },
+  {
+   "batch": "T3-19",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-19_registry.xlsx",
+   "bytes": 185902,
+   "sha256": "e080f309d03a456d1bec2212ee384a8cf738ba6ea4f2a87752105e3ef1a7c7eb",
+   "rows": 140,
+   "columns": 19,
+   "works": 410
+  },
+  {
+   "batch": "T3-20",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-20_registry.xlsx",
+   "bytes": 137668,
+   "sha256": "dd7b1831c0a63451da38bea28c27fd09c79f8bd560e63c7550b5ababaf8464b4",
+   "rows": 88,
+   "columns": 19,
+   "works": 271
+  },
+  {
+   "batch": "T3-21",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-21_registry.xlsx",
+   "bytes": 489812,
+   "sha256": "b5e1fbb2b7cbbb69ad680a2a37788a055011269e22d7cf40fb197eba43e39152",
+   "rows": 77,
+   "columns": 19,
+   "works": 961
+  },
+  {
+   "batch": "T3-22",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-22_registry.xlsx",
+   "bytes": 720198,
+   "sha256": "77460b1a95ab1332109ac9d13447c71d04d859adb9862c13d543d8c2cbeab937",
+   "rows": 93,
+   "columns": 19,
+   "works": 1135
+  },
+  {
+   "batch": "T3-23",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-23_registry.xlsx",
+   "bytes": 232837,
+   "sha256": "ef049d1586d7014cbf625a1e755ff7122c4fd357dbf8811e92961504451bbf37",
+   "rows": 77,
+   "columns": 19,
+   "works": 709
+  },
+  {
+   "batch": "T3-24",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-24_registry.xlsx",
+   "bytes": 186714,
+   "sha256": "3d03c80356194a450b82a9a2b83fde6d0cf534077b0f897538f06df203cc7df4",
+   "rows": 74,
+   "columns": 19,
+   "works": 424
+  },
+  {
+   "batch": "T3-25",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-25_registry.xlsx",
+   "bytes": 158555,
+   "sha256": "507d19876a46db84c45488bdf4ecd18b664bfcac728871cc4a97fc072dc082a2",
+   "rows": 77,
+   "columns": 19,
+   "works": 420
+  },
+  {
+   "batch": "T3-26",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-26_registry.xlsx",
+   "bytes": 131821,
+   "sha256": "d641f5304af4061bc932b9227d19608541cc5de5651113dda0667f62a9f843dc",
+   "rows": 47,
+   "columns": 19,
+   "works": 255
+  },
+  {
+   "batch": "T3-27",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-27_registry.xlsx",
+   "bytes": 414058,
+   "sha256": "0f7ba5c130def17ff1cd60e66061f4603ddefb1b9256341112a2d85611438ce6",
+   "rows": 153,
+   "columns": 19,
+   "works": 308
+  },
+  {
+   "batch": "T3-28",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-28_registry.xlsx",
+   "bytes": 231338,
+   "sha256": "59a3f04a1eeec89dc26631f03d23f25703ec609efa2f7de62d7400645e59837b",
+   "rows": 139,
+   "columns": 19,
+   "works": 512
+  },
+  {
+   "batch": "T3-29",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-29_registry.xlsx",
+   "bytes": 117310,
+   "sha256": "7eaf18649c9bea81992aa3ee8172824e21318776fa8ab41b7eadda74ad1dcd0a",
+   "rows": 46,
+   "columns": 19,
+   "works": 161
+  },
+  {
+   "batch": "T3-30",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-30_registry.xlsx",
+   "bytes": 610414,
+   "sha256": "81d7487effaf357dfc1b82bc37f40ca2a272db44b0fca41c7cf99492feb516ad",
+   "rows": 42,
+   "columns": 19,
+   "works": 1267
+  },
+  {
+   "batch": "T3-31",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-31_registry.xlsx",
+   "bytes": 142553,
+   "sha256": "bd6b4f731add63b7d8218d4e372cb043aa19b3aeb3d0948fc52964ac7a952359",
+   "rows": 65,
+   "columns": 19,
+   "works": 236
+  },
+  {
+   "batch": "T3-32",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-32_registry.xlsx",
+   "bytes": 116337,
+   "sha256": "0b92390a56b4352da520a06ed74162f77a99fdca126702805ae8130f0b563735",
+   "rows": 80,
+   "columns": 19,
+   "works": 178
+  },
+  {
+   "batch": "T3-33",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-33_registry.xlsx",
+   "bytes": 101065,
+   "sha256": "afac5133a01634d391b10c69381c8ce98dc367dd3b5058c1f9495f527eaf3d20",
+   "rows": 52,
+   "columns": 19,
+   "works": 180
+  },
+  {
+   "batch": "T3-34",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-34_registry.xlsx",
+   "bytes": 169867,
+   "sha256": "98d1bd6f0ab67243d9494c34debd9674d20b6f6bb811c544026a2cf65b67efe4",
+   "rows": 129,
+   "columns": 19,
+   "works": 295
+  },
+  {
+   "batch": "T3-35",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-35_registry.xlsx",
+   "bytes": 351422,
+   "sha256": "672c8b4936c7f536423f37383be9eef6a197fc5a24f66e7a1d318cb1e557c985",
+   "rows": 208,
+   "columns": 19,
+   "works": 671
+  },
+  {
+   "batch": "T3-36",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-36_registry.xlsx",
+   "bytes": 121453,
+   "sha256": "9a26212a3e3a98f864349f696d8cdc06ebb822302250307f9378697c0bcb9eec",
+   "rows": 82,
+   "columns": 19,
+   "works": 239
+  },
+  {
+   "batch": "T3-37",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-37_registry.xlsx",
+   "bytes": 113767,
+   "sha256": "8b52639cc417ee01ded1f75afe1d90a157f7564cae8e02a64a3dacbab7e70b5b",
+   "rows": 106,
+   "columns": 19,
+   "works": 200
+  },
+  {
+   "batch": "T3-38",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-38_registry.xlsx",
+   "bytes": 141031,
+   "sha256": "a26f027856a5365a022de3ecf2ca2f4feffc64e0dc76611b71e006eaf962f453",
+   "rows": 61,
+   "columns": 19,
+   "works": 214
+  },
+  {
+   "batch": "T3-39",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-39_registry.xlsx",
+   "bytes": 426120,
+   "sha256": "3d2be6786a6f83d8809b3f02b3677930e0127b18a01514f8647c802c5682a65d",
+   "rows": 59,
+   "columns": 19,
+   "works": 576
+  },
+  {
+   "batch": "T3-40",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-40_registry.xlsx",
+   "bytes": 98248,
+   "sha256": "bbcad90117fa6fbc887efdf9fc30d716de1ac2ae1ce2e8e74f3e664a431dd5cf",
+   "rows": 33,
+   "columns": 19,
+   "works": 140
+  },
+  {
+   "batch": "T3-41",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-41_registry.xlsx",
+   "bytes": 94955,
+   "sha256": "fa9da3c32eb8ea536ab6912107fb4af8e6938f9fe47937c32318340c2ec789ff",
+   "rows": 56,
+   "columns": 19,
+   "works": 79
+  },
+  {
+   "batch": "T3-42",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-42_registry.xlsx",
+   "bytes": 177756,
+   "sha256": "81c8d696fba30db3352f32e76b6cd79e73091a5b79d244fdfbcde57125699977",
+   "rows": 77,
+   "columns": 19,
+   "works": 313
+  },
+  {
+   "batch": "T3-43",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-43_registry.xlsx",
+   "bytes": 174893,
+   "sha256": "caed7eb094dce00484d150d6173024c6beca038cd1f5a77d09e3b4f31799f3ee",
+   "rows": 96,
+   "columns": 19,
+   "works": 291
+  },
+  {
+   "batch": "T3-44",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-44_registry.xlsx",
+   "bytes": 133979,
+   "sha256": "2e75ee259a5bcc4333aff96eeec082aa2eabb2b79a3087437ea8149881d35c7b",
+   "rows": 69,
+   "columns": 19,
+   "works": 245
+  },
+  {
+   "batch": "T3-45",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-45_registry.xlsx",
+   "bytes": 164175,
+   "sha256": "53cfd0ccf8cf5cf32f77830c54e8c50f2eeb7ccf5ec05aec0c7a6379e0fa7e80",
+   "rows": 53,
+   "columns": 19,
+   "works": 271
+  },
+  {
+   "batch": "T3-46",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-46_registry.xlsx",
+   "bytes": 143848,
+   "sha256": "6758939ec2bb8d8ac181e937e9bf0a045a7625759c256552f3c93556093a44a0",
+   "rows": 70,
+   "columns": 19,
+   "works": 180
+  },
+  {
+   "batch": "T3-47",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-47_registry.xlsx",
+   "bytes": 158396,
+   "sha256": "42952e018c855a62f6c2f2d57faba3cf07ad411065252c7eef6c5eb552909106",
+   "rows": 111,
+   "columns": 19,
+   "works": 299
+  },
+  {
+   "batch": "T3-48",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-48_registry.xlsx",
+   "bytes": 121989,
+   "sha256": "7f5e5a9bc25ad002b93787f4f2873bdc4b1b2bf345f5aec23b24ea0e7534d531",
+   "rows": 46,
+   "columns": 19,
+   "works": 265
+  },
+  {
+   "batch": "T3-49",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-49_registry.xlsx",
+   "bytes": 163014,
+   "sha256": "4e7f539645b701a7ec39690eb47f57e11b40c8a9a752c5d0dab8a5ddca7394ea",
+   "rows": 67,
+   "columns": 19,
+   "works": 329
+  },
+  {
+   "batch": "T3-50",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-50_registry.xlsx",
+   "bytes": 121440,
+   "sha256": "6270ecb50761ab6437768bd5cd90e65ec76a8dfadbf4cfed6fcc41e8326ba91b",
+   "rows": 77,
+   "columns": 19,
+   "works": 175
+  },
+  {
+   "batch": "T3-51",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-51_registry.xlsx",
+   "bytes": 159318,
+   "sha256": "c880b30305493482de1b8ac6722461be7add60cb923478e4456e3970ce994f49",
+   "rows": 78,
+   "columns": 19,
+   "works": 243
+  },
+  {
+   "batch": "T3-52",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-52_registry.xlsx",
+   "bytes": 159044,
+   "sha256": "db993d4245e665659c67027a56e082720b29b3967de13aad6440876931f3c6bc",
+   "rows": 73,
+   "columns": 19,
+   "works": 285
+  },
+  {
+   "batch": "T3-53",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-53_registry.xlsx",
+   "bytes": 105431,
+   "sha256": "18ab32b2ee54458d5395586faba25ea937236bb8a303f41afe15eda979c7fef3",
+   "rows": 39,
+   "columns": 19,
+   "works": 173
+  },
+  {
+   "batch": "T3-54",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-54_registry.xlsx",
+   "bytes": 166144,
+   "sha256": "b5deb0778636d246d64737c9072666c5db48b084681b196c213ca62f22c67314",
+   "rows": 68,
+   "columns": 19,
+   "works": 379
+  },
+  {
+   "batch": "T3-55",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-55_registry.xlsx",
+   "bytes": 142654,
+   "sha256": "06acaa6241358627265325bf63ae121eb00503d56934a9c2869ccfdc1fd88abe",
+   "rows": 60,
+   "columns": 19,
+   "works": 210
+  },
+  {
+   "batch": "T3-56",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-56_registry.xlsx",
+   "bytes": 96520,
+   "sha256": "0e8e6558b693e6c0644e38787e2efdcebfb75d391c13cc8f96795ee9268b742f",
+   "rows": 27,
+   "columns": 19,
+   "works": 50
+  },
+  {
+   "batch": "T3-57",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-57_registry.xlsx",
+   "bytes": 117448,
+   "sha256": "11bea307c07ad07c1cf87bcd85373e43f4af98bcea334cdfc48171391ea34a14",
+   "rows": 53,
+   "columns": 19,
+   "works": 191
+  },
+  {
+   "batch": "T3-58",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-58_registry.xlsx",
+   "bytes": 120220,
+   "sha256": "e822dda5f8736c8039438afa4e046eb371b4441fcbb04832cd1f807f4e5299b8",
+   "rows": 102,
+   "columns": 19,
+   "works": 146
+  },
+  {
+   "batch": "T3-59",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-59_registry.xlsx",
+   "bytes": 169498,
+   "sha256": "c2f10e1c7ea70431c40da15d31b971b359b9953703924281b484d46e5b722d24",
+   "rows": 131,
+   "columns": 19,
+   "works": 267
+  },
+  {
+   "batch": "T3-60",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-60_registry.xlsx",
+   "bytes": 136929,
+   "sha256": "7932450fd4dc2a094185203567950575ac827a218988c0eaedd97890243490e4",
+   "rows": 44,
+   "columns": 19,
+   "works": 176
+  },
+  {
+   "batch": "T3-61",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-61_registry.xlsx",
+   "bytes": 128306,
+   "sha256": "0be3f0f2f0e2d81635dfbe7b31b92d7c860255f68e072bbb61888b4f7701d232",
+   "rows": 95,
+   "columns": 19,
+   "works": 150
+  },
+  {
+   "batch": "T3-62",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-62_registry.xlsx",
+   "bytes": 160149,
+   "sha256": "f4f327ac0fd88f512e2795a7ba29ff189d13be8920812070812b9d2abbfd1ba0",
+   "rows": 112,
+   "columns": 19,
+   "works": 324
+  },
+  {
+   "batch": "T3-63",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-63_registry.xlsx",
+   "bytes": 123859,
+   "sha256": "4574ed158a416a4abb9664f7843695d32c3aac91175f2a64a56c314001111310",
+   "rows": 49,
+   "columns": 19,
+   "works": 160
+  },
+  {
+   "batch": "T3-64",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-64_registry.xlsx",
+   "bytes": 132125,
+   "sha256": "8b021af82dcc863998b2238c2ca05d2a4c93bf28921707f0b7cdbd84e3a5ccf9",
+   "rows": 71,
+   "columns": 19,
+   "works": 135
+  },
+  {
+   "batch": "T3-65",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-65_registry.xlsx",
+   "bytes": 162664,
+   "sha256": "0b501cd984da14dfcddf447527c58383b76be282fa8e7b0765343a022f408fa2",
+   "rows": 54,
+   "columns": 19,
+   "works": 343
+  },
+  {
+   "batch": "T3-66",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-66_registry.xlsx",
+   "bytes": 157018,
+   "sha256": "1511d489a1ce2cbb14543d05a1250c196d43a4578c530e1463e8c58c150e13a4",
+   "rows": 71,
+   "columns": 19,
+   "works": 320
+  },
+  {
+   "batch": "T3-67",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-67_registry.xlsx",
+   "bytes": 131785,
+   "sha256": "f7ce531fdaa5d0bc2e42ab33574a7eac82c6deb6b418fdab3d09e4fd0a8a1680",
+   "rows": 54,
+   "columns": 19,
+   "works": 201
+  },
+  {
+   "batch": "T3-68",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-68_registry.xlsx",
+   "bytes": 137248,
+   "sha256": "4e0ba8b1d92a2e7d02ddff2051615cfd0d477a0c7840743590626363f549f18d",
+   "rows": 65,
+   "columns": 19,
+   "works": 203
+  },
+  {
+   "batch": "T3-69",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-69_registry.xlsx",
+   "bytes": 208081,
+   "sha256": "c29abc21889d6ea312692d9d602f325dceac2245e2e8b55f4a205e2b2a79eb14",
+   "rows": 45,
+   "columns": 19,
+   "works": 681
+  },
+  {
+   "batch": "T3-70",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-70_registry.xlsx",
+   "bytes": 133889,
+   "sha256": "d6212652631902fa4d9e8572b61a2ece57d5dd84bd5617fe944c3becbea59ece",
+   "rows": 72,
+   "columns": 19,
+   "works": 224
+  },
+  {
+   "batch": "T3-71",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-71_registry.xlsx",
+   "bytes": 137588,
+   "sha256": "6e71ac9ebdb3c70b610a9be8b2df37e219952f9781d80b2095d21f3d28c1fc60",
+   "rows": 61,
+   "columns": 19,
+   "works": 238
+  },
+  {
+   "batch": "T3-72",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-72_registry.xlsx",
+   "bytes": 125707,
+   "sha256": "c6beac3d8f68bcde58b013ccd007333b7419c5c5f4783937e579822c1b763316",
+   "rows": 97,
+   "columns": 19,
+   "works": 140
+  },
+  {
+   "batch": "T3-73",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-73_registry.xlsx",
+   "bytes": 428957,
+   "sha256": "b797aa8db917a53a91580f16bc83982f3f81ef961a9a4a60ae49746a549061af",
+   "rows": 94,
+   "columns": 19,
+   "works": 194
+  },
+  {
+   "batch": "T3-74",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-74_registry.xlsx",
+   "bytes": 137558,
+   "sha256": "a3202d8112fa27d387c344621c7108796799f1c7236e5369eb9bdc576f914a7b",
+   "rows": 105,
+   "columns": 19,
+   "works": 180
+  },
+  {
+   "batch": "T3-75",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-75_registry.xlsx",
+   "bytes": 182151,
+   "sha256": "f4c63ecfe784fefb95bc00b0bf04cde08eb25e87814a886169bcba027a7fea1d",
+   "rows": 156,
+   "columns": 19,
+   "works": 326
+  },
+  {
+   "batch": "T3-76",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-76_registry.xlsx",
+   "bytes": 82600,
+   "sha256": "a99b865e5eece4d57a0de5985d3e8bf103427945973a69fa662e623f3138811b",
+   "rows": 32,
+   "columns": 19,
+   "works": 23
+  },
+  {
+   "batch": "T3-77",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-77_registry.xlsx",
+   "bytes": 104018,
+   "sha256": "eb71343e170b42a89e3fc9e8d7a73e0daa47254b875e76c473b9defdabd37ba3",
+   "rows": 63,
+   "columns": 19,
+   "works": 145
+  },
+  {
+   "batch": "T3-78",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-78_registry.xlsx",
+   "bytes": 130484,
+   "sha256": "b9e11265bfb3c330140daceeccd118daa5d0f3a3c059ed062b3f839c481e7b9f",
+   "rows": 79,
+   "columns": 19,
+   "works": 208
+  },
+  {
+   "batch": "T3-79",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-79_registry.xlsx",
+   "bytes": 137624,
+   "sha256": "e8cc99958700ac94834a4f83800348616252b229f330ad7b4362fc96e4ff1009",
+   "rows": 66,
+   "columns": 19,
+   "works": 213
+  },
+  {
+   "batch": "T3-80",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-80_registry.xlsx",
+   "bytes": 140682,
+   "sha256": "9342cb1ff530044c486fc2cc0a48b8a1bcb30470541f18cca577e0b5aaf5e8fe",
+   "rows": 99,
+   "columns": 19,
+   "works": 226
+  },
+  {
+   "batch": "T3-81",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-81_registry.xlsx",
+   "bytes": 148932,
+   "sha256": "9b098921510fe96a3f110fd1a90be5f5bc63d8a1b7f59010252d0ef99624e2f2",
+   "rows": 93,
+   "columns": 19,
+   "works": 268
+  },
+  {
+   "batch": "T3-82",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-82_registry.xlsx",
+   "bytes": 3142409,
+   "sha256": "e77446e9d4ee292c9be8f2ffd29609a6ba6b51e469327337951146888051bcbe",
+   "rows": 906,
+   "columns": 19,
+   "works": 689
+  },
+  {
+   "batch": "T3-83",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-83_registry.xlsx",
+   "bytes": 1516197,
+   "sha256": "5eb793282fef7a548d90fba24f2c1ca3bb48dc9c77e759da95a0128891af98bf",
+   "rows": 442,
+   "columns": 19,
+   "works": 961
+  },
+  {
+   "batch": "T3-84",
+   "path": "Реестры/Реестр персон и произведений/3/ToS_Identity_T3-84_registry.xlsx",
+   "bytes": 116826,
+   "sha256": "df1094c81092c05561c893cb50633cdc75d1c407793e4d5bd4854841d6dfce6d",
+   "rows": 136,
+   "columns": 19,
+   "works": 131
+  }
+ ],
+ "rows": {
+  "agents": 16971,
+  "works": 68634
+ }
+}
