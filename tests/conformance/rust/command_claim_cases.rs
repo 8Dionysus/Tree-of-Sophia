@@ -5798,6 +5798,21 @@ fn claim_successor_retains_bytes_replays_current_scope_and_refuses_unissued_admi
     assert!(!prepared.replayed);
     assert_eq!(result["receipt"]["previous_source"], source_ref(&initial));
     assert_eq!(result["receipt"]["source"]["version"], 2);
+    // A receipt written now records the RFC 8785 digest of its request with its tag (TOS-D-0088).
+    let request_value = tos_foundation::parse_json(
+        &serde_json::to_vec(&request).unwrap(),
+        tos_foundation::JsonMode::PublishedStrict,
+        tos_foundation::JsonLimits::default(),
+    )
+    .unwrap();
+    let jcs1 =
+        tos_foundation::jcs_digest_v1(request_value.root(), tos_foundation::JsonLimits::default())
+            .unwrap();
+    assert_eq!(result["receipt"]["request_digest_profile"], "jcs1");
+    assert_eq!(
+        result["receipt"]["request_digest"],
+        jcs1.digest.to_prefixed().as_str()
+    );
     assert_eq!(
         prepared.commit(),
         Err(SourceCommandError::MissingProductionAdmission)

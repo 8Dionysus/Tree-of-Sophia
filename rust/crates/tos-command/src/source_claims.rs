@@ -16,8 +16,8 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonLimits, JsonString, JsonValue, RelativePath,
-    canonical_count_v1, python_strip_unicode16_v1,
+    CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, JsonString, JsonValue, RelativePath,
+    canonical_count_v1, jcs_digest_v1, python_strip_unicode16_v1, verify_canonical_digest_v1,
 };
 use tos_source_store::{CorpusCutReader, SoftwareCaptureReader, SoftwareComponentSelectionV1};
 use tos_validation::PredicateRead;
@@ -1947,6 +1947,63 @@ fn serialize_claim_creation_preview(
     })
 }
 
+/// A Claim revision receipt written now records the RFC 8785 digest of its
+/// request with the `jcs1` tag (TOS-D-0088). Receipts written before carry the
+/// untagged SourceCommandInputV1 digest and are read with exactly that profile.
+fn claim_request_digest_fields(
+    request: &JsonValue,
+) -> SourceCommandResult<[(&'static str, JsonValue); 2]> {
+    let digest = jcs_digest_v1(request, claim_request_digest_limits())
+        .map_err(|_| SourceCommandError::Invalid("Claim request digest input"))?;
+    Ok([
+        ("request_digest", string(&digest.digest.to_prefixed())),
+        ("request_digest_profile", string(digest.profile)),
+    ])
+}
+
+/// The profile a retained Claim receipt names for its request digest: none for
+/// a receipt written before TOS-D-0088, `jcs1` for one written after.
+fn claim_request_digest_profile(receipt: &JsonValue) -> SourceCommandResult<Option<&'static str>> {
+    match receipt.object_get("request_digest_profile") {
+        None => Ok(None),
+        Some(value) if value.as_str() == Some(JCS_DIGEST_TAG) => Ok(Some(JCS_DIGEST_TAG)),
+        Some(_) => Err(SourceCommandError::Invalid("Claim request digest profile")),
+    }
+}
+
+/// Verify a retained receipt's request digest under the one profile it names.
+fn verify_claim_request_digest(
+    request: &JsonValue,
+    receipt: &JsonValue,
+) -> SourceCommandResult<bool> {
+    let expected = Digest256::from_prefixed(text(receipt, "request_digest")?)
+        .map_err(|_| SourceCommandError::Invalid("Claim request digest"))?;
+    verify_canonical_digest_v1(
+        request,
+        claim_request_digest_profile(receipt)?,
+        CanonicalProfile::SourceCommandInputV1,
+        expected,
+        claim_request_digest_limits(),
+    )
+    .map_err(|_| SourceCommandError::Invalid("Claim request digest profile or input"))
+}
+
+/// Exact receipt fields, with the digest profile wherever the receipt carries one.
+fn claim_receipt_keys(receipt: &JsonValue, keys: &[&str]) -> SourceCommandResult<()> {
+    let mut keys = keys.to_vec();
+    if claim_request_digest_profile(receipt)?.is_some() {
+        keys.push("request_digest_profile");
+    }
+    exact_keys(receipt, &keys)
+}
+
+fn claim_request_digest_limits() -> JsonLimits {
+    JsonLimits {
+        max_bytes: 8_388_608,
+        ..JsonLimits::default()
+    }
+}
+
 fn claim_creation_receipt(
     config: &JsonValue,
     request: &JsonValue,
@@ -3479,7 +3536,7 @@ fn run_claim_command_inner_with_members(
             if text(receipt, "command_id")? != text(&request, "command_id")? {
                 continue;
             }
-            if text(receipt, "request_digest")? != record_digest(&request)?.to_prefixed()
+            if !verify_claim_request_digest(&request, receipt)?
                 || text(receipt, "owner_configuration")? != digest
                 || text(receipt, "principal_id")? != text(&config, "principal_id")?
                 || text(receipt, "authority_ref")? != text(&config, "authority_ref")?
@@ -3742,12 +3799,11 @@ fn run_claim_command_inner_with_members(
             .collect::<Vec<_>>();
         field_names.sort();
         let changed_fields = JsonValue::Array(field_names.iter().map(|k| string(k)).collect());
+        let [request_digest, request_digest_profile] = claim_request_digest_fields(&request)?;
         let receipt = object(vec![
             ("command_id", field(&request, "command_id")?.clone()),
-            (
-                "request_digest",
-                string(&record_digest(&request)?.to_prefixed()),
-            ),
+            request_digest,
+            request_digest_profile,
             ("principal_id", field(&config, "principal_id")?.clone()),
             ("authority_ref", field(&config, "authority_ref")?.clone()),
             ("owner_configuration", string(&digest)),
@@ -9117,7 +9173,7 @@ fn verify_claim_history_inner(
     let mut commands = BTreeSet::new();
     let mut expected: Option<Vec<u8>> = None;
     for receipt in array(&history, "receipts")? {
-        exact_keys(
+        claim_receipt_keys(
             receipt,
             &[
                 "command_id",
@@ -9170,7 +9226,7 @@ fn verify_claim_history_inner(
 
         if !commands.insert(text(receipt, "command_id")?)
             || text(request, "operation")? != "claim.revise"
-            || text(receipt, "request_digest")? != record_digest(request)?.to_prefixed()
+            || !verify_claim_request_digest(request, receipt)?
             || field(receipt, "grants_admission")? != &JsonValue::Bool(false)
         {
             return Err(SourceCommandError::Conflict(
@@ -10517,6 +10573,9 @@ fn resolve_claim_reference_evidence(
                 .map(|key| Ok((*key, field(receipt, key)?.clone())))
                 .collect::<SourceCommandResult<Vec<_>>>()?,
             );
+            if let Some(profile) = receipt.object_get("request_digest_profile") {
+                set(&mut transition, "request_digest_profile", profile.clone())?;
+            }
             // Identify the exact verified receipt without exposing its request body.
             set(
                 &mut transition,
@@ -11282,6 +11341,11 @@ mod retained_history_reader_regression {
     }
 
     fn selected_linguistic_owner() -> CommandContext {
+        selected_linguistic_owner_with(|_| {})
+    }
+
+    /// The retained linguistic owner with its revision receipts as `edit` leaves them.
+    fn selected_linguistic_owner_with(edit: impl FnOnce(&mut Vec<JsonValue>)) -> CommandContext {
         let fixture = crate::source_creation_store::source_native_test_fixtures::retained_history();
         let root = fixture.path().join("source");
         let root = fs::canonicalize(root).unwrap();
@@ -11313,6 +11377,23 @@ mod retained_history_reader_regression {
         );
         for receipt in receipts {
             add_directory(&root, &mut files, text(receipt, "archive_path").unwrap());
+        }
+        let mut edited = receipts.to_vec();
+        edit(&mut edited);
+        if !same(
+            &JsonValue::Array(edited.clone()),
+            &JsonValue::Array(receipts.to_vec()),
+        )
+        .unwrap()
+        {
+            let mut history = history.clone();
+            set(&mut history, "receipts", JsonValue::Array(edited)).unwrap();
+            let raw = published(&history).unwrap();
+            files
+                .iter_mut()
+                .find(|file| file.path.as_str() == history_path.as_str())
+                .unwrap()
+                .raw = raw;
         }
 
         let mut context = CommandContext {
@@ -11483,5 +11564,98 @@ mod retained_history_reader_regression {
                 "retained archive blob binding differs"
             ))
         ));
+    }
+
+    #[test]
+    fn a_new_claim_revision_receipt_carries_jcs1_and_older_receipts_keep_their_digest() {
+        // A receipt written now records the RFC 8785 digest of its request with its tag (TOS-D-0088).
+        // JCS orders members by UTF-16 code units and the older profile by code points, so these
+        // two names give the profiles different bytes.
+        let request = object(vec![
+            ("operation", string("claim.revise")),
+            ("command_id", string("tos.command.revision")),
+            ("\u{1F600}", string("astral")),
+            ("\u{E000}", string("private use")),
+        ]);
+        let [digest, profile] = claim_request_digest_fields(&request).unwrap();
+        let jcs = jcs_digest_v1(&request, claim_request_digest_limits()).unwrap();
+        assert_eq!(digest.0, "request_digest");
+        assert_eq!(
+            text(&object(vec![digest.clone()]), "request_digest").unwrap(),
+            jcs.digest.to_prefixed()
+        );
+        assert_eq!(profile.0, "request_digest_profile");
+        assert_eq!(
+            text(&object(vec![profile.clone()]), "request_digest_profile").unwrap(),
+            JCS_DIGEST_TAG
+        );
+        assert_ne!(jcs.digest, record_digest(&request).unwrap());
+        let tagged = object(vec![digest.clone(), profile.clone()]);
+        assert!(verify_claim_request_digest(&request, &tagged).unwrap());
+        let legacy = object(vec![(
+            "request_digest",
+            string(&record_digest(&request).unwrap().to_prefixed()),
+        )]);
+        assert!(verify_claim_request_digest(&request, &legacy).unwrap());
+        // A tag selects one profile and never falls back to the other.
+        let mislabeled = object(vec![
+            (
+                "request_digest",
+                string(&record_digest(&request).unwrap().to_prefixed()),
+            ),
+            profile.clone(),
+        ]);
+        assert!(!verify_claim_request_digest(&request, &mislabeled).unwrap());
+        let unknown = object(vec![
+            digest.clone(),
+            ("request_digest_profile", string("legacy")),
+        ]);
+        assert!(verify_claim_request_digest(&request, &unknown).is_err());
+
+        // The retained history holds older receipts beside a receipt written now; each verifies as it was written.
+        let context = selected_linguistic_owner_with(|receipts| {
+            let last = receipts.last_mut().unwrap();
+            let request = field(last, "request").unwrap().clone();
+            let [digest, profile] = claim_request_digest_fields(&request).unwrap();
+            set(last, digest.0, digest.1).unwrap();
+            set(last, profile.0, profile.1).unwrap();
+        });
+        let history =
+            parse(selected(&context, &format!("{OWNER_DIR}/{CLAIM_HISTORY}")).unwrap()).unwrap();
+        let receipts = array(&history, "receipts").unwrap();
+        assert!(receipts[0].object_get("request_digest_profile").is_none());
+        assert_eq!(
+            text(&receipts[2], "request_digest_profile").unwrap(),
+            JCS_DIGEST_TAG
+        );
+        let older = resolve(&context, field(&receipts[0], "previous_source").unwrap()).unwrap();
+        let transition = field(&older.provenance, "transition").unwrap();
+        assert_eq!(
+            field(transition, "request_digest").unwrap(),
+            field(&receipts[0], "request_digest").unwrap()
+        );
+        assert!(transition.object_get("request_digest_profile").is_none());
+        let newer = resolve(&context, field(&receipts[2], "previous_source").unwrap()).unwrap();
+        let transition = field(&newer.provenance, "transition").unwrap();
+        assert_eq!(
+            field(transition, "request_digest").unwrap(),
+            field(&receipts[2], "request_digest").unwrap()
+        );
+        assert_eq!(
+            text(transition, "request_digest_profile").unwrap(),
+            JCS_DIGEST_TAG
+        );
+
+        // A history whose receipt names an unknown profile is refused.
+        let old_ref = field(&receipts[0], "previous_source").unwrap().clone();
+        let damaged = selected_linguistic_owner_with(|receipts| {
+            set(
+                receipts.last_mut().unwrap(),
+                "request_digest_profile",
+                string("legacy"),
+            )
+            .unwrap();
+        });
+        assert!(resolve(&damaged, &old_ref).is_err());
     }
 }

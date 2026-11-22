@@ -3,7 +3,10 @@
 use crate::{Error, Result};
 use serde_json::{Map, Value, json};
 use std::collections::{BTreeMap, BTreeSet};
-use tos_foundation::{CanonicalProfile, Digest256, JsonLimits, canonical_raw_bytes_v1};
+use tos_foundation::{
+    CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonLimits, JsonMode, canonical_raw_bytes_v1,
+    jcs_digest_v1, parse_json,
+};
 
 pub(crate) fn text<'a>(v: &'a Value, key: &str) -> Result<&'a str> {
     v.get(key)
@@ -55,6 +58,36 @@ pub(crate) fn encode(v: &Value, cap: usize) -> Result<Vec<u8>> {
 }
 pub(crate) fn digest(v: &Value, cap: usize) -> Result<String> {
     Ok(Digest256::of_bytes(&encode(v, cap)?).to_hex())
+}
+/// Whether a retained command receipt's `request_digest` is the digest of its
+/// request under the profile the receipt names: an untagged receipt keeps the
+/// digest it was written with, and a `jcs1` receipt (TOS-D-0088) carries the
+/// RFC 8785 digest. A tag never falls back to another profile.
+pub(crate) fn receipt_request_digest_matches(
+    receipt: &Value,
+    request: &Value,
+    cap: usize,
+) -> Result<bool> {
+    let recorded = receipt.get("request_digest").and_then(Value::as_str);
+    let expected = match receipt.get("request_digest_profile") {
+        None => format!("sha256:{}", digest(request, cap)?),
+        Some(Value::String(tag)) if tag == JCS_DIGEST_TAG => {
+            let raw = serde_json::to_vec(request)
+                .map_err(|_| Error::Invalid("receipt request encode"))?;
+            let limits = JsonLimits {
+                max_bytes: cap.min(8_388_608),
+                ..JsonLimits::default()
+            };
+            let parsed = parse_json(&raw, JsonMode::PublishedStrict, limits)
+                .map_err(|_| Error::Invalid("receipt request JSON"))?;
+            jcs_digest_v1(parsed.root(), limits)
+                .map_err(|_| Error::Invalid("receipt request jcs1 digest"))?
+                .digest
+                .to_prefixed()
+        }
+        Some(_) => return Ok(false),
+    };
+    Ok(recorded == Some(expected.as_str()))
 }
 pub(crate) fn node_id(kind: &str, reference: &str) -> String {
     if matches!(kind, "identity" | "claim" | "provenance_event" | "review") {
