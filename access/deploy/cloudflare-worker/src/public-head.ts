@@ -53,6 +53,18 @@ export const HEADS: Record<string, Record<"en" | "ru", Head>> = {
       description: "Философия прекрасного, искусства и чувственного опыта в Древе Софии.",
     },
   },
+  population: {
+    en: {
+      title: "Population · Tree of Sophia",
+      og: "Population · Tree of Sophia",
+      description: "Everyone whose texts are in the Tree of Sophia's corpus, from the sages of antiquity to philosophers writing today.",
+    },
+    ru: {
+      title: "Популяция · Древо Софии",
+      og: "Популяция · Древо Софии",
+      description: "Все, чьи тексты есть в корпусе Древа Софии: от древних мудрецов до философов, которые пишут сегодня.",
+    },
+  },
 };
 const SITE = { en: "Tree of Sophia", ru: "Древо Софии" } as const;
 const OG_LOCALE = { en: "en_US", ru: "ru_RU" } as const;

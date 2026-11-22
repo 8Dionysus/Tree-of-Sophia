@@ -1,0 +1,35 @@
+{
+ "made": "bonsai/review/population/nodes.py",
+ "posture": {
+  "ru": "Мастер-таблицы исследования, из которых взяты узлы. Сами таблицы в репозитории не хранятся: здесь их путь в зеркале, размер и SHA-256.",
+  "en": "The master tables of the research the nodes are taken from. The tables are not kept here: only their path in the mirror, size and SHA-256."
+ },
+ "manifest": {
+  "path": "MANIFEST_SHA256.csv",
+  "bytes": 242613,
+  "sha256": "410b3afc8524824de15083f5fbecdfea1b356ff5c89d3d20c38d797a47a97bd7"
+ },
+ "tables": [
+  {
+   "table": "I",
+   "path": "0_Master-table/1 мастер-таблица для ToS.docx",
+   "bytes": 377421,
+   "sha256": "3618241bb3f682dd412e5aed5d36ae17c84b1744d37ed0d2a10221992455048a",
+   "rows": 48
+  },
+  {
+   "table": "II",
+   "path": "0_Master-table/2 мастер-таблица для ToS.docx",
+   "bytes": 88885,
+   "sha256": "5b72771387cb6ce29e3b6e0de5eb86b87a32fb6b878a3c2724ee9008d360c969",
+   "rows": 58
+  },
+  {
+   "table": "III",
+   "path": "0_Master-table/3 мастер-таблица для ToS.docx",
+   "bytes": 246381,
+   "sha256": "e8b81b58465cf63a888e8a0289290034a2f15da40b497289dc50d9741ebf7e58",
+   "rows": 84
+  }
+ ]
+}

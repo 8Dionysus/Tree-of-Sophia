@@ -8,6 +8,7 @@ export function publicPrototypeAsset(pathname: string): string | null {
   if (pathname === '/zarathustra' || pathname === '/zarathustra/') return '/zarathustra/';
   if (pathname === '/antiquity' || pathname === '/antiquity/') return '/antiquity/';
   if (pathname === '/aesthetics' || pathname === '/aesthetics/') return '/aesthetics/';
+  if (pathname === '/population' || pathname === '/population/') return '/population/';
   return null;
 }
 

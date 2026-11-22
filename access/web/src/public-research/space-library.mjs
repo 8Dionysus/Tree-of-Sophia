@@ -262,7 +262,7 @@ async function makeAntiquity(sources, structureByDocument) {
 
 /** Prepare a profile-specific, metadata-bounded Constructor library for the public space. */
 export async function createPublicSpace({profile, provider} = {}) {
-  if (!['zarathustra', 'antiquity', 'aesthetics'].includes(profile)) throw new TypeError('An explicit public space profile is required.');
+  if (!['zarathustra', 'antiquity', 'aesthetics', 'population'].includes(profile)) throw new TypeError('An explicit public space profile is required.');
   // The stand's own bonsai arrives with it; another stand's never does.
   const [sources] = await Promise.all([selectedDocuments(provider, profile), loadBonsai(profile)]);
   const structures = new Map();
@@ -273,9 +273,10 @@ export async function createPublicSpace({profile, provider} = {}) {
   let prepared = profile === 'zarathustra'
     ? await makeZarathustra(sources, structures.get(PUBLIC_PROFILE_IDS.zarathustra) ?? [])
     : profile === 'antiquity' ? await makeAntiquity(sources, structures) : null;
-  if(profile==='aesthetics'){
-    const {makeAesthetics}=await import('./aesthetics-library.mjs');
-    const library=makeAesthetics(await loadBonsai(profile));
+  if(profile==='aesthetics'||profile==='population'){
+    const library=profile==='aesthetics'
+      ?(await import('./aesthetics-library.mjs')).makeAesthetics(await loadBonsai(profile))
+      :(await import('./population-library.mjs')).makePopulation(await loadBonsai(profile));
     library.fingerprint=await digest({...library,fingerprint:undefined});
     prepared={library,bindings:new Map(),documentBindings:new Map()};
   }else await extendPublicCollection(prepared,{profile,sources,provider,structures,loadStructure:(document,version)=>exactStructure(provider,document,version)});

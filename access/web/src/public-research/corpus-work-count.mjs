@@ -4,6 +4,8 @@ import {corpusProfile} from './bonsai.mjs';
 export function publicCorpusWorkCount(profile, manifest, identities = {}) {
   const ownIds = manifest?.profiles?.[profile]?.documentIds;
   if (Array.isArray(ownIds)) return ownIds.length;
+  // The Population holds people, not texts: it borrows Antiquity's reader but counts none of its works as its own.
+  if (profile === 'population') return null;
 
   const fallbackIds = manifest?.profiles?.[corpusProfile(profile)]?.documentIds;
   if (!Array.isArray(fallbackIds)) return null;

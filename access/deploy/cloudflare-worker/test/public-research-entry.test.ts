@@ -25,6 +25,8 @@ test("public page paths map to their MPA HTML and receive security headers", asy
     ["/antiquity/", "/antiquity/"],
     ["/aesthetics", "/aesthetics/"],
     ["/aesthetics/", "/aesthetics/"],
+    ["/population", "/population/"],
+    ["/population/", "/population/"],
   ]) {
     const response = await app.fetch(new Request(`https://treeofsophia.com${path}`));
     assert.equal(app.paths.at(-1), expected);
