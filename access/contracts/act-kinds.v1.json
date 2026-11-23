@@ -166,6 +166,19 @@
       "target_prefix": [
         "branch:"
       ]
+    },
+    {
+      "name": "surface",
+      "description": "A surface an agent or the person shaped on the page (surface-spec.v1), kept to open again; a later surface act under the same address replaces it. It is presentation: it changes no source, review, rights or canon.",
+      "grounds": "optional",
+      "parents": "optional",
+      "body_required": [
+        "title",
+        "surface"
+      ],
+      "target_prefix": [
+        "surface:"
+      ]
     }
   ],
   "decisions": [

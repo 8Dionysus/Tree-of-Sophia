@@ -248,6 +248,9 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   let criterion=criteria.some(item=>item.id===linkedCriterion)?linkedCriterion:criteria[0]?.id??null,traceConcept=linkedConcept||null,measureOpen=false,nearCenter=null;
   // Other surfaces add their own blocks to the measure panel (research-trail.mjs adds the frontier).
   const measureBlocks=new Set();
+  // Blocks an agent's surface lays at the end of a star's card (surface.mjs); each draws itself for the card's subject.
+  const cardBlocks=new Set();
+  const extendCard=id=>{for(const render of cardBlocks){try{render(panelContent,id);}catch(error){console.error('Card block',error);}}};
   const extendMeasure=()=>{for(const render of measureBlocks){try{render(panelContent,{bars});}catch(error){console.error('Measure block',error);}}};
   const desktopMode=window.matchMedia('(min-width: 761px)');
   // A narrow bar gives the search a short word, so it is read whole.
@@ -1247,6 +1250,23 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     if(trialLens){const off=button(t('trialLensOff'),'text-button');off.addEventListener('click',()=>setTrialLens(null));trialChip.append(el('span','ps-trial-name',`${t('trialLens')}: ${spec.title}`),off);}
     refreshSky();return Boolean(trialLens);
   }
+  // An agent's surface on the sky (surface.mjs): its stars stand out and its links brighten, with the rest stepping back
+  // when it asks; a chip names whose light it is until the person takes it off.
+  let surfaceSky=null;
+  const surfaceChip=el('div','ps-trial-lens ps-surface-sky');surfaceChip.hidden=true;
+  function withSurfaceSky(view){
+    if(!surfaceSky||!view)return view;
+    const mine=node=>surfaceSky.members.has(node.materialId)||surfaceSky.members.has(String(node.id).replace(/^material:/,''))||surfaceSky.members.has(node.coreId)||surfaceSky.members.has(node.id);
+    return {...view,nodes:view.nodes.map(node=>mine(node)?{...node,prominent:true,dim:false}:surfaceSky.dimRest?{...node,dim:true,prominent:false}:node),
+      edges:view.edges.map(edge=>surfaceSky.relations.has(edge.coreRecord?.id)||surfaceSky.relations.has(edge.id)?{...edge,highlight:true}:edge)};
+  }
+  function setSurfaceSky(spec,{off}={}){
+    surfaceSky=spec&&(spec.members?.length||spec.relations?.length)?{members:new Set((spec.members??[]).flatMap(id=>[id,coreMaterial(id)].filter(Boolean))),relations:new Set(spec.relations??[]),dimRest:Boolean(spec.dimRest)}:null;
+    if(!surfaceChip.isConnected)shell.append(surfaceChip);
+    surfaceChip.hidden=!surfaceSky;surfaceChip.replaceChildren();
+    if(surfaceSky){const stop=button(t('trialLensOff'),'text-button');stop.addEventListener('click',()=>{setSurfaceSky(null);off?.();});surfaceChip.append(el('span','ps-trial-name',spec.title),stop);}
+    refreshSky();return Boolean(surfaceSky);
+  }
   // An agent's routes (L4) join the stand's own and are walked by the same walker; each is the agent's proposal.
   // Routes from agents' work: the field's routes (L4) and replays of an agent's or a squad's work (C9), each group
   // replaced on its own.
@@ -1294,13 +1314,13 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   function setOwnSky(on){ownSkyOn=Boolean(on);try{localStorage.setItem(OWN_SKY_KEY,ownSkyOn?'on':'off');}catch{}shell.dataset.ownSky=String(ownSkyOn);notify(t(ownSkyOn?'ownSkyOn':'ownSkyOff'));refreshSky();}
   function refreshSky(){
     sky?.setCloseIn?.(treeView()||gatherView());sky?.setZoomCeiling?.(treeView()||gatherView()?14:4);
-    if(!sky)return;shownView=withAgents(withHighlight(withTrialLens(withOwnSky(visibleState()))));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
+    if(!sky)return;shownView=withAgents(withSurfaceSky(withHighlight(withTrialLens(withOwnSky(visibleState())))));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));rising.clear();sky.select(selected);sky.selectEdge(selectedEdge);
     // An aspect is framed whole once, when its choice is made: the chosen star or link and the rows beside it.
     const key=aspect?`${aspect.kind}:${aspect.focus.join('|')}`:'';
     if(key!==aspectKey){const was=aspectKey;aspectKey=key;aspectOpen={};
       // An aspect is read straight on; letting it go returns the space to its resting turn.
       if(aspect)sky.faceFront();else if(was)sky.turnToRest();
-      if(aspect){shownView=withAgents(withHighlight(withTrialLens(withOwnSky(visibleState()))));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
+      if(aspect){shownView=withAgents(withSurfaceSky(withHighlight(withTrialLens(withOwnSky(visibleState())))));sky.update(shownView,Object.fromEntries(graphState().nodes.map(node=>[node.id,label(matForNode(node)??node)])));sky.revealAll(aspect.ids);}}
     sky.refresh();
   }
   function reflect(){
@@ -2199,7 +2219,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     const trays=bench&&!subjectChanged?benchTrays():null;
     delete panelContent.dataset.termWorks;delete panelContent.dataset.termNode;
     renderRoutes();renderLensControls(mode);
-    if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node'){renderNode(selected);paintAgentsHere(selected);}else if(mode==='edge')renderEdge(selectedEdge);else if(mode==='measure')renderMeasure();
+    if(mode==='overview')renderWelcome();else if(mode==='route')renderStepNode();else if(mode==='node'){renderNode(selected);paintAgentsHere(selected);extendCard(selected);}else if(mode==='edge')renderEdge(selectedEdge);else if(mode==='measure')renderMeasure();
     if(bench)openBench(mode,trays);
     // The scale of time shows the chosen move's author's life, so a new choice redraws its strip.
     if(measuredLens(lens)&&scaleChoice!==selected)refreshSky();
@@ -2797,7 +2817,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
     routes:()=>[...routes,...journeyList].map(item=>({id:item.id,source:item.source??'atlas',title:item.title,steps:item.steps?.length??0})),
     // A device's turn (sky-window.mjs) turns the space as the arrows do.
     turnBy:(dx,dy)=>sky?.turnBy?.(dx,dy),
-    setTrialLens:spec=>setTrialLens(spec),setHighlight:value=>setHighlight(value),highlightLegend:()=>highlightLegend,setAgentPresence:value=>setAgentPresence(value),agentsLegend:()=>agentsLegend,trialLens:()=>trialLens?{title:trialLens.title,members:trialLens.members.size}:null,setAgentRoutes:(list,group)=>setAgentRoutes(list,group),
+    setTrialLens:spec=>setTrialLens(spec),setSurfaceSky:(spec,options)=>setSurfaceSky(spec,options),surfaceSkyChip:()=>surfaceChip,addCardBlock:render=>{cardBlocks.add(render);if(columnMode()==='node'&&selected)renderColumn();return ()=>{cardBlocks.delete(render);};},refreshCard:()=>{if(columnMode()==='node'&&selected)renderColumn();},setHighlight:value=>setHighlight(value),highlightLegend:()=>highlightLegend,setAgentPresence:value=>setAgentPresence(value),agentsLegend:()=>agentsLegend,trialLens:()=>trialLens?{title:trialLens.title,members:trialLens.members.size}:null,setAgentRoutes:(list,group)=>setAgentRoutes(list,group),
     setOwnSkyState:value=>{ownSky=value?{known:new Set(value.known??[]),found:new Set(value.found??[])}:null;if(ownSkyOn)refreshSky();},
     ownSky:()=>({available:Boolean(ownSky?.known.size),on:ownSkyOn,opened:ownSky?.known.size??0}),toggleOwnSky:force=>setOwnSky(force??!ownSkyOn),
     connectFrom:id=>{beginConnect(graphIdForMaterial(index?.get(id)?.materialId??id));return true;},

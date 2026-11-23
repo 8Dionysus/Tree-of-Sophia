@@ -554,6 +554,7 @@ pub struct BridgeProfile {
     pub pace_step_ms: u64,
     pub pace_max_ms: u64,
     pub snapshot_every_records: u64,
+    pub surface_receipt_wait_ms: u64,
 }
 impl BridgeProfile {
     fn read(value: &JsonValue, default: &JsonValue) -> Result<Self> {
@@ -569,6 +570,7 @@ impl BridgeProfile {
                 "pace_step_ms",
                 "pace_max_ms",
                 "snapshot_every_records",
+                "surface_receipt_wait_ms",
             ],
         )?;
         let defaults = object_unchecked(default)?;
@@ -589,6 +591,7 @@ impl BridgeProfile {
             pace_step_ms: field("pace_step_ms")?,
             pace_max_ms: field("pace_max_ms")?,
             snapshot_every_records: field("snapshot_every_records")?,
+            surface_receipt_wait_ms: field("surface_receipt_wait_ms")?,
         })
     }
 }

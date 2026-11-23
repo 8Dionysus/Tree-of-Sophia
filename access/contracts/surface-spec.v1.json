@@ -1,0 +1,90 @@
+{
+  "schema": "tos.surface.spec.v1",
+  "purpose": "The surface an agent shapes on the person's page while they watch: blocks in a few places, bound to data the page already reads, changed by small atomic operations that the page draws at once and answers with what it drew. The rules live in tos-web-rules (surface.rs) and run the same in the browser and at the bridge.",
+  "authority_limit": "A surface changes what this page shows and nothing else. It never writes ToS source, review, rights or canon; it writes an act only when someone keeps it; it never covers the person's own controls; it carries text, addresses and choices from this contract, never markup, styles, scripts or outside links. Every block is framed as the work of who shaped it, and the person can freeze, undo or clear it at any time.",
+  "places": [
+    {
+      "name": "dock",
+      "shows": "a panel beside the space (a sheet on a phone) headed by the surface's title and who shapes it",
+      "blocks": ["heading", "text", "metric", "list", "table", "bars", "chips", "button", "group"]
+    },
+    {
+      "name": "strip",
+      "shows": "one row above the space for short facts and buttons",
+      "blocks": ["text", "metric", "chips", "button"]
+    },
+    {
+      "name": "card",
+      "shows": "blocks at the end of the open card of a subject; a parameter \"$selected\" reads the subject the card shows",
+      "blocks": ["heading", "text", "metric", "list", "table", "bars", "chips", "button", "group"]
+    },
+    {
+      "name": "sky",
+      "shows": "the agent's light on the sky, named in its own chip: stars that stand out and links that brighten; with dim_rest the rest steps back",
+      "blocks": ["highlight", "links"]
+    }
+  ],
+  "blocks": [
+    {"kind": "heading", "required": ["text"], "optional": [], "shows": "a heading"},
+    {"kind": "text", "required": ["text"], "optional": ["tone", "bind"], "shows": "a paragraph; with bind, {field} in the text reads the first row"},
+    {"kind": "metric", "required": ["label"], "optional": ["value", "bind", "field"], "shows": "one number or short fact with its label; with bind, field names the row field (default: the number of rows)"},
+    {"kind": "list", "required": ["bind", "title"], "optional": ["meta", "target", "empty"], "shows": "rows as lines: title and meta are templates over a row; target is a template giving the subject a click selects"},
+    {"kind": "table", "required": ["bind", "columns"], "optional": ["empty", "target"], "shows": "rows as a table; columns are {field, title}"},
+    {"kind": "bars", "required": ["bind", "label", "value"], "optional": ["target"], "shows": "a bar for each row: label is a template, value a numeric field"},
+    {"kind": "chips", "required": [], "optional": ["members", "bind", "label", "target"], "shows": "subjects as chips that select them: members are addresses, or a bind with label and target templates"},
+    {"kind": "button", "required": ["label", "command"], "optional": ["input"], "shows": "a button that runs one page command when the person presses it"},
+    {"kind": "group", "required": ["title", "children"], "optional": ["open"], "shows": "a titled group of blocks, open or folded"},
+    {"kind": "highlight", "required": [], "optional": ["members", "bind", "target", "dim_rest", "title"], "shows": "stars that stand out on the sky: members are addresses, or a bind with a target template"},
+    {"kind": "links", "required": [], "optional": ["relations", "bind", "target", "title"], "shows": "links that brighten on the sky: relations are relation addresses, or a bind with a target template"}
+  ],
+  "tones": ["plain", "quiet", "note", "warn"],
+  "commands": [
+    "tos.page.select",
+    "tos.page.open-view",
+    "tos.page.search",
+    "tos.page.show-neighborhood",
+    "tos.page.set-lens",
+    "tos.page.set-layer",
+    "tos.page.start-route",
+    "tos.page.compare"
+  ],
+  "sources": [
+    {"name": "journal", "params": {"view": "a fold of the act journal: summary, act, target, board, review, decided, leases, presence, history, kinds, squads", "address": "for target", "id": "for act and history", "window_ms": "for presence and squads"}, "rows": "the fold as tos.act.query returns it, read up to 1000 rows; path picks a list inside it"},
+    {"name": "search", "params": {"query": "words to find in the stand's research index"}, "rows": "up to 50 rows {id, kind, label}"},
+    {"name": "item", "params": {"id": "a subject address or \"$selected\""}, "rows": "one row: the subject with its dependencies and backlinks"},
+    {"name": "selected", "params": {}, "rows": "one row: the selected subject {id, kind, label} or none"},
+    {"name": "view", "params": {}, "rows": "one row: the presence layer, lens, route and step, workbench"},
+    {"name": "field", "params": {"shape": "thought, link, lens or route", "kind": "an x.* kind"}, "rows": "the agents' field items as field-shapes.v1 draws them"},
+    {"name": "rows", "params": {"rows": "rows the agent supplies"}, "rows": "the rows as given"}
+  ],
+  "transforms": {
+    "path": "a dotted path to the list inside the source's answer (\"groups\", \"squads\", \"items\")",
+    "where": "a list of {field, op, value}; op is eq, ne, gt, gte, lt, lte, has or in",
+    "sort": "{field, desc}",
+    "count_by": "a field: rows become {value, count}, most first",
+    "limit": "rows kept after the rest, 1 to the limit below; 50 when absent"
+  },
+  "templates": "{field} or {field.sub} reads a row; {#} is the row's number from 1; a missing field reads as nothing and is named in the answer",
+  "ops": [
+    {"op": "put", "fields": ["block", "in", "parent", "after", "before", "at"], "does": "add a block or replace the one with its id; in names the place (dock when absent), parent a group; after, before or at place it; a replaced block keeps its position unless another place or position is given"},
+    {"op": "set", "fields": ["id", "field", "value"], "does": "set one field of a block by a dotted name (title, bind.limit, columns); a null value removes it"},
+    {"op": "move", "fields": ["id", "in", "parent", "after", "before", "at"], "does": "move a block to another place or position"},
+    {"op": "remove", "fields": ["id"], "does": "remove a block with what it holds"},
+    {"op": "clear", "fields": ["in"], "does": "remove every block of a place, or of the whole surface"},
+    {"op": "title", "fields": ["text"], "does": "name the surface"}
+  ],
+  "limits": {
+    "blocks": 80,
+    "depth": 3,
+    "ops_per_patch": 64,
+    "surface_bytes": 49152,
+    "text_chars": 2000,
+    "template_chars": 500,
+    "id_chars": 64,
+    "members": 400,
+    "rows": 200,
+    "columns": 8,
+    "where": 8,
+    "history": 32
+  }
+}

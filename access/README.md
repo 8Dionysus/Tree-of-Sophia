@@ -65,6 +65,17 @@ posture is `local_only`. Its pages may use the orientation sensor and the
 microphone, which the published site keeps closed. The deployment profile's `bridge` fields bound its
 connections, event streams, request bodies, store windows and the review queue
 by which it paces agents' tickets and proposals.
+
+Agents also shape the person's page there ([TOS-D-0089](../docs/decisions/TOS-D-0089-a-surface-agents-shape-live.md)):
+`tos.surface.describe` returns the contract ([`surface-spec.v1`](contracts/surface-spec.v1.json))
+and the surface as it stands, `tos.surface.patch` applies small operations to
+blocks in the dock, the strip, the card and the sky, and its answer waits for
+the open page's drawing (per block: rows, total and fields a template asked for
+that no row had). `tos.surface.try`, `.state`, `.undo`, `.keep` and `.open`
+complete the set; the same tools exist on the page over WebMCP. The person
+freezes, undoes, folds or clears the surface, and the bridge's pause and tier
+hold for patches as for acts. The bridge keeps the surface beside the store
+(`surface.json`).
 Prepared-reader flags belong to the explicit prepared route below and are
 refused by source-backed diagnostics. The installed product is the native
 software archive and its `bin/tos` entrypoint; there is no maintained Python

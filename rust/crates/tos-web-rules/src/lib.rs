@@ -24,6 +24,11 @@ mod corpus_reference;
 pub use constructor_reading::constructor_reading_v1;
 #[cfg(feature = "wasm")]
 pub use constructor_reading::constructor_reading_wasm_v1;
+pub use surface::{
+    SURFACE_SCHEMA, Shaped, Surface, SurfaceError, SurfaceLimits, display as surface_display,
+    fill as surface_fill, shape as surface_shape, surface_contract, surface_limits,
+    view as surface_view,
+};
 #[cfg(feature = "wasm")]
 mod browser_value;
 #[cfg(feature = "wasm")]
@@ -55,6 +60,7 @@ mod source_dossier;
 mod source_form_session;
 #[cfg(feature = "wasm")]
 mod source_text_search;
+mod surface;
 mod temporal_session;
 #[cfg(feature = "wasm")]
 mod webmcp;

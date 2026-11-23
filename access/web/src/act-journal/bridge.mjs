@@ -36,6 +36,15 @@ export function createBridgeStore({fetch=globalThis.fetch,EventSource=globalThis
     return value;
   };
   let source=null;
+  const surfaceListeners=new Set();
+  // The surface at the bridge (surface.mjs): a refusal keeps the rules' whole answer for the agent.
+  const surfaceCall=async(path,body)=>{
+    const response=await fetch(`${BRIDGE_API}${path}`,{method:body===undefined?'GET':'POST',credentials:'same-origin',cache:'no-store',
+      headers:body===undefined?undefined:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
+    const value=await response.json().catch(()=>null);
+    if(!response.ok)throw Object.assign(new Error(value?.message??value?.error??`bridge_http_${response.status}`),{detail:value});
+    return value;
+  };
   return {
     kind:'bridge',persistent:true,
     status:()=>call('hello'),
@@ -52,9 +61,14 @@ export function createBridgeStore({fetch=globalThis.fetch,EventSource=globalThis
       if(typeof EventSource!=='function')return ()=>{};
       source=new EventSource(`${BRIDGE_API}events`,{withCredentials:true});
       source.addEventListener('acts',event=>{try{listener(JSON.parse(event.data).last);}catch{}});
+      source.addEventListener('surface',event=>{let value;try{value=JSON.parse(event.data);}catch{return;}for(const fn of surfaceListeners)fn(value);});
       return ()=>{source?.close();source=null;};
     },
-    close(){source?.close();source=null;},
+    surfaceState:()=>surfaceCall('surface'),
+    surfaceApply:body=>surfaceCall('surface',body),
+    surfaceReceipt:receipt=>surfaceCall('surface/receipt',receipt),
+    onSurface(listener){surfaceListeners.add(listener);return ()=>surfaceListeners.delete(listener);},
+    close(){source?.close();source=null;surfaceListeners.clear();},
   };
 }
 
@@ -99,6 +113,8 @@ export function createBridgeJournal({store=createBridgeStore()}={}){
     /** The bridge's own state and the person's control over the army: pause and the agents' tier. */
     bridgeStatus:()=>store.status(),
     control:change=>store.control(change),
+    /** The surface the bridge holds for agents to shape (surface.mjs). */
+    surfaceChannel:()=>store.surfaceState?{state:store.surfaceState,apply:store.surfaceApply,receipt:store.surfaceReceipt,listen:fn=>store.onSurface(fn)}:null,
     get size(){return known;},
     subscribe(listener){listeners.add(listener);return ()=>listeners.delete(listener);},
     dispose(){disposed=true;listeners.clear();stop();store.close?.();},

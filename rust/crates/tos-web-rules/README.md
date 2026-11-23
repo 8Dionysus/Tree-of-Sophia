@@ -21,6 +21,17 @@ from thrown source errors. Network reads, cancellation and asynchronous readable
 context verification remain in the existing browser driver. Its response-byte
 budget is unchanged; these operations do not claim an additional heap/RSS limit.
 
+## Agent surface
+
+`surface.rs` owns the surface agents shape on a stand's page
+([TOS-D-0089](../../../docs/decisions/TOS-D-0089-a-surface-agents-shape-live.md),
+`access/contracts/surface-spec.v1.json`): checking blocks against the contract,
+patches of operations applied all or none, the revision, undo, freezing,
+shaping a source's answer into rows and the exact view a block draws, with
+notes naming fields no row had. The browser uses it through `SurfaceV1`; the
+bridge (`tos-access`) uses the same `Surface` natively. Reading sources and
+building elements remain host duties.
+
 ## Corpus text references
 
 `corpus_reference_rule_v1` owns canonical validation, stable keys, document

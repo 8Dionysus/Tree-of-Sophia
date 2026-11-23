@@ -1,0 +1,75 @@
+/* The agent's surface (В7): a dashed frame says it is an agent's work, as the trial lens's chip does. */
+#tree .sf-dock{position:absolute;z-index:13;left:var(--ps-map-left);top:150px;width:min(330px,calc(100% - var(--ps-map-left) - var(--ps-map-right)));max-height:calc(100% - 330px);display:flex;flex-direction:column;border:1px dashed #dcc69088;border-radius:14px;background:#08111ff2;color:#e9dcc0;font:400 13px/1.45 var(--ps-sans);box-shadow:0 10px 28px #000a}
+#tree .sf-dock[hidden]{display:none}
+#tree .sf-dock[data-folded=true]{max-height:none}
+#tree .sf-dock[data-frozen=true]{border-style:solid;border-color:#8fb3d988}
+#tree .sf-head{display:flex;align-items:center;gap:6px;padding:8px 8px 8px 14px;border-bottom:1px solid #dcc69022}
+#tree .sf-dock[data-folded=true] .sf-head{border-bottom:0}
+#tree .sf-label{display:flex;flex-direction:column;min-width:0;flex:1}
+#tree .sf-title{overflow:hidden;color:var(--ps-ink,#f2e6c8);font:500 14px/1.3 var(--ps-sans);white-space:nowrap;text-overflow:ellipsis}
+#tree .sf-by{overflow:hidden;color:#8ea3bd;font-size:11px;white-space:nowrap;text-overflow:ellipsis}
+#tree .sf-tools{display:flex;gap:2px}
+#tree .sf-tools .icon{width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#cbb98f;font:400 15px/1 var(--ps-sans);cursor:pointer}
+#tree .sf-tools .icon:hover,#tree .sf-tools .icon:focus-visible{background:#ffffff14}
+#tree .sf-tools .icon:disabled{opacity:.35;cursor:default}
+#tree .sf-tools .sf-freeze[aria-pressed=true]{background:#8fb3d933;color:#d6e6f7}
+#tree .sf-body{overflow:auto;padding:10px 14px 12px;overscroll-behavior:contain}
+#tree .sf-body[hidden]{display:none}
+#tree .sf-block{margin:0 0 10px}
+#tree .sf-block:last-child{margin-bottom:0}
+#tree .sf-block h3{margin:4px 0 6px;color:var(--ps-ink,#f2e6c8);font:500 15px/1.3 var(--ps-serif)}
+#tree .sf-text p{margin:0}
+#tree .sf-text[data-tone=quiet]{color:#8ea3bd}
+#tree .sf-text[data-tone=note]{padding:6px 10px;border-left:2px solid #dcc69088;background:#dcc6900d}
+#tree .sf-text[data-tone=warn]{padding:6px 10px;border-left:2px solid #e39a7a;background:#e39a7a12}
+#tree .sf-metric{display:flex;align-items:baseline;gap:8px}
+#tree .sf-value{color:var(--ps-gold,#dcc690);font:500 18px/1.2 var(--ps-sans);font-variant-numeric:tabular-nums}
+#tree .sf-metric-label{color:#a9b8cc}
+#tree .sf-list{margin:0;padding:0;list-style:none}
+#tree .sf-list li{display:flex;flex-direction:column;padding:5px 6px;border-radius:8px}
+#tree .sf-item-title{color:#e9dcc0}
+#tree .sf-meta{color:#8ea3bd;font-size:12px}
+#tree .sf-target{cursor:pointer}
+#tree .sf-target:hover,#tree .sf-target:focus-visible{background:#ffffff0f;outline:none}
+#tree .sf-table{width:100%;border-collapse:collapse;font-size:12px}
+#tree .sf-table th{color:#8ea3bd;font-weight:500;text-align:left;border-bottom:1px solid #ffffff1a;padding:3px 6px}
+#tree .sf-table td{padding:4px 6px;border-bottom:1px solid #ffffff0d;font-variant-numeric:tabular-nums}
+#tree .sf-bar{display:grid;grid-template-columns:minmax(0,1fr) 38% auto;align-items:center;gap:8px;padding:2px 4px;border-radius:6px}
+#tree .sf-bar-label{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#tree .sf-bar-fill{height:6px;border-radius:3px;background:linear-gradient(90deg,#dcc690 calc(var(--share,0)*100%),#ffffff12 0)}
+#tree .sf-bar .sf-value{font-size:12px}
+#tree .sf-chips,#tree .sf-strip{display:flex;flex-wrap:wrap;gap:6px}
+#tree .sf-chip{padding:3px 10px;border:1px dashed #dcc69077;border-radius:999px;background:#ffffff08;color:#e9dcc0;font:400 12px/1.4 var(--ps-sans);cursor:pointer}
+#tree .sf-chip:hover,#tree .sf-chip:focus-visible{background:#dcc6901f}
+#tree .sf-group{margin:0 0 10px;padding:4px 0 0}
+#tree .sf-group>summary{cursor:pointer;color:var(--ps-ink,#f2e6c8);font:500 13px/1.4 var(--ps-sans)}
+#tree .sf-group>.sf-block{margin-left:10px}
+#tree .sf-empty{margin:0;color:#8ea3bd;font-style:italic}
+#tree .sf-error{color:#e39a7a}
+#tree .sf-run{padding:6px 12px}
+/* The strip stands above the space; the heading steps down while it is there. */
+#tree .sf-strip{position:absolute;z-index:14;top:66px;left:var(--ps-map-left);right:var(--ps-map-right);justify-content:center;align-items:center;pointer-events:none}
+#tree .sf-strip[hidden]{display:none}
+#tree .sf-strip>*{pointer-events:auto;margin:0;padding:4px 12px;border:1px dashed #dcc69066;border-radius:999px;background:#08111ff0;box-shadow:0 6px 18px #0008}
+#tree .sf-strip .sf-metric .sf-value{font-size:14px}
+#tree .sf-strip .sf-chip{border:0;padding:0 4px;background:none}
+#tree.pr-public-space[data-surface-strip] .ps-orientation{top:110px}
+#tree .sf-strip>.ps-surface-sky{position:static;transform:none;padding:4px 6px 4px 12px;border-style:dashed;white-space:nowrap}
+/* In the card the surface ends the star's own words, under who shaped it. */
+#tree .sf-card{margin:18px 0 0;padding:10px 12px;border:1px dashed #dcc69066;border-radius:12px;background:#dcc69008;font:400 13px/1.45 var(--ps-sans);color:#e9dcc0}
+#tree .sf-card-by{margin:0 0 8px;color:#8ea3bd;font-size:11px;letter-spacing:.04em}
+#tree .sf-card .sf-block h3{font-size:14px}
+@media(max-width:760px){
+  #tree .sf-dock{position:fixed;left:8px;right:8px;top:auto;bottom:calc(184px + env(safe-area-inset-bottom,0px));width:auto;max-height:40vh}
+  #tree:is([data-sheet=open],[data-sheet=full]) .sf-dock{display:none}
+  #tree .sf-strip{top:calc(var(--rb-h,56px) + 44px);left:12px;right:12px;justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  #tree .sf-strip>*{flex:0 0 auto;white-space:nowrap;padding:3px 10px}
+  #tree .sf-strip .sf-value{font-size:13px}
+  #tree.pr-public-space[data-surface-strip] .ps-orientation{top:calc(var(--rb-h,56px) + 96px)}
+}
+/* The noon theme (site-theme.css): paper under the same frame. */
+:root[data-site-theme="noon"] #tree :is(.sf-dock,.sf-strip>*){background:#fbf8f1f5;color:#2b2a26;border-color:#8a6d2e88;box-shadow:0 8px 22px #3b2f1a22}
+:root[data-site-theme="noon"] #tree :is(.sf-title,.sf-item-title,.sf-chip,.sf-block h3,.sf-group>summary){color:#2b2a26}
+:root[data-site-theme="noon"] #tree :is(.sf-by,.sf-meta,.sf-metric-label,.sf-card-by,.sf-empty,.sf-table th){color:#6b6455}
+:root[data-site-theme="noon"] #tree :is(.sf-value,.sf-tools .icon){color:#7a5a12}
+:root[data-site-theme="noon"] #tree .sf-card{background:#8a6d2e0d;color:#2b2a26}

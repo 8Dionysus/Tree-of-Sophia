@@ -400,6 +400,13 @@
           "maximum": 18446744073709551615,
           "description": "Unit: records. Records appended between two snapshots of the journal's folds; a start reads the snapshot and folds only the records after it.",
           "default": 50000
+        },
+        "surface_receipt_wait_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 18446744073709551615,
+          "description": "Unit: milliseconds. Longest wait of an agent's surface patch for the open page's answer of what it drew; the patch stands either way.",
+          "default": 1500
         }
       }
     }

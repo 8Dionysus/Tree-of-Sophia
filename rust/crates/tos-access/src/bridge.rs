@@ -6,6 +6,10 @@
 //! folded by the same Rust rules as the browser (`tos-web-rules`); the page
 //! follows the journal through an event stream, and agents reach it through
 //! MCP with the permission tiers of `access/contracts/act-commands.v1.json`.
+//! It also holds the surface agents shape on the person's page (TOS-D-0089,
+//! `access/contracts/surface-spec.v1.json`): a patch over MCP is applied by the
+//! shared rules, announced to the open page, and answered with what the page
+//! drew.
 //! It writes nothing into the Tree's sources or a stand, admits nothing and
 //! claims no review or canon: its posture is `local_only`.
 use serde_json::{Value, json};
@@ -25,7 +29,8 @@ use std::{
 };
 use tos_foundation::{Digest256Hasher, deployment_profile::BridgeProfile};
 use tos_web_rules::{
-    AGENT_TIERS, ActJournal, CheckedRecord, PERSON_ONLY_KINDS, PROPOSING_KINDS, check_stored_record,
+    AGENT_TIERS, ActJournal, CheckedRecord, PERSON_ONLY_KINDS, PROPOSING_KINDS, Surface,
+    SurfaceError, check_stored_record, surface_contract, surface_shape,
 };
 
 const REGISTRY: &[u8] = include_bytes!("../../../../access/contracts/act-kinds.v1.json");
@@ -38,6 +43,7 @@ const SNAPSHOT_FILE: &str = "acts.snapshot";
 const SNAPSHOT_MAGIC: &[u8; 8] = b"TOSBSN1\0";
 const SNAPSHOT_HEADER: usize = 56;
 const CONTROL_FILE: &str = "control.json";
+const SURFACE_FILE: &str = "surface.json";
 const MAX_HEADER_BYTES: usize = 16_384;
 const MAX_AGENT_BATCH: usize = 100;
 const RESTORE_CHUNK: usize = 8_192;
@@ -311,13 +317,26 @@ impl Store {
 
 // ---------------------------------------------------------------- state
 
+/// What a page following the bridge hears: the journal's last sequence after appends, or the surface's new revision.
+#[derive(Clone, Copy)]
+enum Event {
+    Acts(u64),
+    Surface(u64),
+}
+
+/// The surface agents shape and the page's last answer of what it drew.
+struct SurfaceHold {
+    surface: Surface,
+    drawn: Value,
+}
+
 struct State {
     journal: ActJournal,
     store: Store,
     paused: bool,
     agent_tier: String,
     last_proposing: HashMap<String, Instant>,
-    streams: Vec<mpsc::SyncSender<u64>>,
+    streams: Vec<mpsc::SyncSender<Event>>,
     ids: u64,
     since_snapshot: u64,
 }
@@ -382,14 +401,19 @@ impl State {
         if !appended.is_empty() {
             self.since_snapshot += appended.len() as u64;
             let seq = self.store.len();
-            self.streams.retain(|stream| {
-                !matches!(
-                    stream.try_send(seq),
-                    Err(mpsc::TrySendError::Disconnected(_))
-                )
-            });
+            self.announce(Event::Acts(seq));
         }
         json!({"appended": appended, "failure": failure})
+    }
+
+    /// Tell every following page; a closed page's stream is dropped.
+    fn announce(&mut self, event: Event) {
+        self.streams.retain(|stream| {
+            !matches!(
+                stream.try_send(event),
+                Err(mpsc::TrySendError::Disconnected(_))
+            )
+        });
     }
 }
 
@@ -454,6 +478,8 @@ fn random_token() -> std::io::Result<String> {
 /// The bridge: its site, its store's state and the limits it was started with.
 pub struct Bridge {
     state: Mutex<State>,
+    surface: Mutex<SurfaceHold>,
+    drawn: std::sync::Condvar,
     syncer: Syncer,
     restored: Restored,
     snapshotting: Arc<std::sync::atomic::AtomicBool>,
@@ -522,6 +548,14 @@ impl Bridge {
             done: std::sync::Condvar::new(),
         };
         let (paused, agent_tier) = read_control(store_dir);
+        // The surface the agents left stays for the next start; a damaged file starts an empty one.
+        let mut surface = Surface::new();
+        if let Some(saved) = std::fs::read(store_dir.join(SURFACE_FILE))
+            .ok()
+            .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok())
+        {
+            let _ = surface.mirror(&saved);
+        }
         let port = address.port();
         let hosts = vec![
             format!("127.0.0.1:{port}"),
@@ -530,6 +564,11 @@ impl Bridge {
         ];
         Ok(Self {
             syncer,
+            surface: Mutex::new(SurfaceHold {
+                surface,
+                drawn: Value::Null,
+            }),
+            drawn: std::sync::Condvar::new(),
             state: Mutex::new(State {
                 journal,
                 store,
@@ -624,6 +663,98 @@ impl Bridge {
 
     pub fn acts(&self) -> u64 {
         self.lock().store.len()
+    }
+
+    fn hold(&self) -> std::sync::MutexGuard<'_, SurfaceHold> {
+        self.surface
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    /// Whether agents may shape the surface now: not while the person paused them, not at the read tier.
+    fn agents_may_shape(&self) -> Result<(), Value> {
+        let state = self.lock();
+        if state.paused {
+            return Err(
+                json!({"error": "bridge_paused", "message": "the person stopped every agent: the surface takes no patch until they let them go on"}),
+            );
+        }
+        if state.agent_tier == "read" {
+            return Err(
+                json!({"error": "surface_tier", "message": "the person lets agents only read; patches wait until they allow drafts or proposals"}),
+            );
+        }
+        Ok(())
+    }
+
+    /// Keep the surface beside the store and tell the following pages its revision.
+    fn surface_changed(&self, revision: u64, state: &Value) {
+        let temporary = self.store_dir.join(format!("{SURFACE_FILE}.tmp"));
+        if std::fs::write(&temporary, state.to_string()).is_ok() {
+            let _ = std::fs::rename(temporary, self.store_dir.join(SURFACE_FILE));
+        }
+        self.lock().announce(Event::Surface(revision));
+    }
+
+    /// Change the surface under its lock, then save and announce it outside the lock.
+    fn shape<F>(&self, change: F) -> Result<Value, Value>
+    where
+        F: FnOnce(&mut Surface) -> Result<Value, SurfaceError>,
+    {
+        let (out, before, revision, state) = {
+            let mut hold = self.hold();
+            let before = hold.surface.revision();
+            let out = change(&mut hold.surface).map_err(|error| error.to_json())?;
+            (out, before, hold.surface.revision(), hold.surface.state())
+        };
+        if revision != before {
+            self.surface_changed(revision, &state);
+        }
+        Ok(out)
+    }
+
+    /// What an open page drew at or after `revision`, waiting up to the profile's bound; null when no page follows.
+    fn drawn_at(&self, revision: u64) -> Value {
+        if self.streams.load(Ordering::SeqCst) == 0 {
+            return Value::Null;
+        }
+        let deadline = Instant::now() + Duration::from_millis(self.profile.surface_receipt_wait_ms);
+        let mut hold = self.hold();
+        loop {
+            if hold.drawn["revision"]
+                .as_u64()
+                .is_some_and(|drawn| drawn >= revision)
+            {
+                return hold.drawn.clone();
+            }
+            let Some(left) = deadline.checked_duration_since(Instant::now()) else {
+                return Value::Null;
+            };
+            hold = match self.drawn.wait_timeout(hold, left) {
+                Ok((guard, _)) => guard,
+                Err(poisoned) => poisoned.into_inner().0,
+            };
+        }
+    }
+
+    /// The answer an agent reads after shaping: the change, the page's drawing and whether a page follows.
+    fn shaped(&self, mut out: Value, revision: u64) -> Value {
+        let drawn = self.drawn_at(revision);
+        out["watching"] = json!(self.streams.load(Ordering::SeqCst) > 0);
+        out["drawn"] = drawn;
+        out
+    }
+
+    /// The journal's fold a surface bind reads, for binds tried at the bridge.
+    fn journal_answer(&self, bind: &Value) -> Result<Value, String> {
+        let mut request = json!({"view": bind["view"], "now_ms": now_ms(), "limit": 1000});
+        for key in ["address", "id", "window_ms"] {
+            if !bind[key].is_null() {
+                request[key] = bind[key].clone();
+            }
+        }
+        let bytes = self.lock().journal.query(request.to_string().as_bytes())?;
+        serde_json::from_slice(&bytes).map_err(|error| error.to_string())
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, State> {
@@ -803,12 +934,21 @@ fn tools() -> Value {
     let act = json!({"type": "object", "properties": {"id": text, "kind": text, "author": {"type": "object"}, "targets": list, "grounds": list, "intent": text, "body": {"type": "object"}, "parents": list, "replaces": text}, "required": ["kind", "author", "targets", "intent"], "additionalProperties": false});
     let read = json!({"readOnlyHint": true, "untrustedContentHint": true});
     let write = json!({"readOnlyHint": false, "untrustedContentHint": true});
+    let empty = json!({"type": "object", "properties": {}, "additionalProperties": false});
+    let author = json!({"type": "object", "properties": {"id": text, "model": text}, "required": ["id"], "additionalProperties": false});
     json!([
         {"name": "tos.act.manifest", "description": "Read first: the kinds of act you may append, what each requires, the categories of tickets and proposals, the decisions, the limits, every addressed and pointing command, your permission tier and whether the bridge is paused. Acts are the person's local work; none of them writes the Tree.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": false}, "annotations": read},
         {"name": "tos.act.query", "description": "Read one fold of the act journal: summary, act (id), target (address), board, review, decided, leases (now_ms), presence (now_ms, window_ms), squads (now_ms, window_ms), history (id) or kinds.", "inputSchema": {"type": "object", "properties": {"view": text, "id": text, "address": text, "now_ms": {"type": "integer"}, "window_ms": {"type": "integer"}, "limit": {"type": "integer", "minimum": 1, "maximum": 1000}}, "required": ["view"], "additionalProperties": false}, "annotations": read},
         {"name": "tos.act.record", "description": "Read the whole stored act record by id.", "inputSchema": {"type": "object", "properties": {"id": text}, "required": ["id"], "additionalProperties": false}, "annotations": read},
         {"name": "tos.act.append", "description": "Append one act as an agent: author {type:\"agent\",id,model,role?,squad?}, at least one target address, grounds (exact places) unless the kind makes them optional, one line of intent and the kind's body. Take a lease before long work on a place; collisions report another author's live lease. Decisions, assignments and squads belong to the person. When the person's review queue grows, tickets and proposals are paced: a refusal names retry_after_ms.", "inputSchema": act, "annotations": write},
         {"name": "tos.act.append-batch", "description": format!("Append up to {MAX_AGENT_BATCH} acts in order, each as for tos.act.append. Stops at the first refusal and reports it with the acts already appended."), "inputSchema": {"type": "object", "properties": {"acts": {"type": "array", "maxItems": MAX_AGENT_BATCH, "items": {"type": "object"}}}, "required": ["acts"], "additionalProperties": false}, "annotations": write},
+        {"name": "tos.surface.describe", "description": "Read first to shape the person's page: the places, blocks, sources, transforms, templates and operations of the surface, its limits, the surface as it stands with its revision, what the open page drew last and whether a page follows. Shape it with tos.surface.patch.", "inputSchema": empty, "annotations": read},
+        {"name": "tos.surface.patch", "description": "Change the surface on the person's page with operations applied all or none: put {block, in?, parent?, after?|before?|at?}, set {id, field, value}, move {id, in?|parent?|after?|before?|at?}, remove {id}, clear {in?}, title {text}. The answer waits for the open page: per block its rows, total and the fields its templates asked for that no row had. A refusal names the op, the place and what to write instead. Pass expect_revision when several agents shape the same surface.", "inputSchema": {"type": "object", "properties": {"ops": {"type": "array", "minItems": 1, "maxItems": 64, "items": {"type": "object"}}, "author": author, "expect_revision": {"type": "integer", "minimum": 0}}, "required": ["ops", "author"], "additionalProperties": false}, "annotations": write},
+        {"name": "tos.surface.try", "description": "Try a bind without placing it: the first rows of its source as the bind shapes them, the fields they have, the total and notes. The bridge reads journal and rows binds itself; the page reads search, item, selected, view and field binds, so place those and read what the page drew.", "inputSchema": {"type": "object", "properties": {"bind": {"type": "object"}}, "required": ["bind"], "additionalProperties": false}, "annotations": read},
+        {"name": "tos.surface.state", "description": "Read the surface as it stands and what the open page drew last.", "inputSchema": empty, "annotations": read},
+        {"name": "tos.surface.undo", "description": "Return the surface to the state before the last change.", "inputSchema": {"type": "object", "properties": {"author": author}, "additionalProperties": false}, "annotations": write},
+        {"name": "tos.surface.keep", "description": "Keep the surface as an act of the person's journal (kind surface), to open again; a later keep under the same title replaces it. The act is yours: name your model.", "inputSchema": {"type": "object", "properties": {"title": {"type": "string", "maxLength": 200}, "author": author}, "required": ["author"], "additionalProperties": false}, "annotations": write},
+        {"name": "tos.surface.open", "description": "Open a kept surface (an act of kind surface) on the page; undo returns to the one before.", "inputSchema": {"type": "object", "properties": {"act": text, "author": author}, "required": ["act", "author"], "additionalProperties": false}, "annotations": write},
     ])
 }
 
@@ -872,7 +1012,155 @@ impl Bridge {
                     ),
                 }
             }
+            name if name.starts_with("tos.surface.") => match self.surface_tool(name, input) {
+                Ok(value) => tool_text(value, false),
+                Err(value) => tool_text(value, true),
+            },
             _ => tool_text(json!({"error": "unknown_tool"}), true),
+        }
+    }
+
+    /// The surface's MCP tools. An agent's patches carry its author as an agent.
+    fn surface_tool(&self, name: &str, input: &Value) -> Result<Value, Value> {
+        let agent = |input: &Value| {
+            let mut author = input["author"].clone();
+            if author.is_object() {
+                author["type"] = json!("agent");
+            }
+            author
+        };
+        match name {
+            "tos.surface.describe" => {
+                let (tier, paused) = {
+                    let state = self.lock();
+                    (state.agent_tier.clone(), state.paused)
+                };
+                let hold = self.hold();
+                Ok(json!({
+                    "contract": surface_contract(),
+                    "state": hold.surface.state(),
+                    "drawn": hold.drawn,
+                    "watching": self.streams.load(Ordering::SeqCst) > 0,
+                    "may_patch": !paused && tier != "read",
+                    "tier": tier,
+                    "paused": paused,
+                }))
+            }
+            "tos.surface.state" => {
+                let hold = self.hold();
+                Ok(
+                    json!({"state": hold.surface.state(), "drawn": hold.drawn, "watching": self.streams.load(Ordering::SeqCst) > 0}),
+                )
+            }
+            "tos.surface.patch" => {
+                self.agents_may_shape()?;
+                let mut request = input.clone();
+                request["author"] = agent(input);
+                let out = self.shape(|surface| surface.patch(&request))?;
+                let revision = out["revision"].as_u64().unwrap_or(0);
+                let out = json!({"revision": out["revision"], "changed": out["changed"], "removed": out["removed"]});
+                Ok(self.shaped(out, revision))
+            }
+            "tos.surface.undo" => {
+                self.agents_may_shape()?;
+                let state = self.shape(|surface| Ok(surface.undo()))?;
+                let revision = state["revision"].as_u64().unwrap_or(0);
+                Ok(self.shaped(json!({"state": state}), revision))
+            }
+            "tos.surface.try" => {
+                let bind = &input["bind"];
+                let data = match bind["source"].as_str() {
+                    Some("journal") => self
+                        .journal_answer(bind)
+                        .map_err(|error| json!({"error": "surface_source", "message": error}))?,
+                    Some("rows") => Value::Null,
+                    _ => {
+                        return Err(
+                            json!({"error": "surface_source_page", "message": "the page reads this source: place the block and read what the page drew"}),
+                        );
+                    }
+                };
+                let data = if data.is_null() {
+                    Vec::new()
+                } else {
+                    data.to_string().into_bytes()
+                };
+                Surface::try_bind_bytes(bind.to_string().as_bytes(), &data)
+                    .map(|bytes| serde_json::from_slice(&bytes).unwrap_or(Value::Null))
+                    .map_err(|error| {
+                        serde_json::from_str(&error).unwrap_or(json!({"error": error}))
+                    })
+            }
+            "tos.surface.keep" => {
+                let content = self.hold().surface.content();
+                let title = input["title"]
+                    .as_str()
+                    .or(content["title"].as_str())
+                    .filter(|title| !title.trim().is_empty())
+                    .unwrap_or("Surface")
+                    .chars()
+                    .take(200)
+                    .collect::<String>();
+                let slug: String = title
+                    .to_lowercase()
+                    .chars()
+                    .map(|c| {
+                        if c.is_alphanumeric() || matches!(c, '.' | '_' | '-') {
+                            c
+                        } else {
+                            '-'
+                        }
+                    })
+                    .collect::<String>()
+                    .trim_matches('-')
+                    .chars()
+                    .take(48)
+                    .collect();
+                let address = format!(
+                    "surface:{}",
+                    if slug.is_empty() { "surface" } else { &slug }
+                );
+                // A later keep under the same title replaces the earlier one.
+                let earlier = self
+                    .journal_answer(&json!({"view": "target", "address": address}))
+                    .ok()
+                    .and_then(|fold| {
+                        fold["acts"].as_array().and_then(|acts| {
+                            acts.iter()
+                                .rev()
+                                .find(|act| act["kind"] == "surface")
+                                .and_then(|act| act["id"].as_str().map(str::to_owned))
+                        })
+                    });
+                let mut content = content;
+                content["title"] = json!(title);
+                let mut act = json!({"kind": "surface", "author": agent(input), "targets": [address], "grounds": [], "intent": title, "body": {"title": title, "surface": content}});
+                if let Some(earlier) = earlier {
+                    act["replaces"] = json!(earlier);
+                }
+                match self.agent_append(std::slice::from_ref(&act)) {
+                    Ok(result) => match result["appended"].get(0) {
+                        Some(row) => Ok(summary(row)),
+                        None => Err(json!({"error": result["failure"]["error"]})),
+                    },
+                    Err((code, retry)) => Err(refusal(code, retry)),
+                }
+            }
+            "tos.surface.open" => {
+                self.agents_may_shape()?;
+                let id = input["act"].as_str().unwrap_or_default();
+                let record = self.lock().store.by_id(id).map(|row| row["record"].clone());
+                let Some(record) = record.filter(|record| record["kind"] == "surface") else {
+                    return Err(
+                        json!({"error": "surface_unknown", "message": format!("no surface act {id}")}),
+                    );
+                };
+                let by = agent(input);
+                let state = self.shape(|surface| surface.open(&record["body"]["surface"], &by))?;
+                let revision = state["revision"].as_u64().unwrap_or(0);
+                Ok(self.shaped(json!({"state": state}), revision))
+            }
+            _ => Err(json!({"error": "unknown_tool"})),
         }
     }
 
@@ -1101,6 +1389,9 @@ impl Bridge {
     pub fn handle(self: &Arc<Self>, mut stream: TcpStream) {
         let _ = stream.set_read_timeout(Some(Duration::from_secs(30)));
         let _ = stream.set_write_timeout(Some(Duration::from_secs(30)));
+        // Events and answers are small and wait on each other (a surface patch waits for the page's drawing):
+        // send each at once instead of holding it for the peer's acknowledgement.
+        let _ = stream.set_nodelay(true);
         let request = match read_request(&mut stream, self.profile.max_body_bytes as usize) {
             Ok(request) => request,
             Err(status) => {
@@ -1241,6 +1532,63 @@ impl Bridge {
                 Ok(bytes) => Response::bytes(200, "application/json; charset=utf-8", bytes),
                 Err(error) => Response::json(400, &json!({"error": error})),
             },
+            ("GET", "surface") => Response::json(200, &self.hold().surface.state()),
+            ("POST", "surface") => {
+                let Ok(change) = serde_json::from_slice::<Value>(&request.body) else {
+                    return Response::json(400, &json!({"error": "surface_json"}));
+                };
+                // The page's own agents shape under the same pause and tier as agents over MCP; the person's controls
+                // always answer.
+                let result = if let Some(patch) = change.get("patch") {
+                    let by_agent = patch["author"]["type"].as_str() != Some("human");
+                    match if by_agent {
+                        self.agents_may_shape()
+                    } else {
+                        Ok(())
+                    } {
+                        Err(refused) => Err(refused),
+                        Ok(()) => self.shape(|surface| surface.patch(patch)),
+                    }
+                } else if let Some(open) = change.get("open") {
+                    self.shape(|surface| surface.open(&open["content"], &open["author"]))
+                } else if let Some(frozen) = change["freeze"].as_bool() {
+                    self.shape(|surface| Ok(surface.freeze(frozen)))
+                } else if change["undo"].as_bool() == Some(true) {
+                    self.shape(|surface| Ok(surface.undo()))
+                } else if change["clear"].as_bool() == Some(true) {
+                    self.shape(|surface| Ok(surface.clear()))
+                } else {
+                    Err(
+                        json!({"error": "surface_change", "message": "send patch, open, freeze, undo or clear"}),
+                    )
+                };
+                match result {
+                    Ok(value) => Response::json(200, &value),
+                    Err(refused) => Response::json(409, &refused),
+                }
+            }
+            ("POST", "surface/receipt") => {
+                let Ok(mut receipt) = serde_json::from_slice::<Value>(&request.body) else {
+                    return Response::json(400, &json!({"error": "surface_json"}));
+                };
+                let Some(revision) = receipt["revision"].as_u64() else {
+                    return Response::json(400, &json!({"error": "surface_receipt"}));
+                };
+                if let Some(blocks) = receipt["blocks"].as_array_mut() {
+                    blocks.truncate(256);
+                }
+                {
+                    let mut hold = self.hold();
+                    if hold.drawn["revision"]
+                        .as_u64()
+                        .is_none_or(|drawn| drawn <= revision)
+                    {
+                        hold.drawn = receipt;
+                    }
+                }
+                self.drawn.notify_all();
+                Response::json(200, &json!({"ok": true}))
+            }
             ("POST", "control") => {
                 let Ok(change) = serde_json::from_slice::<Value>(&request.body) else {
                     return Response::json(400, &json!({"error": "bridge_control"}));
@@ -1280,41 +1628,71 @@ impl Bridge {
                 false,
             );
         }
-        let (sender, receiver) = mpsc::sync_channel::<u64>(64);
+        let (sender, receiver) = mpsc::sync_channel::<Event>(64);
         let last = {
             let mut state = self.lock();
             state.streams.push(sender);
             state.store.len()
         };
+        let revision = self.hold().surface.revision();
         let mut head = "HTTP/1.1 200 OK\r\n".to_owned();
         for (name, value) in self.security_headers() {
             head.push_str(&format!("{name}: {value}\r\n"));
         }
         head.push_str("Content-Type: text/event-stream\r\nCache-Control: no-store\r\nConnection: keep-alive\r\n\r\n");
+        let send = |stream: &mut TcpStream, name: &str, data: String| {
+            stream
+                .write_all(format!("event: {name}\ndata: {data}\n\n").as_bytes())
+                .is_ok()
+        };
         let mut open = stream.write_all(head.as_bytes()).is_ok()
-            && stream
-                .write_all(format!("event: acts\ndata: {{\"last\":{last}}}\n\n").as_bytes())
-                .is_ok();
+            && send(&mut stream, "acts", format!("{{\"last\":{last}}}"))
+            && send(
+                &mut stream,
+                "surface",
+                format!("{{\"revision\":{revision}}}"),
+            );
         let mut sent = Instant::now();
         while open {
             open = match receiver.recv_timeout(Duration::from_secs(15)) {
-                Ok(mut seq) => {
+                // The surface's revision goes at once: an agent waits for the page's drawing.
+                Ok(Event::Surface(revision)) => send(
+                    &mut stream,
+                    "surface",
+                    format!("{{\"revision\":{revision}}}"),
+                ),
+                Ok(Event::Acts(mut seq)) => {
                     // One summary event at most every EVENT_GAP: an army's acts reach the page as a stream of
                     // last sequence numbers, not one event an act.
+                    let mut ok = true;
                     let due = sent + EVENT_GAP;
                     while let Some(left) = due.checked_duration_since(Instant::now()) {
                         match receiver.recv_timeout(left) {
-                            Ok(next) => seq = next,
+                            Ok(Event::Acts(next)) => seq = next,
+                            Ok(Event::Surface(revision)) => {
+                                ok &= send(
+                                    &mut stream,
+                                    "surface",
+                                    format!("{{\"revision\":{revision}}}"),
+                                );
+                            }
                             Err(_) => break,
                         }
                     }
                     while let Ok(next) = receiver.try_recv() {
-                        seq = next;
+                        match next {
+                            Event::Acts(next) => seq = next,
+                            Event::Surface(revision) => {
+                                ok &= send(
+                                    &mut stream,
+                                    "surface",
+                                    format!("{{\"revision\":{revision}}}"),
+                                );
+                            }
+                        }
                     }
                     sent = Instant::now();
-                    stream
-                        .write_all(format!("event: acts\ndata: {{\"last\":{seq}}}\n\n").as_bytes())
-                        .is_ok()
+                    ok && send(&mut stream, "acts", format!("{{\"last\":{seq}}}"))
                 }
                 Err(mpsc::RecvTimeoutError::Timeout) => {
                     stream.write_all(b": keep-alive\n\n").is_ok()
@@ -1981,6 +2359,153 @@ mod tests {
             seen.push_str(std::str::from_utf8(&buffer[..read]).unwrap());
         }
         assert!(seen.contains("text/event-stream"));
+        let _ = std::fs::remove_dir_all(&f.dir);
+    }
+
+    #[test]
+    fn an_agent_shapes_the_page_and_reads_what_the_page_drew() {
+        let f = fixture("surface", None);
+        let (error, described) = call(f.address, "tos.surface.describe", json!({}));
+        assert!(!error);
+        assert_eq!(described["contract"]["schema"], "tos.surface.spec.v1");
+        assert_eq!(described["watching"], false);
+        let author = json!({"id": "a1", "model": "m"});
+        let ops = json!([
+            {"op": "title", "text": "Queue"},
+            {"op": "put", "block": {"id": "q", "kind": "list", "title": "{group}", "bind": {"source": "journal", "view": "review", "path": "groups"}}}
+        ]);
+        // No page follows: the patch stands and says nothing was drawn.
+        let (error, out) = call(
+            f.address,
+            "tos.surface.patch",
+            json!({"author": author, "ops": ops}),
+        );
+        assert!(!error, "{out}");
+        assert_eq!(
+            (
+                out["revision"].clone(),
+                out["watching"].clone(),
+                out["drawn"].clone()
+            ),
+            (json!(1), json!(false), Value::Null)
+        );
+        // A refusal names the op and what to write instead.
+        let (error, out) = call(
+            f.address,
+            "tos.surface.patch",
+            json!({"author": author, "ops": [{"op": "put", "block": {"id": "x", "kind": "chart"}}]}),
+        );
+        assert!(error);
+        assert_eq!(
+            (out["error"].clone(), out["op"].clone()),
+            (json!("surface_kind"), json!(0))
+        );
+        // A page follows: it hears the revision, reads the surface and answers what it drew; the agent's patch waits for it.
+        let key = cookie(f.address);
+        let mut events = TcpStream::connect(f.address).unwrap();
+        events
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .unwrap();
+        write!(
+            events,
+            "GET /__bridge/v1/events HTTP/1.1\r\nHost: {}\r\n{key}\r\n",
+            f.address
+        )
+        .unwrap();
+        let mut seen = String::new();
+        let mut buffer = [0u8; 1024];
+        while !seen.contains("\"revision\":1") {
+            let read = events.read(&mut buffer).unwrap();
+            seen.push_str(std::str::from_utf8(&buffer[..read]).unwrap());
+        }
+        let (address, page_key) = (f.address, key.clone());
+        let page = std::thread::spawn(move || {
+            let mut events = events;
+            let mut seen = String::new();
+            while !seen.contains("\"revision\":2") {
+                let read = events.read(&mut buffer).unwrap();
+                seen.push_str(std::str::from_utf8(&buffer[..read]).unwrap());
+            }
+            let (status, _, state) = get(address, "/__bridge/v1/surface", &page_key);
+            assert_eq!(status, 200);
+            let state: Value = serde_json::from_str(&state).unwrap();
+            let receipt = json!({"revision": state["revision"], "ms": 3, "blocks": [{"id": "q", "count": 0, "total": 0}]});
+            post(
+                address,
+                "/__bridge/v1/surface/receipt",
+                &page_key,
+                &receipt.to_string(),
+            )
+        });
+        let (error, out) = call(
+            f.address,
+            "tos.surface.patch",
+            json!({"author": author, "expect_revision": 1, "ops": [{"op": "set", "id": "q", "field": "bind.limit", "value": 5}]}),
+        );
+        assert!(!error, "{out}");
+        assert_eq!(page.join().unwrap().0, 200);
+        assert_eq!(
+            (
+                out["watching"].clone(),
+                out["drawn"]["revision"].clone(),
+                out["drawn"]["blocks"][0]["id"].clone()
+            ),
+            (json!(true), json!(2), json!("q"))
+        );
+        // A stale revision is refused; the journal's fold is tried at the bridge.
+        let (error, out) = call(
+            f.address,
+            "tos.surface.patch",
+            json!({"author": author, "expect_revision": 1, "ops": [{"op": "remove", "id": "q"}]}),
+        );
+        assert!(error && out["error"] == "surface_revision", "{out}");
+        let (error, tried) = call(
+            f.address,
+            "tos.surface.try",
+            json!({"bind": {"source": "journal", "view": "summary"}}),
+        );
+        assert!(!error, "{tried}");
+        assert_eq!(tried["count"], 1);
+        // Kept as the agent's act, then opened again after a clear by the person.
+        let (error, kept) = call(f.address, "tos.surface.keep", json!({"author": author}));
+        assert!(!error, "{kept}");
+        let (status, _, _) = post(f.address, "/__bridge/v1/surface", &key, r#"{"clear":true}"#);
+        assert_eq!(status, 200);
+        let (error, opened) = call(
+            f.address,
+            "tos.surface.open",
+            json!({"author": author, "act": kept["id"]}),
+        );
+        assert!(!error, "{opened}");
+        assert_eq!(opened["state"]["title"], "Queue");
+        // The person pauses the agents: no patch; the person's own controls still answer.
+        post(
+            f.address,
+            "/__bridge/v1/control",
+            &key,
+            r#"{"paused":true}"#,
+        );
+        let (error, out) = call(
+            f.address,
+            "tos.surface.patch",
+            json!({"author": author, "ops": [{"op": "title", "text": "x"}]}),
+        );
+        assert!(error && out["error"] == "bridge_paused", "{out}");
+        let (status, _, body) = post(
+            f.address,
+            "/__bridge/v1/surface",
+            &key,
+            r#"{"freeze":true}"#,
+        );
+        assert_eq!(status, 200, "{body}");
+        // The surface stays for the next start.
+        let saved: Value =
+            serde_json::from_slice(&std::fs::read(f.dir.join("store").join(SURFACE_FILE)).unwrap())
+                .unwrap();
+        assert_eq!(
+            (saved["title"].clone(), saved["frozen"].clone()),
+            (json!("Queue"), json!(true))
+        );
         let _ = std::fs::remove_dir_all(&f.dir);
     }
 

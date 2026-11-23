@@ -49,7 +49,7 @@ export async function readResearchSource({index,provider,fragments},input,{signa
 }
 
 /** Public stands expose their existing owners through the shared page registry. */
-export function connectResearchPage({index,space,experience,session,api,workspace,acts=null,actTier=()=>'propose',viewState=()=>null,viewControl=()=>null,locale,targetDocument=document}){
+export function connectResearchPage({index,space,experience,session,api,workspace,acts=null,actTier=()=>'propose',viewState=()=>null,viewControl=()=>null,locale,targetDocument=document,tools=[]}){
   const summary=()=>workspace.summary();
   const selectedState=()=>{const state=experience.getState();return {...state,id:state.id??space.selection()?.id,revision:state.revision??index.revision};};
   const versionContext=(input={})=>experience.versionContext(input.revision??selectedState().revision);
@@ -117,6 +117,8 @@ export function connectResearchPage({index,space,experience,session,api,workspac
     inputSchema:schema({}),annotations:{readOnlyHint:true,untrustedContentHint:true},execute:async()=>({content:[{type:'text',text:JSON.stringify(viewState()??{})}]})});
   // Addressed act commands sit beside the pointing ones: they name their targets and never cancel each other.
   if(acts)extra.push(...actJournalTools(acts,{tier:actTier}));
+  // Owners beside the page's own (the agent's surface, surface.mjs) bring their tools.
+  extra.push(...tools);
   const allowed=new Set(['tos.page.context','tos.page.cancel',...Object.keys(handlers)]);
   const adapter=createWebMCPAdapter(registry,targetDocument,allowed,extra);
   void adapter.start();

@@ -19,6 +19,7 @@ import {mountCollect} from './collect.mjs';
 import {mountAgentsBoard} from './agents-board.mjs';
 import {mountOffline} from './offline.mjs';
 import {mountAgentField} from './agent-field.mjs';
+import {mountSurface,openSurface} from './surface.mjs';
 import {mountSkyWindow} from './sky-window.mjs';
 import {mountHeld} from './held-view.mjs';
 import {mountHighlight} from './highlight-categories.mjs';
@@ -171,6 +172,7 @@ let collector;
 let agentsBoard;
 let offline;
 let agentField;
+let surfaceView;
 let skyWindow;
 let heldView;
 let highlight;
@@ -565,9 +567,13 @@ async function start() {
   // The person's bridge serves this page from their own machine and keeps the journal; otherwise the browser does.
   actJournal=openActJournal({browser:()=>createActJournal({store:openActStore()})});
   stopWorkspaceMirror=publicOwners.workspace?mirrorWorkspace(publicOwners.workspace,actJournal,{sessionId:'local'}):null;
-  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,actTier:()=>actDesk?.tier()??'propose',viewState:()=>actionLayer?.context()??null,viewControl:()=>actionLayer,locale:()=>locale});
+  // The surface agents shape on this page (В7): the bridge's when it serves the page, this tab's otherwise.
+  surfaceView=mountSurface({shell:spaceView.root,surface:openSurface({acts:actJournal,key:`tos.surface.v1.${profile}`}),acts:actJournal,space:spaceView,
+    registry:()=>pageAgent?.registry??null,viewState:()=>actionLayer?.context()??null,layer:()=>actionLayer,actTier:()=>actDesk?.tier()??'propose',locale:()=>locale});
+  pageAgent=connectResearchPage({index:publicSpace.index,space:spaceView,experience,session:cognitive,api:window.tosPublicResearch,workspace:publicOwners.workspace,acts:actJournal,actTier:()=>actDesk?.tier()??'propose',viewState:()=>actionLayer?.context()??null,viewControl:()=>actionLayer,locale:()=>locale,tools:surfaceView.tools});
   actionLayer=mountActionLayer({shell:spaceView.root,header,space:spaceView,experience,registry:pageAgent.registry,acts:actJournal,api:window.tosPublicResearch,locale:()=>locale,controls:controlPrefs});
   actDesk=mountActDesk({shell:spaceView.root,actionLayer,space:spaceView,acts:actJournal,registry:pageAgent.registry,api:window.tosPublicResearch,locale:()=>locale,profile});
+  surfaceView.attach(actionLayer);
   researchTrail=mountResearchTrail({shell:spaceView.root,actionLayer,space:spaceView,acts:actJournal,actDesk,experience,registry:pageAgent.registry,locale:()=>locale,profile,
     versions:profile==='zarathustra'?{list:retainedResearchVersions,load:loadResearchVersion}:null});
   mediaWall=mountMediaWall({shell:spaceView.root,actionLayer,actDesk,space:spaceView,locale:()=>locale,profile});
@@ -623,6 +629,7 @@ function disposeApp() {
   heldView?.destroy();
   skyWindow?.destroy();
   agentField?.destroy();
+  surfaceView?.destroy();
   offline?.destroy();
   agentsBoard?.destroy();
   collector?.destroy();
