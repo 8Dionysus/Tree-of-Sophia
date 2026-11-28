@@ -1687,7 +1687,11 @@ fn inspect_selected_layer_owners<S: LayerFamilySource + ?Sized>(
         let artifact =
             path.starts_with("ToS/source-witnesses/artifacts/") && name == "artifact-witness.json";
         let text_unit = path.starts_with("ToS/source-witnesses/works/")
-            && (name.starts_with("source-text-unit.") || name == "source-text-unit-packet.v1.json");
+            && (name.starts_with("source-text-unit.")
+                || matches!(
+                    name,
+                    "source-text-unit-packet.v1.json" | "source-text-unit-packet.v2.json"
+                ));
         if !artifact && !text_unit {
             return Ok(());
         }

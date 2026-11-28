@@ -19,9 +19,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 use tos_foundation::{
-    CanonicalProfile, Digest256, JsonEmissionProfile, JsonLimits, JsonMode, JsonValue,
-    RelativePath, SourceRevision, canonical_bytes_v1, canonical_count_v1, emit_json_profile,
-    parse_json,
+    CanonicalProfile, Digest256, JCS_DIGEST_TAG, JsonEmissionProfile, JsonLimits, JsonMode,
+    JsonValue, RelativePath, SourceRevision, canonical_bytes_v1, canonical_count_v1,
+    emit_json_profile, jcs_digest_v1, parse_json, stringify_non_jcs_numbers_v1,
 };
 use tos_source_store::{CorpusCutReader, SourceMembershipV1, SourcePresenceV1};
 
@@ -2599,6 +2599,29 @@ impl<'a> NativeCompoundReader<'a> {
         check(self.limits.deadline, self.cancelled)?;
         Ok(output)
     }
+    /// A retained Claim revision receipt names the profile of its request digest:
+    /// none for one written before TOS-D-0088, `jcs1` for the RFC 8785 digest.
+    fn receipt_request_digest_matches(
+        &self,
+        receipt: &Value,
+        request: &Value,
+    ) -> Result<bool, ItemRefusal> {
+        let recorded = text(receipt, "request_digest")?;
+        match receipt.get("request_digest_profile") {
+            None => Ok(recorded == self.canonical_observation(request)?.0),
+            Some(Value::String(tag)) if tag == JCS_DIGEST_TAG => {
+                let request =
+                    ordered(&serde_json::to_vec(request).map_err(|_| bad("serialization"))?)?;
+                // A number JCS refuses stands as its exact decimal spelling (TOS-D-0088).
+                let request = stringify_non_jcs_numbers_v1(&request, limits())
+                    .map_err(|_| bad("membership correction request jcs1 digest"))?;
+                let digest = jcs_digest_v1(&request, limits())
+                    .map_err(|_| bad("membership correction request jcs1 digest"))?;
+                Ok(recorded == digest.digest.to_prefixed())
+            }
+            Some(_) => Err(bad("membership correction request digest profile")),
+        }
+    }
     fn canonical_observation(&self, value: &Value) -> Result<(String, usize), ItemRefusal> {
         let output = self.canonical_buffer(value)?;
         Ok((Digest256::of_bytes(&output).to_prefixed(), output.len()))
@@ -3710,28 +3733,29 @@ impl<'a> NativeCompoundReader<'a> {
         let mut initial = None;
         for receipt in receipts {
             check(self.limits.deadline, self.cancelled)?;
-            keys(
-                receipt,
-                &[
-                    "command_id",
-                    "request_digest",
-                    "principal_id",
-                    "authority_ref",
-                    "owner_configuration",
-                    "recorded_at",
-                    "reason",
-                    "previous_source",
-                    "source",
-                    "previous_revision",
-                    "archive_path",
-                    "dependencies",
-                    "source_bindings",
-                    "changed_fields",
-                    "forms",
-                    "grants_admission",
-                    "request",
-                ],
-            )?;
+            let mut wanted = vec![
+                "command_id",
+                "request_digest",
+                "principal_id",
+                "authority_ref",
+                "owner_configuration",
+                "recorded_at",
+                "reason",
+                "previous_source",
+                "source",
+                "previous_revision",
+                "archive_path",
+                "dependencies",
+                "source_bindings",
+                "changed_fields",
+                "forms",
+                "grants_admission",
+                "request",
+            ];
+            if receipt.get("request_digest_profile").is_some() {
+                wanted.push("request_digest_profile");
+            }
+            keys(receipt, &wanted)?;
             let request = &receipt["request"];
             crate::retirement_rules::observed_instant_order(
                 text(receipt, "recorded_at")?,
@@ -3740,7 +3764,7 @@ impl<'a> NativeCompoundReader<'a> {
             .map_err(|_| bad("membership correction aware instant"))?;
             if !commands.insert(text(receipt, "command_id")?)
                 || request["operation"] != "claim.revise"
-                || text(receipt, "request_digest")? != self.canonical_observation(request)?.0
+                || !self.receipt_request_digest_matches(receipt, request)?
                 || receipt["grants_admission"] != false
                 || receipt["source"]["id"] != receipt["previous_source"]["id"]
                 || integer(&receipt["source"], "version")?

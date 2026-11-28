@@ -301,6 +301,36 @@ export function sentencesOf(units,language){
   return items;
 }
 
+// Some digital editions join two printed sentences at a transcription error.
+// An exact, revision-bound citation of the printed boundary may separate them
+// for alignment without changing a character in either witness.
+export function splitVerifiedSentenceBreaks(sentences,breaks,language){
+  const cuts=new Map();
+  for(const boundary of breaks){
+    const needle=`${boundary.before} ${boundary.after}`;
+    const matches=sentences.flatMap(sentence=>{
+      const found=[];let from=0,at;
+      while((at=sentence.text.indexOf(needle,from))!==-1){found.push({sentence,at});from=at+1;}
+      return found;
+    });
+    if(matches.length!==1)throw new Error('Verified sentence boundary is missing or ambiguous in the selected reference');
+    const {sentence,at}=matches[0];
+    const offset=chars(sentence.text.slice(0,at+boundary.before.length+1)).length;
+    if(offset<=0||offset>=chars(sentence.text).length)throw new Error('Verified sentence boundary is not inside a sentence');
+    const offsets=cuts.get(sentence)??[];
+    if(offsets.includes(offset))throw new Error('Verified sentence boundaries identify the same break');
+    cuts.set(sentence,[...offsets,offset]);
+  }
+  return sentences.flatMap(sentence=>{
+    const offsets=cuts.get(sentence);if(!offsets)return [sentence];
+    const text=chars(sentence.text),[unit,start]=sentence.id;let previous=0;
+    return [...offsets.sort((a,b)=>a-b),text.length].map(end=>{
+      const item=sentenceItem(unit,start+previous,text.slice(previous,end).join('').trimEnd(),language);
+      previous=end;return item;
+    });
+  });
+}
+
 // The lexical comparison normalizes words, while sentence IDs retain the
 // offsets of the exact source characters.
 const anchorWords=text=>text.normalize('NFKC').toLowerCase().replace(/ς/gu,'σ').normalize('NFC').match(/\p{L}[\p{L}\p{M}]*/gu)??[];

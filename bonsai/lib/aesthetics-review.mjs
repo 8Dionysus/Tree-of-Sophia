@@ -26,6 +26,9 @@ export function aestheticsReviewIssues({layer,registers}){
   }
   const areaIds=new Set(areas.map(x=>x.id)),conceptIds=new Set(concepts.map(x=>x.key)),agentIds=new Set(agents.map(x=>x.id)),workIds=new Set(works.map(x=>x.id)),readingIds=new Set(readings.map(x=>x.key)),sourceIds=new Set(sources.map(x=>x.key));
   const subset=(items,set)=>items.every(item=>set.has(item));
+  // A thesis is a map from a language tag to its words in that language: at least one language, each with words.
+  const thesisMap=thesis=>Boolean(thesis)&&typeof thesis==='object'&&!Array.isArray(thesis)&&Object.keys(thesis).length>0
+    &&Object.entries(thesis).every(([language,words])=>/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(language)&&typeof words==='string'&&words.trim().length>0);
   require(areaIds.size===36,'areas: expected 36 distinct IDs');
   for(const work of works){
     require(work.agents.length>0&&subset(work.agents,agentIds),`work ${work.id}: agents`);
@@ -38,7 +41,7 @@ export function aestheticsReviewIssues({layer,registers}){
     require(workIds.has(reading.work),`${at}: work`);
     require(reading.agents.length>0&&subset(reading.agents,agentIds),`${at}: agents`);
     require(subset(reading.sources,sourceIds),`${at}: sources`);
-    require(Boolean(reading.locus&&reading.url&&Object.values(reading.thesis)[0]),`${at}: locus, URL or thesis`);
+    require(Boolean(reading.locus&&reading.url)&&thesisMap(reading.thesis),`${at}: locus, URL or thesis`);
     require(!Object.hasOwn(reading,'concepts_unresolved')&&!Object.hasOwn(reading,'authors_unresolved'),`${at}: unresolved references`);
   }
   for(const link of links){

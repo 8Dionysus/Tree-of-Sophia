@@ -394,11 +394,13 @@ async function switchProfiles(event) {
   }
 }
 
-// A chosen language speaks once its catalog has come; of several chosen in a row, the last one speaks.
+// A chosen language speaks once its catalog has come; of several chosen in a row, the last one speaks. Choosing
+// again the language already speaking is the last choice too: a catalog still on its way is then let go.
 let languageRequest=0;
 async function setLanguage(value,{updateUrl=true}={}){
-  value=resolveLocale(value,null);if(!value||value===locale)return;
+  value=resolveLocale(value,null);if(!value)return;
   const request=++languageRequest;
+  if(value===locale)return;
   try{await loadLocale(value);}catch{return;}
   if(request!==languageRequest||value===locale)return;
   locale=value;english=copyLocale(locale)==='en';try{localStorage.setItem('tos.public-research.locale.v1',locale);}catch{};strings=stringsFor();document.documentElement.lang=locale;document.title=`${strings.title} · ${english?localeText('Tree of Sophia',locale):'Древо Софии'}`;refreshProviderStatus();

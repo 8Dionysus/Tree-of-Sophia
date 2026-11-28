@@ -43,8 +43,10 @@ Only explicitly public, publication-authorized packets covered by the selected
 digest-bound rights records pass. Source work identity, text-layer bytes,
 Unicode code-point anchors, ordered units, journey targets and analysis layer
 bindings are checked before output. All output is deterministic JSON, with
-hash-bound document manifests and pages. Pages contain at most 40 units and
-262144 bytes; one unit is capped at 65536 UTF-8 bytes. The exact surface index
+hash-bound document manifests and pages. An HTTPS source return on a content
+anchor is carried with its unit when it differs from the edition source;
+additional HTTPS returns on the selected scope anchor are carried with the
+version for the source panel. Pages contain at most 40 units and 262144 bytes; one unit is capped at 65536 UTF-8 bytes. The exact surface index
 does not fold case, spelling or Unicode, and does not infer lemmas. A bounded
 page scan remains available when an index exceeds its cap.
 
