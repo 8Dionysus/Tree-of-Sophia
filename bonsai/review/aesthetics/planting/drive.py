@@ -177,9 +177,11 @@ def run(work,retake=False):
             code,text=kit('accept',os.path.join(PACKETS,work),'--by','planting-line')
             return end('accepted' if code==0 else 'accept-failed',note=text[-300:])
         if round_<=RETURNS:
-            maker,got=until_open(work,'maker',MAKER_BACK,MAKER_ON,MAKER_TURNS,thread=maker)
+            feedback=kit('gate',os.path.join(PACKETS,work))[1]
+            maker,got=until_open(work,'maker',MAKER_BACK+'\n\nCurrent gate findings:\n'+feedback,MAKER_ON,MAKER_TURNS,thread=maker)
             if got!='open':return end(got if got in OUTSIDE or got=='blocked' else 'maker-stuck')
     answer=json.load(open(review))
+    if re.search(r'^- reopen \d+: second reader found the issue unresolved',kit('gate',os.path.join(PACKETS,work))[1],re.M):return end('reopen-disputed')
     if any(item.get('reads')!='as the packet' for item in answer.get('images') or []):return end('page-disputed')
     code,text=kit('settle',os.path.join(PACKETS,work))
     reading=json.load(open(os.path.join(PACKETS,work,'reading.json')))

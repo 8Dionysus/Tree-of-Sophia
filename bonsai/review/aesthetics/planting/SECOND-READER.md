@@ -118,11 +118,12 @@ the maker's recorded response and the current packet. After importing the
 complete review, record your independent assessment:
 
 ```sh
-K reopen-review . 1 --reader READER_ID --resolved --assessment 'What the source says, and whether the present reading addresses the finding.'
+K reopen-review . 1 --reader READER_ID --resolution resolved --assessment 'What the source says, and whether the present reading addresses the finding.'
 ```
 
-Use `--resolved` only when the finding is actually resolved; otherwise return
-it to the maker. The assessment binds to the exact maker response, reading,
+Use `--resolution resolved` only when the finding is actually resolved;
+otherwise record `--resolution unresolved` and set `review.accept` to false
+so the line returns the finding to the maker. The assessment binds to the exact maker response, reading,
 places and review answers. The line may stamp model and effort without changing
 those answers. A substantive change requires review again; a recorded assessment is not a
 substitute for reading the source page.

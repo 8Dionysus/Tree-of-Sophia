@@ -1110,8 +1110,19 @@ class ReopenedFindingRouteTest(unittest.TestCase):
             self.assertTrue(kit.reopen_problems(tmp))
             response=argparse.Namespace(packet=tmp,index=1,maker='maker',assessment='The source says only when; the current thesis now preserves this condition in both languages.')
             kit.cmd_reopen_response(response);self.assertEqual(kit.reopen_problems(tmp),[]);self.assertTrue(kit.reopen_problems(tmp,second=True))
-            review={'reader':{'id':'second'},'accept':True};put('review.json',review)
-            answer=argparse.Namespace(packet=tmp,index=1,reader='second',resolved=True,assessment='The page says only when and both versions of the revised thesis preserve this condition.')
+            review={'reader':{'id':'second','model':'gpt-6.1-terra','date':'2026-11-27'},'accept':False};put('review.json',review)
+            answer=argparse.Namespace(packet=tmp,index=1,reader='second',resolution='unresolved',assessment='The page still says only when while the revised thesis omits that condition entirely.')
+            kit.cmd_reopen_review(answer);self.assertEqual(kit.reopen_problems(tmp,second=True),[])
+            self.assertTrue(kit.reopen_unresolved(tmp));self.assertIn('unresolved',kit.reopen_problems(tmp)[0])
+            with patch.object(kit,'gate',return_value=([],'open')),self.assertRaises(SystemExit):kit.cmd_accept(argparse.Namespace(packet=tmp,offline=True,by='line',basis=None))
+            self.assertFalse((path/'accepted.json').exists())
+            with patch.object(kit,'by_eye',return_value=[]):
+                self.assertEqual(kit.second_gate(tmp,{'reader':{'id':'maker'},'conceptions':[],'links':[],'left':[]},{'places':{}},{},locator_only=True),[])
+            kit.cmd_reopen_response(response);self.assertFalse(kit.reopen_unresolved(tmp))
+            previous=json.loads((path/'reopen-resolutions.json').read_text())[kit.page_number_digest(finding)]['prior'][0]
+            self.assertFalse(previous['review']['resolved']);self.assertIn('omits',previous['review']['assessment'])
+            review['accept']=True;put('review.json',review);answer.resolution='resolved'
+            answer.assessment='The page says only when and both versions of the revised thesis preserve this condition.'
             kit.cmd_reopen_review(answer);self.assertEqual(kit.reopen_problems(tmp,second=True),[])
             reading=json.loads((path/'reading.json').read_text());reading['reader'].update(model='gpt-6.1-terra',effort='high');put('reading.json',reading)
             review['reader'].update(model='gpt-6.1-terra',effort='high');put('review.json',review);self.assertEqual(kit.reopen_problems(tmp,second=True),[])
@@ -1120,6 +1131,27 @@ class ReopenedFindingRouteTest(unittest.TestCase):
             review['accept']=False;put('review.json',review);self.assertTrue(kit.reopen_problems(tmp,second=True))
             put('reading.json',{'reader':{'id':'maker'},'conceptions':[{'id':'changed'}]});self.assertTrue(kit.reopen_problems(tmp))
             with self.assertRaises(SystemExit):kit.cmd_reopen_response(response)
+
+class ReopenedFindingDriverTest(unittest.TestCase):
+    def test_negative_second_reading_returns_finding_to_maker(self):
+        import json,tempfile
+        from pathlib import Path
+        import drive
+        with tempfile.TemporaryDirectory() as tmp:
+            packet=Path(tmp)/'work';packet.mkdir();seen=[];calls=[]
+            (packet/'reopen-history.json').write_text(json.dumps([{'finding':'The source condition is still missing.'}]))
+            def kit_call(*args):
+                if args[0]=='gate':
+                    calls.append(args);return (0,'gate: open') if len(calls)==1 else (1,'- reopen 1: second reader found the issue unresolved; maker must respond again: the condition is missing')
+                return 0,''
+            def reader(work,role,first,again,turns,**kwargs):
+                seen.append((role,first))
+                if role=='second':(packet/'review.json').write_text(json.dumps({'accept':False}));return None,'open'
+                return None,'stuck'
+            with patch.object(drive,'PACKETS',tmp),patch.object(drive,'OUT',str(Path(tmp)/'out')),patch.object(drive,'state',return_value={}),patch.object(drive,'kit',side_effect=kit_call),patch.object(drive,'until_open',side_effect=reader),patch.object(drive,'have',side_effect=lambda w,n:n in ('places.json','reading.json')):
+                self.assertEqual(drive.run('work'),'maker-stuck')
+            self.assertEqual([role for role,_ in seen],['second','maker'])
+            self.assertIn('the condition is missing',seen[1][1])
 
 class TranslationSourceBlockTest(unittest.TestCase):
     def test_original_ocr_does_not_resolve_a_translation_search(self):
