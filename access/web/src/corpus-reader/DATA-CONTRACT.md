@@ -157,7 +157,7 @@ provider's capabilities and rights state.
 ```js
 {
   documentId, versionId, revision,
-  units: [{id, ordinal, kind, text, language, reference, context?}],
+  units: [{id, ordinal, kind, text, language, reference, sourceUrl?, context?}],
   previousCursor, nextCursor, total
 }
 ```
@@ -165,6 +165,13 @@ provider's capabilities and rights state.
 The optional `context.graphTarget` is an explicit `{kind: "node" | "relation",
 id}` mapping supplied by the source/fixture. The UI never derives a graph ID
 from a unit label, text, or ordinal.
+
+An optional `sourceUrl` identifies the source location for this unit. The reader
+uses a safe external URL there for the selected passage and quotation attribution;
+when it is absent, attribution uses the edition-level source URL.
+
+A version may also carry `additionalSourceUrls` when its scope spans several
+source locations; the source panel presents each safe external URL.
 
 `search` currently defines `scope: "version"` (with `"document"` accepted as
 an adapter alias) for searching the requested work version. The model exposes

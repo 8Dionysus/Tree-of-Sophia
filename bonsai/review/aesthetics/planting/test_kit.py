@@ -4,6 +4,35 @@ from unittest.mock import patch
 import kit
 
 
+class LanguageSearchPrecedenceTest(unittest.TestCase):
+    def test_a_later_accepted_translation_takes_precedence_over_the_parent_search(self):
+        import hashlib
+        import json
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'author.work';(path/'language-searches').mkdir(parents=True)
+            search={'language':'es','search':{'maker':'maker','places':['p1'],'reason':'The documented searches found no suitable text.','tried':[]},'review':{}}
+            raw=json.dumps(search).encode();(path/'language-searches/es.json').write_bytes(raw)
+            (path/'language-searches/es.json.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
+            def world(witnesses):
+                return {'fragments':{'works':{'author.work':{'original':'de','witnesses':witnesses}},'places':{'author.work':{'p1':{}}}}}
+            es=lambda problems:[problem for problem in problems if problem.startswith('es:')]
+            # While the language is missing, the accepted search is what the packet holds for it.
+            with patch.object(kit,'world',return_value=world({'de':{}})):
+                problems,_=kit.language_coverage(str(path),{},'de',second=True,offline=True)
+                self.assertFalse(any('still be missing' in problem for problem in es(problems)))
+            # An extension has since brought a Spanish translation: the parent's search gives way to it.
+            with patch.object(kit,'world',return_value=world({'de':{},'es':{}})):
+                problems,_=kit.language_coverage(str(path),{},'de',second=True,offline=True)
+                self.assertEqual(es(problems),[])
+            # A search that was never accepted is still checked against the work as it stands.
+            (path/'language-searches/es.json.accepted').unlink()
+            with patch.object(kit,'world',return_value=world({'de':{},'es':{}})):
+                problems,_=kit.language_coverage(str(path),{},'de',second=True,offline=True)
+                self.assertTrue(any('still be missing' in problem for problem in es(problems)))
+
+
 class SecondReaderScanTest(unittest.TestCase):
     def test_same_page_number_in_another_volume_does_not_count(self):
         reading = {'reader': {'id': 'maker'}, 'conceptions': [], 'links': [], 'left': []}

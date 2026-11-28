@@ -6,6 +6,23 @@
 const own=node=>node.ownerType==='personal-hypothesis'||String(node.id).startsWith('personal:');
 
 /**
+ * The lens a preview follows: the one under the pointer, else the one the keyboard is on. Each leaves on its own,
+ * so a lens keeps its preview while the other still holds it. `change(id)` hears every new answer (null for none).
+ */
+export function lensPointer(change){
+  let hovered=null,focused=null,shown=null;
+  const settle=()=>{const next=hovered??focused;if(next!==shown){shown=next;change(next);}};
+  return {
+    enter(id){hovered=id;settle();},
+    leave(id){if(hovered===id)hovered=null;settle();},
+    focus(id){focused=id;settle();},
+    blur(id){if(focused===id)focused=null;settle();},
+    clear(){hovered=focused=null;settle();},
+    get shown(){return shown;},
+  };
+}
+
+/**
  * The ids of the graph's stars that lens `id` shows, or null for the tree. `gathering` is the lens's gathering
  * where it gathers; `view()` is its lens view otherwise (asked only when needed).
  */

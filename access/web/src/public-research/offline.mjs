@@ -1,10 +1,12 @@
 // Working without a network (E3), the page's side: the built site registers its service worker (public/sw.js) at the
 // root, and the sheet "Working offline" keeps a whole stand at once: the stand's page, every file its page may load as
-// the build lists them (asset-manifest.json), and, if the person wants, the stand's own copies of its images. The act
-// journal, the workplaces and the workbench live in this browser and need no network in the first place.
+// the build lists them (asset-manifest.json), and, if the person wants, the stand's own copies of its images and the
+// texts of its works in every edition (the public corpus: each work's manifest and all its pages, which the reader
+// asks for page by page as it reads). The act journal, the workplaces and the workbench live in this browser and
+// need no network in the first place.
 import './act-desk.css';
 import {localeText,resolveLocale} from './locale.mjs';
-import {loadMedia} from './bonsai.mjs';
+import {corpusProfile,loadMedia} from './bonsai.mjs';
 
 const BASE='/__research/';
 
@@ -35,14 +37,38 @@ export function mediaFiles(media,{base=BASE}={}){
   return {urls:[...files.keys()].sort(),bytes:[...files.values()].reduce((sum,value)=>sum+value,0)};
 }
 
+/**
+ * The texts of a stand's works in the public corpus: the corpus manifest, each work's own manifest, every page of
+ * every edition it holds, and what the reader opens beside a chosen word (the edition's word forms, the work's
+ * translation mappings), with the bytes they take. The search indexes stay with the network. `fetchJson(url)` reads
+ * one file of the corpus. A stand reads the works its corpus profile lists (bonsai.mjs corpusProfile); a profile the
+ * manifest does not list reads them all.
+ */
+export async function corpusFiles(fetchJson,{profile,base=BASE}={}){
+  const root=`${base}public-corpus/`,manifest=await fetchJson(`${root}manifest.json`);
+  const listed=manifest?.profiles?.[corpusProfile(profile)]?.documentIds,ids=new Set(listed??(manifest?.documents??[]).map(entry=>entry.id));
+  const urls=new Set([`${root}manifest.json`]);let bytes=0;
+  for(const entry of manifest?.documents??[]){
+    if(!ids.has(entry.id)||typeof entry.manifest?.path!=='string')continue;
+    urls.add(root+entry.manifest.path);bytes+=entry.manifest.bytes??0;
+    const document=await fetchJson(root+entry.manifest.path);
+    const keep=file=>{if(typeof file?.path==='string'&&!urls.has(root+file.path)){urls.add(root+file.path);bytes+=file.bytes??0;}};
+    keep(document?.mappings);
+    for(const version of document?.versions??[]){for(const page of version.pages??[])keep(page);keep(version.analysis);}
+  }
+  return {urls:[...urls].sort(),bytes};
+}
+
 const labels={
   title:['Работа без сети','Working offline'],
-  lead:['Стенд, прочитанный однажды, открывается без сети. Здесь его можно сохранить целиком, чтобы без сети открывались и главы, и линзы, которых вы ещё не открывали. Журнал действий, рабочие места и верстак живут в этом браузере и сети не требуют.','A stand read once opens without a network. Here it can be kept whole, so that chapters and lenses you have not opened yet open offline too. The act journal, the workplaces and the workbench live in this browser and need no network.'],
+  lead:['Стенд, прочитанный однажды, открывается без сети. Здесь его можно сохранить целиком: главы и линзы, которых вы ещё не открывали, а с отметкой ниже — и тексты его произведений во всех изданиях. Журнал действий, рабочие места и верстак живут в этом браузере и сети не требуют.','A stand read once opens without a network. Here it can be kept whole: chapters and lenses you have not opened yet, and, marked below, the texts of its works in every edition. The act journal, the workplaces and the workbench live in this browser and need no network.'],
   ready:['Работа без сети включена','Working offline is on'],
   devOnly:['Работа без сети действует на собранном сайте, не на сервере разработки','Working offline works on the built site, not on the development server'],
   unsupported:['Этот браузер не держит страницы без сети','This browser does not keep pages offline'],
   keep:['Сохранить стенд целиком','Keep the whole stand'],
   images:['с изображениями стенда','with the stand\'s images'],
+  texts:['с текстами его произведений во всех изданиях','with the texts of its works in every edition'],
+  textSearch:['Поиск по текстам работает с сетью.','Searching the texts works with a network.'],
   versions:['с прежними версиями ядра (для «Что выросло» и «Как было»)','with the former versions of the core (for “What grew” and “As it was”)'],
   progress:['Сохранено {0} из {1}','Kept {0} of {1}'],
   failed:['не удалось: {0}','failed: {0}'],
@@ -72,7 +98,9 @@ export function mountOffline({shell,actionLayer,locale=()=> 'ru',profile='zarath
     const worker=(await view.navigator.serviceWorker.ready)?.active;if(!worker)throw new Error('no service worker');
     return new Promise(resolve=>{const channel=new view.MessageChannel();channel.port1.onmessage=event=>{onProgress(event.data);if(!event.data.running)resolve(event.data);};worker.postMessage({type:'keep',urls},[channel.port2]);});
   }
-  async function urlsToKeep({images,versions=false}){
+  const fetchJson=url=>view.fetch(url).then(response=>{if(!response.ok)throw new Error(`${url}: ${response.status}`);return response.json();});
+  let texts=null;const corpusTexts=()=>texts??=corpusFiles(fetchJson,{profile}).catch(error=>{texts=null;throw error;});
+  async function urlsToKeep({images,versions=false,texts:withTexts=false}){
     const pages=[new URL(view.location.href).pathname];
     const root=['/theme.js',`${BASE}theme.js`,`${BASE}cosmos.js`,`${BASE}cosmos.css`,`${BASE}favicon.svg`,`${BASE}asset-manifest.json`];
     // The page names its own scripts and styles; the build's list leads from them to everything they may load.
@@ -80,9 +108,10 @@ export function mountOffline({shell,actionLayer,locale=()=> 'ru',profile='zarath
       .filter(path=>path.startsWith(`${BASE}assets/`)).map(path=>path.slice(BASE.length));
     const files=standFiles(await manifest(),named,{stand:profile,versions});
     const pictures=images?mediaFiles(await media(profile).catch(()=>null)).urls:[];
+    const corpus=withTexts?(await corpusTexts()).urls:[];
     // What the page has already loaded from the site (its icons, the sky's pictures, the corpus manifest) stays too.
     const loaded=(view.performance?.getEntriesByType?.('resource')??[]).map(entry=>new URL(entry.name)).filter(url=>url.origin===view.location.origin&&url.pathname.startsWith(BASE)).map(url=>url.pathname+url.search);
-    return [...pages,...root,...files,...pictures,...loaded];
+    return [...pages,...root,...files,...pictures,...corpus,...loaded];
   }
 
   async function open(){
@@ -97,6 +126,11 @@ export function mountOffline({shell,actionLayer,locale=()=> 'ru',profile='zarath
     const pictures=el('input');pictures.type='checkbox';pictures.id='of-images';
     const size=mediaFiles(await media(profile).catch(()=>null));
     const label=el('label','ad-check-row');label.append(pictures,el('span','',`${t('images')}${size.bytes?` · ${(size.bytes/1048576).toFixed(0)} ${t('megabytes')}`:''}`));
+    const words=el('input');words.type='checkbox';words.id='of-texts';
+    const wordsSize=el('span','',t('texts')),wordsLabel=el('label','ad-check-row');wordsLabel.append(words,wordsSize);
+    const wordsNote=el('p','ad-muted',t('textSearch'));
+    // How much the texts take is read once they are asked for: each work's manifest names its pages and their bytes.
+    words.addEventListener('change',()=>{if(words.checked)corpusTexts().then(found=>{wordsSize.textContent=`${t('texts')} · ${(found.bytes/1048576).toFixed(0)} ${t('megabytes')}`;}).catch(error=>{line.textContent=String(error?.message??error);});});
     const former=el('input');former.type='checkbox';former.id='of-versions';
     const formerLabel=el('label','ad-check-row');formerLabel.append(former,el('span','',t('versions')));
     const go=button(t('keep'),'primary');
@@ -104,14 +138,14 @@ export function mountOffline({shell,actionLayer,locale=()=> 'ru',profile='zarath
       go.disabled=true;
       try{
         await view.navigator.storage?.persist?.().then(granted=>{if(granted)body.append(el('p','ad-muted',t('persisted')));}).catch(()=>{});
-        const urls=await urlsToKeep({images:pictures.checked,versions:former.checked});
+        const urls=await urlsToKeep({images:pictures.checked,versions:former.checked,texts:words.checked});
         const result=await keep(urls,report=>{line.textContent=`${t('progress').replace('{0}',report.done).replace('{1}',report.total)}${report.failed?` · ${t('failed').replace('{0}',report.failed)}`:''}`;});
         await paintStorage();return result;
       }catch(error){line.textContent=String(error?.message??error);}finally{go.disabled=false;}
     });
     const storage=el('p','ad-muted');
     async function paintStorage(){const estimate=await view.navigator.storage?.estimate?.().catch(()=>null);if(estimate)storage.textContent=t('storage').replace('{0}',(estimate.usage/1048576).toFixed(1)).replace('{1}',(estimate.quota/1048576).toFixed(0));}
-    body.append(state);if(size.urls.length)body.append(label);if(profile==='zarathustra')body.append(formerLabel);body.append(go,line,storage);
+    body.append(state);if(size.urls.length)body.append(label);body.append(wordsLabel,wordsNote);if(profile==='zarathustra')body.append(formerLabel);body.append(go,line,storage);
     await paintStorage();return dialog;
   }
   const remove=actionLayer?.addActions?.([{id:'offline',text:()=>t('title'),for:['any'],run:()=>open()}]);

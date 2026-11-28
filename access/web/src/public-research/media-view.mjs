@@ -165,7 +165,9 @@ export function createMediaView({t,locale,hint=()=>{}}){
     const when=work.dating?formatDating(work.dating,locale()):'';
     title.append(words);if(when)title.append(el('span','ps-media-viewer-date',` · ${when}`));if(holder)title.append(el('span','ps-media-viewer-holder',` · ${holder.text}`));
     const control=(text,label,action)=>{const node=el('button','ps-media-control',text);node.type='button';node.setAttribute('aria-label',label);hint(node,label);node.addEventListener('click',action);return node;};
-    const state={layer,opener,osd:null};
+    // Focus returns to the opener, or, when its picture failed while the viewer was open and a note took its place,
+    // to the part of the card it stood in.
+    const state={layer,opener,home:opener?.parentElement??null,osd:null};
     const zoomIn=control('+',t('mediaZoomIn'),()=>{state.osd?.viewport.zoomBy(1.6);state.osd?.viewport.applyConstraints();});
     const zoomOut=control('−',t('mediaZoomOut'),()=>{state.osd?.viewport.zoomBy(1/1.6);state.osd?.viewport.applyConstraints();});
     const whole=control('⤢',t('mediaWhole'),()=>state.osd?.viewport.goHome());
@@ -184,14 +186,17 @@ export function createMediaView({t,locale,hint=()=>{}}){
         animationTime:0.6,gestureSettingsMouse:{clickToZoom:false,dblClickToZoom:true},
       }));
       state.osd.addHandler('open-failed',()=>{stage.replaceChildren(el('p','ps-media-missing',t('mediaMissing')));});
-    }catch{stage.replaceChildren(el('p','ps-media-missing',t('mediaMissing')));}
+    // A viewer closed while the viewer's code was loading stays closed.
+    }catch{if(viewer===state)stage.replaceChildren(el('p','ps-media-missing',t('mediaMissing')));}
   }
 
   function closeViewer(){
     if(!viewer)return;
-    const {layer,opener,osd}=viewer;viewer=null;
+    const {layer,opener,home,osd}=viewer;viewer=null;
     osd?.destroy();if(layer.open)layer.close();layer.remove();
-    if(opener?.isConnected)opener.focus({preventScroll:true});
+    const target=opener?.isConnected?opener:home?.isConnected?home:null;
+    if(target&&target!==opener&&!target.hasAttribute('tabindex'))target.tabIndex=-1;
+    target?.focus({preventScroll:true});
   }
 
   return {

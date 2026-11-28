@@ -143,6 +143,17 @@ fn exact_xml_identity_citation_and_packet_match_retained_recipe() {
         sha(&encode(&ctx, &packet, true).unwrap()),
         f["packet_sha256"]
     );
+    let mut with_additional_locators = packet.clone();
+    with_additional_locators["anchors"][0]["source_return"]["additional_locator_refs"] = json!([
+        "https://example.org/volume-2",
+        "https://example.org/volume-3"
+    ]);
+    crate::research_support::unit_packet_schema(&ctx, &with_additional_locators).unwrap();
+    with_additional_locators["anchors"][0]["source_return"]["additional_locator_refs"] = json!([
+        "https://example.org/volume-2",
+        "https://example.org/volume-2"
+    ]);
+    assert!(crate::research_support::unit_packet_schema(&ctx, &with_additional_locators).is_err());
     let paragraph = parts[0]
         .units
         .iter()
