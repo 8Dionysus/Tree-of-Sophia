@@ -117,6 +117,8 @@ def write_json(path: Path, value) -> None:
 
 def apply_agent_date_corrections(agents, corrections, decisions):
     """Apply sourced corrections while preserving the register's wording."""
+    declared={item.get('target') for item in decisions};projected={item.get('target') for item in corrections if item.get('kind')=='author' and item.get('field')=='Даты' and item.get('source_sha256')}
+    if projected-declared:raise ValueError('a projected date correction has no authored decision; rebuild from the register')
     for decision in decisions:
         required=('target','agent','was','now','verified_at','source_sha256','statement','by')
         if any(not decision.get(key) for key in required) or not re.fullmatch(r'[a-f0-9]{64}',decision['source_sha256']):raise ValueError('incomplete agent date correction')

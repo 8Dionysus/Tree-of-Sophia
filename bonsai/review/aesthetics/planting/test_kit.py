@@ -13,6 +13,7 @@ class AgentDateCorrectionTest(unittest.TestCase):
         decision={'target':'B:1','agent':'person','was':'1939–2013','now':'род. 1939','verified_at':['https://example.org/cv.pdf'],'source_sha256':'a'*64,'statement':'The later university CV contradicts the asserted death year.','by':'reviewer'}
         module.apply_agent_date_corrections(agents,corrections,[decision]);module.apply_agent_date_corrections(agents,corrections,[decision])
         self.assertEqual(agents[0]['dates'],['род. 1939']);self.assertEqual(agents[0]['register_dates'],[{'key':'B:1','dates':'1939–2013'}]);self.assertEqual(len(corrections),1)
+        with self.assertRaises(ValueError):module.apply_agent_date_corrections(agents,corrections,[])
         with self.assertRaises(ValueError):module.apply_agent_date_corrections([{'id':'person','keys':['B:1'],'dates':['other']}],[],[decision])
 
 
@@ -617,6 +618,22 @@ class DuplicateWitnessAcceptanceTest(unittest.TestCase):
             self.assertEqual(list((path/'witnesses').glob('*.accepted')),[])
 
 class MexicoQuotationTest(unittest.TestCase):
+    def test_legacy_accepted_witness_without_outcome_owes_reassessment(self):
+        import hashlib,json,tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True);file=path/'witnesses/en.json'
+            rights={country:{'basis':'short-quotation','law':'A lawful quotation under the relevant national rule.'} for country in kit.JURISDICTIONS}
+            data={'language':'en','witness':{'maker':'maker','rights':rights},'places':{'p':{'text':'Words.'}},'review':{'reader':'second'}}
+            proof={'law_url':kit.MEXICO_LFDA,'law_file':'mexico-law-'+'a'*64+'.pdf','law_sha256':'a'*64,'scope_sha256':kit.mexico_scope(data['witness'],data['places']),'non_substantial':'A'*45,'normal_exploitation':'B'*45,'source_integrity':'C'*45};data['witness']['mexico_quotation']=proof
+            data['review']['mexico_quotation']={'reader':'second','date':'2026-11-28','sha256':kit.page_number_digest(proof),'assessment':'An earlier detailed independent review without a structured outcome.'}
+            raw=json.dumps(data).encode();file.write_bytes(raw);Path(str(file)+'.accepted').write_text(json.dumps({'sha256':hashlib.sha256(raw).hexdigest()}))
+            kit.OWES.clear()
+            try:
+                with patch.object(kit,'world',return_value={'fragments':{'places':{'work':{'p':{}}}}}):issues=kit.witness_problems(str(path),'en',data,second=True,offline=True)
+                self.assertFalse(any('explicit review outcome' in issue for issue in issues));self.assertTrue(any('explicit review outcome' in issue for issue in kit.OWES))
+            finally:kit.OWES.clear()
+
     def test_original_extension_keeps_its_own_reviewed_assessment(self):
         import argparse, json, tempfile
         from pathlib import Path
