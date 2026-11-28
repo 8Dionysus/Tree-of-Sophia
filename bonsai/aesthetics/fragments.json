@@ -2394,6 +2394,40 @@
        "image_sha256": "cf1e199f24788fc2fcd5d2ad6e148ca9695fabe8704e0fdb6deeb9a7f91ca817"
       }
      ]
+    },
+    "ru": {
+     "absent": {
+      "language": "ru",
+      "reason": "No Russian text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen/witnesses/ru.json",
+     "corrections": [
+      {
+       "loc": "Essay p740b",
+       "from": "искусствах, а",
+       "to": "искусствах,",
+       "offset": 58,
+       "reason": "На границе с. 35 и 36 союз а напечатан дважды; первый экземпляр снят как повтор набора, второй оставлен, повтор и основание явно записаны.",
+       "url": "https://imwerden.de/pdf/vestnik_evropy_1813_05-08_text.pdf",
+       "page": "35",
+       "image_sha256": "543142ccde18f7d0b96582fd2e2ee1835af3cce82923f32f6e4744e2e1da07df"
+      }
+     ],
+     "page_sources": {
+      "Essay p740b": [
+       {
+        "page": "35",
+        "url": "https://imwerden.de/pdf/vestnik_evropy_1813_05-08_text.pdf",
+        "image_sha256": "543142ccde18f7d0b96582fd2e2ee1835af3cce82923f32f6e4744e2e1da07df"
+       },
+       {
+        "page": "36",
+        "url": "https://imwerden.de/pdf/vestnik_evropy_1813_05-08_text.pdf",
+        "image_sha256": "ad9a7a475e77c27b3c3c647372cb39fa1964672e028d8e9c421a483957f428bc"
+       }
+      ]
+     }
     }
    },
    "friedrich-schiller.ueber-das-erhabene": {
@@ -6968,15 +7002,143 @@
        ]
       }
      ]
+    },
+    "ru": {
+     "edition": "Фридрих Шиллер. Шиллеровы мысли о том, что низко и обыкновенно в изящных искусствах. Перевод В. В. Измайлова // Вестник Европы, 1813, часть LXVIII, № 5–6, с. 31–41.",
+     "year": 1813,
+     "url": "https://imwerden.de/pdf/vestnik_evropy_1813_05-08_text.pdf",
+     "licence": "Текст издания 1813 года: сроки прав автора (1805), переводчика (1830) и редактора журнала (1842), если его вклад охраняется, истекли, включая консервативный срок жизни плюс 100 лет в Мексике; статус цифрового факсимиле рассматривается отдельно.",
+     "attribution": "Фридрих Шиллер, перевод В. В. Измайлова, Вестник Европы, 1813, часть LXVIII, № 5–6, с. 31–41; журнал издавался М. Т. Каченовским.",
+     "maker": "codex-ru-week2-schiller-1813",
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и Федеральный закон № 231-ФЗ, ст. 6: сроки для автора 1805, переводчика 1830 и редактора журнала 1842 истекли до 1993 года."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Директива 2006/116/EC, статья 1: прошло более 70 лет со смерти всех указанных участников."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Публикация 1813 года; срок даже для восстановленных иностранных произведений, опубликованных до 1978 года, обычно 95 лет от первой публикации, истёк (Circular 38B)."
+      }
+     },
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "9e333c4292d89a61a12920139fccff88e85a747899eb8b55b62886a8b68dc6e7",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q4198598",
+       "name": {
+        "en": "Vladimir Izmaylov",
+        "ru": "Владимир Васильевич Измайлов"
+       },
+       "born": 1773,
+       "died": 1830,
+       "source": "https://www.wikidata.org/wiki/Q4198598",
+       "evidence": {
+        "file": "wikidata-Q4198598.json",
+        "sha256": "b3e7d64740da5734357fbb3f21f564e1b3adf1cbfa6046b81ff1c50865bcbdc3",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q4198598.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q1964709",
+       "name": {
+        "en": "Mikhail Katchenovski",
+        "ru": "Михаил Трофимович Каченовский"
+       },
+       "born": 1775,
+       "died": 1842,
+       "source": "https://www.wikidata.org/wiki/Q1964709",
+       "evidence": {
+        "file": "wikidata-Q1964709.json",
+        "sha256": "a67ddbdb074c65b1a5684ed08f8fb5b038622ca808360c5dbe60685a5e8b7bf7",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q1964709.json"
+       }
+      }
+     ],
+     "normalization": "Russian spelling modernized from the page by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged.",
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Vladimir Izmaylov",
+        "ru": "Владимир Васильевич Измайлов"
+       },
+       "qid": "Q4198598",
+       "source": "https://www.wikidata.org/wiki/Q4198598",
+       "born": [
+        {
+         "year": 1773
+        }
+       ],
+       "died": [
+        {
+         "year": 1830
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Mikhail Katchenovski",
+        "ru": "Михаил Трофимович Каченовский"
+       },
+       "qid": "Q1964709",
+       "source": "https://www.wikidata.org/wiki/Q1964709",
+       "born": [
+        {
+         "year": 1775
+        }
+       ],
+       "died": [
+        {
+         "year": 1842
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [],
-   "unsearched": [
-    {
-     "language": "ru",
-     "reason": "No Russian text is taken in this pass: the line plants the original first."
-    }
-   ]
+   "absent": []
   },
   "georg-simmel.philosophie-der-landschaft": {
    "author": {
@@ -14302,11 +14464,13 @@
     },
     "texts": {
      "de": "Es gibt zwar Fälle, wo das Niedrige auch in der Kunst gestattet werden kann, da nämlich, wo es Lachen erregen soll.",
-     "en": "There are cases, it is true, where even in art the low may be allowed; there, namely, where its object is to excite laughter."
+     "en": "There are cases, it is true, where even in art the low may be allowed; there, namely, where its object is to excite laughter.",
+     "ru": "Есть однакож случаи, где позволяется употреблять низкое в искусствах, а именно когда хотим возбудить смех."
     },
     "links": {
      "de": "https://archive.org/details/schillerssmmtli05goedgoog/page/n811/mode/1up",
-     "en": "https://archive.org/download/aestheticletter00schigoog/page/n356.jpg"
+     "en": "https://archive.org/download/aestheticletter00schigoog/page/n356.jpg",
+     "ru": "https://imwerden.de/pdf/vestnik_evropy_1813_05-08_text.pdf"
     },
     "refs": [
      [
@@ -14316,6 +14480,10 @@
      [
       "en",
       "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), p. 270"
+     ],
+     [
+      "ru",
+      "Фридрих Шиллер. Шиллеровы мысли о том, что низко и обыкновенно в изящных искусствах. Перевод В. В. Измайлова // Вестник Европы, 1813, часть LXVIII, № 5–6, с. 31–41., 35, 36"
      ]
     ]
    },
