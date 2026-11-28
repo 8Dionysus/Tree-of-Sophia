@@ -186,6 +186,28 @@ def run(work,retake=False):
     code,text=kit('settle',os.path.join(PACKETS,work))
     reading=json.load(open(os.path.join(PACKETS,work,'reading.json')))
     if code or not reading['conceptions']:return end('disputed',note=text[-300:])
+    findings=reopen_findings(work)
+    if findings:
+        # Settling changes the scope that was assessed. The maker must address
+        # each finding on the reduced reading and a fresh reader must review it.
+        prompt=MAKER_BACK+'\n\nThe line settled disputed items under left. Address every reopening finding again on this exact settled reading with kit.py reopen-response:\n'+findings
+        maker,got=until_open(work,'maker',prompt,MAKER_ON,MAKER_TURNS,thread=maker)
+        if got!='open':return end(got if got in OUTSIDE or got=='blocked' else 'maker-stuck')
+        # Preserve the preceding review before a fresh independent assessment.
+        n=1
+        while True:
+            prior=out(work,f'review-settled-{n}.json')
+            try:
+                with open(prior,'x') as saved,open(review) as original:saved.write(original.read())
+                break
+            except FileExistsError:n+=1
+        os.unlink(review)
+        prompt=SECOND.format(work=work)+'\n\nIndependently assess every reopening finding on the settled reading using kit.py reopen-review after completing the packet review:\n'+findings
+        _,got=until_open(work,'second',prompt,SECOND_ON,SECOND_TURNS,second=True)
+        if got!='open':return end(got if got in OUTSIDE else 'second-stuck')
+        answer=json.load(open(review))
+        if not answer.get('accept'):return end('reopen-disputed')
+        reading=json.load(open(os.path.join(PACKETS,work,'reading.json')))
     basis=f"Made by {reading['reader']['id']}; read a second time by {answer['reader']['id']}, who confirms the {len(reading['conceptions'])} conceptions and {len(reading['links'])} links kept. What the second reader does not confirm after {RETURNS} returns to the maker is under left, marked disputed."
     code,text=kit('accept',os.path.join(PACKETS,work),'--by','planting-line','--basis',basis)
     return end('accepted-in-part' if code==0 else 'accept-failed',note=text[-300:])

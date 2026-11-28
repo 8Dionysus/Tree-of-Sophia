@@ -1143,6 +1143,34 @@ class PageDifferenceAcceptanceTest(unittest.TestCase):
             self.assertFalse((Path(tmp)/'accepted.json').exists())
 
 class ReopenedFindingDriverTest(unittest.TestCase):
+    def test_settled_reopened_reading_gets_maker_and_fresh_independent_review(self):
+        import json,tempfile
+        from pathlib import Path
+        import drive
+        for final_accept in (True,False):
+            with self.subTest(final_accept=final_accept),tempfile.TemporaryDirectory() as tmp:
+                packet=Path(tmp)/'work';packet.mkdir();events=[];calls=[]
+                (packet/'reopen-history.json').write_text(json.dumps([{'finding':'The source condition must be preserved.'}]))
+                (packet/'reading.json').write_text(json.dumps({'reader':{'id':'maker'},'conceptions':[{'id':'kept'},{'id':'disputed'}],'links':[]}))
+                def kit_call(*args):
+                    calls.append(args[0])
+                    if args[0]=='settle':
+                        data=json.loads((packet/'reading.json').read_text());data['conceptions'].pop();(packet/'reading.json').write_text(json.dumps(data))
+                    return 0,'gate: open'
+                def reader(work,role,first,again,turns,**kwargs):
+                    events.append((role,first))
+                    if role=='second':
+                        count=sum(event[0]=='second' for event in events)
+                        (packet/'review.json').write_text(json.dumps({'reader':{'id':'second'},'accept':final_accept if count==2 else False,'images':[]}))
+                    return role+'-thread','open'
+                with patch.object(drive,'PACKETS',tmp),patch.object(drive,'OUT',str(Path(tmp)/'out')),patch.object(drive,'state',return_value={}),patch.object(drive,'kit',side_effect=kit_call),patch.object(drive,'until_open',side_effect=reader),patch.object(drive,'have',side_effect=lambda w,n:n in ('places.json','reading.json')),patch.object(drive,'RETURNS',0):
+                    result=drive.run('work')
+                self.assertEqual([event[0] for event in events],['second','maker','second'])
+                self.assertIn('reopen-response',events[1][1]);self.assertIn('reopen-review',events[2][1])
+                self.assertEqual(result,'accepted-in-part' if final_accept else 'reopen-disputed')
+                self.assertEqual('accept' in calls,final_accept)
+                self.assertTrue((Path(tmp)/'out/work/review-settled-1.json').exists())
+
     def test_negative_second_reading_returns_finding_to_maker(self):
         import json,tempfile
         from pathlib import Path
