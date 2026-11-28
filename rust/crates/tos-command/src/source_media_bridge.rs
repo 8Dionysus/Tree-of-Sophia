@@ -153,6 +153,7 @@ fn observe(request: &Value) -> Result<Value> {
         callback,
         limit: record_limit()?,
         budget,
+        made: 0,
         requests: Vec::new(),
         warnings: Vec::new(),
     };
@@ -223,6 +224,8 @@ struct Observer {
     limit: usize,
     /// Provider requests this observation may make.
     budget: usize,
+    /// Provider requests made so far, an oversized file among them.
+    made: usize,
     requests: Vec<Value>,
     warnings: Vec<String>,
 }
@@ -251,7 +254,7 @@ impl Observer {
 
     /// One provider response from the provider's hosts, recorded with its fingerprint.
     fn record(&mut self, role: &str, url: &str, accept: &str) -> Result<(Vec<u8>, String)> {
-        if self.requests.len() >= self.budget {
+        if self.made >= self.budget {
             return Err(format!(
                 "the observation needs more than its {} requests; raise max_requests",
                 self.budget
@@ -263,6 +266,8 @@ impl Observer {
                 self.provider.id
             ));
         }
+        // Every request sent counts against the budget, a file past the transport among them.
+        self.made += 1;
         let started_at = utcnow()?;
         let tick = Instant::now();
         let response = if self.callback {
@@ -312,7 +317,7 @@ impl Observer {
 
     /// A file's fingerprint, or nothing when the file holds more bytes than one response may.
     fn file_within(&mut self, role: &str, url: &str) -> Result<Option<Value>> {
-        if self.requests.len() >= self.budget {
+        if self.made >= self.budget {
             return Err(format!(
                 "the observation needs more than its {} requests; raise max_requests",
                 self.budget
@@ -327,13 +332,20 @@ impl Observer {
                 self.provider.id
             ));
         }
+        // Every request sent counts against the budget, a file past the transport among them.
+        self.made += 1;
         let started_at = utcnow()?;
         let tick = Instant::now();
         // An image host answers 406 to a request that accepts JSON only.
-        let response = if self.callback {
-            callback_fetch(url, self.limit, ACCEPT_IMAGE)?
+        let fetched = if self.callback {
+            callback_fetch(url, self.limit, ACCEPT_IMAGE)
         } else {
-            fetch(url, self.limit, ACCEPT_IMAGE)?
+            fetch(url, self.limit, ACCEPT_IMAGE)
+        };
+        // A file larger than the transport admits is a file larger than one response may hold.
+        let response = match fetched {
+            Err(error) if error == OVER_LIMIT => return Ok(None),
+            fetched => fetched?,
         };
         let elapsed = tick.elapsed().as_secs_f64();
         if response.status != 200 {
@@ -1373,6 +1385,40 @@ fn commons_plain(html: &str) -> String {
 
 /// The years a dating's words name: each number of three or four digits, a decade ("1840s") to its last year.
 fn stated_years(text: &str) -> Vec<i64> {
+    // The era a page writes its years in. A year before the common era is negative, as Wikibase writes it
+    // (450 BC is -450); words naming both eras leave the years to the artwork's recorded inception.
+    let words = format!(
+        " {} ",
+        text.split(|c: char| !c.is_alphanumeric())
+            .filter(|word| !word.is_empty())
+            .map(str::to_lowercase)
+            .collect::<Vec<_>>()
+            .join(" ")
+    );
+    let before = [
+        " bc ",
+        " bce ",
+        " b c ",
+        " b c e ",
+        " v chr ",
+        " av j c ",
+        " до н э ",
+    ]
+    .iter()
+    .any(|marker| words.contains(marker));
+    let tokens: Vec<_> = words.split_whitespace().collect();
+    let common = [" ad ", " ce ", " a d ", " n chr ", " ap j c "]
+        .iter()
+        .any(|marker| words.contains(marker))
+        || tokens
+            .windows(2)
+            .enumerate()
+            .any(|(index, pair)| pair == ["c", "e"] && (index == 0 || tokens[index - 1] != "b"))
+        || words.matches(" н э ").count() > words.matches(" до н э ").count();
+    if before && common {
+        return Vec::new();
+    }
+    let sign = if before { -1 } else { 1 };
     let bytes = text.as_bytes();
     let mut years = Vec::new();
     let mut at = 0;
@@ -1387,13 +1433,27 @@ fn stated_years(text: &str) -> Vec<i64> {
         }
         if (3..=4).contains(&(at - start)) {
             let year: i64 = text[start..at].parse().unwrap_or_default();
-            years.push(year);
+            years.push(sign * year);
             if bytes.get(at) == Some(&b's') && year % 10 == 0 {
-                years.push(year + 9);
+                years.push(sign * (year + 9));
             }
         }
     }
     years
+}
+
+/// The years a dating gives: the years its page's words name, which speak for the work; when those
+/// words read in one era and the artwork's recorded inception in the other (a "450" against -450),
+/// the recorded years hold, and the words stay its statement.
+fn dating_years(stated: Option<(i64, i64)>, recorded: Option<(i64, i64)>) -> Option<(i64, i64)> {
+    match (stated, recorded) {
+        (Some((begin, end)), Some((earliest, latest)))
+            if (begin < 0) != (earliest < 0) || (end < 0) != (latest < 0) =>
+        {
+            Some((earliest, latest))
+        }
+        (stated, recorded) => stated.or(recorded),
+    }
 }
 
 /// An address without its query and fragment: Commons adds tracking parameters to the files it names.
@@ -1585,7 +1645,7 @@ fn observe_commons(observer: &mut Observer, object: &str, files: bool) -> Result
         let years = stated_years(text);
         Some((*years.iter().min()?, *years.iter().max()?))
     });
-    let dating = match (statement, stated.or(recorded)) {
+    let dating = match (statement, dating_years(stated, recorded)) {
         (Some(statement), Some((begin, end))) => {
             json!({"statement":statement,"begin_year":begin,"end_year":end})
         }
@@ -2236,10 +2296,20 @@ const ACCEPT_RECORD: &str = "application/ld+json, application/json;q=0.9";
 const ACCEPT_IMAGE: &str = "image/jpeg, image/png;q=0.9, image/*;q=0.8";
 const ACCEPT_PAGE: &str = "text/html, application/xhtml+xml;q=0.9";
 
+/// What `fetch` answers for a response holding more bytes than its transport admits.
+const OVER_LIMIT: &str = "the provider response holds more bytes than one response may";
+
 fn fetch(url: &str, limit: usize, accept: &str) -> Result<Response> {
     #[cfg(test)]
     if let Some(result) = TEST_FETCH.with(|fetch| fetch.borrow().as_ref().map(|fetch| fetch(url))) {
-        return result;
+        // The fixture stands for the transport, which stops reading past `limit + 4096` bytes.
+        return result.and_then(|response| {
+            if response.body.len() > limit + 4096 {
+                Err(OVER_LIMIT.to_owned())
+            } else {
+                Ok(response)
+            }
+        });
     }
     const MARKER: &[u8] = b"\n__TOS_MEDIA_META__";
     let write_out = "\n__TOS_MEDIA_META__%{http_code}\n%{url_effective}\n%{content_type}";
@@ -2271,7 +2341,13 @@ fn fetch(url: &str, limit: usize, accept: &str) -> Result<Response> {
         Instant::now() + Duration::from_secs(50),
         &cancel,
     )
-    .map_err(|error| format!("media provider fetch failed: {url}: {error:?}"))?;
+    .map_err(|error| match error {
+        // The process stops reading past its output budget: the response is larger than one response may be.
+        crate::source_command::SourceCommandError::Unsupported(
+            "native owner verifier output budget",
+        ) => OVER_LIMIT.to_owned(),
+        error => format!("media provider fetch failed: {url}: {error:?}"),
+    })?;
     let position = raw
         .windows(MARKER.len())
         .rposition(|window| window == MARKER)
@@ -2876,6 +2952,7 @@ mod tests {
             callback: false,
             limit: 1024,
             budget: 1,
+            made: 0,
             requests: Vec::new(),
             warnings: Vec::new(),
         };
@@ -3735,6 +3812,69 @@ mod tests {
             result["observation"]["rights"][0]["statement_uri"],
             Value::Null
         );
+    }
+
+    #[test]
+    fn an_smb_original_past_the_transport_stays_at_the_museum_and_counts_as_a_request() {
+        const PAGE: &str = "https://search.smb.museum/object/obj-965972";
+        const ORIGINAL: &str =
+            "https://search.smb.museum/media/images/originals/157/005/5157106.AII898_002mR.jpg";
+        const COPY: &str =
+            "https://search.smb.museum/media/images/thumbs/extra_large/157/005/5157106.jpg";
+        let page = smb_page("/media/images/originals/157/005/5157106.AII898_002mR.jpg");
+        // The transport stops past the limit: the original is larger than one response may hold.
+        let mut huge = tiny_jpeg(9000, 7000);
+        huge.resize(record_limit().unwrap() + 8192, 0);
+        let table = |page: String| {
+            vec![
+                (PAGE.to_owned(), page.into_bytes()),
+                (ORIGINAL.to_owned(), huge.clone()),
+                (COPY.to_owned(), tiny_jpeg(1200, 892)),
+            ]
+        };
+        let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"smb","object":"965972","max_requests":3,"files":true});
+        let result = observe_with(&request, table(page.clone())).unwrap();
+        let image = &result["observation"]["images"][0];
+        assert_eq!(image["file_url"], COPY);
+        assert_eq!(image["file_fingerprint"]["width_pixels"], 1200);
+        // The page, the copy and the original make three requests: two allowed are too few.
+        let request = json!({"operation":"media.observe","repo_root":repo_root(),"provider":"smb","object":"965972","max_requests":2,"files":true});
+        assert!(
+            observe_with(&request, table(page))
+                .unwrap_err()
+                .contains("more than its 2 requests")
+        );
+    }
+
+    #[test]
+    fn a_page_dating_keeps_its_era() {
+        assert_eq!(stated_years("c. 450 BC"), [-450]);
+        assert_eq!(stated_years("450–440 B.C."), [-450, -440]);
+        assert_eq!(stated_years("450 B.C.E."), [-450]);
+        assert_eq!(stated_years("450 C.E."), [450]);
+        assert!(stated_years("450 B.C.E. to 120 C.E.").is_empty());
+        assert!(stated_years("450 B.C.E. C.E.").is_empty());
+        assert_eq!(stated_years("um 450 v. Chr."), [-450]);
+        assert_eq!(stated_years("около 450 до н. э."), [-450]);
+        assert_eq!(stated_years("1880s"), [1880, 1889]);
+        assert_eq!(stated_years("AD 1150"), [1150]);
+        assert_eq!(stated_years("1150 н. э."), [1150]);
+        assert!(stated_years("between 150 BC and AD 120").is_empty());
+        // Words read in the other era than the recorded inception leave the years to it; otherwise the words speak.
+        assert_eq!(
+            dating_years(Some((450, 450)), Some((-450, -440))),
+            Some((-450, -440))
+        );
+        assert_eq!(
+            dating_years(Some((1817, 1817)), Some((1818, 1818))),
+            Some((1817, 1817))
+        );
+        assert_eq!(
+            dating_years(Some((1885, 1885)), Some((1880, 1889))),
+            Some((1885, 1885))
+        );
+        assert_eq!(dating_years(None, Some((1880, 1889))), Some((1880, 1889)));
+        assert_eq!(dating_years(Some((1885, 1885)), None), Some((1885, 1885)));
     }
 
     #[test]

@@ -18,9 +18,13 @@
 export const FRAGMENTS_SCHEMA='tos.bonsai.fragments.v1';
 export const CORPUS_ALIGNMENT_SCHEMA='tos.bonsai.corpus-alignment.v1';
 export const TRANSLATION_SCOPES_SCHEMA='tos.bonsai.translation-scopes.v1';
+const httpsPage=value=>{
+  if(typeof value!=='string'||value!==value.trim())return false;
+  try{const url=new URL(value);return url.protocol==='https:'&&!!url.hostname;}catch{return false;}
+};
 /** Optional evidence for refining a local reference by sentences. */
 export function validLocalSentenceOptions(pair){
-  const {sentenceAnchors,precedingTranslationSentences,sourceClauseStarts,targetClauseStarts}=pair;
+  const {sentenceAnchors,precedingTranslationSentences,sourceClauseStarts,targetClauseStarts,verifiedTargetSentenceBreaks}=pair;
   if(precedingTranslationSentences!==undefined&&
     (!Number.isInteger(precedingTranslationSentences)||precedingTranslationSentences<1||precedingTranslationSentences>3||!sentenceAnchors))return false;
   const keywords=words=>Array.isArray(words)&&words.length>=1&&words.length<=8&&
@@ -28,6 +32,10 @@ export function validLocalSentenceOptions(pair){
   for(const starts of [sourceClauseStarts,targetClauseStarts]){
     if(starts!==undefined&&(!sentenceAnchors||!Array.isArray(starts)||!starts.length||starts.length>8||!starts.every(keywords)))return false;
   }
+  if(verifiedTargetSentenceBreaks!==undefined&&(!sentenceAnchors||precedingTranslationSentences!==undefined||pair.includeFollowingContinuation||!Array.isArray(verifiedTargetSentenceBreaks)||
+    !verifiedTargetSentenceBreaks.length||verifiedTargetSentenceBreaks.length>8||verifiedTargetSentenceBreaks.some(boundary=>
+      !boundary||typeof boundary.before!=='string'||!boundary.before.trim()||boundary.before!==boundary.before.trim()||boundary.before.length>200||
+      typeof boundary.after!=='string'||!boundary.after.trim()||boundary.after!==boundary.after.trim()||boundary.after.length>200||!httpsPage(boundary.source))))return false;
   if(sentenceAnchors===undefined)return true;
   return Array.isArray(sentenceAnchors)&&sentenceAnchors.length>=1&&sentenceAnchors.length<=32&&
     sentenceAnchors.every(anchor=>anchor&&keywords(anchor.source)&&keywords(anchor.target));

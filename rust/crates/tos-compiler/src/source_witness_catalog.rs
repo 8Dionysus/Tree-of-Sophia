@@ -2547,7 +2547,10 @@ fn native_inventory(
                     })?;
                     observer.native_semantic_identity(id, &row.id)?;
                 }
-            } else if basename == "source-text-unit-packet.v1.json" {
+            } else if matches!(
+                basename,
+                "source-text-unit-packet.v1.json" | "source-text-unit-packet.v2.json"
+            ) {
                 if text(packet.value(), "schema_version")? != "tos_source_text_unit_packet_v1" {
                     return Err(Error::Invalid("catalog native TextUnit packet schema"));
                 }

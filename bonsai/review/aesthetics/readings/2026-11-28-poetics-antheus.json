@@ -1,0 +1,59 @@
+{
+  "reader": {
+    "id": "codex-2026-11-28-poetics-antheus",
+    "model": "Codex",
+    "date": "2026-11-28",
+    "reads": "Aristotle, Poetics IX, in the Greek public corpus beside English and Russian translations and the 1927 Novosadsky printing."
+  },
+  "library": {
+    "agents": {
+      "aristotle": {
+        "tree": "tos.agent.aristotle"
+      }
+    },
+    "works": {
+      "aristotle.poetics": {
+        "title": {
+          "ru": "Поэтика",
+          "en": "Poetics"
+        },
+        "original": "grc",
+        "tree": "tos.work.retained-antiquity.poetics"
+      }
+    }
+  },
+  "conceptions": [
+    {
+      "id": "aristotle.poetics:invented-names-and-events",
+      "of": [
+        "B:D-C012"
+      ],
+      "areas": [
+        "AE19"
+      ],
+      "work": "aristotle.poetics",
+      "locus": "IX, 1451b",
+      "voice": {
+        "ru": "Аристотель",
+        "en": "Aristotle"
+      },
+      "formula": [
+        {
+          "unit": "Глава 9",
+          "from": "οὐ μὴν ἀλλὰ καὶ ἐν ταῖς τραγῳδίαις",
+          "to": "καὶ οὐδὲν ἧττον εὐφραίνει."
+        }
+      ],
+      "thesis": {
+        "ru": "В трагедии вымышленные имена и события способны доставлять удовольствие: в «Цветке» Агафона вымышлены и те и другие.",
+        "en": "Invented names and events can give pleasure in tragedy: both are invented in Agathon’s Antheus."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "B:D-I004"
+      ]
+    }
+  ],
+  "links": []
+}

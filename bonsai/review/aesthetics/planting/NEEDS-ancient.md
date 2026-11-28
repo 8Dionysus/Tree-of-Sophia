@@ -244,3 +244,67 @@ method, image digest and separate maker/second-reader evidence. This should
 not turn a screenshot into proof of authority, text accuracy, equivalence,
 or permission to quote; the reader must still inspect the page and assess
 rights in each jurisdiction.
+
+## Modern translator identified by library and contemporary review
+
+For Kenkō's *Tsurezuregusa* §137, the publisher-hosted journal article
+https://clc.shisu.edu.cn/CN/article/downloadArticleFile.do?attachType=PDF&id=35
+credits its Chinese quotation to 王新禧 in its note on printed p. 138 and
+shows all three selected sentences on p. 145. CiNii's authority record
+https://ci.nii.ac.jp/author/DA17317409 identifies that translator and his
+2011 translation of *Tsurezuregusa* and *Hōjōki*; the contemporary review
+https://wyb.chinawriter.com.cn/Pad/content/201202/01/content33096.html
+identifies him as a gardener under 30 when that edition appeared. The
+article cites a 2016 edition; neither source establishes its exact page or
+proves identity of every word with the 2011 edition. A current, identifiable
+translator's works cannot be treated as public domain on the strength of the
+ancient author's date.
+
+`witness-person-source` rejects CiNii and the journal review's domain, while
+no confidently matched Wikidata identity has been found. Please support an
+auditable, bounded identification and rights assessment for a named living or
+recent translator, backed by suitable national library authority and primary
+bibliographic evidence, without requiring an invented exact date or an
+unverified QID. The review must retain source URLs and the distinction between
+bibliographic identity, corroborated age, present-day status and any legal
+basis. A short-quotation assessment remains specific to the actual three
+sentences and independently reviewed use; this request does not itself admit
+or license them. The separate PDF-derivative evidence gap also remains.
+
+## Exclusive death-year bound from a Julian Wikidata claim
+
+For the English witness of Kenkō's *Tsurezuregusa*, Wikidata Q372772 gives
+P570 in Julian 1350 with year precision. `death_bound` correctly widens the
+latest possible Gregorian calendar year to 1351, but `witness-person
+--bounded` stores that inclusive latest year as `died_before: 1351`. The
+second-reader instructions require evidence that death happened **before**
+the recorded year; a death in January 1351 is not before 1351. The online and
+offline gates nevertheless report open after the review. The same field is
+used by original-person handling, and Vitruvius has also been represented
+through a computed bound; please audit both routes and existing readers.
+
+Please make the semantics explicit and consistent: either record the strict
+exclusive bound 1352, or use an accurately named inclusive-latest-year
+representation everywhere. Preserve the Julian calendar, precision and
+original claim evidence; update review and acceptance invalidation as needed.
+The distinction does not change the public-domain conclusion for this ancient
+hand, but a gate must not accept a statement stronger than its evidence. This
+request is separate from the modern translator's own quotation-rights review.
+
+## Independently retrieved image, different rendering digest
+
+In `gaius-plinius-secundus.naturalis-historia`, Huerta 1629 p. 652, the maker's image for IA n669 has SHA-256 `b606a3641ff30277cd5d68206b9b400a4e4ac508c8d18ebe30d429b0ac2df670`. A second reader independently retrieved and inspected that same numbered page through IA's JP2-to-JPEG route; its JPEG has SHA-256 `9b3df1e10ab3492b3ba24d9c5a228d59ccc38e625f7808c9d09de0f97aacc1f5`. The images have different renderings, not equal bytes. The reader also inspected a cached larger page image and reported a textual error, so this is not an acceptance request.
+
+`witness-gate --second` requires the second image to have exactly the maker's digest and URL, which rejects this independent rendering even when the same archival leaf can be examined. Please assess a supported way to retain each reader's actual image, digest and retrieval provenance and explicitly assess their page identity, while keeping the original maker's page and text revision binding. It should not assume that two differently rendered images are equivalent merely because their URLs or leaf numbers match, or relax text, rights, and independent review checks. A route to refetch the exact maker bytes, if available and independently reproducible, may also resolve this individual case. The reader's report and packet retain the actual evidence; the witness remains unaccepted.
+
+## Bekker line ranges and preserving a witness correction
+
+For `aristotle.problemata`, Forster's `XXX.1 p953a` and `XXX.1 p954b` each occupy a single image (IA leaves n326 and n331). The witness page labels also contain the Bekker line ranges `10–14` and `21–28`. The current witness gate treats those numbers as printed page ranges and requires an image for every intervening page, although these are lines on one leaf. Please distinguish a structured line locator from an actual printed-page range without weakening coverage of real multipage quotations.
+
+The existing witness includes the page-verified OCR correction `atra- 25 bilious` → `atrabilious`. `witness-cut` and `witness-cut-candidate` replace the place record, so recutting with a different address would discard its previous cut and correction history. Please provide a supported address correction or migration that retains the complete predecessor and its corrections, records the relation to the new record, binds the real images and invalidates stale review as needed. Until then the existing witness remains unchanged and unaccepted; dates, rights and independent review remain separate requirements.
+
+## Unknown original author and historical attribution
+
+For `pseudo-longinus.peri-hypsous`, the original author's identity is disputed. The [Basel edition](https://www.ub.unibas.ch/cmsdata/spezialkataloge/gg/images/gg0233_001_tit.jpg) names Dionysius Longinus; its title and [1554 dedication](https://www.ub.unibas.ch/cmsdata/spezialkataloge/gg/images/gg0233_002_vor.jpg) support an early named edition, not an observed anonymous first publication. A historic attribution is not proof of authorship, an authorial pseudonym, lawful initial disclosure, or a death date. The named modern translator and the editor of a particular Greek text are separate contributors.
+
+The existing `witness-anonymous` route describes an anonymously published translation and cannot honestly represent this unknown original author. Please assess a source-backed representation of disputed or unknown original authorship and, where evidence permits, the relevant publication and jurisdiction-specific rights assessments, each with independent review. Alternatively, consider how a justified conservative historical death bound recorded for the original contributor can be carried into the witness without inventing a precise year. Keep the gate closed when the necessary facts or legal basis are not established; do not transfer an old original's status to a later translation, editorial text, or scan.
