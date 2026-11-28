@@ -124,7 +124,7 @@
       "translationVersionId": "retained-poetics-ru-novosadsky1927-wikisource",
       "translationRevision": "bd81fd6cad776bd78ee2bb4c60725e2e78794ae762503934a47151fdbf358ee9",
       "source": "https://ru.wikisource.org/w/index.php?title=%D0%9F%D0%BE%D1%8D%D1%82%D0%B8%D0%BA%D0%B0_%28%D0%90%D1%80%D0%B8%D1%81%D1%82%D0%BE%D1%82%D0%B5%D0%BB%D1%8C%29&oldid=4030988",
-      "basis": "The metaphor definition in Poetics XXI has been compared in the Greek and this translation. Exact words anchor the complete corresponding sentences; the remaining alignment is still automatic. Poetics VI and VIII have also been compared in the bound Greek and this translation; exact keywords anchor the corresponding sentences, which include adjacent explanatory material where the translator combines sentences.",
+      "basis": "The metaphor definition in Poetics XXI has been compared in the Greek and this translation. Exact words anchor the complete corresponding sentences; the remaining alignment is still automatic. Poetics VI and VIII have also been compared in the bound Greek and this translation; exact keywords anchor the corresponding sentences, which include adjacent explanatory material where the translator combines sentences. Poetics IX has been compared with this translation and its 1927 printing, p. 52; an explicit boundary retains the digital comma while separating sentences that the print ends with a full stop. This Russian edition omits the Greek alternative in which no names are familiar; it retains the invented names and events of Antheus and their pleasure.",
       "localReferencePairs": [
         {
           "originalUnitId": "tos.text-unit.sid-560a1783ff584faa8830f83d752365bf",
@@ -179,6 +179,31 @@
               ]
             }
           ]
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-36a08016a3aa48aeb186d7d3075f2d99",
+          "translationUnitId": "tos.text-unit.sid-189cdd8000f94c92a771648e978310ac",
+          "sentenceAnchors": [
+            {
+              "source": [
+                "Ἀγάθωνος",
+                "Ἀνθεῖ",
+                "εὐφραίνει"
+              ],
+              "target": [
+                "Однако",
+                "Агафона",
+                "удовольствие"
+              ]
+            }
+          ],
+          "verifiedTargetSentenceBreaks": [
+            {
+              "before": "не было возможно,",
+              "after": "Однако и в некоторых трагедиях",
+              "source": "https://archive.org/details/1927_20231004/page/n52/mode/1up"
+            }
+          ]
         }
       ]
     },
@@ -191,7 +216,7 @@
       "translationVersionId": "retained-poetics-eng2-38e838987736",
       "translationRevision": "d03a031c4eddd00d88c109e038ba38ea5dd6eae12d0d4ce5af92fb05956591e2",
       "source": "https://github.com/PerseusDL/canonical-greekLit/blob/341e309c821d5eca8c976bebca77c28b10bad58f/data/tlg0086/tlg034/tlg0086.tlg034.perseus-eng2.xml",
-      "basis": "The metaphor definition in Poetics XXI has been compared in the Greek and this translation. Exact words anchor the complete corresponding sentences; the remaining alignment is still automatic. Poetics VI and VIII have also been compared in the bound Greek and this translation; exact keywords anchor the corresponding sentences, which include adjacent explanatory material where the translator combines sentences.",
+      "basis": "The metaphor definition in Poetics XXI has been compared in the Greek and this translation. Exact words anchor the complete corresponding sentences; the remaining alignment is still automatic. Poetics VI and VIII have also been compared in the bound Greek and this translation; exact keywords anchor the corresponding sentences, which include adjacent explanatory material where the translator combines sentences. Poetics IX has also been compared with the Greek; exact keywords anchor the complete corresponding sentence.",
       "localReferencePairs": [
         {
           "originalUnitId": "tos.text-unit.sid-560a1783ff584faa8830f83d752365bf",
@@ -244,6 +269,24 @@
                 "plot",
                 "innumerable",
                 "actions"
+              ]
+            }
+          ]
+        },
+        {
+          "originalUnitId": "tos.text-unit.sid-36a08016a3aa48aeb186d7d3075f2d99",
+          "translationUnitId": "tos.text-unit.sid-e4dabbee247d4f7b8fbc5188c9eda95b",
+          "sentenceAnchors": [
+            {
+              "source": [
+                "Ἀγάθωνος",
+                "Ἀνθεῖ",
+                "εὐφραίνει"
+              ],
+              "target": [
+                "Agathon",
+                "Antheus",
+                "favourite"
               ]
             }
           ]
