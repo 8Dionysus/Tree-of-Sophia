@@ -248,3 +248,20 @@ asserting that each was personally a translator or inventing a single person.
 Preserve exact edition, licence and page evidence and independent review. The
 candidate is not accepted and this request does not assert a particular
 individual's contribution or waive the source-page gate.
+
+## Wikidata default-language labels in witness participants
+
+For the accepted English witness for Alberti's *De pictura* prepared on branch
+`claude/aesthetics-langs-w2-buffon-schlegel` at `249dfc8182`,
+`witness-person ... author Q182046` recorded the Russian label as both the
+English and Russian name. The Wikidata record identifies the same person and
+has the default-language (`mul`) label “Leon Battista Alberti”; the command
+currently chooses `labels.en`, then `labels.ru`, without checking `labels.mul`.
+The projected English participant therefore displays in Cyrillic even though
+the edition and attribution use the Latin name. The identity and dates are not
+in doubt, and the already accepted witness was not altered behind its receipt.
+
+Please consider a source-backed default-language fallback and a reviewed
+correction route for an already accepted witness's participant label. Preserve
+the exact participant identity and source, prior acceptance, independent
+reading and regenerated projection; do not silently rewrite acceptance hashes.
