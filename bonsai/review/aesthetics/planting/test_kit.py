@@ -296,6 +296,16 @@ class TranslationWitnessTest(unittest.TestCase):
                 kit.cmd_witness_review(argparse.Namespace(packet=str(path),language='en',loc='p',reader='reader',model='gpt-6.1-terra',alignment='Both pages match the full original sentence.'))
                 corrected=json.loads(file.read_text());self.assertEqual(corrected['places']['p']['extra_pages'][0]['span'],'statement.')
                 self.assertEqual(kit.witness_problems(str(path),'en',corrected,second=True),[])
+                spread=copy.deepcopy(before);place=spread['places']['p'];place['page']='p. 1';place['extra_pages'][0].update({'url':place['url'],'image_sha256':place['image_sha256']})
+                spread['review']['places']['p']['pages']=[{'page':page['page'],'url':page['url'],'image_sha256':page['image_sha256']} for page in kit.witness_pages(place)]
+                self.assertEqual(kit.witness_problems(str(path),'en',spread,second=True),[])
+                file.write_text(json.dumps(spread))
+                ambiguous=argparse.Namespace(packet=str(path),language='en',loc='p',to='statement.',reason='The spread reads statement rather than sentence.',image='page.jpg',**{'from':'sentence.'})
+                with self.assertRaises(SystemExit):kit.cmd_witness_correct(ambiguous)
+                ambiguous.page='p. 2';kit.cmd_witness_correct(ambiguous)
+                changed=json.loads(file.read_text());self.assertEqual(changed['places']['p']['corrections'][0]['page'],'p. 2')
+                kit.cmd_witness_review(argparse.Namespace(packet=str(path),language='en',loc='p',reader='reader',model='gpt-6.1-terra',alignment='Both printed pages of the spread match the original.'))
+                self.assertEqual(kit.witness_problems(str(path),'en',json.loads(file.read_text()),second=True),[])
                 data=before
                 data['places']['p']['page_span']='A'
                 self.assertTrue(any('spans must cover' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
@@ -866,6 +876,21 @@ class TranslationCorrectionTest(unittest.TestCase):
             changed=json.loads(file.read_text());self.assertEqual(changed['places']['p']['corrections'][0]['page'],'38');self.assertEqual(changed['review'],{})
             self.assertEqual(changed['places']['p']['extra_pages'][0]['span'],'continues there.')
             self.assertEqual(changed['places']['p']['text'],'The sentence continues there.')
+
+    def test_two_printed_pages_can_share_a_spread_image(self):
+        import argparse,base64,hashlib,json,tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
+            folder=Path(tmp)/'cache/work/witnesses/en';folder.mkdir(parents=True)
+            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+            (folder/'spread.png').write_bytes(raw);digest=hashlib.sha256(raw).hexdigest();url='https://example.org/spread'
+            data={'language':'en','images':[{'file':'spread.png','url':url,'by':'maker','sha256':digest}], 'places':{'p':{'text':'A complete sentence.','page':'p. 54','url':url,'image_sha256':digest}},'review':{'reader':'old'}}
+            file=path/'witnesses/en.json';file.write_text(json.dumps(data))
+            args=argparse.Namespace(packet=str(path),language='en',loc='p',page='p. 55',image='spread.png',span='sentence.',first_span='A complete')
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_witness_add_page(args)
+            actual=json.loads(file.read_text());self.assertEqual(actual['places']['p']['extra_pages'][0]['url'],url)
+            self.assertEqual(actual['places']['p']['extra_pages'][0]['image_sha256'],digest);self.assertEqual(actual['review'],{})
 
     def test_page_transcription_records_image_and_invalidates_review(self):
         import argparse, base64, hashlib, json, tempfile

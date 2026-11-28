@@ -304,6 +304,10 @@ K witness-image . en https://example.org/page38 --name second38.jpg --by second
 K witness-review . en 'I p39a' --reader another-reader --alignment 'Both pages read against the original place.'
 ```
 
+When one source image shows a spread, use the same image for both distinct
+printed page numbers. For a correction on a shared image, add `--page` to
+select the printed page whose span contains it.
+
 The spans cover the whole place in order; each records the words read on that
 page. The review binds the URL, printed page and digest of every image. A page
 range needs an image for every page. For a correction on an additional page, pass

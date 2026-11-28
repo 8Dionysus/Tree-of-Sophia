@@ -2244,10 +2244,11 @@ def cmd_witness_add_page(args):
     if not args.span.strip() or args.span not in place.get('text',''):die('the words on the added page must occur in the place')
     first=args.first_span or place.get('page_span')
     if not first or not place.get('text','').startswith(first):die('give the opening words on the first page with --first-span')
-    if image['sha256']==place.get('image_sha256'):die('the primary image is already recorded')
+    if args.page==place.get('page'):die('the primary printed page is already recorded')
+    if image['sha256']==place.get('image_sha256') and image['url']!=place.get('url'):die('a shared spread must retain the same source URL')
     page={'page':args.page,'url':image['url'],'image_sha256':image['sha256'],'span':args.span}
     place['page_span']=first;extra=place.setdefault('extra_pages',[])
-    index=next((i for i,item in enumerate(extra) if item.get('url')==image['url']),None)
+    index=next((i for i,item in enumerate(extra) if item.get('page')==args.page),None)
     if index is None:extra.append(page)
     else:extra[index]=page
     data['review']={};save(witness_file(path,args.language),data)
@@ -2261,8 +2262,11 @@ def cmd_witness_correct(args):
     if place.get('text','').count(old)!=1:die('the original run must occur exactly once in the place')
     if len(args.reason.strip())<30:die('explain the page reading in a full sentence')
     pages=witness_pages(place)
-    selected=pages[0] if not getattr(args,'image',None) else next((page for page in pages if any(item.get('file')==args.image and item.get('by')=='maker' and item.get('sha256')==page.get('image_sha256') and item.get('url')==page.get('url') for item in data.get('images',[]))),None)
-    if not selected:die('the correction image is not bound to this place')
+    candidates=pages if not getattr(args,'image',None) else [page for page in pages if any(item.get('file')==args.image and item.get('by')=='maker' and item.get('sha256')==page.get('image_sha256') and item.get('url')==page.get('url') for item in data.get('images',[]))]
+    if getattr(args,'page',None):candidates=[page for page in candidates if page.get('page')==args.page]
+    elif not getattr(args,'image',None):candidates=candidates[:1]
+    if len(candidates)!=1:die('select exactly one bound page; for a shared spread give --page')
+    selected=candidates[0]
     image=next((item for item in data.get('images',[]) if item.get('by')=='maker' and item.get('sha256')==selected.get('image_sha256') and item.get('url')==selected.get('url')),None)
     if not image:die('the maker page image for this place is required')
     try:raw=Path(witness_cache(path,args.language,image['file'])).read_bytes()
@@ -2441,7 +2445,9 @@ def witness_problems(path,lang,data,second=False,offline=False):
         pages=[{'page':place.get('page'),'url':place.get('url'),'image_sha256':place.get('image_sha256')},*extra]
         page_range=re.search(r'\b(\d+)\s*[-–—]\s*(\d+)\b',str(place.get('page') or ''))
         if page_range and int(page_range.group(2))>=int(page_range.group(1)) and len(pages)<int(page_range.group(2))-int(page_range.group(1))+1:add(f'{loc}: a page range needs an image for every printed page')
-        if len({p.get('image_sha256') for p in pages})!=len(pages):add(f'{loc}: duplicate page image')
+        if len({p.get('page') for p in pages})!=len(pages):add(f'{loc}: duplicate printed page')
+        for page in pages:
+            if any(other.get('image_sha256')==page.get('image_sha256') and other.get('url')!=page.get('url') for other in pages):add(f'{loc}: a shared spread must retain the same source URL');break
         for page in extra:
             if not page.get('page') or not lawful_url(page.get('url','')) or not page.get('span') or page['span'] not in text:add(f'{loc}: additional page needs its address and words from that page')
         if extra and (not place.get('page_span') or re.sub(r'\s+','',str(place.get('page_span') or '')+''.join(str(page.get('span') or '') for page in extra))!=re.sub(r'\s+','',text)):add(f'{loc}: page spans must cover the complete place in order')
@@ -2543,7 +2549,7 @@ def main():
     sub('witness-transcribe-page',cmd_witness_transcribe_page,P,(('language',),{}),(('--text',),{'required':True}),(('--reason',),{'required':True}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))
     sub('witness-cut-candidate',cmd_witness_cut_candidate,P,(('language',),{}),(('source',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}));
     sub('witness-add-page',cmd_witness_add_page,P,(('language',),{}),(('loc',),{}),(('--page',),{'required':True}),(('--image',),{'required':True}),(('--span',),{'required':True}),(('--first-span',),{}));
-    sub('witness-correct',cmd_witness_correct,P,(('language',),{}),(('loc',),{}),(('from',),{}),(('to',),{}),(('reason',),{}),(('--image',),{}));
+    sub('witness-correct',cmd_witness_correct,P,(('language',),{}),(('loc',),{}),(('from',),{}),(('to',),{}),(('reason',),{}),(('--image',),{}),(('--page',),{}));
     sub('witness-review',cmd_witness_review,P,(('language',),{}),(('loc',),{}),(('--reader',),{'required':True}),(('--alignment',),{'required':True}),(('--model',),{'default':'gpt-6.1-terra'}))
     sub('page-number-correct',cmd_page_number_correct,P,(('--loc',),{'action':'append','required':True}),(('--leaf',),{'type':int,'required':True}),(('--old',),{'required':True}),(('--new',),{'required':True}),(('--url',),{'required':True}),(('--by',),{'required':True}),(('--second',),{'required':True}),(('--second-model',),{'required':True}),(('--assessment',),{'required':True}),(('--file',),{}))
     sub('accepted-text-correct',cmd_accepted_text_correct,P,(('loc',),{}),(('from',),{}),(('to',),{}),(('--n',),{'type':int,'required':True}),(('--url',),{'required':True}),(('--by',),{'required':True}),(('--second',),{'required':True}),(('--second-model',),{'required':True}),(('--assessment',),{'required':True}),(('--file',),{}))
