@@ -2700,7 +2700,16 @@
       "areas": [
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [{"name": "Colin Radford", "role": "author of part I", "dates_status": "not yet checked"}, {"name": "Michael Weston", "role": "author of part II", "dates_status": "not yet checked"}],
+      "original_candidates": [
+        {"edition": "Aristotelian Society Supplementary Volume 49(1), 1975, Radford part I and Weston part II", "doi": "https://doi.org/10.1093/aristoteliansupp/49.1.67", "publisher": "https://academic.oup.com/aristoteliansupp/article-abstract/49/1/67/1774156", "status": "Researcher checked publisher metadata, giving pp67–94, and a separately accessible scan with pp67–93; the scan's distribution authority is unverified. The distinct arguments and page ranges require lawful first-hand page and rights review."},
+        {"edition": "Radford p78 quoted in an Oxford thesis", "url": "https://ora.ox.ac.uk/objects/uuid%3A641778db-e3a1-41c9-b7c8-719ef497bfa0/files/m71104a4ff2cd1bf206f285e81780812e", "status": "Researcher located a complete attributed quotation; a direct fetch by the direction lead returned 403. This is a secondary quotation, not the 1975 page itself."},
+        {"edition": "Weston p81 quoted in a University of Antwerp thesis", "url": "https://pure.uvt.nl/ws/portalfiles/portal/68735905/the_paradox_of_interactive_fiction.pdf", "status": "A complete attributed quotation was located on printed p90. Weston states a premise Radford would need to establish, not a conclusion endorsed by Weston. Verify the image and quotation rights."}
+      ],
+      "requested_places": ["B:D-I055 Radford part I §8 p78", "B:D-I075 Weston part II pp81–82; B:D-R032 is a compiler relation"],
+      "remaining": "Verify each author's actual pages and individual rights, assess quotation in each jurisdiction, and search all required translations. An embedded partial Spanish translation is not a complete independent sentence. No absence finding."
     },
     {
       "work": "e-h-gombrich.art-and-illusion",
