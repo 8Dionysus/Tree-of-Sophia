@@ -905,7 +905,7 @@
         "mx": "unverified"
       },
       "witnesses": {
-        "original": "unverified",
+        "original": "candidate: FID PDF third version pages examined, but printing year, source-note display and rights remain unresolved",
         "ru": "unverified",
         "en": "unverified",
         "es": "unverified",
@@ -960,6 +960,10 @@
         {
           "url": "https://lobid.org/resources/990224959310206441",
           "observation": "German library catalog record identifies Benjamin, Gesammelte Schriften I/2, Frankfurt am Main: Suhrkamp, 1974, pp. 436–796, editor Rolf Tiedemann, ISBN 3518073184. This corroborates that a 1974 edition of the volume existed, but does not establish whether the 38-page FID Media/Wikisource scan came from it or a later reprint; those sources differ between 1974 and 1980."
+        },
+        {
+          "url": "https://publish.fid-media.de/server/api/core/bitstreams/1b632316-369e-4e27-9c32-eb241720857c/content",
+          "observation": "The FID-hosted PDF labels the essay Dritte Fassung; maker and second checked selected pages and several limited readings. Its reference to volume VII, published in 1989, conflicts with 1974/1980 catalog labels without proving the exact printing year. Footnote markers in a selected passage and rights remain open; editions must not be conflated."
         }
       ],
       "participants_incomplete": true,
@@ -1092,14 +1096,19 @@
         "mx": "unverified"
       },
       "witnesses": {
-        "original": "unverified",
+        "original": "candidate: Hackett 1976 preview pp.111, 120, 250, 251 visually inspected; edition identity, rights and other relevant pages remain open",
         "ru": "unverified",
         "en": "unverified",
         "es": "unverified",
         "de": "unverified",
         "zh-Hans": "unverified"
       },
-      "candidates": [],
+      "candidates": [
+        {
+          "url": "https://books.google.com/books?id=e4a5-ItuU1oC",
+          "observation": "In-app browser personally viewed printed pp.111 and 120 and separately pp.250–251. The Google Books record identifies Hackett 1976 ISBN 9780915144341 and 277 pages; the publisher https://hackettpublishing.com/languages-of-art lists the same ISBN with 291 pages, a discrepancy not reconciled. Pages 248–249 were not shown. Preview access does not grant reuse rights."
+        }
+      ],
       "searches": [
         {
           "service": "Google Books publisher preview, operator visual inspection in IAB",
