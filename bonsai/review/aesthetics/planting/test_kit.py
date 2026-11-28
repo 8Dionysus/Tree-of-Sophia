@@ -1132,6 +1132,16 @@ class ReopenedFindingRouteTest(unittest.TestCase):
             put('reading.json',{'reader':{'id':'maker'},'conceptions':[{'id':'changed'}]});self.assertTrue(kit.reopen_problems(tmp))
             with self.assertRaises(SystemExit):kit.cmd_reopen_response(response)
 
+class PageDifferenceAcceptanceTest(unittest.TestCase):
+    def test_a_negative_page_reading_cannot_be_accepted_directly(self):
+        import argparse,json,tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp)/'review.json').write_text(json.dumps({'images':[{'loc':'p','reads':'differs','note':'The printed page says different words.'}]}))
+            with patch.object(kit,'gate',return_value=([],'open')),self.assertRaises(SystemExit):
+                kit.cmd_accept(argparse.Namespace(packet=tmp,offline=True,by='line',basis=None))
+            self.assertFalse((Path(tmp)/'accepted.json').exists())
+
 class ReopenedFindingDriverTest(unittest.TestCase):
     def test_negative_second_reading_returns_finding_to_maker(self):
         import json,tempfile
@@ -1234,6 +1244,12 @@ class DerivedPdfTest(unittest.TestCase):
                     self.assertEqual(images[0]['derived_from']['sha256'],source['sha256'])
                     read=[{'loc':'p1','n':1,'reads':'as the packet'}]
                     self.assertEqual(kit.pdf_page_review_problems(ev,{'p1':{}},read),[])
+                    different=[{'loc':'p1','n':1,'reads':'differs','note':'The printed page reads different words.'}]
+                    self.assertEqual(kit.pdf_page_review_problems(ev,{'p1':{}},different),[])
+                    review={'reader':{'id':'second','model':'gpt-6.1-terra','date':'2026-11-27'},'images':different,'accept':False}
+                    (path/'review.json').write_text(json.dumps(review))
+                    with patch.object(kit,'by_eye',return_value=[]):
+                        self.assertEqual(kit.second_gate(str(path),{'reader':{'id':'maker'},'conceptions':[],'links':[],'left':[]},ev,{'p1':{}}),[])
                     self.assertTrue(kit.pdf_page_review_problems(dict(ev,images=images[:1]),{'p1':{}},read))
                     self.assertTrue(kit.pdf_page_review_problems(ev,{'p1':{}},[]))
                     self.assertEqual(kit.derived_image_problems(sources,images,lambda n:kit.cache(str(path),n)),[])

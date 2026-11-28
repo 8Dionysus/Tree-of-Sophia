@@ -382,7 +382,7 @@ def pdf_page_review_problems(ev,locs,looked):
         maker=[image for image in images if image.get('by')=='maker' and image.get('loc')==loc and (image.get('derived_from') or {}).get('tool')=='pdftoppm' and image.get('n') in (entry.get('images') or [])]
         for image in maker:
             same=lambda other: other.get('by')=='second' and other.get('loc')==loc and other.get('n')==image.get('n') and other.get('sha256')==image.get('sha256') and other.get('derived_from')==image.get('derived_from')
-            reviewed=any(item.get('loc')==loc and item.get('n')==image.get('n') and item.get('reads')=='as the packet' for item in looked)
+            reviewed=any(item.get('loc')==loc and item.get('n')==image.get('n') and item.get('reads') in ('as the packet','differs') for item in looked)
             if not any(same(other) for other in images) or not reviewed:problems.append(f'review.images: {loc} needs the same rendered PDF page {image.get("n")} and its second reading')
     return problems
 
@@ -1741,6 +1741,7 @@ def cmd_accept(args):
         for problem in problems:print('- '+problem)
         die('the gate is shut: nothing is accepted')
     if reopen_unresolved(path):die('an unresolved reopening finding cannot be accepted')
+    if any(item.get('reads')!='as the packet' for item in ((part(path,'review.json') or {}).get('images') or [])):die('a page that differs from the packet cannot be accepted')
     # Bind every new witness only after the online second gate has passed.
     directory=os.path.join(path,'witnesses')
     if os.path.isdir(directory):
