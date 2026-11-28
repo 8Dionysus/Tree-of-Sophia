@@ -3530,7 +3530,20 @@
       "areas": [
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {"name": "Sol LeWitt", "role": "author", "birth": 1928, "death": 2007, "evidence": ["https://www.moma.org/artists/3528-sol-lewitt"], "status": "MoMA gives 1928–2007; the Russian journal introduction says 1929, so preserve the discrepancy for independent authority review."}
+      ],
+      "original_candidates": [
+        {"edition": "Artforum 5(10), June 1967, as reprinted in a MoMA catalogue", "url": "https://www.moma.org/documents/moma_catalogue_1971_300297572.pdf", "status": "Searchable indexed text identifies the relevant passages and reprint credit; page images and quotation rights have not yet been checked. The Proa English transcription contains typographical differences and is not itself a verified facsimile."}
+      ],
+      "translation_candidates": [
+        {"language": "ru", "url": "https://www.moscowartmagazine.com/article/366", "status": "Publisher page of Художественный журнал no.69 (2008) contains the target passages and a second distinct 1969 text; a translator credit appears after both. Its application to each text, translation fidelity, all participants and quotation rights need independent verification."},
+        {"language": "es", "url": "https://proa.org/esp/exhibicion-proa-sol-lewitt--wall-drawings--textos.php", "translator": "Florencia Fragasso", "status": "Fundación Proa publishes a Spanish version and a translator credit; personally checked the paragraphs on idea, planning and intuition. Match exact sentence boundaries to the MoMA edition and independently assess translation and quotation rights."}
+      ],
+      "requested_places": ["D:B-I133 idea and execution, D:B-I134 intuition and limits of artist's claims"],
+      "remaining": "Check actual images and exact pages of the chosen original edition, independently review alignment, search de and zh-Hans and assess all required rights. No absence finding."
     },
     {
       "work": "susan-sontag.against-interpretation",
