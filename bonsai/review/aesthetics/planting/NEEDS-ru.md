@@ -50,3 +50,7 @@ The repaired Schiller `ueber-das-pathetische` witness now cuts from the scan's f
 ## 2026-11-19 — remove erroneous persons in Schiller witness
 
 In `friedrich-schiller.ueber-das-erhabene/witnesses/ru.json`, the maker inadvertently recorded Q1042 (Seychelles) and Q5682 (Cervantes) as authors before adding the real author Schiller Q22670. As in the Spinoza request above, kit needs a supported person removal with review and acceptance invalidation. The same witness has translator E. L. Radlov with disputed Wikidata death statements 1928/1929; BnF `https://data.bnf.fr/fr/10872654/ernest_radlov/` states 1928, but `witness-person-source` rejected the current response. Gate is shut and the witness is not accepted. Its Mexican rights also need a supported assessment.
+
+## 2026-11-27 — a spread image covering two printed pages
+
+The RSL public image API returns one scanned spread per image, for example Kant/Sokolov 1898 `https://viewer.rsl.ru/api/v1/document/rsl01003683011/page/29` visibly holds pp. 54–55. `witness-gate` requires a separate page record for each number in a range while `witness-add-page` rejects a second page backed by the same image hash as already recorded. Please provide a source-bound route to record two printed pages on the same genuine spread image, with page spans and independent second reading; preserve the one real URL and digest without fabricating or relabelling an image. This affects Kant `§7 212.30-34` and other places crossing an RSL spread. The place remains unaccepted while this is unresolved.
