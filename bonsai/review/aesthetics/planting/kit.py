@@ -312,7 +312,7 @@ def cmd_pdf_text(args):
     local=(lambda name:witness_cache(path,args.language,name)) if args.language else (lambda name:cache(path,name))
     raw=Path(local(source['file'])).read_bytes()
     if hashlib.sha256(raw).hexdigest()!=source.get('sha256'):die('the fetched PDF has changed')
-    text=pdf_text(raw);digest=hashlib.sha256(text).hexdigest();name='pdf-text-'+digest+'.txt'
+    text=pdf_text(raw);digest=hashlib.sha256(text).hexdigest();name='pdf-text-'+hashlib.sha256((source['url']+'\0'+source['file']).encode()).hexdigest()[:16]+'-'+source['sha256']+'-'+digest+'.txt'
     version=subprocess.run(['pdftotext','-v'],capture_output=True,text=True).stderr.splitlines()[0]
     Path(local(name)).write_bytes(text)
     derived={'file':name,'url':source['url'],'sha256':digest,'fetched':today(),'derived_from':{'file':source['file'],'sha256':source['sha256'],'tool':'pdftotext','version':version,'options':['-layout']}}
@@ -342,7 +342,8 @@ def cmd_pdf_page(args):
     image=render_pdf_page(raw,args.page);digest=hashlib.sha256(image).hexdigest()
     version=subprocess.run(['pdftoppm','-v'],capture_output=True,text=True).stderr.splitlines()[0]
     provenance={'file':source['file'],'sha256':source['sha256'],'tool':'pdftoppm','version':version,'page':args.page,'dpi':150}
-    name=f'pdf-page-{args.page}-{digest}-{args.by}.png'
+    key=hashlib.sha256((source['url']+'\0'+source['file']).encode()).hexdigest()[:16]
+    name=f'pdf-page-{key}-{source["sha256"]}-{args.page}-{digest}-{args.by}.png'
     Path(local(name)).write_bytes(image)
     record={'file':name,'url':source['url'],'sha256':digest,'by':args.by,'derived_from':provenance}
     if args.language:

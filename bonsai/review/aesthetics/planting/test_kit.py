@@ -1097,6 +1097,14 @@ class DerivedPdfTest(unittest.TestCase):
                 self.assertIn('A complete sentence.',Path(kit.cache(str(path),derived['file'])).read_text())
                 self.assertEqual(derived['derived_from']['sha256'],source['sha256'])
                 self.assertEqual(kit.derived_source_problems(sources,lambda n:kit.cache(str(path),n)),[])
+                # Identical PDF bytes from another registered source keep separate lineages.
+                ev=json.loads((path/'evidence.json').read_text());other=dict(source,file='copy.pdf',url='https://example.org/copy.pdf')
+                ev['sources'].append(other);(path/'evidence.json').write_text(json.dumps(ev))
+                Path(kit.cache(str(path),'copy.pdf')).write_bytes(pdf)
+                kit.cmd_pdf_text(argparse.Namespace(packet=str(path),source='copy.pdf',language=None))
+                sources=json.loads((path/'evidence.json').read_text())['sources']
+                self.assertEqual(len([item for item in sources if item.get('derived_from')]),2)
+                self.assertEqual(kit.derived_source_problems(sources,lambda n:kit.cache(str(path),n)),[])
                 if shutil.which('pdftoppm'):
                     (path/'places.json').write_text(json.dumps({'places':{'p1':{}}}))
                     for by in ('maker','second'):
