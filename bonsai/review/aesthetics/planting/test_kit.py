@@ -296,6 +296,16 @@ class TranslationWitnessTest(unittest.TestCase):
                 kit.cmd_witness_review(argparse.Namespace(packet=str(path),language='en',loc='p',reader='reader',model='gpt-6.1-terra',alignment='Both pages match the full original sentence.'))
                 corrected=json.loads(file.read_text());self.assertEqual(corrected['places']['p']['extra_pages'][0]['span'],'statement.')
                 self.assertEqual(kit.witness_problems(str(path),'en',corrected,second=True),[])
+                spread=copy.deepcopy(before);place=spread['places']['p'];place['page']='p. 1';place['extra_pages'][0].update({'url':place['url'],'image_sha256':place['image_sha256']})
+                spread['review']['places']['p']['pages']=[{'page':page['page'],'url':page['url'],'image_sha256':page['image_sha256']} for page in kit.witness_pages(place)]
+                self.assertEqual(kit.witness_problems(str(path),'en',spread,second=True),[])
+                file.write_text(json.dumps(spread))
+                ambiguous=argparse.Namespace(packet=str(path),language='en',loc='p',to='statement.',reason='The spread reads statement rather than sentence.',image='page.jpg',**{'from':'sentence.'})
+                with self.assertRaises(SystemExit):kit.cmd_witness_correct(ambiguous)
+                ambiguous.page='p. 2';kit.cmd_witness_correct(ambiguous)
+                changed=json.loads(file.read_text());self.assertEqual(changed['places']['p']['corrections'][0]['page'],'p. 2')
+                kit.cmd_witness_review(argparse.Namespace(packet=str(path),language='en',loc='p',reader='reader',model='gpt-6.1-terra',alignment='Both printed pages of the spread match the original.'))
+                self.assertEqual(kit.witness_problems(str(path),'en',json.loads(file.read_text()),second=True),[])
                 data=before
                 data['places']['p']['page_span']='A'
                 self.assertTrue(any('spans must cover' in p for p in kit.witness_problems(str(path),'en',data,second=True)))
@@ -867,6 +877,21 @@ class TranslationCorrectionTest(unittest.TestCase):
             self.assertEqual(changed['places']['p']['extra_pages'][0]['span'],'continues there.')
             self.assertEqual(changed['places']['p']['text'],'The sentence continues there.')
 
+    def test_two_printed_pages_can_share_a_spread_image(self):
+        import argparse,base64,hashlib,json,tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';(path/'witnesses').mkdir(parents=True)
+            folder=Path(tmp)/'cache/work/witnesses/en';folder.mkdir(parents=True)
+            raw=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=')
+            (folder/'spread.png').write_bytes(raw);digest=hashlib.sha256(raw).hexdigest();url='https://example.org/spread'
+            data={'language':'en','images':[{'file':'spread.png','url':url,'by':'maker','sha256':digest}], 'places':{'p':{'text':'A complete sentence.','page':'p. 54','url':url,'image_sha256':digest}},'review':{'reader':'old'}}
+            file=path/'witnesses/en.json';file.write_text(json.dumps(data))
+            args=argparse.Namespace(packet=str(path),language='en',loc='p',page='p. 55',image='spread.png',span='sentence.',first_span='A complete')
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):kit.cmd_witness_add_page(args)
+            actual=json.loads(file.read_text());self.assertEqual(actual['places']['p']['extra_pages'][0]['url'],url)
+            self.assertEqual(actual['places']['p']['extra_pages'][0]['image_sha256'],digest);self.assertEqual(actual['review'],{})
+
     def test_page_transcription_records_image_and_invalidates_review(self):
         import argparse, base64, hashlib, json, tempfile
         from pathlib import Path
@@ -1074,6 +1099,207 @@ class HtmlTranscriptionTest(unittest.TestCase):
         self.assertNotIn('Contents',text)
         self.assertNotIn('Footer',text)
 
+class ReopenedFindingRouteTest(unittest.TestCase):
+    def test_finding_requires_maker_and_independent_current_review(self):
+        import argparse,json,tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp);finding={'reader':'second','finding':'The thesis omits the essential words only when from the printed passage.'}
+            def put(name,value):(path/name).write_text(json.dumps(value))
+            put('reopen-history.json',[finding]);put('reading.json',{'reader':{'id':'maker'},'conceptions':[]});put('places.json',{'places':{}})
+            self.assertTrue(kit.reopen_problems(tmp))
+            response=argparse.Namespace(packet=tmp,index=1,maker='maker',assessment='The source says only when; the current thesis now preserves this condition in both languages.')
+            kit.cmd_reopen_response(response);self.assertEqual(kit.reopen_problems(tmp),[]);self.assertTrue(kit.reopen_problems(tmp,second=True))
+            review={'reader':{'id':'second','model':'gpt-6.1-terra','date':'2026-11-27'},'accept':False};put('review.json',review)
+            answer=argparse.Namespace(packet=tmp,index=1,reader='second',resolution='unresolved',assessment='The page still says only when while the revised thesis omits that condition entirely.')
+            kit.cmd_reopen_review(answer);self.assertEqual(kit.reopen_problems(tmp,second=True),[])
+            self.assertTrue(kit.reopen_unresolved(tmp));self.assertIn('unresolved',kit.reopen_problems(tmp)[0])
+            with patch.object(kit,'gate',return_value=([],'open')),self.assertRaises(SystemExit):kit.cmd_accept(argparse.Namespace(packet=tmp,offline=True,by='line',basis=None))
+            self.assertFalse((path/'accepted.json').exists())
+            with patch.object(kit,'by_eye',return_value=[]):
+                self.assertEqual(kit.second_gate(tmp,{'reader':{'id':'maker'},'conceptions':[],'links':[],'left':[]},{'places':{}},{},locator_only=True),[])
+            kit.cmd_reopen_response(response);self.assertFalse(kit.reopen_unresolved(tmp))
+            previous=json.loads((path/'reopen-resolutions.json').read_text())[kit.page_number_digest(finding)]['prior'][0]
+            self.assertFalse(previous['review']['resolved']);self.assertIn('omits',previous['review']['assessment'])
+            review['accept']=True;put('review.json',review);answer.resolution='resolved'
+            answer.assessment='The page says only when and both versions of the revised thesis preserve this condition.'
+            kit.cmd_reopen_review(answer);self.assertEqual(kit.reopen_problems(tmp,second=True),[])
+            reading=json.loads((path/'reading.json').read_text());reading['reader'].update(model='gpt-6.1-terra',effort='high');put('reading.json',reading)
+            review['reader'].update(model='gpt-6.1-terra',effort='high');put('review.json',review);self.assertEqual(kit.reopen_problems(tmp,second=True),[])
+            resolutions=json.loads((path/'reopen-resolutions.json').read_text());put('accepted.json',{'reopen_sha256':kit.page_number_digest({'history':[finding],'resolutions':resolutions})})
+            self.assertEqual(kit.reopen_problems(tmp,second=True),[])
+            review['accept']=False;put('review.json',review);self.assertTrue(kit.reopen_problems(tmp,second=True))
+            put('reading.json',{'reader':{'id':'maker'},'conceptions':[{'id':'changed'}]});self.assertTrue(kit.reopen_problems(tmp))
+            with self.assertRaises(SystemExit):kit.cmd_reopen_response(response)
+
+class PageDifferenceAcceptanceTest(unittest.TestCase):
+    def test_a_negative_page_reading_cannot_be_accepted_directly(self):
+        import argparse,json,tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp)/'review.json').write_text(json.dumps({'images':[{'loc':'p','reads':'differs','note':'The printed page says different words.'}]}))
+            with patch.object(kit,'gate',return_value=([],'open')),self.assertRaises(SystemExit):
+                kit.cmd_accept(argparse.Namespace(packet=tmp,offline=True,by='line',basis=None))
+            self.assertFalse((Path(tmp)/'accepted.json').exists())
+
+class ReopenedFindingDriverTest(unittest.TestCase):
+    def test_settled_reopened_reading_gets_maker_and_fresh_independent_review(self):
+        import json,tempfile
+        from pathlib import Path
+        import drive
+        for final_accept in (True,False):
+            with self.subTest(final_accept=final_accept),tempfile.TemporaryDirectory() as tmp:
+                packet=Path(tmp)/'work';packet.mkdir();events=[];calls=[]
+                (packet/'reopen-history.json').write_text(json.dumps([{'finding':'The source condition must be preserved.'}]))
+                (packet/'reading.json').write_text(json.dumps({'reader':{'id':'maker'},'conceptions':[{'id':'kept'},{'id':'disputed'}],'links':[]}))
+                def kit_call(*args):
+                    calls.append(args[0])
+                    if args[0]=='settle':
+                        data=json.loads((packet/'reading.json').read_text());data['conceptions'].pop();(packet/'reading.json').write_text(json.dumps(data))
+                    return 0,'gate: open'
+                def reader(work,role,first,again,turns,**kwargs):
+                    events.append((role,first))
+                    if role=='second':
+                        count=sum(event[0]=='second' for event in events)
+                        (packet/'review.json').write_text(json.dumps({'reader':{'id':'second'},'accept':final_accept if count==2 else False,'images':[]}))
+                    return role+'-thread','open'
+                with patch.object(drive,'PACKETS',tmp),patch.object(drive,'OUT',str(Path(tmp)/'out')),patch.object(drive,'state',return_value={}),patch.object(drive,'kit',side_effect=kit_call),patch.object(drive,'until_open',side_effect=reader),patch.object(drive,'have',side_effect=lambda w,n:n in ('places.json','reading.json')),patch.object(drive,'RETURNS',0):
+                    result=drive.run('work')
+                self.assertEqual([event[0] for event in events],['second','maker','second'])
+                self.assertIn('reopen-response',events[1][1]);self.assertIn('reopen-review',events[2][1])
+                self.assertEqual(result,'accepted-in-part' if final_accept else 'reopen-disputed')
+                self.assertEqual('accept' in calls,final_accept)
+                self.assertTrue((Path(tmp)/'out/work/review-settled-1.json').exists())
+
+    def test_negative_second_reading_returns_finding_to_maker(self):
+        import json,tempfile
+        from pathlib import Path
+        import drive
+        with tempfile.TemporaryDirectory() as tmp:
+            packet=Path(tmp)/'work';packet.mkdir();seen=[];calls=[]
+            (packet/'reopen-history.json').write_text(json.dumps([{'finding':'The source condition is still missing.'}]))
+            def kit_call(*args):
+                if args[0]=='gate':
+                    calls.append(args);return (0,'gate: open') if len(calls)==1 else (1,'- reopen 1: second reader found the issue unresolved; maker must respond again: the condition is missing')
+                return 0,''
+            def reader(work,role,first,again,turns,**kwargs):
+                seen.append((role,first))
+                if role=='second':(packet/'review.json').write_text(json.dumps({'accept':False}));return None,'open'
+                return None,'stuck'
+            with patch.object(drive,'PACKETS',tmp),patch.object(drive,'OUT',str(Path(tmp)/'out')),patch.object(drive,'state',return_value={}),patch.object(drive,'kit',side_effect=kit_call),patch.object(drive,'until_open',side_effect=reader),patch.object(drive,'have',side_effect=lambda w,n:n in ('places.json','reading.json')):
+                self.assertEqual(drive.run('work'),'maker-stuck')
+            self.assertEqual([role for role,_ in seen],['second','maker'])
+            self.assertIn('the condition is missing',seen[1][1])
+
+class TranslationSourceBlockTest(unittest.TestCase):
+    def test_original_ocr_does_not_resolve_a_translation_search(self):
+        import json,tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir()
+            (path/'places.json').write_text(json.dumps({'entry':{'original':'grc'}}))
+            (path/'evidence.json').write_text(json.dumps({'scan':{'item':'book','ocr':True}}))
+            block={'ground':'sources','reason':'The translation passage and its corresponding page remain unlocated.','tried':[{'url':'https://example.org/catalogue','outcome':'The catalogue does not show the requested translation page.'}]}
+            file=path/'blocked.json';file.write_text(json.dumps(block))
+            self.assertEqual(kit.gate(str(path))[1],'shut')
+            block.update(source_scope='translation',language='ru');file.write_text(json.dumps(block))
+            self.assertEqual(kit.gate(str(path)),([],'blocked'))
+            block['tried']=[];file.write_text(json.dumps(block));self.assertEqual(kit.gate(str(path))[1],'shut')
+            block['tried']=[{'url':'https://example.org','outcome':'The source was searched for the relevant translation.'}];block['language']='grc';file.write_text(json.dumps(block))
+            self.assertEqual(kit.gate(str(path))[1],'shut')
+
+class ReaderOutputReservationTest(unittest.TestCase):
+    def test_existing_and_concurrent_outputs_are_never_overwritten(self):
+        import concurrent.futures, tempfile
+        from pathlib import Path
+        import drive
+        with tempfile.TemporaryDirectory() as tmp, patch.object(drive,'OUT',tmp):
+            home=Path(tmp)/'work';home.mkdir()
+            (home/'01-maker.jsonl').write_text('previous event log')
+            (home/'02-maker.md').write_text('previous final answer')
+            def reserve(_):
+                n,log,last,handle=drive.reserve_reader_outputs('work','maker',1)
+                with handle:handle.write(str(n))
+                return n,log,last
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:allocated=list(pool.map(reserve,range(4)))
+            self.assertEqual(len({n for n,_,_ in allocated}),4)
+            self.assertEqual((home/'01-maker.jsonl').read_text(),'previous event log')
+            self.assertEqual((home/'02-maker.md').read_text(),'previous final answer')
+            self.assertTrue(all(Path(log).read_text()==str(n) and Path(last).exists() for n,log,last in allocated))
+            def finish(n):drive.state('work',_session={'n':n,'tokens':{'input_tokens':1}})
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:list(pool.map(finish,range(20)))
+            state=drive.state('work')
+            self.assertEqual(len(state['sessions']),20)
+            self.assertEqual(state['tokens']['input_tokens'],20)
+
+class DerivedPdfTest(unittest.TestCase):
+    def test_pdf_transcription_keeps_its_fetched_predecessor(self):
+        import argparse, hashlib, json, shutil, tempfile
+        from pathlib import Path
+        if not shutil.which('pdftotext'):self.skipTest('pdftotext is not installed')
+        stream=b'BT /F1 12 Tf 72 720 Td (A complete sentence.) Tj ET'
+        objects=[b'<< /Type /Catalog /Pages 2 0 R >>',b'<< /Type /Pages /Kids [3 0 R] /Count 1 >>',b'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',b'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',b'<< /Length '+str(len(stream)).encode()+b' >>\nstream\n'+stream+b'\nendstream']
+        pdf=bytearray(b'%PDF-1.4\n');offsets=[]
+        for index,obj in enumerate(objects,1):
+            offsets.append(len(pdf));pdf.extend(f'{index} 0 obj\n'.encode()+obj+b'\nendobj\n')
+        xref=len(pdf);pdf.extend(b'xref\n0 6\n0000000000 65535 f \n')
+        for offset in offsets:pdf.extend(f'{offset:010d} 00000 n \n'.encode())
+        pdf.extend(f'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n'.encode())
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir();source={'file':'book.pdf','url':'https://example.org/book.pdf','role':'other','sha256':hashlib.sha256(pdf).hexdigest()}
+            (path/'evidence.json').write_text(json.dumps({'sources':[source]}))
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                Path(kit.cache(str(path),'book.pdf')).write_bytes(pdf)
+                kit.cmd_pdf_text(argparse.Namespace(packet=str(path),source='book.pdf',language=None))
+                sources=json.loads((path/'evidence.json').read_text())['sources'];derived=sources[-1]
+                self.assertIn('A complete sentence.',Path(kit.cache(str(path),derived['file'])).read_text())
+                self.assertEqual(derived['derived_from']['sha256'],source['sha256'])
+                self.assertEqual(kit.derived_source_problems(sources,lambda n:kit.cache(str(path),n)),[])
+                # Identical PDF bytes from another registered source keep separate lineages.
+                ev=json.loads((path/'evidence.json').read_text());other=dict(source,file='copy.pdf',url='https://example.org/copy.pdf')
+                ev['sources'].append(other);(path/'evidence.json').write_text(json.dumps(ev))
+                Path(kit.cache(str(path),'copy.pdf')).write_bytes(pdf)
+                kit.cmd_pdf_text(argparse.Namespace(packet=str(path),source='copy.pdf',language=None))
+                sources=json.loads((path/'evidence.json').read_text())['sources']
+                self.assertEqual(len([item for item in sources if item.get('derived_from')]),2)
+                self.assertEqual(kit.derived_source_problems(sources,lambda n:kit.cache(str(path),n)),[])
+                if shutil.which('pdftoppm'):
+                    (path/'places.json').write_text(json.dumps({'places':{'p1':{}}}))
+                    for by in ('maker','second'):
+                        kit.cmd_pdf_page(argparse.Namespace(packet=str(path),source='book.pdf',page=1,language=None,loc='p1',by=by))
+                    ev=json.loads((path/'evidence.json').read_text());images=ev['images']
+                    self.assertEqual(images[0]['sha256'],images[1]['sha256'])
+                    self.assertEqual(images[0]['derived_from']['sha256'],source['sha256'])
+                    read=[{'loc':'p1','n':1,'reads':'as the packet'}]
+                    self.assertEqual(kit.pdf_page_review_problems(ev,{'p1':{}},read),[])
+                    different=[{'loc':'p1','n':1,'reads':'differs','note':'The printed page reads different words.'}]
+                    self.assertEqual(kit.pdf_page_review_problems(ev,{'p1':{}},different),[])
+                    review={'reader':{'id':'second','model':'gpt-6.1-terra','date':'2026-11-27'},'images':different,'accept':False}
+                    (path/'review.json').write_text(json.dumps(review))
+                    with patch.object(kit,'by_eye',return_value=[]):
+                        self.assertEqual(kit.second_gate(str(path),{'reader':{'id':'maker'},'conceptions':[],'links':[],'left':[]},ev,{'p1':{}}),[])
+                    self.assertTrue(kit.pdf_page_review_problems(dict(ev,images=images[:1]),{'p1':{}},read))
+                    self.assertTrue(kit.pdf_page_review_problems(ev,{'p1':{}},[]))
+                    self.assertEqual(kit.derived_image_problems(sources,images,lambda n:kit.cache(str(path),n)),[])
+                    altered=[dict(images[0],derived_from=dict(images[0]['derived_from'],page=0))]
+                    self.assertTrue(kit.derived_image_problems(sources,altered,lambda n:kit.cache(str(path),n),offline=True))
+                Path(kit.cache(str(path),'book.pdf')).write_bytes(b'%PDF-changed')
+                self.assertTrue(kit.derived_source_problems(sources,lambda n:kit.cache(str(path),n)))
+                if shutil.which('pdftoppm'):self.assertTrue(kit.derived_image_problems(sources,images,lambda n:kit.cache(str(path),n)))
+                # A translation stores its independent source and page evidence in its witness file.
+                witness_path=Path(kit.witness_file(str(path),'en'));witness_path.parent.mkdir(exist_ok=True)
+                witness_path.write_text(json.dumps({'language':'en','sources':[source],'images':[],'review':{'reader':'old'}}))
+                Path(kit.witness_cache(str(path),'en','book.pdf')).write_bytes(pdf)
+                kit.cmd_pdf_text(argparse.Namespace(packet=str(path),source='book.pdf',language='en'))
+                with patch.object(kit,'world',return_value={'fragments':{'places':{'work':{}}}}), self.assertRaises(SystemExit):
+                    kit.cmd_witness_cut(argparse.Namespace(packet=str(path),language='en',source='book.pdf',loc='p1'))
+                if shutil.which('pdftoppm'):
+                    kit.cmd_pdf_page(argparse.Namespace(packet=str(path),source='book.pdf',page=1,language='en',loc=None,by='maker'))
+                    data=json.loads(witness_path.read_text());self.assertFalse(data['review'])
+                    self.assertEqual(kit.derived_image_problems(data['sources'],data['images'],lambda n:kit.witness_cache(str(path),'en',n)),[])
+                    (Path(str(witness_path)+'.accepted')).write_text('{}')
+                    with self.assertRaises(SystemExit):kit.cmd_pdf_page(argparse.Namespace(packet=str(path),source='book.pdf',page=1,language='en',loc=None,by='maker'))
+
 class ReopenUnplantedTest(unittest.TestCase):
     def test_reopen_keeps_predecessor_and_requires_new_review(self):
         import argparse, json, tempfile
@@ -1133,7 +1359,13 @@ class UnknownParticipantTest(unittest.TestCase):
             self.assertEqual(result['witness']['persons'],[right])
             self.assertEqual(result['person_corrections'][0]['removed'],wrong)
             self.assertEqual(result['review'],{})
+            result['witness']['persons'].insert(0,'Unsupported name');result['review']={'reader':'second'};file.write_text(json.dumps(result))
+            legacy=argparse.Namespace(packet=tmp,language='ru',name='Unsupported name',reason='An unsupported duplicate of the independently sourced participant.')
+            kit.cmd_witness_person_remove_legacy(legacy)
+            result=json.loads(file.read_text());self.assertEqual(result['witness']['persons'],[right])
+            self.assertEqual(result['person_corrections'][-1]['removed'],'Unsupported name');self.assertEqual(result['review'],{})
             (path/'witnesses/ru.json.accepted').write_text('{}')
+            with self.assertRaises(SystemExit):kit.cmd_witness_person_remove_legacy(legacy)
             args.qid='Q35802'
             with self.assertRaises(SystemExit):kit.cmd_witness_person_remove(args)
 

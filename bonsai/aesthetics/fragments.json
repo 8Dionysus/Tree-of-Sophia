@@ -2052,6 +2052,37 @@
    "william-morris.the-decorative-arts"
   ],
   "translation_packets": {
+   "arthur-schopenhauer.die-welt-als-wille-und-vorstellung": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/arthur-schopenhauer.die-welt-als-wille-und-vorstellung/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/arthur-schopenhauer.die-welt-als-wille-und-vorstellung/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "b0ed9c3a9f12159699e840be40c5496cf52aa3975616dfe7ffc811d0887bfd04",
+        "non_substantial": "One 41-word sentence from the first volume provides the selected explanation of laughter for direct comparison to the German. It leaves the examples and rest of the treatise out, and cannot replace reading the book.",
+        "normal_exploitation": "The attributed sentence is displayed with the German original and philosophical context for research and comparison. It does not substitute for the treatise or its translation; the assessment is confined to this precise display.",
+        "source_integrity": "The text and punctuation are compared to the printed p. 76 image, with only line breaks and line-end hyphenation joined. The author, both translators, edition, source and printed page are named; Kemp’s death date is not asserted."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-schopenhauer-en-second",
+        "date": "2026-11-28",
+        "sha256": "36b9f17dbb690bd0ca78c905a5cef1c17e5d625d41e5df4f90d3df175461200f",
+        "assessment": "A single 41-word sentence from the long published first volume is presented with the German original and a specific interpretive thesis about laughter and incongruity. The focused quotation supports that comparison without reproducing the surrounding examples and is no substitute for the treatise. LFDA 148(I) requires source attribution, unchanged quotation and no effect on normal exploitation. This judgment concerns this exact display and must be revisited if aggregate excerpts or the presentation change; it does not resolve other jurisdictions or infer an unknown death date."
+       }
+      }
+     ]
+    }
+   },
    "baruch-spinoza.ethics": {
     "en": {
      "absent": {
@@ -2061,6 +2092,88 @@
      "unsearched": null,
      "record": "bonsai/review/aesthetics/planting/packets/baruch-spinoza.ethics/witnesses/en.json",
      "corrections": []
+    },
+    "ru": {
+     "absent": {
+      "language": "ru",
+      "reason": "No Russian text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/baruch-spinoza.ethics/witnesses/ru.json",
+     "corrections": [
+      {
+       "loc": "III affects3 p184",
+       "from": "большого",
+       "to": "большего",
+       "offset": 32,
+       "reason": "Орфографическая нормализация сравнительной степени: печатное «большаго» в современном языке — «большего», речь о степени совершенства; сохраняется слово издания.",
+       "url": "https://viewer.rsl.ru/api/v1/document/rsl01003632012/page/100",
+       "page": "p. 193",
+       "image_sha256": "73840843cdfce23aa13afe532b275209f98688049d0f649a2bb8018deecadf4a"
+      }
+     ]
+    }
+   },
+   "buffon.discours-sur-le-style": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/buffon.discours-sur-le-style/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/buffon.discours-sur-le-style/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "3afc8584632020e63a085063c84768f9d5505b126d3fd9aaea8eb2a23d15938d",
+        "non_substantial": "One twelve-word sentence from an eleven-page translated discourse presents a specific definition for comparison without reproducing the discourse or substituting for it.",
+        "normal_exploitation": "The scholarly display presents an attributed sentence alongside the French original; this does not replace access to the discourse or the containing book. The assessment is limited to that display.",
+        "source_integrity": "The words and punctuation reproduce one complete sentence on the 1930 printed page; author, translator, edition and page are attributed."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-buffon-en-second",
+        "date": "2026-11-28",
+        "sha256": "e74d601690e3a1401daf64ecb754e391fed796288cdcc0e3af42013938de91f9",
+        "assessment": "The exact 12-word sentence is a small selection from an eleven-page published translation, shown beside the French original for research into the definition of style. Its central conceptual importance is acknowledged, but this bounded comparison is no substitute for the full discourse or book. LFDA 148(I) requires attribution, unchanged quotation and no effect on normal exploitation. This contextual assessment applies only to the specific passage and display and should be revisited if the aggregate or display changes; other jurisdictions require separate analysis."
+       }
+      }
+     ]
+    }
+   },
+   "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No translation is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "66d9139b847f6c737b9312cb58ccb9e3bdd727fb786d7c452435868a9b876aae",
+        "non_substantial": "Three distinct excerpts containing five complete sentences and 131 words in all are used to compare specific conceptions with the French original; the translated essay spans pp. 140–161 of a much larger collection. They include central definitions, but do not reproduce the sustained argument, examples or analysis, and the extent is limited to what the comparison needs.",
+        "normal_exploitation": "The source-linked educational research places these short passages beside the original and its own conceptual interpretation; they cannot replace the full translated essay or book, whose commentary, examples and literary development remain necessary, and they do not displace the publisher’s ordinary market.",
+        "source_integrity": "The selected sentences follow the publisher-authorized Cambridge page images exactly, preserving wording, spelling and punctuation, with no typographic emphasis in these English passages. Baudelaire, translator P. E. Charvet, the 1981 edition and each printed page are credited."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-baudelaire-charvet-second",
+        "date": "2026-11-28",
+        "sha256": "b384d5c00f474902b07e7a959be6d60e524d7efdbd6b180414333aa3f022e570",
+        "assessment": "Independent second reader: the three distinct excerpts total 18 + 35 + 78 = 131 words and five sentences from a 22-page translated essay (pp. 140–161). They contain valuable central definitions; for this attributed comparison with the French, their limited extent is proportionate and does not substitute for the full essay and its development. This is a conditional assessment for the described research use, not a general permission or guarantee."
+       }
+      }
+     ]
     }
    },
    "david-hume.of-the-standard-of-taste": {
@@ -2095,6 +2208,45 @@
        }
       ]
      }
+    }
+   },
+   "david-hume.of-tragedy": {
+    "de": {
+     "absent": null,
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/david-hume.of-tragedy/witnesses/de.json",
+     "corrections": []
+    }
+   },
+   "edith-stein.zum-problem-der-einfuehlung": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/edith-stein.zum-problem-der-einfuehlung/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/edith-stein.zum-problem-der-einfuehlung/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "27d31fe448a5304183745d0c5ace72db4c086ca0089a6753ed7334c3aa9a2aa7",
+        "non_substantial": "Three complete sentences of 45 words are selected from a 113-page book for the specific purpose of comparing an account of empathy with its German original. They express a key distinction but neither reproduce its development nor substitute for the book.",
+        "normal_exploitation": "The attributed comparative research presentation reproduces this short passage alongside the original and a project interpretation; it does not replace the complete translated book in its ordinary market.",
+        "source_integrity": "All three sentences, spelling and punctuation follow the publisher-authorized page image without altering their wording. The author, translator, edition and printed page are attributed."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-stein-empathy-en-second",
+        "date": "2026-11-28",
+        "sha256": "25864b308bfbc9879678112345b4819d4b7931ae4a56b16d9bb4b341e349134f",
+        "assessment": "Independent reader compared LFDA article 148(I) with this 45-word passage in the actual comparative research context. Three complete sentences in a 113-page work, accurate attribution and unaltered wording support the limited display, with no substitution for normal exploitation. The passage carries a key conceptual distinction and the amount and actual context must be reassessed if further quotations are added. This is not a blanket licence."
+       }
+      }
+     ]
     }
    },
    "friedrich-nietzsche.die-froehliche-wissenschaft": {
@@ -2343,6 +2495,71 @@
        "image_sha256": "cf1e199f24788fc2fcd5d2ad6e148ca9695fabe8704e0fdb6deeb9a7f91ca817"
       }
      ]
+    },
+    "ru": {
+     "absent": {
+      "language": "ru",
+      "reason": "No Russian text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen/witnesses/ru.json",
+     "corrections": [
+      {
+       "loc": "Essay p740b",
+       "from": "искусствах, а",
+       "to": "искусствах,",
+       "offset": 58,
+       "reason": "На границе с. 35 и 36 союз а напечатан дважды; первый экземпляр снят как повтор набора, второй оставлен, повтор и основание явно записаны.",
+       "url": "https://imwerden.de/pdf/vestnik_evropy_1813_05-08_text.pdf",
+       "page": "35",
+       "image_sha256": "543142ccde18f7d0b96582fd2e2ee1835af3cce82923f32f6e4744e2e1da07df"
+      }
+     ],
+     "page_sources": {
+      "Essay p740b": [
+       {
+        "page": "35",
+        "url": "https://imwerden.de/pdf/vestnik_evropy_1813_05-08_text.pdf",
+        "image_sha256": "543142ccde18f7d0b96582fd2e2ee1835af3cce82923f32f6e4744e2e1da07df"
+       },
+       {
+        "page": "36",
+        "url": "https://imwerden.de/pdf/vestnik_evropy_1813_05-08_text.pdf",
+        "image_sha256": "ad9a7a475e77c27b3c3c647372cb39fa1964672e028d8e9c421a483957f428bc"
+       }
+      ]
+     }
+    }
+   },
+   "friedrich-schiller.ueber-anmut-und-wuerde": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No translation is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-anmut-und-wuerde/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-anmut-und-wuerde/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "f6f60d3692bd4e7f6aed8db46c9d69dc6bbd7fc42e908f6faf5545cae56be1d8",
+        "non_substantial": "One complete sentence of 23 words is selected from a translation spanning pages 123–170 to compare the conception of grace with the German original; it does not reproduce the argument or substitute for reading the translation. Its conceptual significance is acknowledged.",
+        "normal_exploitation": "The comparison reproduces one short sentence alongside the original with contextual interpretation, while crediting the author, translator, edition and page; it does not replace the book or its market.",
+        "source_integrity": "The exact complete sentence, wording, spelling and punctuation follow the publisher-authorized page image without alteration; the credited author, translator, source and page identify the published work."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-schiller-grace-en-second",
+        "date": "2026-11-28",
+        "sha256": "26fd87fe9884b3ff3708ea880b7d824595e2fee8bd8b4865c51f5e01eb1cf84f",
+        "assessment": "Independent reader checked LFDA art. 148(I) against this 23-word complete sentence and the cited page. The short comparative display alongside the original and project interpretation, source and participant attribution, exact text, and lack of market substitution support this narrow assessment. Its importance within the argument is acknowledged; reassess the cumulative amount if further passages are added. This is not a general licence."
+       }
+      }
+     ]
     }
    },
    "friedrich-schiller.ueber-das-erhabene": {
@@ -2467,6 +2684,70 @@
        "image_sha256": "1b64bf159d715a46827ee0e1470a5f5d8d513bb38253d6574fe79800debb33ae"
       }
      ]
+    },
+    "ru": {
+     "absent": {
+      "language": "ru",
+      "reason": "No Russian text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-das-pathetische/witnesses/ru.json",
+     "corrections": [
+      {
+       "loc": "III p312",
+       "from": "Такин образом, изображен1я нравственной сво- боды мы достигаем только сакым жи- вым представ лен !е»ъ страждущей натуры человека, и для того, чтобы мы признали трагического героя за разумное существо и пов'Ьрили в его душевную силу, ему необ- ходимо сперва доказать нам, что он есть существо чувствующее.",
+       "to": "Таким образом, изображения нравственной свободы мы достигаем только самым живым представлением страждущей натуры человека, и для того, чтобы мы признали трагического героя за разумное существо и поверили в его душевную силу, ему необходимо сперва доказать нам, что он есть существо чувствующее.",
+       "offset": 0,
+       "reason": "Печатная с. 280, правая колонка, IA n303: прочитано всё предложение; исправлены сбои OCR и разрывы слов после нормализации орфографии.",
+       "url": "https://archive.org/download/sobranesochinen03venggoog/page/n303.jpg",
+       "page": "280",
+       "image_sha256": "0615bdcf44e5e88cfdefea24f215adffff5455e9664fee5c44c0d0ceba09a2d1"
+      },
+      {
+       "loc": "III p345",
+       "from": "Все аффекты эстетичнее из вторых рук, и нёт симпат1и сильнее той, которую мы чувствуем посредством симпат1и.\n\nРо81 1р8ит аих1Ио 8иЬеип1ет ас1е1а !егеп1ет согг1р1ип1.",
+       "to": "Все аффекты эстетичнее из вторых рук, и нет симпатии сильнее той, которую мы чувствуем посредством симпатии.\n\nPost ipsum auxilio subeuntem ac tela ferentem corripiunt.",
+       "offset": 0,
+       "reason": "Печатная с. 287, правая колонка, IA n310: прочитаны русское предложение и латинская строка; восстановлены ошибочно распознанные символы и слова.",
+       "url": "https://archive.org/download/sobranesochinen03venggoog/page/n310.jpg",
+       "page": "287",
+       "image_sha256": "1725f9410d5fc996a49559b3597bb868f6104200ff5dccbc2d661a5a842c54eb"
+      },
+      {
+       "loc": "III p351",
+       "from": "Обьектомь возвышеннымь только с точки зр'Ьн1я эстетической становится уже\n\n— 288 —\n\n«к 4.\n\nтот челов'Ьк, который своим внутрен- ним состоян1ем проявляет перед нами достоинство челов'Ьческого призван1я, если предположить даже, что мынеувидимъзтого призван1я осуществленным в его лично- сти.",
+       "to": "Объектом возвышенным только с точки зрения эстетической становится уже тот человек, который своим внутренним состоянием проявляет перед нами достоинство человеческого призвания, если предположить даже, что мы не увидим этого призвания осуществленным в его личности.",
+       "offset": 0,
+       "reason": "Печатные с. 288–289, IA n311 правая колонка внизу и n312 левая колонка вверху: прочитано всё предложение; убраны посторонние номер и метка между страницами, исправлены OCR и переносы.",
+       "url": "https://archive.org/download/sobranesochinen03venggoog/page/n311.jpg",
+       "page": "288–289",
+       "image_sha256": "c080d23f03462bd76b51c6fa5f6cef62903452bdab66b52c039c3cbe286c0389"
+      },
+      {
+       "loc": "III p349",
+       "from": "Возвышенное в д'Ьйств1и требуеть, чтобы страдан1е челов-кка не только не им-кло ни- какого вл1ян1я на его нравственное состоя- н1е, но даже, совершенно наобороть, было д'Ьлом его нравственного характера. Это может совершаться двояким образом. Во-первых, посредственно и по закону сво- боды, когда челов-кк, ради какой-нибудь обязанности, самь обрекаеть себя на стра- дан1е. В этомь случа-к, представлен1е обя- занности становится для него побужден1ем, и его страдан!е есть д'Ьйств!е свободной воли. Или, во-вторых, непосредственно и по закону необходимости, когда челов'Ьк нравственно искупаеть нарушен1е какой- нибудь обязанности. Представлен1е обязан- ности в этомь случае заставляеть его д.'Ьйствовать как сила, и его страдан1е есть только результать. Примерь первого пред- ставляеть нам Регуль, когда, чтобы сдер- жать слово, он отдаеть себя мщен1ю кар- еагенянь; прим'Ьром второго послужиль бы нам этоть самый Регуль, если бы он не сдержаль слова и сд'Ьлался несчастным всл'Ьдств1е сознан1я своей вины. В обоих случаях, страдан1е им'Ьеть причину нрав- ственную— с тою только разницею, что в первом этоть челов'Ькь обнаруживает пе- редь нами свой нравственный характер» во втором — только призван!е свое к этому « В первом он является нравственно>ве- ликою личностью, во втором — только эсте- тически-великимь предметомь.",
+       "to": "Возвышенное в действии требует, чтобы страдание человека не только не имело никакого влияния на его нравственное состояние, но даже, совершенно наоборот, было делом его нравственного характера. Это может совершаться двояким образом. Во-первых, посредственно и по закону свободы, когда человек, ради какой-нибудь обязанности, сам обрекает себя на страдание. В этом случае, представление обязанности становится для него побуждением, и его страдание есть действие свободной воли. Или, во-вторых, непосредственно и по закону необходимости, когда человек нравственно искупает нарушение какой-нибудь обязанности. Представление обязанности в этом случае заставляет его действовать как сила, и его страдание есть только результат. Пример первого представляет нам Регул, когда, чтобы сдержать слово, он отдает себя мщению карфагенян; примером второго послужил бы нам этот самый Регул, если бы он не сдержал слова и сделался несчастным вследствие сознания своей вины. В обоих случаях, страдание имеет причину нравственную — с тою только разницею, что в первом этот человек обнаруживает перед нами свой нравственный характер, во втором — только призвание свое к этому. В первом он является нравственно-великою личностью, во втором — только эстетически-великим предметом.",
+       "offset": 0,
+       "reason": "Печатная с. 288, правая колонка, IA n311: прочитан весь абзац; исправлены ошибки OCR, переносы и знаки препинания по печати после нормализации.",
+       "url": "https://archive.org/download/sobranesochinen03venggoog/page/n311.jpg",
+       "page": "288",
+       "image_sha256": "c080d23f03462bd76b51c6fa5f6cef62903452bdab66b52c039c3cbe286c0389"
+      }
+     ],
+     "page_sources": {
+      "III p351": [
+       {
+        "page": "288–289",
+        "url": "https://archive.org/download/sobranesochinen03venggoog/page/n311.jpg",
+        "image_sha256": "c080d23f03462bd76b51c6fa5f6cef62903452bdab66b52c039c3cbe286c0389"
+       },
+       {
+        "page": "p. 289",
+        "url": "https://archive.org/download/sobranesochinen03venggoog/page/n312.jpg",
+        "image_sha256": "99972663a4433429392250dcd55a85c6e56f77b9fe69d900f4ce7940b1204ab1"
+       }
+      ]
+     }
     }
    },
    "friedrich-schiller.ueber-die-aesthetische-erziehung-des-menschen": {
@@ -2550,6 +2831,93 @@
      "unsearched": null,
      "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-die-tragische-kunst/witnesses/en.json",
      "corrections": []
+    }
+   },
+   "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schlegel.ueber-das-studium-der-griechischen-poesie/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/friedrich-schlegel.ueber-das-studium-der-griechischen-poesie/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "5c58993dabe4420aec787c5c8080ae3fb8bf28c0d5d6d40d062a66ec4cc4743f",
+        "non_substantial": "One sentence of 16 words from a book-length translation is selected to compare a specific German sentence and does not reproduce its argument or substitute for the book.",
+        "normal_exploitation": "The credited research comparison presents only this brief sentence with the original and does not replace reading the translation; this assessment is limited to the selected sentence and display.",
+        "source_integrity": "The complete sentence, spelling and punctuation follow the publisher-authorized page image; the author, translator, edition and page are attributed and no words are altered."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-schlegel-study-en-second",
+        "date": "2026-11-28",
+        "sha256": "68ad5c61c34b6d7ceb2e143d0c9bc56b561e0552b3fb0777ea2337916bc0b5d7",
+        "assessment": "One 16-word sentence from a published book-length translation is reproduced to compare one original sentence within a research presentation; the surrounding argument is omitted and this small excerpt does not substitute for the translation. LFDA 148(I) additionally requires source attribution, unchanged text and no effect on normal exploitation. The assessment is limited to the exact displayed comparison and must be reconsidered if the aggregate excerpts or presentation change; it does not settle other jurisdictions."
+       }
+      }
+     ]
+    }
+   },
+   "georg-simmel.philosophie-der-landschaft": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/georg-simmel.philosophie-der-landschaft/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/georg-simmel.philosophie-der-landschaft/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "2449ef9aa85bb567f0489cdedb7499edc0c3dd4cf62299dead056b42fb7b155f",
+        "non_substantial": "A single 42-word sentence from a ten-page translated essay presents the selected conceptual relationship for comparison with one original sentence. The surrounding explanation, examples and conclusion are not reproduced, so this selection does not substitute for the essay.",
+        "normal_exploitation": "The research stand presents an attributed comparison with the German original and conceptual context. One sentence does not substitute for access to the essay or the collection; assessment is limited to this precise scope and display.",
+        "source_integrity": "Words and punctuation follow the publisher-authorized printed page image, joining only printed line breaks and line-end hyphenation. The author, translator, anthology, earlier journal publication, and printed page are attributed."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-simmel-landscape-en-second",
+        "date": "2026-11-27",
+        "sha256": "f5c3184e443c870744c8a154497eaecd8458eda12273d68d315a2636d002940e",
+        "assessment": "For the exact 42-word single sentence from a ten-page published translated essay, its presentation alongside the German original and a specific interpretive thesis supports a proportionate research comparison; examples and surrounding explanation are omitted and the excerpt is no substitute for access to the essay. LFDA 148(I) requires proper attribution, unaltered quotation and no effect on normal exploitation; this assessment is limited to this exact passage and presentation and must be revisited if the displayed aggregate changes. It does not settle other jurisdictions."
+       }
+      }
+     ]
+    }
+   },
+   "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik/witnesses/en.json",
+     "corrections": [],
+     "page_sources": {
+      "Einleitung p92a": [
+       {
+        "page": "p. 135",
+        "url": "https://archive.org/download/introductiontohe00hege/page/n174.jpg",
+        "image_sha256": "9652e5936431b307e6d3310573995523e5ef76124110602b945f01cb7b83e775"
+       },
+       {
+        "page": "p. 136",
+        "url": "https://archive.org/download/introductiontohe00hege/page/n175.jpg",
+        "image_sha256": "2dfa81623a4796964000eaac2a73723d845be2f591dce823e5ca91398744746c"
+       }
+      ]
+     }
     }
    },
    "gotthold-ephraim-lessing.laokoon": {
@@ -2669,6 +3037,31 @@
      }
     }
    },
+   "leon-battista-alberti.de-pictura": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "The original Italian is planted first; no English witness is taken in this pass."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/leon-battista-alberti.de-pictura/witnesses/en.json",
+     "corrections": [],
+     "page_sources": {
+      "II p105": [
+       {
+        "page": "p. 254",
+        "url": "https://ia800807.us.archive.org/BookReader/BookReaderImages.php?zip=/26/items/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755_jp2.zip&file=bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755_jp2/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755_0411.jp2&id=bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755&scale=4&rotate=0",
+        "image_sha256": "1ff5edfa2aed57c59bd58712741881154d41bd8b5cfc92cd77d80f40a924ae4e"
+       },
+       {
+        "page": "p. 255",
+        "url": "https://ia800807.us.archive.org/BookReader/BookReaderImages.php?zip=/26/items/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755_jp2.zip&file=bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755_jp2/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755_0414.jp2&id=bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755&scale=8&rotate=0",
+        "image_sha256": "aed9e5266072997dbff2d9d7f995ae8a7cac507854a997e760f88a760384832f"
+       }
+      ]
+     }
+    }
+   },
    "rudolf-otto.das-heilige": {
     "en": {
      "absent": {
@@ -2771,6 +3164,68 @@
         "date": "2026-11-27",
         "sha256": "2c515af7e6c8b639896003ec4cc1eb904826386bd799d870721e4c2f46f1c05c",
         "assessment": "For the stated research stand, two nonadjacent complete sentences totaling 82 words serve as attributed evidence for distinct selected points, alongside the German and conceptual commentary, in a much longer published essay. They are not a simulated substantial reproduction and do not substitute for normal exploitation of the essay or volume. Wording and punctuation match the 1925 printed pages, with the author, translator, edition and page identified. This assessment concerns the stated display and depends on its actual context; it does not resolve other jurisdictions."
+       }
+      }
+     ]
+    }
+   },
+   "thomas-aquinas.summa-theologiae": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/thomas-aquinas.summa-theologiae/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/thomas-aquinas.summa-theologiae/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "888b99d894b55b8ba6bd67eece7bf196a5fb41ae34dff6666805003f84d36164",
+        "non_substantial": "One complete sentence of 19 words is selected from a substantial translation of the Summa for a specific comparison with the Latin. It does not reproduce the argument surrounding the image or serve as a substitute for the translated work.",
+        "normal_exploitation": "The single credited sentence is presented alongside the original and project interpretation for scholarly comparison, and does not replace the translated volume or harm its ordinary exploitation.",
+        "source_integrity": "The whole sentence, wording, spelling and punctuation follow the scanned 1912 printing without alteration; the author, translator, source and page are credited."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-aquinas-en-second",
+        "date": "2026-11-28",
+        "sha256": "2795835117283dcd1350019ed4909754ea4bc1261e4d17fa2785692773b4c2b0",
+        "assessment": "Independent reader examined LFDA article 148(I) and this 19-word sentence in the comparative research context. The complete sentence is short relative to the work and does not substitute for it; the published wording and attribution must remain intact. The precise context and Mexican transitional term must be assessed separately; this is not a claim that the translation is in the Mexican public domain."
+       }
+      }
+     ]
+    }
+   },
+   "victor-hugo.preface-de-cromwell": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No translation is taken in this pass; the original is planted first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/victor-hugo.preface-de-cromwell/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/victor-hugo.preface-de-cromwell/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "7d8fc5a82986247a83b8184d654c5ab67b399427ad00c0814bf5f93ca49e8bcf",
+        "non_substantial": "The selected passage of 58 whitespace-separated words from a 29-page preface compares the place of comedy in art with the corresponding French sentences. The surrounding arguments, illustrations and the overwhelming bulk of the preface are omitted; this does not substitute for the full work.",
+        "normal_exploitation": "The research stand presents this attributed passage alongside the French original and conceptual context. The selection does not substitute for reading the preface or play. This assessment is limited to this exact passage and its presentation.",
+        "source_integrity": "Words and punctuation follow the 1909 printed page as transcribed by Wikisource; line breaks are joined and the names are retained. Author, translator, edition, and printed page are attributed."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-hugo-preface-en-second",
+        "date": "2026-11-28",
+        "sha256": "6264c2de70aed0baf04b4c2421ba3b786cb21b17a426a3c5f6eda1f3a5c063a8",
+        "assessment": "The exact 58-word passage comprises two complete sentences from the 29-page published preface; in the research presentation its French original and interpretive thesis support a targeted comparison of comedy, the grotesque, and exemplary characters. The selection omits surrounding argument and is no substitute for the preface or play. LFDA 148(I) assessment is limited to this use and depends on source attribution, unchanged quotation and no effect on normal exploitation; re-evaluate if the aggregate or display changes. It does not settle other jurisdictions."
        }
       }
      ]
@@ -3153,16 +3608,110 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, On Grace and Dignity, translated by Jane Veronica Curran, in Schiller’s On Grace and Dignity in Its Cultural Context, edited by Jane V. Curran and Christophe Fricker (Rochester, NY: Camden House, 2005), p. 153.",
+     "year": 2005,
+     "url": "https://books.google.com/books?id=z6mquq2Fv1kC&pg=PA153",
+     "licence": "Protected translation; attributed short quotation for scholarship and comparison, subject to jurisdiction and review. Google Books publisher-authorized preview.",
+     "attribution": "Friedrich Schiller, On Grace and Dignity, translated by Jane V. Curran, in Curran and Fricker, eds., Schiller’s On Grace and Dignity in Its Cultural Context (Camden House, 2005), p. 153.",
+     "maker": "codex-2026-11-28-schiller-grace-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "9e333c4292d89a61a12920139fccff88e85a747899eb8b55b62886a8b68dc6e7",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Jane Veronica Curran",
+        "ru": "Jane Veronica Curran"
+       },
+       "born": null,
+       "died": null,
+       "source": "https://id.loc.gov/authorities/names/nr96025122.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-3ca467e35178b9c3.html",
+        "sha256": "553bacef4e914d17d60e1f3baa100d1623aa6dc5f2bb835d197270fe5acc1e5c",
+        "url": "https://id.loc.gov/authorities/names/nr96025122.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: assess the research and comparative purpose, nature of the translated work, limited amount and market effect for the precise display; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, within extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "f6f60d3692bd4e7f6aed8db46c9d69dc6bbd7fc42e908f6faf5545cae56be1d8",
+      "non_substantial": "One complete sentence of 23 words is selected from a translation spanning pages 123–170 to compare the conception of grace with the German original; it does not reproduce the argument or substitute for reading the translation. Its conceptual significance is acknowledged.",
+      "normal_exploitation": "The comparison reproduces one short sentence alongside the original with contextual interpretation, while crediting the author, translator, edition and page; it does not replace the book or its market.",
+      "source_integrity": "The exact complete sentence, wording, spelling and punctuation follow the publisher-authorized page image without alteration; the credited author, translator, source and page identify the published work."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Jane Veronica Curran",
+        "ru": "Jane Veronica Curran"
+       },
+       "source": "https://id.loc.gov/authorities/names/nr96025122.json",
+       "born": [],
+       "died": []
+      }
+     ]
     }
    },
    "absent": [],
    "unsearched": [
     {
      "language": "ru",
-     "reason": "No translation is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
      "reason": "No translation is taken in this pass: the line plants the original first."
     }
    ]
@@ -3753,6 +4302,114 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Thomas Aquinas, The Summa Theologica, Part I, Second Number (QQ. XXVII–LXXIV), translated by Laurence Shapcote as Fathers of the English Dominican Province (New York: Benziger Brothers, 1912), p. 144.",
+     "year": 1912,
+     "url": "https://archive.org/details/summatheologicao02thom_0",
+     "licence": "1912 printed translation in the public domain in the United States; the translator Laurence Shapcote died in 1947. The selected short scholarly quotation is also reviewed for Mexico.",
+     "attribution": "Thomas Aquinas, The Summa Theologica, Part I, Second Number, translated by Laurence Shapcote, credited as Fathers of the English Dominican Province (New York: Benziger Brothers, 1912), p. 144.",
+     "maker": "codex-2026-11-28-aquinas-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q9438",
+       "name": {
+        "en": "Thomas Aquinas",
+        "ru": "Фома Аквинский"
+       },
+       "born": 1225,
+       "died": 1274,
+       "source": "https://www.wikidata.org/wiki/Q9438",
+       "evidence": {
+        "file": "wikidata-Q9438.json",
+        "sha256": "2a253fef28ec23d76bbe4b2f75edbd3bd64a5c32f15d48c18445e0687dfbb1bf",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q9438.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q112492947",
+       "name": {
+        "en": "Laurence Shapcote",
+        "ru": "Laurence Shapcote"
+       },
+       "born": 1864,
+       "died": 1947,
+       "source": "https://www.wikidata.org/wiki/Q112492947",
+       "evidence": {
+        "file": "wikidata-Q112492947.json",
+        "sha256": "955ef11ba039a288719475c45c7220e884997168a2f0f357ced5558ec31f3e52",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q112492947.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "The 1912 printing was published before 1931 and is in the United States public domain."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "The author died in 1274 and identified translator Laurence Shapcote in 1947, more than 70 years ago; Directive 2006/116/EC art. 1."
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1) permits attributed quotation for scholarship to the extent justified by its aim. The author died in 1274 and identified translator in 1947; the separate Mexican quotation review is recorded for this display."
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "888b99d894b55b8ba6bd67eece7bf196a5fb41ae34dff6666805003f84d36164",
+      "non_substantial": "One complete sentence of 19 words is selected from a substantial translation of the Summa for a specific comparison with the Latin. It does not reproduce the argument surrounding the image or serve as a substitute for the translated work.",
+      "normal_exploitation": "The single credited sentence is presented alongside the original and project interpretation for scholarly comparison, and does not replace the translated volume or harm its ordinary exploitation.",
+      "source_integrity": "The whole sentence, wording, spelling and punctuation follow the scanned 1912 printing without alteration; the author, translator, source and page are credited."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Thomas Aquinas",
+        "ru": "Фома Аквинский"
+       },
+       "qid": "Q9438",
+       "source": "https://www.wikidata.org/wiki/Q9438",
+       "born": [
+        {
+         "time": "+1225-01-01T00:00:00Z",
+         "precision": 9
+        }
+       ],
+       "died": [
+        {
+         "time": "+1274-03-07T00:00:00Z",
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Laurence Shapcote",
+        "ru": "Laurence Shapcote"
+       },
+       "qid": "Q112492947",
+       "source": "https://www.wikidata.org/wiki/Q112492947",
+       "born": [
+        {
+         "year": 1864
+        }
+       ],
+       "died": [
+        {
+         "year": 1947
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -3760,10 +4417,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -3826,6 +4479,139 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Arthur Schopenhauer, The World as Will and Idea, translated R. B. Haldane and J. Kemp, vol. I, seventh edition (London: Kegan Paul, Trench, Trübner & Co.; undated scanned printing catalogued 1909), p. 76.",
+     "year": 1909,
+     "url": "https://archive.org/details/worldaswillidea01schoiala",
+     "licence": "Historical translation, originally published 1883; the exact printing is catalogued 1909 but is undated on its title page. Attributed short quotation assessed for the selected research comparison; no death year inferred for J. Kemp.",
+     "attribution": "Arthur Schopenhauer, The World as Will and Idea, translated R. B. Haldane and J. Kemp, vol. I, seventh edition (Kegan Paul, Trench, Trübner & Co.; scanned printing undated, catalogued 1909), p. 76; Wikisource transcription compared with the printed page.",
+     "maker": "codex-2026-11-28-schopenhauer-en-maker",
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair-use assessment of the exact scholarly comparison, amount and market effect; the original translation appeared in 1883, while the exact undated scanned printing is catalogued 1909: https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d), attributed short quotation for criticism or review to the extent justified by the specific purpose, subject to national implementation: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1), quotation of a lawfully published work for research or education to the extent justified by purpose, with author and source: https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q38193",
+       "name": {
+        "en": "Arthur Schopenhauer",
+        "ru": "Артур Шопенгауэр"
+       },
+       "born": 1788,
+       "died": 1860,
+       "source": "https://www.wikidata.org/wiki/Q38193",
+       "evidence": {
+        "file": "wikidata-Q38193.json",
+        "sha256": "f0d03a2a4e2789c33c29a8e6312271ac5724060485394d9726fcebe44697bf64",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q38193.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q334078",
+       "name": {
+        "en": "Richard Haldane, 1st Viscount Haldane",
+        "ru": "Richard Haldane, 1st Viscount Haldane"
+       },
+       "born": 1856,
+       "died": 1928,
+       "source": "https://www.wikidata.org/wiki/Q334078",
+       "evidence": {
+        "file": "wikidata-Q334078.json",
+        "sha256": "320267ed3c13207a877d3dd382c037755f80dbaf7e771b4a6c4e01dccea491e5",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q334078.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "J. Kemp",
+        "ru": "J. Kemp"
+       },
+       "born": null,
+       "died": null,
+       "source": "https://plato.stanford.edu/archives/spr2022/entries/schopenhauer/",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-020c144fb7ac34a2.html",
+        "sha256": "a5f6f69a5910f0d23a00b640523d7e156f79087f23d01a91cff1514f370d4200",
+        "url": "https://plato.stanford.edu/archives/spr2022/entries/schopenhauer/"
+       }
+      }
+     ],
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "b0ed9c3a9f12159699e840be40c5496cf52aa3975616dfe7ffc811d0887bfd04",
+      "non_substantial": "One 41-word sentence from the first volume provides the selected explanation of laughter for direct comparison to the German. It leaves the examples and rest of the treatise out, and cannot replace reading the book.",
+      "normal_exploitation": "The attributed sentence is displayed with the German original and philosophical context for research and comparison. It does not substitute for the treatise or its translation; the assessment is confined to this precise display.",
+      "source_integrity": "The text and punctuation are compared to the printed p. 76 image, with only line breaks and line-end hyphenation joined. The author, both translators, edition, source and printed page are named; Kemp’s death date is not asserted."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Arthur Schopenhauer",
+        "ru": "Артур Шопенгауэр"
+       },
+       "qid": "Q38193",
+       "source": "https://www.wikidata.org/wiki/Q38193",
+       "born": [
+        {
+         "time": "+1788-02-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1860-09-21T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Richard Haldane, 1st Viscount Haldane",
+        "ru": "Richard Haldane, 1st Viscount Haldane"
+       },
+       "qid": "Q334078",
+       "source": "https://www.wikidata.org/wiki/Q334078",
+       "born": [
+        {
+         "year": 1856
+        }
+       ],
+       "died": [
+        {
+         "year": 1928
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "J. Kemp",
+        "ru": "J. Kemp"
+       },
+       "source": "https://plato.stanford.edu/archives/spr2022/entries/schopenhauer/",
+       "born": [],
+       "died": []
+      }
+     ]
     }
    },
    "absent": [],
@@ -3833,10 +4619,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -4558,6 +5340,112 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schlegel, On the Study of Greek Poetry, translated and edited by Stuart Barnett (Albany: State University of New York Press, 2001), p. 21.",
+     "year": 2001,
+     "url": "https://books.google.com/books?id=1NIlOE5oP_UC&pg=PA21",
+     "licence": "Protected translation, attributed short quotation for scholarship and comparison only, subject to jurisdiction and review; Google Books displays this page with SUNY Press permission.",
+     "attribution": "Friedrich Schlegel, On the Study of Greek Poetry, translated and edited by Stuart Barnett (Albany: SUNY Press, 2001), p. 21; Google Books publisher-authorized preview.",
+     "maker": "codex-2026-11-28-schlegel-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q157271",
+       "name": {
+        "en": "Friedrich Schlegel",
+        "ru": "Фридрих Шлегель"
+       },
+       "born": 1772,
+       "died": 1829,
+       "source": "https://www.wikidata.org/wiki/Q157271",
+       "evidence": {
+        "file": "wikidata-Q157271.json",
+        "sha256": "03c35f4caf30611f3f4c211548e08c0c5b6535ea0b45faf132a3a8c38c42799c",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q157271.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Stuart Barnett",
+        "ru": "Stuart Barnett"
+       },
+       "born": 1960,
+       "died": null,
+       "source": "https://id.loc.gov/authorities/names/n97060572.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-d5a2d0e761f81050.html",
+        "sha256": "c0da28bbfec9c0413749ec229dfee21b1e233def9fcb132238e765fc9057b3b2",
+        "url": "https://id.loc.gov/authorities/names/n97060572.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: assess the research and comparative purpose, nature of the translated work, limited amount and market effect for the precise display; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, within extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "5c58993dabe4420aec787c5c8080ae3fb8bf28c0d5d6d40d062a66ec4cc4743f",
+      "non_substantial": "One sentence of 16 words from a book-length translation is selected to compare a specific German sentence and does not reproduce its argument or substitute for the book.",
+      "normal_exploitation": "The credited research comparison presents only this brief sentence with the original and does not replace reading the translation; this assessment is limited to the selected sentence and display.",
+      "source_integrity": "The complete sentence, spelling and punctuation follow the publisher-authorized page image; the author, translator, edition and page are attributed and no words are altered."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schlegel",
+        "ru": "Фридрих Шлегель"
+       },
+       "qid": "Q157271",
+       "source": "https://www.wikidata.org/wiki/Q157271",
+       "born": [
+        {
+         "time": "+1772-03-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1829-01-12T00:00:00Z",
+         "precision": 11
+        },
+        {
+         "time": "+1829-01-11T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Stuart Barnett",
+        "ru": "Stuart Barnett"
+       },
+       "source": "https://id.loc.gov/authorities/names/n97060572.json",
+       "born": [
+        {
+         "year": 1960
+        }
+       ],
+       "died": []
+      }
+     ]
     }
    },
    "absent": [],
@@ -4565,10 +5453,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -4907,16 +5791,119 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Victor Hugo, Cromwell, translated George Burnham Ives (Boston: Little, Brown and Company, 1909), Preface, p. 22.",
+     "year": 1909,
+     "url": "https://en.wikisource.org/wiki/Index:CromwellHugo.djvu",
+     "licence": "Historical translation public domain in the United States and, subject to applicable terms, EU and Russia; specific attributed short-quotation assessment recorded for Mexico.",
+     "attribution": "Victor Hugo, Cromwell, Preface, translated George Burnham Ives (Boston: Little, Brown and Company, 1909), p. 22; transcription from Wikisource compared with printed pages.",
+     "maker": "codex-2026-11-28-hugo-preface-en-maker",
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published in the United States in 1909, before 1931, 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "The author died 1885 and translator 1930; life plus 70 years under Directive 2006/116/EC article 1, subject to the applicable national law: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006L0116"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Author died 1885 and translator 1930, presumptive life-plus-70 under Russian Civil Code article 1281 subject to exceptions; independently limited citation under article 1274(1)(1), with author and source, for the precise research comparison: https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q535",
+       "name": {
+        "en": "Victor Hugo",
+        "ru": "Виктор Гюго"
+       },
+       "born": 1802,
+       "died": 1885,
+       "source": "https://www.wikidata.org/wiki/Q535",
+       "evidence": {
+        "file": "wikidata-Q535.json",
+        "sha256": "ad5c440d047974be50e2d65748e301d92019db812ca540da01557b6626dc5038",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q535.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q23704781",
+       "name": {
+        "en": "George Burnham Ives",
+        "ru": "George Burnham Ives"
+       },
+       "born": 1856,
+       "died": 1930,
+       "source": "https://www.wikidata.org/wiki/Q23704781",
+       "evidence": {
+        "file": "wikidata-Q23704781.json",
+        "sha256": "ecb7525482956f994aed767faf2b94794b19a835d31573b9bd45bfdd597ae815",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q23704781.json"
+       }
+      }
+     ],
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "7d8fc5a82986247a83b8184d654c5ab67b399427ad00c0814bf5f93ca49e8bcf",
+      "non_substantial": "The selected passage of 58 whitespace-separated words from a 29-page preface compares the place of comedy in art with the corresponding French sentences. The surrounding arguments, illustrations and the overwhelming bulk of the preface are omitted; this does not substitute for the full work.",
+      "normal_exploitation": "The research stand presents this attributed passage alongside the French original and conceptual context. The selection does not substitute for reading the preface or play. This assessment is limited to this exact passage and its presentation.",
+      "source_integrity": "Words and punctuation follow the 1909 printed page as transcribed by Wikisource; line breaks are joined and the names are retained. Author, translator, edition, and printed page are attributed."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Victor Hugo",
+        "ru": "Виктор Гюго"
+       },
+       "qid": "Q535",
+       "source": "https://www.wikidata.org/wiki/Q535",
+       "born": [
+        {
+         "time": "+1802-02-26T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1885-05-22T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "George Burnham Ives",
+        "ru": "George Burnham Ives"
+       },
+       "qid": "Q23704781",
+       "source": "https://www.wikidata.org/wiki/Q23704781",
+       "born": [
+        {
+         "year": 1856
+        }
+       ],
+       "died": [
+        {
+         "year": 1930
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
    "unsearched": [
     {
      "language": "ru",
-     "reason": "No translation is taken in this pass; the original is planted first."
-    },
-    {
-     "language": "en",
      "reason": "No translation is taken in this pass; the original is planted first."
     }
    ]
@@ -5149,15 +6136,142 @@
        ]
       }
      ]
+    },
+    "ru": {
+     "edition": "Ф. Шиллер. О патетическом. Перевод П. И. Вейнберга. Собрание сочинений, т. IV. СПб.: Брокгауз — Ефрон, 1902, с. 280, 287–289.",
+     "year": 1902,
+     "url": "https://archive.org/details/sobranesochinen03venggoog",
+     "licence": "Public domain in Russia, the EU, the United States and Mexico based on publication in 1902 and deaths of Schiller (1805), Weinberg (1908) and editor Vengerov (1920).",
+     "attribution": "Фридрих Шиллер, «О патетическом», перевод П. И. Вейнберга, Собрание сочинений, т. IV, СПб., 1902, с. 280, 287–289.",
+     "maker": "codex-01a1f689-schiller-ru-maker",
+     "normalization": "Russian spelling modernized from the source under the 1918 reform; the wording is retained and OCR errors corrected against the printed pages.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "411217477eb2f036bdc8e53fc856e1ab9aa807e4b806e184dadbb456a5176d47",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q2623051",
+       "name": {
+        "en": "Semyon Vengerov",
+        "ru": "Венгеров, Семён Афанасьевич"
+       },
+       "born": 1855,
+       "died": 1920,
+       "source": "https://www.wikidata.org/wiki/Q2623051",
+       "evidence": {
+        "file": "wikidata-Q2623051.json",
+        "sha256": "3207edbafb9025b145a2aa7ce3d02b0d09a2b7e5b0600a7f40fbf43141e64c4c",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q2623051.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Pyotr Weinberg",
+        "ru": "Пётр Исаевич Вейнберг"
+       },
+       "born": null,
+       "died": 1908,
+       "source": "https://www.wikidata.org/wiki/Special:EntityData/Q4106006.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-3b1c21bc0784043b.html",
+        "sha256": "f2bab5f30b20ed2ddec939c41d611998135e03d7a445afc40ebbe13af4c1090b",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q4106006.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281; 231-ФЗ ст. 6: автор умер в 1805, переводчик в 1908, редактор в 1920; сроки истекли до 1993 года."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "The Russian translation was published in Saint Petersburg in 1902. U.S. Copyright Office Circular 38B (https://www.copyright.gov/circs/circ38b.pdf) explains that restored foreign works receive the remaining U.S. term and pre-1978 published works generally have a 95-year term from first publication; even a restored term for this 1902 edition expired before 2026. Verify publication and contributors independently."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC Article 1: life plus 70 years; last identified participant died 1920."
+      },
+      "mexico": {
+       "basis": "public-domain",
+       "law": "Ley Federal del Derecho de Autor, artículo 29: life plus 100 years; last identified participant died 1920, so term ended after 2020."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Semyon Vengerov",
+        "ru": "Венгеров, Семён Афанасьевич"
+       },
+       "qid": "Q2623051",
+       "source": "https://www.wikidata.org/wiki/Q2623051",
+       "born": [
+        {
+         "year": 1855
+        }
+       ],
+       "died": [
+        {
+         "year": 1920
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Pyotr Weinberg",
+        "ru": "Пётр Исаевич Вейнберг"
+       },
+       "source": "https://www.wikidata.org/wiki/Special:EntityData/Q4106006.json",
+       "born": [],
+       "died": [
+        {
+         "year": 1908
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [],
-   "unsearched": [
-    {
-     "language": "ru",
-     "reason": "No Russian text is taken in this pass: the line plants the original first."
-    }
-   ]
+   "absent": []
   },
   "samuel-taylor-coleridge.biographia-literaria": {
    "author": {
@@ -5482,15 +6596,144 @@
        ]
       }
      ]
+    },
+    "ru": {
+     "edition": "Бенедикт Спиноза. Этика, изложенная геометрическим методом. Второе издание перевода под редакцией В. И. Модестова. СПб.: Л. Ф. Пантелеев, 1892, с. 125 и 193.",
+     "year": 1892,
+     "url": "https://search.rsl.ru/ru/record/01003632012",
+     "licence": "Текст и перевод общественное достояние; статус изображений РГБ отдельно.",
+     "attribution": "Бенедикт Спиноза, «Этика», перевод под редакцией В. И. Модестова, СПб., 1892, с. 125 и 193.",
+     "maker": "ru-direction-spinoza-maker-20261119",
+     "normalization": "Russian spelling modernized from the page by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged.",
+     "persons": [
+      {
+       "role": "translator",
+       "qid": "Q4299389",
+       "name": {
+        "en": "Vasily Modestov",
+        "ru": "Василий Иванович Модестов"
+       },
+       "born": 1839,
+       "died": 1907,
+       "source": "https://www.wikidata.org/wiki/Q4299389",
+       "evidence": {
+        "file": "wikidata-Q4299389.json",
+        "sha256": "49e5507feb094a2cb159d8c7af99f18dd813614baa59390a433ac31658da44e5",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q4299389.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q4299389",
+       "name": {
+        "en": "Vasily Modestov",
+        "ru": "Василий Иванович Модестов"
+       },
+       "born": 1839,
+       "died": 1907,
+       "source": "https://www.wikidata.org/wiki/Q4299389",
+       "evidence": {
+        "file": "wikidata-Q4299389.json",
+        "sha256": "49e5507feb094a2cb159d8c7af99f18dd813614baa59390a433ac31658da44e5",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q4299389.json"
+       }
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Benedictus de Spinoza",
+        "ru": "Бенедикт Спиноза"
+       },
+       "born": 1632,
+       "died": 1677,
+       "source": "https://www.wikidata.org/wiki/Special:EntityData/Q35802.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-196bc2e0f98d5a55.html",
+        "sha256": "1f54e5bbe926af378b4b14e20d00203122710c93021980dcf7e8aa0c0d9a28a1",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q35802.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: автор умер в 1677, переводчик и редактор Модестов в 1907, сроки истекли."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this Russian translation and edition were published in 1892 before 1931."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC art. 1: author died 1677, translator-editor died 1907, more than 70 years ago."
+      },
+      "mexico": {
+       "basis": "public-domain",
+       "law": "LFDA art. 29 I: 100 years following deaths of author in 1677 and translator-editor in 1907 have elapsed."
+      }
+     },
+     "participants": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Vasily Modestov",
+        "ru": "Василий Иванович Модестов"
+       },
+       "qid": "Q4299389",
+       "source": "https://www.wikidata.org/wiki/Q4299389",
+       "born": [
+        {
+         "year": 1839
+        }
+       ],
+       "died": [
+        {
+         "year": 1907
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Vasily Modestov",
+        "ru": "Василий Иванович Модестов"
+       },
+       "qid": "Q4299389",
+       "source": "https://www.wikidata.org/wiki/Q4299389",
+       "born": [
+        {
+         "year": 1839
+        }
+       ],
+       "died": [
+        {
+         "year": 1907
+        }
+       ]
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Benedictus de Spinoza",
+        "ru": "Бенедикт Спиноза"
+       },
+       "source": "https://www.wikidata.org/wiki/Special:EntityData/Q35802.json",
+       "born": [
+        {
+         "year": 1632
+        }
+       ],
+       "died": [
+        {
+         "year": 1677
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [],
-   "unsearched": [
-    {
-     "language": "ru",
-     "reason": "No Russian text is taken in this pass: the line plants the original first."
-    }
-   ]
+   "absent": []
   },
   "buffon.discours-sur-le-style": {
    "author": {
@@ -5576,6 +6819,116 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Georges-Louis Leclerc, comte de Buffon, Discourse on Style, in Theories of Style, with Especial Reference to Prose Composition: Essays, Excerpts, and Translations, arranged and adapted by Lane Cooper (New York: Macmillan, 1930), p. 171. The Internet Archive catalogue gives 1907; the specific scanned copy's title page reads 1930. The title names Cooper as arranger and adapter, while an Ohio State dissertation attributes the translation to him in a 1952 revision of the 1907 work: https://etd.ohiolink.edu/acprod/odb_etd/ws/send_file/send?accession=osu1487256826303975&disposition=inline (p. 38).",
+     "year": 1930,
+     "url": "https://archive.org/details/theoriesofstylew00coop/page/n198/mode/1up",
+     "licence": "1930 US publication is public domain in the United States; attributed limited quotation for research, criticism and comparison is separately assessed in other territories.",
+     "attribution": "Buffon, Discourse on Style, translated and adapted by Lane Cooper, Theories of Style, with Especial Reference to Prose Composition (New York: Macmillan, 1930), p. 171; scan of the 1930 printing.",
+     "maker": "codex-2026-11-28-buffon-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q229264",
+       "name": {
+        "en": "Georges-Louis Leclerc, Comte de Buffon",
+        "ru": "Жорж-Луи Леклерк де Бюффон"
+       },
+       "born": 1707,
+       "died": 1788,
+       "source": "https://www.wikidata.org/wiki/Q229264",
+       "evidence": {
+        "file": "wikidata-Q229264.json",
+        "sha256": "ab99843922019fc58a03cfb824e994bd122d3f3ac6a4b375bb04357689fe1912",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q229264.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Lane Cooper",
+        "ru": "Lane Cooper"
+       },
+       "born": 1875,
+       "died": 1959,
+       "source": "https://id.loc.gov/authorities/names/n50017972.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-c098ce819ae31f3f.html",
+        "sha256": "da00bc57ad8af07c013d205edd832094337f7a1b5ec535d3fc6ad196ca25d028",
+        "url": "https://id.loc.gov/authorities/names/n50017972.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "The title page of the scanned New York printing bears 1930, before the US 1931 public-domain cutoff in 2026; the archive catalogue instead lists 1907."
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review to the extent justified by purpose, subject to applicable national implementations; Cooper died 1959 and his translation may remain protected; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of lawfully published work for research and education to the extent justified by the aim, with author and source; Cooper died 1959; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "3afc8584632020e63a085063c84768f9d5505b126d3fd9aaea8eb2a23d15938d",
+      "non_substantial": "One twelve-word sentence from an eleven-page translated discourse presents a specific definition for comparison without reproducing the discourse or substituting for it.",
+      "normal_exploitation": "The scholarly display presents an attributed sentence alongside the French original; this does not replace access to the discourse or the containing book. The assessment is limited to that display.",
+      "source_integrity": "The words and punctuation reproduce one complete sentence on the 1930 printed page; author, translator, edition and page are attributed."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Georges-Louis Leclerc, Comte de Buffon",
+        "ru": "Жорж-Луи Леклерк де Бюффон"
+       },
+       "qid": "Q229264",
+       "source": "https://www.wikidata.org/wiki/Q229264",
+       "born": [
+        {
+         "time": "+1707-09-07T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1788-04-15T00:00:00Z",
+         "precision": 11
+        },
+        {
+         "time": "+1788-04-16T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Lane Cooper",
+        "ru": "Lane Cooper"
+       },
+       "source": "https://id.loc.gov/authorities/names/n50017972.json",
+       "born": [
+        {
+         "year": 1875
+        }
+       ],
+       "died": [
+        {
+         "year": 1959
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -5583,10 +6936,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -5670,6 +7019,142 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "G. W. F. Hegel, The Introduction to Hegel’s Philosophy of Fine Art, translated with notes and a prefatory essay by Bernard Bosanquet (London: Kegan Paul, Trench & Co., 1886), pp. 135–136. This place is compared with Hotho’s 1835 German edition; the precise German source edition of the translation is not established.",
+     "year": 1886,
+     "url": "https://archive.org/details/introductiontohe00hege",
+     "licence": "Historical translation, public domain on grounds specified for each jurisdiction.",
+     "attribution": "G. W. F. Hegel, The Introduction to Hegel’s Philosophy of Fine Art, translated by Bernard Bosanquet (London: Kegan Paul, Trench & Co., 1886), pp. 135–136; compared with the 1835 edition edited by Heinrich Gustav Hotho.",
+     "maker": "codex-2026-11-28-hegel-bosanquet-maker",
+     "normalization": "Line-break hyphenation and the paragraph boundary between the two printed pages are normalized to spaces; wording and punctuation are retained.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q9235",
+       "name": {
+        "en": "Georg Wilhelm Friedrich Hegel",
+        "ru": "Георг Вильгельм Фридрих Гегель"
+       },
+       "born": 1770,
+       "died": 1831,
+       "source": "https://www.wikidata.org/wiki/Q9235",
+       "evidence": {
+        "file": "wikidata-Q9235.json",
+        "sha256": "e39e21b8b99aa3a0eae60626fafc191cbf88193e4d8b32c155b94c8d4ddeae68",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q9235.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q72950",
+       "name": {
+        "en": "Heinrich Gustav Hotho",
+        "ru": "Генрих Густав Гото"
+       },
+       "born": 1802,
+       "died": 1873,
+       "source": "https://www.wikidata.org/wiki/Q72950",
+       "evidence": {
+        "file": "wikidata-Q72950.json",
+        "sha256": "989f24eef22f47369b919002cc6714fe95153ccfcaa94c04d815fd438e36adcd",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q72950.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q822329",
+       "name": {
+        "en": "Bernard Bosanquet",
+        "ru": "Бернард Бозанкет"
+       },
+       "born": 1848,
+       "died": 1923,
+       "source": "https://www.wikidata.org/wiki/Q822329",
+       "evidence": {
+        "file": "wikidata-Q822329.json",
+        "sha256": "9d0f7685c723517239bdf43a2cc7faada8f7a3c585c3eee2a30b543df208b0bb",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q822329.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published 1886, outside the maximum 95-year term, 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: 70 years after the death of author, editor and translator; latest recorded death 1923. https://eur-lex.europa.eu/eli/dir/2006/116/oj"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code article 1281: 70 years after death, conservatively adding four wartime years; latest recorded death 1923. https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Georg Wilhelm Friedrich Hegel",
+        "ru": "Георг Вильгельм Фридрих Гегель"
+       },
+       "qid": "Q9235",
+       "source": "https://www.wikidata.org/wiki/Q9235",
+       "born": [
+        {
+         "time": "+1770-08-27T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1831-11-14T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Heinrich Gustav Hotho",
+        "ru": "Генрих Густав Гото"
+       },
+       "qid": "Q72950",
+       "source": "https://www.wikidata.org/wiki/Q72950",
+       "born": [
+        {
+         "time": "+1802-05-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1873-12-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Bernard Bosanquet",
+        "ru": "Бернард Бозанкет"
+       },
+       "qid": "Q822329",
+       "source": "https://www.wikidata.org/wiki/Q822329",
+       "born": [
+        {
+         "year": 1848
+        }
+       ],
+       "died": [
+        {
+         "year": 1923
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -5677,10 +7162,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -6303,15 +7784,143 @@
        ]
       }
      ]
+    },
+    "ru": {
+     "edition": "Фридрих Шиллер. Шиллеровы мысли о том, что низко и обыкновенно в изящных искусствах. Перевод В. В. Измайлова // Вестник Европы, 1813, часть LXVIII, № 5–6, с. 31–41.",
+     "year": 1813,
+     "url": "https://imwerden.de/pdf/vestnik_evropy_1813_05-08_text.pdf",
+     "licence": "Текст издания 1813 года: сроки прав автора (1805), переводчика (1830) и редактора журнала (1842), если его вклад охраняется, истекли, включая консервативный срок жизни плюс 100 лет в Мексике; статус цифрового факсимиле рассматривается отдельно.",
+     "attribution": "Фридрих Шиллер, перевод В. В. Измайлова, Вестник Европы, 1813, часть LXVIII, № 5–6, с. 31–41; журнал издавался М. Т. Каченовским.",
+     "maker": "codex-ru-week2-schiller-1813",
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и Федеральный закон № 231-ФЗ, ст. 6: сроки для автора 1805, переводчика 1830 и редактора журнала 1842 истекли до 1993 года."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Директива 2006/116/EC, статья 1: прошло более 70 лет со смерти всех указанных участников."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Публикация 1813 года; срок даже для восстановленных иностранных произведений, опубликованных до 1978 года, обычно 95 лет от первой публикации, истёк (Circular 38B)."
+      }
+     },
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "9e333c4292d89a61a12920139fccff88e85a747899eb8b55b62886a8b68dc6e7",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q4198598",
+       "name": {
+        "en": "Vladimir Izmaylov",
+        "ru": "Владимир Васильевич Измайлов"
+       },
+       "born": 1773,
+       "died": 1830,
+       "source": "https://www.wikidata.org/wiki/Q4198598",
+       "evidence": {
+        "file": "wikidata-Q4198598.json",
+        "sha256": "b3e7d64740da5734357fbb3f21f564e1b3adf1cbfa6046b81ff1c50865bcbdc3",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q4198598.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q1964709",
+       "name": {
+        "en": "Mikhail Katchenovski",
+        "ru": "Михаил Трофимович Каченовский"
+       },
+       "born": 1775,
+       "died": 1842,
+       "source": "https://www.wikidata.org/wiki/Q1964709",
+       "evidence": {
+        "file": "wikidata-Q1964709.json",
+        "sha256": "a67ddbdb074c65b1a5684ed08f8fb5b038622ca808360c5dbe60685a5e8b7bf7",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q1964709.json"
+       }
+      }
+     ],
+     "normalization": "Russian spelling modernized from the page by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged.",
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Vladimir Izmaylov",
+        "ru": "Владимир Васильевич Измайлов"
+       },
+       "qid": "Q4198598",
+       "source": "https://www.wikidata.org/wiki/Q4198598",
+       "born": [
+        {
+         "year": 1773
+        }
+       ],
+       "died": [
+        {
+         "year": 1830
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Mikhail Katchenovski",
+        "ru": "Михаил Трофимович Каченовский"
+       },
+       "qid": "Q1964709",
+       "source": "https://www.wikidata.org/wiki/Q1964709",
+       "born": [
+        {
+         "year": 1775
+        }
+       ],
+       "died": [
+        {
+         "year": 1842
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [],
-   "unsearched": [
-    {
-     "language": "ru",
-     "reason": "No Russian text is taken in this pass: the line plants the original first."
-    }
-   ]
+   "absent": []
   },
   "georg-simmel.philosophie-der-landschaft": {
    "author": {
@@ -6372,6 +7981,109 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Georg Simmel, The Philosophy of Landscape, translated Josef Bleicher, in Georg Simmel: Essays on Art and Aesthetics, edited Austin Harrington (University of Chicago Press, 2020), p. 225; originally Theory, Culture & Society 24 (7–8), 2007, pp. 20–29.",
+     "year": 2020,
+     "url": "https://books.google.com/books?id=66z0DwAAQBAJ",
+     "licence": "Protected translation; limited attributed quotation for scholarly comparison, subject to applicable jurisdiction and review.",
+     "attribution": "Georg Simmel, The Philosophy of Landscape, translated Josef Bleicher, in Essays on Art and Aesthetics, edited Austin Harrington (University of Chicago Press, 2020), p. 225; reprinted from Theory, Culture & Society 24 (7–8), 2007, pp. 20–29.",
+     "maker": "codex-2026-11-28-simmel-landscape-en-maker",
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: a specific review of the educational and comparative purpose, nature of the translated essay, extent and market effect is required; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q76849",
+       "name": {
+        "en": "Georg Simmel",
+        "ru": "Георг Зиммель"
+       },
+       "born": 1858,
+       "died": 1918,
+       "source": "https://www.wikidata.org/wiki/Q76849",
+       "evidence": {
+        "file": "wikidata-Q76849.json",
+        "sha256": "fcc4018106e82a97c1eed6fd2df085a948893a06e8e741b7155a51caa450969f",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q76849.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q93232160",
+       "name": {
+        "en": "Josef Bleicher",
+        "ru": "Josef Bleicher"
+       },
+       "born": 1948,
+       "died": null,
+       "source": "https://www.wikidata.org/wiki/Q93232160",
+       "evidence": {
+        "file": "wikidata-Q93232160.json",
+        "sha256": "477ec76706b75d8dfa9c4587d0bf2ef527605895d5efc99bfdac78e62ad35d51",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q93232160.json"
+       }
+      }
+     ],
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "2449ef9aa85bb567f0489cdedb7499edc0c3dd4cf62299dead056b42fb7b155f",
+      "non_substantial": "A single 42-word sentence from a ten-page translated essay presents the selected conceptual relationship for comparison with one original sentence. The surrounding explanation, examples and conclusion are not reproduced, so this selection does not substitute for the essay.",
+      "normal_exploitation": "The research stand presents an attributed comparison with the German original and conceptual context. One sentence does not substitute for access to the essay or the collection; assessment is limited to this precise scope and display.",
+      "source_integrity": "Words and punctuation follow the publisher-authorized printed page image, joining only printed line breaks and line-end hyphenation. The author, translator, anthology, earlier journal publication, and printed page are attributed."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Georg Simmel",
+        "ru": "Георг Зиммель"
+       },
+       "qid": "Q76849",
+       "source": "https://www.wikidata.org/wiki/Q76849",
+       "born": [
+        {
+         "time": "+1858-03-01T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1918-09-26T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Josef Bleicher",
+        "ru": "Josef Bleicher"
+       },
+       "qid": "Q93232160",
+       "source": "https://www.wikidata.org/wiki/Q93232160",
+       "born": [
+        {
+         "year": 1948
+        }
+       ],
+       "died": []
+      }
+     ]
     }
    },
    "absent": [],
@@ -6379,10 +8091,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -7103,16 +8811,115 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Charles Baudelaire, Selected Writings on Art and Artists, translated by P. E. Charvet (Cambridge University Press, 1981), pp. 145, 151–152.",
+     "year": 1981,
+     "url": "https://books.google.com/books?id=zjg5AAAAIAAJ",
+     "licence": "Protected translation; attributed short quotation for research and comparison, subject to review by jurisdiction. Google Books pages shown with Cambridge University Press permission.",
+     "attribution": "Charles Baudelaire, Selected Writings on Art and Artists, translated by P. E. Charvet (Cambridge University Press, 1981), pp. 145, 151–152.",
+     "maker": "codex-2026-11-28-baudelaire-charvet-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q501",
+       "name": {
+        "en": "Charles Baudelaire",
+        "ru": "Шарль Бодлер"
+       },
+       "born": 1821,
+       "died": 1867,
+       "source": "https://www.wikidata.org/wiki/Q501",
+       "evidence": {
+        "file": "wikidata-Q501.json",
+        "sha256": "266d81bd498701ae3ea2eb53f28a0518398c07598b38de8629f4900cdae4af67",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q501.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Charvet, Patrick Edward",
+        "ru": "Charvet, Patrick Edward"
+       },
+       "born": 1903,
+       "died": null,
+       "source": "https://id.loc.gov/authorities/names/n50036240.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-e09dac807b4c10ba.html",
+        "sha256": "b66d0ca5a889f71add6813e918fd4e2777c63597004bc72368f38fd476b2cd10",
+        "url": "https://id.loc.gov/authorities/names/n50036240.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: assess the research and comparative purpose, nature of the translated work, limited amount and market effect for the precise display; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, within extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "normalization": "Preserve the printed words, spelling and punctuation; join only line endings.",
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "66d9139b847f6c737b9312cb58ccb9e3bdd727fb786d7c452435868a9b876aae",
+      "non_substantial": "Three distinct excerpts containing five complete sentences and 131 words in all are used to compare specific conceptions with the French original; the translated essay spans pp. 140–161 of a much larger collection. They include central definitions, but do not reproduce the sustained argument, examples or analysis, and the extent is limited to what the comparison needs.",
+      "normal_exploitation": "The source-linked educational research places these short passages beside the original and its own conceptual interpretation; they cannot replace the full translated essay or book, whose commentary, examples and literary development remain necessary, and they do not displace the publisher’s ordinary market.",
+      "source_integrity": "The selected sentences follow the publisher-authorized Cambridge page images exactly, preserving wording, spelling and punctuation, with no typographic emphasis in these English passages. Baudelaire, translator P. E. Charvet, the 1981 edition and each printed page are credited."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Charles Baudelaire",
+        "ru": "Шарль Бодлер"
+       },
+       "qid": "Q501",
+       "source": "https://www.wikidata.org/wiki/Q501",
+       "born": [
+        {
+         "time": "+1821-04-09T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1867-08-31T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Charvet, Patrick Edward",
+        "ru": "Charvet, Patrick Edward"
+       },
+       "source": "https://id.loc.gov/authorities/names/n50036240.json",
+       "born": [
+        {
+         "year": 1903
+        }
+       ],
+       "died": []
+      }
+     ]
     }
    },
    "absent": [],
    "unsearched": [
     {
      "language": "ru",
-     "reason": "No translation is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
      "reason": "No translation is taken in this pass: the line plants the original first."
     }
    ]
@@ -7180,6 +8987,113 @@
          "qualifiers": [
           "Q26877139"
          ]
+        }
+       ]
+      }
+     ]
+    },
+    "de": {
+     "edition": "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), p. 217.",
+     "year": 1759,
+     "url": "https://archive.org/details/11916063bsb",
+     "licence": "Historical translation in the public domain in the listed jurisdictions; Bayerische Staatsbibliothek digitisation.",
+     "attribution": "David Hume, translated by Friedrich Gabriel Resewitz, Vier Abhandlungen (1759).",
+     "maker": "codex-2026-11-28-hume-tragedy-de-maker",
+     "normalization": "Long s rendered as s; line breaks and line-end hyphenation normalized, historical spelling and punctuation retained.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q37160",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "born": 1711,
+       "died": 1776,
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "evidence": {
+        "file": "wikidata-Q37160.json",
+        "sha256": "8286cadd63aabcb3fe74a8b8801e2b1bd1d81d5954568e68cc60b142a7275d30",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q37160.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q1459190",
+       "name": {
+        "en": "Friedrich Gabriel Resewitz",
+        "ru": "Friedrich Gabriel Resewitz"
+       },
+       "born": 1729,
+       "died": 1806,
+       "source": "https://www.wikidata.org/wiki/Q1459190",
+       "evidence": {
+        "file": "wikidata-Q1459190.json",
+        "sha256": "727c18235868dc39efa2621fef6068e39b44f94548758e018015a920c17b1a1e",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q1459190.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published in 1759, prior to 1931; 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: 70 years after the latest death, translator Resewitz 1806: https://eur-lex.europa.eu/eli/dir/2006/116/oj"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code article 1281: 70 years after death with four years conservatively added; latest death 1806: https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "qid": "Q37160",
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "born": [
+        {
+         "time": "+1711-04-26T00:00:00Z",
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
+        }
+       ],
+       "died": [
+        {
+         "time": "+1776-08-25T00:00:00Z",
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Friedrich Gabriel Resewitz",
+        "ru": "Friedrich Gabriel Resewitz"
+       },
+       "qid": "Q1459190",
+       "source": "https://www.wikidata.org/wiki/Q1459190",
+       "born": [
+        {
+         "year": 1729
+        }
+       ],
+       "died": [
+        {
+         "year": 1806
         }
        ]
       }
@@ -7330,6 +9244,104 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Edith Stein, On the Problem of Empathy, translated by Waltraut Stein (The Hague: Martinus Nijhoff, 1964; Springer reprint 2013), p. 10.",
+     "year": 2013,
+     "url": "https://books.google.com/books?id=0uS9BwAAQBAJ&pg=PA10",
+     "licence": "Protected translation; attributed short quotation for scholarship and comparison, subject to jurisdiction and review. Publisher-authorized Google Books preview.",
+     "attribution": "Edith Stein, On the Problem of Empathy, translated by Waltraut Stein (Martinus Nijhoff, 1964; Springer reprint, 2013), p. 10.",
+     "maker": "codex-2026-11-28-stein-empathy-en-maker",
+     "persons": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Waltraut Stein",
+        "ru": "Waltraut Stein"
+       },
+       "born": null,
+       "died": null,
+       "source": "https://plato.stanford.edu/entries/stein/",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-705a7f02222d1369.html",
+        "sha256": "b0ae36126f628ae82d5c7df3841d1e18b5402a93bd0b836f7e155efdb12a9ab3",
+        "url": "https://plato.stanford.edu/entries/stein/"
+       }
+      },
+      {
+       "role": "author",
+       "qid": "Q76749",
+       "name": {
+        "en": "Edith Stein",
+        "ru": "Эдит Штайн"
+       },
+       "born": 1891,
+       "died": null,
+       "source": "https://www.wikidata.org/wiki/Q76749",
+       "evidence": {
+        "file": "wikidata-Q76749.json",
+        "sha256": "d018baf3a565835810d73577b2d8c8657ed30c517fb4145b1a90182e91aff149",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q76749.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: assess the research and comparative purpose, nature of the translated work, limited amount and market effect for the precise display; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, within extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "27d31fe448a5304183745d0c5ace72db4c086ca0089a6753ed7334c3aa9a2aa7",
+      "non_substantial": "Three complete sentences of 45 words are selected from a 113-page book for the specific purpose of comparing an account of empathy with its German original. They express a key distinction but neither reproduce its development nor substitute for the book.",
+      "normal_exploitation": "The attributed comparative research presentation reproduces this short passage alongside the original and a project interpretation; it does not replace the complete translated book in its ordinary market.",
+      "source_integrity": "All three sentences, spelling and punctuation follow the publisher-authorized page image without altering their wording. The author, translator, edition and printed page are attributed."
+     },
+     "participants": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Waltraut Stein",
+        "ru": "Waltraut Stein"
+       },
+       "source": "https://plato.stanford.edu/entries/stein/",
+       "born": [],
+       "died": []
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Edith Stein",
+        "ru": "Эдит Штайн"
+       },
+       "qid": "Q76749",
+       "source": "https://www.wikidata.org/wiki/Q76749",
+       "born": [
+        {
+         "time": "+1891-10-12T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1942-08-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -7337,10 +9349,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -8649,6 +10657,138 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Leon Battista Alberti, Of Painting, Book II, in The Architecture of Leon Batista Alberti, translated through Italian by Cosimo Bartoli into English by James Leoni (London: Edward Owen for Robert Alfray, 1755), pp. 254–255.",
+     "year": 1755,
+     "url": "https://archive.org/details/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755",
+     "licence": "Historical printing; author and translators died well before the twentieth century.",
+     "attribution": "Leon Battista Alberti, Of Painting, Book II, translated through Cosimo Bartoli by James Leoni, in The Architecture of Leon Batista Alberti (London: Edward Owen for Robert Alfray, 1755), pp. 254–255.",
+     "maker": "codex-2026-11-28-alberti-pictura-en-maker",
+     "normalization": "The historical long s is rendered as s and line-break hyphenation is removed; the catchword at the page foot is not repeated.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q182046",
+       "name": {
+        "en": "Леон Баттиста Альберти",
+        "ru": "Леон Баттиста Альберти"
+       },
+       "born": 1404,
+       "died": 1472,
+       "source": "https://www.wikidata.org/wiki/Q182046",
+       "evidence": {
+        "file": "wikidata-Q182046.json",
+        "sha256": "90205e113fbe9c20456e2dfa7647c35c539db614c4d35afabfcdbcee5b3b930e",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q182046.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q1136048",
+       "name": {
+        "en": "Cosimo Bartoli",
+        "ru": "Козимо Бартоли"
+       },
+       "born": null,
+       "died": 1572,
+       "source": "https://www.wikidata.org/wiki/Q1136048",
+       "evidence": {
+        "file": "wikidata-Q1136048.json",
+        "sha256": "8742a6f8b90f5f332dfc32acf59495621954b98d45432f39d38804b428f66428",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q1136048.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q721253",
+       "name": {
+        "en": "Giacomo Leoni",
+        "ru": "Джакомо Леони"
+       },
+       "born": 1686,
+       "died": 1746,
+       "source": "https://www.wikidata.org/wiki/Q721253",
+       "evidence": {
+        "file": "wikidata-Q721253.json",
+        "sha256": "75b1bc466399887443836147ff639529d6b806c60cb326b71e6efd3fa9375d0c",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q721253.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published in 1755, before 1931; the printing is in the United States public domain."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "The author died in 1472, the identified intermediate translator in 1572 and the English translator in 1746; the EU term has expired."
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "The author died in 1472, the identified intermediate translator in 1572 and the English translator in 1746; the ordinary Russian term has expired."
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Леон Баттиста Альберти",
+        "ru": "Леон Баттиста Альберти"
+       },
+       "qid": "Q182046",
+       "source": "https://www.wikidata.org/wiki/Q182046",
+       "born": [
+        {
+         "time": "+1404-02-14T00:00:00Z",
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
+        }
+       ],
+       "died": [
+        {
+         "time": "+1472-04-25T00:00:00Z",
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Cosimo Bartoli",
+        "ru": "Козимо Бартоли"
+       },
+       "qid": "Q1136048",
+       "source": "https://www.wikidata.org/wiki/Q1136048",
+       "born": [],
+       "died": [
+        {
+         "year": 1572
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Giacomo Leoni",
+        "ru": "Джакомо Леони"
+       },
+       "qid": "Q721253",
+       "source": "https://www.wikidata.org/wiki/Q721253",
+       "born": [
+        {
+         "year": 1686
+        }
+       ],
+       "died": [
+        {
+         "year": 1746
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -8656,10 +10796,6 @@
     {
      "language": "ru",
      "reason": "The original Italian is planted first; no Russian witness is taken in this pass."
-    },
-    {
-     "language": "en",
-     "reason": "The original Italian is planted first; no English witness is taken in this pass."
     }
    ]
   },
@@ -11169,15 +13305,21 @@
      "en": "pp. 187–188"
     },
     "texts": {
-     "de": "In einer schönen Seele ist es also, wo Sinnlichkeit und Vernunft, Pflicht und Neigung harmoniren, und Grazie ist ihr Ausdruck in der Erscheinung."
+     "de": "In einer schönen Seele ist es also, wo Sinnlichkeit und Vernunft, Pflicht und Neigung harmoniren, und Grazie ist ihr Ausdruck in der Erscheinung.",
+     "en": "It is in a beautiful soul that sensuousness and reason, duty and inclination are in harmony, and grace is their expression as appearance."
     },
     "links": {
-     "de": "https://archive.org/details/10040246bsb/page/n76/mode/1up"
+     "de": "https://archive.org/details/10040246bsb/page/n76/mode/1up",
+     "en": "https://books.google.com.mx/books/content?id=z6mquq2Fv1kC&hl=ru&pg=PA153&img=1&zoom=3&sig=ACfU3U1dW9HIN1sp3n8b7BmnhWMH36rIrg&w=1280"
     },
     "refs": [
      [
       "de",
       "Göschen 1793, pp. 187–188"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, On Grace and Dignity, translated by Jane Veronica Curran, in Schiller’s On Grace and Dignity in Its Cultural Context, edited by Jane V. Curran and Christophe Fricker (Rochester, NY: Camden House, 2005), p. 153., p. 153"
      ]
     ]
    },
@@ -11556,15 +13698,21 @@
      "en": "Part I, q. 39, art. 8, p. 318"
     },
     "texts": {
-     "la": "Unde videmus, quod aliqua imago dicitur esse pulchra, si perfecte repraesentat rem, quamvis turpem."
+     "la": "Unde videmus, quod aliqua imago dicitur esse pulchra, si perfecte repraesentat rem, quamvis turpem.",
+     "en": "Hence we see that an image is said to be beautiful, if it perfectly represents even an ugly thing."
     },
     "links": {
-     "la": "https://archive.org/details/summatheologicae0001thom/page/n331/mode/1up"
+     "la": "https://archive.org/details/summatheologicae0001thom/page/n331/mode/1up",
+     "en": "https://archive.org/download/summatheologicao02thom_0/page/n157.jpg"
     },
     "refs": [
      [
       "la",
       "Editio altera Romana (Rome 1894), p. 318"
+     ],
+     [
+      "en",
+      "Thomas Aquinas, The Summa Theologica, Part I, Second Number (QQ. XXVII–LXXIV), translated by Laurence Shapcote as Fathers of the English Dominican Province (New York: Benziger Brothers, 1912), p. 144., p. 144"
      ]
     ]
    }
@@ -11576,15 +13724,21 @@
      "en": "§13, p. 70"
     },
     "texts": {
-     "de": "Das Lachen entsteht jedesmal aus nichts Anderem, als aus der plötzlich wahrgenommenen Inkongruenz zwischen einem Begriff und den realen Objekten, die durch ihn, in irgend einer Beziehung, gedacht worden waren, und es ist selbst eben nur der Ausdruck dieser Inkongruenz."
+     "de": "Das Lachen entsteht jedesmal aus nichts Anderem, als aus der plötzlich wahrgenommenen Inkongruenz zwischen einem Begriff und den realen Objekten, die durch ihn, in irgend einer Beziehung, gedacht worden waren, und es ist selbst eben nur der Ausdruck dieser Inkongruenz.",
+     "en": "The cause of laughter in every case is simply the sudden perception of the incongruity between a concept and the real objects which have been thought through it in some relation, and laughter itself is just the expression of this incongruity."
     },
     "links": {
-     "de": "https://archive.org/details/dieweltalswille02schogoog/page/n110/mode/1up"
+     "de": "https://archive.org/details/dieweltalswille02schogoog/page/n110/mode/1up",
+     "en": "https://archive.org/download/worldaswillidea01schoiala/page/n115.jpg"
     },
     "refs": [
      [
       "de",
       "Dritte Auflage (Leipzig 1859), p. 70"
+     ],
+     [
+      "en",
+      "Arthur Schopenhauer, The World as Will and Idea, translated R. B. Haldane and J. Kemp, vol. I, seventh edition (London: Kegan Paul, Trench, Trübner & Co.; undated scanned printing catalogued 1909), p. 76., p. 76"
      ]
     ]
    },
@@ -12024,15 +14178,21 @@
      "en": "Study, p. 16"
     },
     "texts": {
-     "de": "Das Neue wird alt, das Seltene gemein, und die Stachel des Reizenden werden stumpf."
+     "de": "Das Neue wird alt, das Seltene gemein, und die Stachel des Reizenden werden stumpf.",
+     "en": "The new becomes old; the unusual becomes common; the frisson of what is charming becomes dull."
     },
     "links": {
-     "de": "https://archive.org/details/10927143bsb/page/n41/mode/1up"
+     "de": "https://archive.org/details/10927143bsb/page/n41/mode/1up",
+     "en": "https://books.google.com.mx/books/content?id=1NIlOE5oP_UC&hl=ru&pg=PA21&img=1&zoom=3&sig=ACfU3U35GEeG0uyGfdk9xJMFozV9vsdNNg&w=1280"
     },
     "refs": [
      [
       "de",
       "Die Griechen und Römer (1797), p. 16"
+     ],
+     [
+      "en",
+      "Friedrich Schlegel, On the Study of Greek Poetry, translated and edited by Stuart Barnett (Albany: State University of New York Press, 2001), p. 21., p. 21"
      ]
     ]
    }
@@ -12492,15 +14652,21 @@
      "en": "Preface, p. 24"
     },
     "texts": {
-     "fr": "Ainsi, que des pédants étourdis (l’un n’exclut pas l’autre) prétendent que le difforme, le laid, le grotesque, ne doit jamais être un objet d’imitation pour l’art, on leur répond que le grotesque, c’est la comédie, et qu’apparemment la comédie fait partie de l’art. Tartufe n’est pas beau, Pourceaugnac n’est pas noble ; Pourceaugnac et Tartufe sont d’admirables jets de l’art."
+     "fr": "Ainsi, que des pédants étourdis (l’un n’exclut pas l’autre) prétendent que le difforme, le laid, le grotesque, ne doit jamais être un objet d’imitation pour l’art, on leur répond que le grotesque, c’est la comédie, et qu’apparemment la comédie fait partie de l’art. Tartufe n’est pas beau, Pourceaugnac n’est pas noble ; Pourceaugnac et Tartufe sont d’admirables jets de l’art.",
+     "en": "And so, let addle-pated pedants (one does not exclude the other) claim that the deformed, the ugly, the grotesque should never be imitated in art; one replies that the grotesque is comedy, and that comedy apparently makes a part of art. Tartuffe is not handsome, Pourceaugnac is not noble, but Pourceaugnac and Tartuffe are admirable flashes of art."
     },
     "links": {
-     "fr": "https://archive.org/details/oeuvrescomplte23hugouoft/page/n37/mode/1up"
+     "fr": "https://archive.org/details/oeuvrescomplte23hugouoft/page/n37/mode/1up",
+     "en": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dc/CromwellHugo.djvu/page34-1920px-CromwellHugo.djvu.jpg?utm_campaign=index&utm_content=thumbnail&utm_source=en.wikisource.org"
     },
     "refs": [
      [
       "fr",
       "Œuvres complètes, Théâtre I (1912), p. 24"
+     ],
+     [
+      "en",
+      "Victor Hugo, Cromwell, translated George Burnham Ives (Boston: Little, Brown and Company, 1909), Preface, p. 22., p. 22"
      ]
     ]
    }
@@ -12569,11 +14735,13 @@
     },
     "texts": {
      "de": "Man gelangt also zur Darstellung der moralischen Freyheit nur durch die lebendigste Darstellung der leidenden Natur; und der tragische Held muß sich erst als empfindendes Wesen bey uns legitimirt haben, ehe wir ihm als Vernunftwesen huldigen, und an seine Seelenstärke glauben.",
-     "en": "One attains, then, to a representation of moral freedom, only through the most lively representation of suffering nature: and the tragic hero must legitimate himself in our opinion as a susceptible being, before we can do homage to him as a rational being, and believe in his strength of spirit."
+     "en": "One attains, then, to a representation of moral freedom, only through the most lively representation of suffering nature: and the tragic hero must legitimate himself in our opinion as a susceptible being, before we can do homage to him as a rational being, and believe in his strength of spirit.",
+     "ru": "Таким образом, изображения нравственной свободы мы достигаем только самым живым представлением страждущей натуры человека, и для того, чтобы мы признали трагического героя за разумное существо и поверили в его душевную силу, ему необходимо сперва доказать нам, что он есть существо чувствующее."
     },
     "links": {
      "de": "https://archive.org/details/10119231bsb/page/n321/mode/1up",
-     "en": "https://archive.org/download/stheticletterses01schi/page/n243.jpg"
+     "en": "https://archive.org/download/stheticletterses01schi/page/n243.jpg",
+     "ru": "https://archive.org/download/sobranesochinen03venggoog/page/n303.jpg"
     },
     "refs": [
      [
@@ -12583,6 +14751,10 @@
      [
       "en",
       "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, 202"
+     ],
+     [
+      "ru",
+      "Ф. Шиллер. О патетическом. Перевод П. И. Вейнберга. Собрание сочинений, т. IV. СПб.: Брокгауз — Ефрон, 1902, с. 280, 287–289., 280"
      ]
     ]
    },
@@ -12593,11 +14765,13 @@
     },
     "texts": {
      "de": "Alle Affekte sind ästhetischer aus der zweyten Hand und keine Sympathie ist stärker als die wir mit der Sympathie empfinden,\n\nPost ipsum, auxilio subeuntem ac tela ferentem corripiunt.",
-     "en": "All emotions are more æsthetic at second hand, and no sympathy is stronger than that which we feel with sympathy.\n\nPost ipsum auxilio subeuntem ac tela ferentem\nCorripiunt."
+     "en": "All emotions are more æsthetic at second hand, and no sympathy is stronger than that which we feel with sympathy.\n\nPost ipsum auxilio subeuntem ac tela ferentem\nCorripiunt.",
+     "ru": "Все аффекты эстетичнее из вторых рук, и нет симпатии сильнее той, которую мы чувствуем посредством симпатии.\n\nPost ipsum auxilio subeuntem ac tela ferentem corripiunt."
     },
     "links": {
      "de": "https://archive.org/details/10119231bsb/page/n354/mode/1up",
-     "en": "https://archive.org/download/stheticletterses01schi/page/n261.jpg"
+     "en": "https://archive.org/download/stheticletterses01schi/page/n261.jpg",
+     "ru": "https://archive.org/download/sobranesochinen03venggoog/page/n310.jpg"
     },
     "refs": [
      [
@@ -12607,6 +14781,10 @@
      [
       "en",
       "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), Duke University Libraries copy, 220"
+     ],
+     [
+      "ru",
+      "Ф. Шиллер. О патетическом. Перевод П. И. Вейнберга. Собрание сочинений, т. IV. СПб.: Брокгауз — Ефрон, 1902, с. 280, 287–289., 287"
      ]
     ]
    },
@@ -12616,15 +14794,21 @@
      "en": "On the Pathetic, p. 351"
     },
     "texts": {
-     "de": "Ein erhabenes Objekt, bloß in der ästhetischen Schätzung, ist schon derjenige Mensch, der uns die Würde der menschlichen Bestimmung durch seinen Zustand vorstellig macht, gesetzt auch, daß wir diese Bestimmung in seiner Person nicht realisirt finden sollten."
+     "de": "Ein erhabenes Objekt, bloß in der ästhetischen Schätzung, ist schon derjenige Mensch, der uns die Würde der menschlichen Bestimmung durch seinen Zustand vorstellig macht, gesetzt auch, daß wir diese Bestimmung in seiner Person nicht realisirt finden sollten.",
+     "ru": "Объектом возвышенным только с точки зрения эстетической становится уже тот человек, который своим внутренним состоянием проявляет перед нами достоинство человеческого призвания, если предположить даже, что мы не увидим этого призвания осуществленным в его личности."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n360/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n360/mode/1up",
+     "ru": "https://archive.org/download/sobranesochinen03venggoog/page/n311.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, part III (1801), p. 351"
+     ],
+     [
+      "ru",
+      "Ф. Шиллер. О патетическом. Перевод П. И. Вейнберга. Собрание сочинений, т. IV. СПб.: Брокгауз — Ефрон, 1902, с. 280, 287–289., 288–289, p. 289"
      ]
     ]
    },
@@ -12634,17 +14818,26 @@
      "en": "On the Pathetic, pp. 349–350"
     },
     "texts": {
-     "de": "Zum Erhabenen der Handlung wird erfodert, daß das Leiden eines Menschen auf seine moralische Beschaffenheit nicht nur keinen Einfluß habe, sondern vielmehr umgekehrt das Werk seines moralischen Charakters sey. Dieses kann auf zweyerley Weise seyn. Entweder mittelbar und nach dem Gesetz der Freyheit, wenn er aus Achtung für irgend eine Pflicht das Leiden erwählt. Die Vorstellung der Pflicht bestimmt ihn in diesem Falle als Motiv, und sein Leiden ist eine Willenshandlung. Oder unmittelbar und nach dem Gesetz der Nothwendigkeit, wenn er eine übertretene Pflicht moralisch büßt. Die Vorstellung der Pflicht bestimmt ihn in diesem Falle als Macht, und sein Leiden ist bloß eine Wirkung. Ein Beyspiel des ersten gibt uns Regulus, wenn er um Wort zu halten, sich der Rachbegier der Karthaginienser ausliefert; zu einem Beyspiel des zweyten würde er uns dienen, wenn er sein Wort gebrochen und das Bewußtseyn dieser Schuld ihn elend gemacht hätte. In beyden Fällen hat das Leiden einen moralischen Grund, nur mit dem Unterschied, daß er uns in dem ersten Fall seinen moralischen Charakter, in dem andern bloß seine Bestimmung dazu zeigt. In dem ersten Fall erscheint er als eine moralisch große Person, in dem zweyten bloß als ein ästhetisch großer Gegenstand."
+     "de": "Zum Erhabenen der Handlung wird erfodert, daß das Leiden eines Menschen auf seine moralische Beschaffenheit nicht nur keinen Einfluß habe, sondern vielmehr umgekehrt das Werk seines moralischen Charakters sey. Dieses kann auf zweyerley Weise seyn. Entweder mittelbar und nach dem Gesetz der Freyheit, wenn er aus Achtung für irgend eine Pflicht das Leiden erwählt. Die Vorstellung der Pflicht bestimmt ihn in diesem Falle als Motiv, und sein Leiden ist eine Willenshandlung. Oder unmittelbar und nach dem Gesetz der Nothwendigkeit, wenn er eine übertretene Pflicht moralisch büßt. Die Vorstellung der Pflicht bestimmt ihn in diesem Falle als Macht, und sein Leiden ist bloß eine Wirkung. Ein Beyspiel des ersten gibt uns Regulus, wenn er um Wort zu halten, sich der Rachbegier der Karthaginienser ausliefert; zu einem Beyspiel des zweyten würde er uns dienen, wenn er sein Wort gebrochen und das Bewußtseyn dieser Schuld ihn elend gemacht hätte. In beyden Fällen hat das Leiden einen moralischen Grund, nur mit dem Unterschied, daß er uns in dem ersten Fall seinen moralischen Charakter, in dem andern bloß seine Bestimmung dazu zeigt. In dem ersten Fall erscheint er als eine moralisch große Person, in dem zweyten bloß als ein ästhetisch großer Gegenstand.",
+     "ru": "Возвышенное в действии требует, чтобы страдание человека не только не имело никакого влияния на его нравственное состояние, но даже, совершенно наоборот, было делом его нравственного характера. Это может совершаться двояким образом. Во-первых, посредственно и по закону свободы, когда человек, ради какой-нибудь обязанности, сам обрекает себя на страдание. В этом случае, представление обязанности становится для него побуждением, и его страдание есть действие свободной воли. Или, во-вторых, непосредственно и по закону необходимости, когда человек нравственно искупает нарушение какой-нибудь обязанности. Представление обязанности в этом случае заставляет его действовать как сила, и его страдание есть только результат. Пример первого представляет нам Регул, когда, чтобы сдержать слово, он отдает себя мщению карфагенян; примером второго послужил бы нам этот самый Регул, если бы он не сдержал слова и сделался несчастным вследствие сознания своей вины. В обоих случаях, страдание имеет причину нравственную — с тою только разницею, что в первом этот человек обнаруживает перед нами свой нравственный характер, во втором — только призвание свое к этому. В первом он является нравственно-великою личностью, во втором — только эстетически-великим предметом."
     },
     "links": {
-     "de": "https://archive.org/details/10119231bsb/page/n358/mode/1up"
+     "de": "https://archive.org/details/10119231bsb/page/n358/mode/1up",
+     "ru": "https://archive.org/download/sobranesochinen03venggoog/page/n311.jpg"
     },
     "refs": [
      [
       "de",
       "Kleinere prosaische Schriften, part III (1801), pp. 349–350"
+     ],
+     [
+      "ru",
+      "Ф. Шиллер. О патетическом. Перевод П. И. Вейнберга. Собрание сочинений, т. IV. СПб.: Брокгауз — Ефрон, 1902, с. 280, 287–289., 288"
      ]
-    ]
+    ],
+    "quotation_justification": {
+     "ru": "Полный последовательный отрывок соответствует границам оригинала и сохраняет два вида примера Регула."
+    }
    }
   },
   "samuel-taylor-coleridge.biographia-literaria": {
@@ -12785,11 +14978,13 @@
     },
     "texts": {
      "la": "Per Affectum intelligo Corporis affectiones, quibus ipsius Corporis agendi potentia augetur, vel minuitur, juvatur vel coërcetur, et simul harum affectionum ideas. Si itaque alicujus harum affectionum adaequata possimus esse causa, tum per Affectum actionem intelligo; alias passionem.",
-     "en": "By emotion I mean the modifications of the body, whereby the active power of the said body is increased or diminished, aided or constrained, and also the ideas of such modifications.\n\nN.B. If we can be the adequate cause of any of these modifications, I then call the emotion an activity, otherwise I call it a passion, or state wherein the mind is passive."
+     "en": "By emotion I mean the modifications of the body, whereby the active power of the said body is increased or diminished, aided or constrained, and also the ideas of such modifications.\n\nN.B. If we can be the adequate cause of any of these modifications, I then call the emotion an activity, otherwise I call it a passion, or state wherein the mind is passive.",
+     "ru": "Под аффектом я разумею испытываемые телом ощущения, которыми способность действия нашего тела увеличивается или уменьшается, усиливается или задерживается, и вместе с тем идеи этих ощущений. Итак, если мы можем быть полною причиною какого-нибудь из этих испытываемых нами ощущений, тогда под аффектом я разумею действие, а в других случаях — страсть."
     },
     "links": {
      "la": "https://archive.org/details/benedictidespin01spingoog/page/n170/mode/1up",
-     "en": "https://archive.org/download/chiefworksofbene02spin/page/n155.jpg"
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n155.jpg",
+     "ru": "https://viewer.rsl.ru/api/v1/document/rsl01003632012/page/66"
     },
     "refs": [
      [
@@ -12799,6 +14994,10 @@
      [
       "en",
       "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 130"
+     ],
+     [
+      "ru",
+      "Бенедикт Спиноза. Этика, изложенная геометрическим методом. Второе издание перевода под редакцией В. И. Модестова. СПб.: Л. Ф. Пантелеев, 1892, с. 125 и 193., p. 125"
      ]
     ]
    },
@@ -12809,11 +15008,13 @@
     },
     "texts": {
      "la": "Laetitia est hominis transitio a minore ad majorem perfectionem.",
-     "en": "Pleasure is the transition of a man from a less to a greater perfection."
+     "en": "Pleasure is the transition of a man from a less to a greater perfection.",
+     "ru": "Радость есть переход человека от меньшего к большему совершенству."
     },
     "links": {
      "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up",
-     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg"
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg",
+     "ru": "https://viewer.rsl.ru/api/v1/document/rsl01003632012/page/100"
     },
     "refs": [
      [
@@ -12823,6 +15024,10 @@
      [
       "en",
       "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 174"
+     ],
+     [
+      "ru",
+      "Бенедикт Спиноза. Этика, изложенная геометрическим методом. Второе издание перевода под редакцией В. И. Модестова. СПб.: Л. Ф. Пантелеев, 1892, с. 125 и 193., p. 193"
      ]
     ]
    },
@@ -12833,11 +15038,13 @@
     },
     "texts": {
      "la": "Tristitia est hominis transitio a majore ad minorem perfectionem.",
-     "en": "Pain is the transition of a man from a greater to a less perfection."
+     "en": "Pain is the transition of a man from a greater to a less perfection.",
+     "ru": "Печаль есть переход человека от большего к меньшему совершенству."
     },
     "links": {
      "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up",
-     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg"
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg",
+     "ru": "https://viewer.rsl.ru/api/v1/document/rsl01003632012/page/100"
     },
     "refs": [
      [
@@ -12847,6 +15054,10 @@
      [
       "en",
       "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 174"
+     ],
+     [
+      "ru",
+      "Бенедикт Спиноза. Этика, изложенная геометрическим методом. Второе издание перевода под редакцией В. И. Модестова. СПб.: Л. Ф. Пантелеев, 1892, с. 125 и 193., p. 193"
      ]
     ]
    }
@@ -12858,15 +15069,21 @@
      "en": "Discourse, p. 5"
     },
     "texts": {
-     "fr": "Le style n’est que l’ordre et le mouvement qu’on met dans ses pensées."
+     "fr": "Le style n’est que l’ordre et le mouvement qu’on met dans ses pensées.",
+     "en": "Style is simply the order and movement one gives to one’s thoughts."
     },
     "links": {
-     "fr": "https://archive.org/details/oeuvrescomplte01buff/page/n84/mode/1up"
+     "fr": "https://archive.org/details/oeuvrescomplte01buff/page/n84/mode/1up",
+     "en": "https://archive.org/download/theoriesofstylew00coop/page/n198.jpg"
     },
     "refs": [
      [
       "fr",
       "Œuvres complètes de Buffon, vol. 1 (Paris, 1829), p. 5"
+     ],
+     [
+      "en",
+      "Georges-Louis Leclerc, comte de Buffon, Discourse on Style, in Theories of Style, with Especial Reference to Prose Composition: Essays, Excerpts, and Translations, arranged and adapted by Lane Cooper (New York: Macmillan, 1930), p. 171. The Internet Archive catalogue gives 1907; the specific scanned copy's title page reads 1930. The title names Cooper as arranger and adapter, while an Ohio State dissertation attributes the translation to him in a 1952 revision of the 1907 work: https://etd.ohiolink.edu/acprod/odb_etd/ws/send_file/send?accession=osu1487256826303975&disposition=inline (p. 38)., p. 171"
      ]
     ]
    },
@@ -13004,15 +15221,21 @@
      "en": "Introduction, pp. 92–93"
     },
     "texts": {
-     "de": "Wie nun ein Inhalt, um überhaupt wahr zu seyn, so konkreter Art seyn muß, fordert auch die Kunst die gleiche Konkretion, weil das nur abstrakt Allgemeine in sich selbst nicht die Bestimmung hat, zur Besonderung und Erscheinung und zur Einheit mit sich in derselben fortzuschreiten. Soll nun einem wahrhaften und deshalb konkreten Inhalt eine sinnliche Form und Gestaltung entsprechen, so muß diese drittens gleichfalls ein individuelles in sich vollständig Konkretes und Einzelnes seyn."
+     "de": "Wie nun ein Inhalt, um überhaupt wahr zu seyn, so konkreter Art seyn muß, fordert auch die Kunst die gleiche Konkretion, weil das nur abstrakt Allgemeine in sich selbst nicht die Bestimmung hat, zur Besonderung und Erscheinung und zur Einheit mit sich in derselben fortzuschreiten. Soll nun einem wahrhaften und deshalb konkreten Inhalt eine sinnliche Form und Gestaltung entsprechen, so muß diese drittens gleichfalls ein individuelles in sich vollständig Konkretes und Einzelnes seyn.",
+     "en": "Now, as a content in order to possess truth at all must be of this concrete nature, art demands the same concreteness, because a mere abstract universal has not in itself the vocation to advance to particularity and phenomenal manifestation and to unity with itself therein. If a true and therefore concrete content is to have corresponding to it a sensuous form and modelling, this sensuous form must, in the third place, be no less emphatically something individual, wholly concrete in itself, and one."
     },
     "links": {
-     "de": "https://archive.org/details/10045986/page/n113/mode/1up"
+     "de": "https://archive.org/details/10045986/page/n113/mode/1up",
+     "en": "https://archive.org/download/introductiontohe00hege/page/n174.jpg"
     },
     "refs": [
      [
       "de",
       "Hotho edition (Berlin 1835), pp. 92–93"
+     ],
+     [
+      "en",
+      "G. W. F. Hegel, The Introduction to Hegel’s Philosophy of Fine Art, translated with notes and a prefatory essay by Bernard Bosanquet (London: Kegan Paul, Trench & Co., 1886), pp. 135–136. This place is compared with Hotho’s 1835 German edition; the precise German source edition of the translation is not established., p. 135, p. 136"
      ]
     ]
    },
@@ -13481,11 +15704,13 @@
     },
     "texts": {
      "de": "Es gibt zwar Fälle, wo das Niedrige auch in der Kunst gestattet werden kann, da nämlich, wo es Lachen erregen soll.",
-     "en": "There are cases, it is true, where even in art the low may be allowed; there, namely, where its object is to excite laughter."
+     "en": "There are cases, it is true, where even in art the low may be allowed; there, namely, where its object is to excite laughter.",
+     "ru": "Есть однакож случаи, где позволяется употреблять низкое в искусствах, а именно когда хотим возбудить смех."
     },
     "links": {
      "de": "https://archive.org/details/schillerssmmtli05goedgoog/page/n811/mode/1up",
-     "en": "https://archive.org/download/aestheticletter00schigoog/page/n356.jpg"
+     "en": "https://archive.org/download/aestheticletter00schigoog/page/n356.jpg",
+     "ru": "https://imwerden.de/pdf/vestnik_evropy_1813_05-08_text.pdf"
     },
     "refs": [
      [
@@ -13495,6 +15720,10 @@
      [
       "en",
       "Friedrich Schiller, The Æsthetic Letters, Essays, and the Philosophical Letters of Schiller, translated with an introduction by John Weiss (Boston: Charles C. Little and James Brown, 1845), p. 270"
+     ],
+     [
+      "ru",
+      "Фридрих Шиллер. Шиллеровы мысли о том, что низко и обыкновенно в изящных искусствах. Перевод В. В. Измайлова // Вестник Европы, 1813, часть LXVIII, № 5–6, с. 31–41., 35, 36"
      ]
     ]
    },
@@ -13548,15 +15777,21 @@
      "en": "Essay, p. 643"
     },
     "texts": {
-     "de": "So sind die Einheit, die die Landschaft als solche zustande bringt, und die Stimmung, die uns aus ihr entgegenschlägt und mit der wir sie umgreifen, nur nachträgliche Zerlegungen eines und desselben seelischen Aktes."
+     "de": "So sind die Einheit, die die Landschaft als solche zustande bringt, und die Stimmung, die uns aus ihr entgegenschlägt und mit der wir sie umgreifen, nur nachträgliche Zerlegungen eines und desselben seelischen Aktes.",
+     "en": "Thus, both the unifying move which brings landscape as such into being, and the mood that a landscape projects at us and through which we comprehend it, are merely the result of a subsequent dismantling of one and the same psychic act."
     },
     "links": {
-     "de": "https://archive.org/details/guldenkammer-3-2/page/n353/mode/1up"
+     "de": "https://archive.org/details/guldenkammer-3-2/page/n353/mode/1up",
+     "en": "https://books.google.com.mx/books/publisher/content?id=66z0DwAAQBAJ&hl=ru&pg=PA225&img=1&zoom=3&sig=ACfU3U0FKwrEmg739JiYcXt1-6AG2jruOg&w=1280"
     },
     "refs": [
      [
       "de",
       "Die Güldenkammer III (1913), p. 643"
+     ],
+     [
+      "en",
+      "Georg Simmel, The Philosophy of Landscape, translated Josef Bleicher, in Georg Simmel: Essays on Art and Aesthetics, edited Austin Harrington (University of Chicago Press, 2020), p. 225; originally Theory, Culture & Society 24 (7–8), 2007, pp. 20–29., p. 225"
      ]
     ]
    }
@@ -13863,15 +16098,21 @@
      "en": "§ III, p. 367"
     },
     "texts": {
-     "fr": "Aussi, il fallait dire : Le rire vient de l’idée de sa propre supériorité."
+     "fr": "Aussi, il fallait dire : Le rire vient de l’idée de sa propre supériorité.",
+     "en": "And so the way it should have been put is: Laughter comes from a man’s idea of his own superiority."
     },
     "links": {
-     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n375/mode/1up"
+     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n375/mode/1up",
+     "en": "https://books.google.com.mx/books/content?id=zjg5AAAAIAAJ&hl=ru&pg=PA145&img=1&zoom=3&sig=ACfU3U1x3cVc9Cts2VrRsyY9V-IQdoQ5fA&w=1280"
     },
     "refs": [
      [
       "fr",
       "Curiosités esthétiques (Paris, 1868), p. 367"
+     ],
+     [
+      "en",
+      "Charles Baudelaire, Selected Writings on Art and Artists, translated by P. E. Charvet (Cambridge University Press, 1981), pp. 145, 151–152., p. 145"
      ]
     ]
    },
@@ -13881,15 +16122,21 @@
      "en": "§ V, p. 374–375"
     },
     "texts": {
-     "fr": "Le comique est, au point de vue artistique, une imitation ; le grotesque, une création. Le comique est une imitation mêlée d’une certaine faculté créatrice, c’est-à-dire d’une idéalité artistique."
+     "fr": "Le comique est, au point de vue artistique, une imitation ; le grotesque, une création. Le comique est une imitation mêlée d’une certaine faculté créatrice, c’est-à-dire d’une idéalité artistique.",
+     "en": "From the artistic point of view, the comic is an imitation; the grotesque, a creation. The comic is an imitation mixed with a certain degree of creative capacity, or, in other words, of artistic ideality."
     },
     "links": {
-     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n382/mode/1up"
+     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n382/mode/1up",
+     "en": "https://books.google.com.mx/books/content?id=zjg5AAAAIAAJ&hl=ru&pg=PA151&img=1&zoom=3&sig=ACfU3U04KhwOdjwTaG6hpJtZLHSwXdHbZg&w=1280"
     },
     "refs": [
      [
       "fr",
       "Curiosités esthétiques (Paris, 1868), pp. 374–375"
+     ],
+     [
+      "en",
+      "Charles Baudelaire, Selected Writings on Art and Artists, translated by P. E. Charvet (Cambridge University Press, 1981), pp. 145, 151–152., p. 151"
      ]
     ]
    },
@@ -13899,15 +16146,21 @@
      "en": "§ V, p. 375–376"
     },
     "texts": {
-     "fr": "J’appellerai désormais le grotesque comique absolu, comme antithèse au comique ordinaire, que j’appellerai comique significatif. Le comique significatif est un langage plus clair, plus facile à comprendre pour le vulgaire, et surtout plus facile à analyser, son élément étant visiblement double : l’art et l’idée morale ; mais le comique absolu, se rapprochant beaucoup plus de la nature, se présente sous une espèce une, et qui veut être saisie par intuition."
+     "fr": "J’appellerai désormais le grotesque comique absolu, comme antithèse au comique ordinaire, que j’appellerai comique significatif. Le comique significatif est un langage plus clair, plus facile à comprendre pour le vulgaire, et surtout plus facile à analyser, son élément étant visiblement double : l’art et l’idée morale ; mais le comique absolu, se rapprochant beaucoup plus de la nature, se présente sous une espèce une, et qui veut être saisie par intuition.",
+     "en": "From now on I shall refer to the grotesque as the absolute comic, in contrast to the ordinary comic, which I shall call the significative comic. The significative comic speaks a language that is clearer, easier for the common man to understand, and especially easier to analyse, its element being obviously double: art and the moral idea; but the absolute comic, coming as it does much closer to nature, appears as a unity that must be grasped intuitively."
     },
     "links": {
-     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n383/mode/1up"
+     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n383/mode/1up",
+     "en": "https://books.google.com.mx/books/content?id=zjg5AAAAIAAJ&hl=ru&pg=PA152&img=1&zoom=3&sig=ACfU3U3HEl7kWZMMmBVAraP-KmgbGTuiUA&w=1280"
     },
     "refs": [
      [
       "fr",
       "Curiosités esthétiques (Paris, 1868), pp. 375–376"
+     ],
+     [
+      "en",
+      "Charles Baudelaire, Selected Writings on Art and Artists, translated by P. E. Charvet (Cambridge University Press, 1981), pp. 145, 151–152., p. 152"
      ]
     ]
    },
@@ -13955,15 +16208,21 @@
      "en": "Diss. III, p. 185"
     },
     "texts": {
-     "en": "It seems an unaccountable pleasure, which the spectators of a well-wrote tragedy receive from sorrow, terror, anxiety, and other passions, which are in themselves disagreeable and uneasy. The more they are touched and affected, the more are they delighted with the spectacle, and as soon as the uneasy passions cease to operate, the piece is at an end."
+     "en": "It seems an unaccountable pleasure, which the spectators of a well-wrote tragedy receive from sorrow, terror, anxiety, and other passions, which are in themselves disagreeable and uneasy. The more they are touched and affected, the more are they delighted with the spectacle, and as soon as the uneasy passions cease to operate, the piece is at an end.",
+     "de": "Das Vergnügen scheint sich nicht erklären zu lassen, welches die Zuschauer eines wohlgeschriebenen Trauerspiels aus der Betrübniß, dem Schrecken, der Angst, und aus andern Leidenschaften empfinden, indem diese ihrer Natur nach unangenehm und verdrießlich sind. Je mehr sie durch das Schauspiel gerührt und bewegt werden, desto mehr Vergnügen finden sie daran, und so bald die unangenehmen Leidenschaften aufhören zu wirken, gehet auch das Stück zu Ende."
     },
     "links": {
-     "en": "https://archive.org/details/fourdissertatio00humegoog/page/n199/mode/1up"
+     "en": "https://archive.org/details/fourdissertatio00humegoog/page/n199/mode/1up",
+     "de": "https://archive.org/download/11916063bsb/page/n236.jpg"
     },
     "refs": [
      [
       "en",
       "First edition (London 1757), p. 185"
+     ],
+     [
+      "de",
+      "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), p. 217., p. 217"
      ]
     ]
    },
@@ -14121,15 +16380,21 @@
      "en": "Part II, § 2, p. 9"
     },
     "texts": {
-     "de": "Nun also zur Einfühlung selbst. Auch hier handelt es sich um einen Akt, der originär ist als gegenwärtiges Erlebnis, aber nicht-originär seinem Gehalt nach. Und dieser Gehalt ist ein Erlebnis, das wiederum in verschiedenen Vollzugsformen auftreten kann, wie Erinnerung, Erwartung, Phantasie."
+     "de": "Nun also zur Einfühlung selbst. Auch hier handelt es sich um einen Akt, der originär ist als gegenwärtiges Erlebnis, aber nicht-originär seinem Gehalt nach. Und dieser Gehalt ist ein Erlebnis, das wiederum in verschiedenen Vollzugsformen auftreten kann, wie Erinnerung, Erwartung, Phantasie.",
+     "en": "So now to empathy itself. Here, too, we are dealing with an act which is primordial as present experience though non-primordial in content. And this content is an experience which, again, can be had in different ways such as in memory, expectation, or in fancy."
     },
     "links": {
-     "de": "https://archive.org/details/zum-problem-der-einfuhlung/page/n18/mode/1up"
+     "de": "https://archive.org/details/zum-problem-der-einfuhlung/page/n18/mode/1up",
+     "en": "https://books.google.com.mx/books/publisher/content?id=0uS9BwAAQBAJ&hl=ru&pg=PA10&img=1&zoom=3&sig=ACfU3U1mKjWlZz7vpOrbgu1FB_jVnxrB1g&w=1280"
     },
     "refs": [
      [
       "de",
       "First printing (Halle 1917), p. 9"
+     ],
+     [
+      "en",
+      "Edith Stein, On the Problem of Empathy, translated by Waltraut Stein (The Hague: Martinus Nijhoff, 1964; Springer reprint 2013), p. 10., p. 10"
      ]
     ]
    }
@@ -14646,15 +16911,21 @@
      "en": "Book II, p. 105"
     },
     "texts": {
-     "it": "Dico compositione essere quella ragione di dipigniere, per la quale le parti si compongono nella opera dipinta. Grandissima opera del pictore sara l’ istoria; parte della istoria sono i corpi, parte de’ corpi sono i membri, parte de’ membri sono le superficie."
+     "it": "Dico compositione essere quella ragione di dipigniere, per la quale le parti si compongono nella opera dipinta. Grandissima opera del pictore sara l’ istoria; parte della istoria sono i corpi, parte de’ corpi sono i membri, parte de’ membri sono le superficie.",
+     "en": "Composition is that Rule or Method in Painting, whereby the several Parts in a Picture are joined together in order to form a Whole. The greatest Subject of Picture is History; the Parts of History are Bodies; the Parts of a Body are the Members; the Parts of the Members are Superficies."
     },
     "links": {
-     "it": "https://archive.org/details/leonebattistaalb00albe/page/n116/mode/1up"
+     "it": "https://archive.org/details/leonebattistaalb00albe/page/n116/mode/1up",
+     "en": "https://ia800807.us.archive.org/BookReader/BookReaderImages.php?zip=/26/items/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755_jp2.zip&file=bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755_jp2/bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755_0411.jp2&id=bim_eighteenth-century_the-architecture-of-leon_alberti-leone-battista_1755&scale=4&rotate=0"
     },
     "refs": [
      [
       "it",
       "Janitschek edition (Vienna 1877), p. 105"
+     ],
+     [
+      "en",
+      "Leon Battista Alberti, Of Painting, Book II, in The Architecture of Leon Batista Alberti, translated through Italian by Cosimo Bartoli into English by James Leoni (London: Edward Owen for Robert Alfray, 1755), pp. 254–255., p. 254, p. 255"
      ]
     ]
    }
