@@ -1,0 +1,1599 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-be89e797af06457ebf72c5e1203434c5",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.sextus-empiricus.outlines-of-pyrrhonism",
+    "expression_ref": "tos.expression.retained.antiquity.outlines.outlines-en-patrick1899-book1-gutenberg",
+    "edition_ref": "tos.edition.retained.antiquity.outlines.outlines-en-patrick1899-book1-gutenberg",
+    "item_ref": "tos.item.retained.antiquity.outlines.outlines-en-patrick1899-book1-gutenberg",
+    "file_ref": "tos.file.sha256.75a1e9916a2804e0b52dc404cf1500f3e6904cc8c8288b9cc3fcd747c15d11cb",
+    "file_sha256": "75a1e9916a2804e0b52dc404cf1500f3e6904cc8c8288b9cc3fcd747c15d11cb"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-f3f8332f1bfa4aea8c57ae9327fc2440",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.outlines-en-patrick1899-book1-gutenberg.20261027",
+        "made_at": "2026-11-12T21:11:07+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-91221a4552064ed286e2c611a2bb4f14",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 112527,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-65e2d49a750c42efa0a4a7facf300bc6",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 1231,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3a7f5d167eea1159192a64dec191a7bfcc67f66d26a5f2ae304fe77190e0d543",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-4676e98ebaa14a248200195aa7b76b3a",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 1231,
+        "end": 1984,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a15161f7533dd9b8073b0a689c0c1fb7b0a59e6cb731ab871b5e50c4880679a0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-83adcc6debea41f0b0fd7640e467524f",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 1984,
+        "end": 2611,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7af890f7abb6e9c6e5eaf96e31f409636f43bec98ff31fd5950ad58c127a3e2c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-b4a5e7a60bef48be9cb756c5ab775251",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 2611,
+        "end": 4518,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "19df4b43e7b98d6234c86e10e16dac39d5faaa0cc6da218878cb139bed7f894d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-e53d16233d634413aaec9ae4788e9a0f",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 4518,
+        "end": 4700,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "050f236c84d9a6f1625ecae3a29239de0003b30345ebe85239747a8c05edd5a9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9f779f28e54b463691b47b458e483aab",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 4700,
+        "end": 5260,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "29289e6bc6a43616bc2a127dbbe15298bf310826c0bbc0db879639cb77d04c63",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-cf4f7f0bf3cf4a29baebbd479145ce72",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 5260,
+        "end": 7027,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "385a8ac805dc5d48d9a31bc05ac1b18062d98ea74395aa04d6c61a95d594f297",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-899ebc262d204aeca15d5463841c5dfa",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 7027,
+        "end": 7901,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6a4c0645226a5035f17ee772d72f21f5a1f287920407d0ad2f6938497d16d5ca",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-15e78b2906c145a7bfbc21efc89bc216",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 7901,
+        "end": 8367,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "4a8037473f487ad1c24d7fbac9ba4c4ece879f0ff5c42e1140aa31e7f7aaf189",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-aaa95d91d24e47dfa6af3ca8ed695506",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 8367,
+        "end": 9553,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f74babac292487f2c57941fa0804a9d4417b295ba34aae077d7c2c72df79c107",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-44f190e5190d49389dce72588c9fe9f4",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 9553,
+        "end": 11267,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e44e47b4261ab6dff1835218de1c23004e1c2617ec96a6fd9809a9b8f0929e14",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-62de849ca4a24f0698519aa03bb6e367",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 11267,
+        "end": 14240,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5a9be024346ba56940aaef8da6c031a8b22bd46e8a0c8477dd55e121e35a312c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-262c9d44f54641aa872f1fb1867a52db",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 14240,
+        "end": 16293,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "11f429a1257d833bbe11e7cda25085ed64fa3f2ff41afc37c527da62c0ed8ad5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-854942c0f7054f1ba13080f93a557821",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 16293,
+        "end": 71038,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "24381c38347cbc0bdc0dbd89ebab1b8cbb143b2b490e70c48353c6b62e2e88b6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-06c43ee534da4755842aba4f827c71bf",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 71038,
+        "end": 76891,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "92e326eee0c59e0a153cbbda69ff79da1dfe75e9af83ae4c6e1201844474921b",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-45b8252b68e646c8a6e9e2a841e44334",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 76891,
+        "end": 78389,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f7ef71a7da9f54bb094fd853c5da3231da2fc4ab987936d9817bdc9bd62be1da",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6a88fe49d4754874969a66d0f8aa658f",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 78389,
+        "end": 81527,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "721209f4fc171980a4c9b20bf2b97a0da7f10344acf1c44f3e65d1fd15c7b153",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-de7259930248494d828fe17c3dd89e8b",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 81527,
+        "end": 81890,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "a91854f5576c9ab6cc030c097c576faf0a20e81a0fb9e594837b1bf80b414909",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-491f8ae3dd724b0285dd0e35af2eced5",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 81890,
+        "end": 84180,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1160dec1afaca60b07ca8de2ff00714a658d308ed5c2324ecb474e29b6f399c0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-86cbb7588301445ab560c9b9c457cd56",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 84180,
+        "end": 85301,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c4b7a84e1277c10973d6608218cb7e6fd69358f94c3d3d03998f6647c7141fb3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fe6b477f5eb346d18c0fe784532571dd",
+      "ordinal": 22,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 85301,
+        "end": 86368,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "55074c71581c884bc56db696ff896d726a67952c0b781a6ce0e19a8756c002f0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7e0188cdcbfc41d58780d88790e6a669",
+      "ordinal": 23,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 86368,
+        "end": 86946,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "cb7fcc6ff6b7f6e9d1e8de7772aaa1553e7e0b69de150f52da3b43f44b54facf",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7ec72659d9ba493d960c93e88e1007ad",
+      "ordinal": 24,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 86946,
+        "end": 87778,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e96265f7e0af03c9c78ed0b925561973715f5248de6de17224a7f037ac16b4fc",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-9432d2c042f740d6ab47ae738d4a5b71",
+      "ordinal": 25,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 87778,
+        "end": 88991,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "7c4f4a644af7b00cfa0a7eac61e38e39acce5e76a170e21234812431a3ef75e6",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7724338ddb9c4f4dbbcf02453bffc190",
+      "ordinal": 26,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 88991,
+        "end": 89828,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e44042ddbc0b1d710aa5085db84b757ef554b6df096ada5b428377e4d9bc6e13",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-0b9bff6244da4edab5deae5a94e1b9d0",
+      "ordinal": 27,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 89828,
+        "end": 90180,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c02d0ea5742723b35d3309668313be4252d631a21ee31895ddbc202123a0d540",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-2c9ea9926ba14b30a50651b551e1fd76",
+      "ordinal": 28,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 90180,
+        "end": 92086,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "49f0ccde14b2ee196d6c838ebe9ecca4082dcb97edae06b7af0ec4a3f7b9312d",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-62b5f7b321a84c7e92bf95121baed0a7",
+      "ordinal": 29,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 92086,
+        "end": 93849,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "565b2ffbd9bca5eacbba06a846df9ccff16a4c0c6f4f827883deef84191b3a88",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-da1db44debeb476297d592771fffdcac",
+      "ordinal": 30,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 93849,
+        "end": 96600,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "61f47f24c9149ad42810f49379547a985adcb6db6916c927a30a8125d9790ea3",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f3d60e1545c34a48927908572924ca10",
+      "ordinal": 31,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 96600,
+        "end": 97619,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "60226e30e89014028fb2f6e689ad6a2bdea381d58d88de26d286e9ad022cf55a",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-8e03bff538e643d3b43b7c4e28f23df2",
+      "ordinal": 32,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 97619,
+        "end": 98335,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3545022e351db50f0191bdf9a3e7f4833617fde4b123f239e75db157410be723",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-d7a56c7c5b644cdea1b632c4e3a08e3e",
+      "ordinal": 33,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 98335,
+        "end": 100376,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "523a3bbed6acc6564fd8a09e3afb5bbbc01fae0558d693c0114cc70490220829",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-6d8663167b734cf1bcbdcf0a7268832e",
+      "ordinal": 34,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 100376,
+        "end": 109610,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b9a31947f53c41b1f1aefe11eb4119eaa7cec8b73b8394821c0f160d4d3db460",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-5dfbeb2a1ee74a838cd04ffc5fc5bf9e",
+      "ordinal": 35,
+      "text_layer_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "e2bcf65720baf0a04adba49253fc4f6415f3aa00d1cb6eb8ade40fdb31a95567",
+      "selector": {
+        "type": "text_position",
+        "start": 109610,
+        "end": 112527,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "ce413d592086e6fc070609be54e99ba58a9ff67d7ae2086a91bbb87b0b835233",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://www.gutenberg.org/ebooks/17556"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-94eae88fa5114d5a81790782bdffbfcd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-65e2d49a750c42efa0a4a7facf300bc6"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-08e7a32025f54266a51991e110f3bfaf",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-4676e98ebaa14a248200195aa7b76b3a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3968b5454100409a93d668b322f5e978",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-83adcc6debea41f0b0fd7640e467524f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-336bc82fc96745c593284eb8188c690e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-b4a5e7a60bef48be9cb756c5ab775251"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8f6a68c966264e57accd7600dfa67c4e",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-e53d16233d634413aaec9ae4788e9a0f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9fb12959a10b40aa998d73f657428c02",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9f779f28e54b463691b47b458e483aab"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-825dc0e2514d412fbaba7666330d9a10",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-cf4f7f0bf3cf4a29baebbd479145ce72"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ba46969932f04c7a931b179b2aa079d7",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-899ebc262d204aeca15d5463841c5dfa"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-80e57db18d7f41c4b0572556d27ae4eb",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-15e78b2906c145a7bfbc21efc89bc216"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4e5e4d1f8f984bc6ba95a83192058521",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-aaa95d91d24e47dfa6af3ca8ed695506"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-56125b5abbd04594bd42cc14a8bb8ef0",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-44f190e5190d49389dce72588c9fe9f4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6e958341534040c49024e9f8abbd9372",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-62de849ca4a24f0698519aa03bb6e367"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a1123d08a85e4f9a93388f541d6646d3",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-262c9d44f54641aa872f1fb1867a52db"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-3caa8c4c2fae412fbca07a0a6dc10e0c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-854942c0f7054f1ba13080f93a557821"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c5b2c49f9bcb49d0bf2ce0c2fc1a7f6b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-06c43ee534da4755842aba4f827c71bf"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-abd2cc0033504056bb05e39c33024fd4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-45b8252b68e646c8a6e9e2a841e44334"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a9d06436ee54453d99747b79f068de40",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6a88fe49d4754874969a66d0f8aa658f"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-adbd7d4ae66d4242ad5220626373274b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-de7259930248494d828fe17c3dd89e8b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4260bfa2d1a5495a995391a8321de192",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-491f8ae3dd724b0285dd0e35af2eced5"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-bfabf35975cb4633ab19ee5861ce0e80",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-86cbb7588301445ab560c9b9c457cd56"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-654a13ecd4c843d18683f0a03bd708f2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fe6b477f5eb346d18c0fe784532571dd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-82d98c3941cb42c98945726883d1aa5d",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7e0188cdcbfc41d58780d88790e6a669"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-fff6b4a3a1b94eee8b1d23b98bf5ea14",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7ec72659d9ba493d960c93e88e1007ad"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-6919e342c80d48a5967bd7849e6820c2",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-9432d2c042f740d6ab47ae738d4a5b71"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-287ca4538e114c35b9573de701dcc381",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7724338ddb9c4f4dbbcf02453bffc190"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-765c1dc36f2d44688d7cb2b6ef4259bd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-0b9bff6244da4edab5deae5a94e1b9d0"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-4f6abaeba557421995f857ce6dd0ed42",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-2c9ea9926ba14b30a50651b551e1fd76"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-05d07550310240178753a1537920292b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-62b5f7b321a84c7e92bf95121baed0a7"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f165043a5aa44b7196d20b1e7370b93a",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-da1db44debeb476297d592771fffdcac"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a42580b56192459783cf30b32b2b892b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f3d60e1545c34a48927908572924ca10"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-355c130a77c2449db54033507443fdaf",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-8e03bff538e643d3b43b7c4e28f23df2"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b39b8dc2726145a2a98657495ed73192",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-d7a56c7c5b644cdea1b632c4e3a08e3e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-f04547857cf341c687fd18b18d6e0fe9",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-6d8663167b734cf1bcbdcf0a7268832e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-26c0b1f9a216442eac4e81a7c78dbb12",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-5dfbeb2a1ee74a838cd04ffc5fc5bf9e"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-47be1020297c47449ce00e55a163f519",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-f3f8332f1bfa4aea8c57ae9327fc2440",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-94eae88fa5114d5a81790782bdffbfcd",
+        "tos.text-unit.sid-08e7a32025f54266a51991e110f3bfaf",
+        "tos.text-unit.sid-3968b5454100409a93d668b322f5e978",
+        "tos.text-unit.sid-336bc82fc96745c593284eb8188c690e",
+        "tos.text-unit.sid-8f6a68c966264e57accd7600dfa67c4e",
+        "tos.text-unit.sid-9fb12959a10b40aa998d73f657428c02",
+        "tos.text-unit.sid-825dc0e2514d412fbaba7666330d9a10",
+        "tos.text-unit.sid-ba46969932f04c7a931b179b2aa079d7",
+        "tos.text-unit.sid-80e57db18d7f41c4b0572556d27ae4eb",
+        "tos.text-unit.sid-4e5e4d1f8f984bc6ba95a83192058521",
+        "tos.text-unit.sid-56125b5abbd04594bd42cc14a8bb8ef0",
+        "tos.text-unit.sid-6e958341534040c49024e9f8abbd9372",
+        "tos.text-unit.sid-a1123d08a85e4f9a93388f541d6646d3",
+        "tos.text-unit.sid-3caa8c4c2fae412fbca07a0a6dc10e0c",
+        "tos.text-unit.sid-c5b2c49f9bcb49d0bf2ce0c2fc1a7f6b",
+        "tos.text-unit.sid-abd2cc0033504056bb05e39c33024fd4",
+        "tos.text-unit.sid-a9d06436ee54453d99747b79f068de40",
+        "tos.text-unit.sid-adbd7d4ae66d4242ad5220626373274b",
+        "tos.text-unit.sid-4260bfa2d1a5495a995391a8321de192",
+        "tos.text-unit.sid-bfabf35975cb4633ab19ee5861ce0e80",
+        "tos.text-unit.sid-654a13ecd4c843d18683f0a03bd708f2",
+        "tos.text-unit.sid-82d98c3941cb42c98945726883d1aa5d",
+        "tos.text-unit.sid-fff6b4a3a1b94eee8b1d23b98bf5ea14",
+        "tos.text-unit.sid-6919e342c80d48a5967bd7849e6820c2",
+        "tos.text-unit.sid-287ca4538e114c35b9573de701dcc381",
+        "tos.text-unit.sid-765c1dc36f2d44688d7cb2b6ef4259bd",
+        "tos.text-unit.sid-4f6abaeba557421995f857ce6dd0ed42",
+        "tos.text-unit.sid-05d07550310240178753a1537920292b",
+        "tos.text-unit.sid-f165043a5aa44b7196d20b1e7370b93a",
+        "tos.text-unit.sid-a42580b56192459783cf30b32b2b892b",
+        "tos.text-unit.sid-355c130a77c2449db54033507443fdaf",
+        "tos.text-unit.sid-b39b8dc2726145a2a98657495ed73192",
+        "tos.text-unit.sid-f04547857cf341c687fd18b18d6e0fe9",
+        "tos.text-unit.sid-26c0b1f9a216442eac4e81a7c78dbb12"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-91221a4552064ed286e2c611a2bb4f14",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.outlines-en-patrick1899-book1-gutenberg.20261027",
+        "made_at": "2026-11-12T21:11:07+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}

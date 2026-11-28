@@ -1,0 +1,41 @@
+{
+  "schema_version": "tos_public_source_metadata_snapshot_v1",
+  "record_version": 1,
+  "item_id": "tos.item.retained.antiquity.outlines.outlines-en-patrick1899-book1-gutenberg",
+  "captured_at": "2026-11-12T21:11:07+00:00",
+  "source": {
+    "provider": "Project Gutenberg eBook 17556",
+    "edition": "Cambridge: Deighton Bell, 1899",
+    "translator": "Mary Mills Patrick (1850–1940)",
+    "url": "https://www.gutenberg.org/ebooks/17556",
+    "source_text": {
+      "url": "https://www.gutenberg.org/cache/epub/17556/pg17556.txt",
+      "sha256": "6792b2c74cf118111fec24298f0cf2b5fdeb63c39c726d5935c831490e787cb7",
+      "bytes": 310669
+    },
+    "scan": {
+      "url": "https://archive.org/details/cu31924029002561",
+      "sha256": "6e3bbd0df42482da27712630799c95d829c0f18bbcdfd1e1928d1442eb8280a8",
+      "bytes": 5463705
+    },
+    "extraction_script_sha256": "c54528b32ae609d25644e2508e769372204c5c49d39234ce07d8a30e90a225e3",
+    "scan_spot_review_pdf_pages": [
+      115,
+      116,
+      175
+    ],
+    "full_scan_collation": false,
+    "uncorrected_book_one": {
+      "ref": "ToS/source-witnesses/works/sextus-empiricus/outlines/expressions/retained-outlines-en-patrick1899-book1-gutenberg/editions/retained-reading/items/retained-antiquity-20261027/payload/patrick-book1-uncorrected.txt",
+      "sha256": "45d2c8a9868e0860a2ac2aa34d0de1ce5efe0f9d71f80dc350a7a800320aa51f",
+      "bytes": 116277,
+      "method": "Exact Book I substring extracted from the captured Gutenberg text before removing section numerals."
+    }
+  },
+  "rights_evidence": [
+    "https://www.gutenberg.org/ebooks/17556",
+    "https://archive.org/details/cu31924029002561",
+    "https://creativecommons.org/publicdomain/mark/1.0/"
+  ],
+  "limitations": "Only Book I is included: Patrick translated the first of the three books. This does not supply Books II–III. Chapters I–XXXIV cover the complete Book I in the 1899 edition. Project Gutenberg’s ASCII Greek transliterations are retained in [Greek: ...] brackets, not replaced with reconstructed Greek. Its 241 marginal section numerals were removed from the reading; chapter structure does not claim section-level alignment. The Gutenberg text retains its original spelling and may contain digitization errors. The opening and ending were checked against scan PDF pages 115 and 175, and the spurious inline 6 in chapter II was removed after comparison with PDF page 116; there has been no full collation."
+}
