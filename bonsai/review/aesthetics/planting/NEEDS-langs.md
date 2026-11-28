@@ -180,3 +180,26 @@ meaning and integrity of a quotation. This is a request to assess the concrete
 case, not a legal conclusion that all italic text must be retained. Neither
 place has been accepted; the draft is preserved in
 `ae-langs-freud-uncanny-emphasis-pending-20261127`.
+
+## Authoritative person sources outside the fixed domain list
+
+The witness person route currently requires a Wikidata QID or a reference on a
+fixed set of domains. Some translator identities are documented by strong
+sources outside that list:
+
+- [CiNii Books](https://ci.nii.ac.jp/author/DA06887074), the Japanese academic
+  library catalogue, names Patrick Edward Charvet and identifies him as the
+  translator of Baudelaire's *Selected Writings on Art and Artists* (1981).
+  His death date is not established; this is not a public-domain claim.
+- A [peer-reviewed study](https://www.tandfonline.com/doi/abs/10.1080/0013838X.2023.2275455)
+  (notes 81–82) identifies translator W. B. Rönnfeldt with William Rönnfeldt
+  (1837–1919), citing the [Cardiff Naturalists' Society obituary](https://cardiffnaturalists.org.uk/htmfiles/150th-23.htm).
+  The dates and identity rest on that chain; the middle name is not established.
+  The inspected Goethe printing is undated, so its US publication status and
+  any short-quotation route also require their own review.
+
+Please identify or provide an owner-reviewed route to bind such a named person
+and exact source evidence, preserving uncertainty and independent review. This
+is not a request to treat arbitrary URLs as authoritative or invent Wikidata
+records or dates. The source readings and rights of the proposed translations
+remain separate work.
