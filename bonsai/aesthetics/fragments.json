@@ -2973,6 +2973,48 @@
      ]
     }
    },
+   "gustav-theodor-fechner.vorschule-der-aesthetik": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/gustav-theodor-fechner.vorschule-der-aesthetik/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "I p2",
+       "from": "Both regimes can also be differentiated as philosophical and empirical. Per se, they do\n\nnot stand in opposition to each other, given that the right and complete knowledge of the highest\n\nprinciples of being, of godly and human things, needs to include the principles of the right\n\nviewing angle on aesthetic conditions, and conversely that the correct generalization of the\n\nempirical facts and laws of the aesthetic field needs to tread into this knowledge. Both cover the\n\nsame field but in opposite directions; and everywhere the possibility to move in one direction is\n\ncomplemented by the one to move in the other.",
+       "to": "Both regimes can also be differentiated as philosophical and empirical. Per se, they do not stand in opposition to each other, given that the right and complete knowledge of the highest principles of being, of godly and human things, needs to include the principles of the right viewing angle on aesthetic conditions, and conversely that the correct generalization of the empirical facts and laws of the aesthetic field needs to tread into this knowledge. Both cover the same field but in opposite directions; and everywhere the possibility to move in one direction is complemented by the one to move in the other.",
+       "offset": 0,
+       "reason": "The printed page shows one paragraph; the PDF extraction inserted empty lines at each line break, which are normalized to spaces.",
+       "url": "https://aenneb.github.io/files/Preshool%20of%20aesthetics%20by%20Aenne%20A%20Brielmann.pdf",
+       "page": "p. 8",
+       "image_sha256": "bd7b5562c27a098b983e501e298f685e7c0f872d438731bbec6d7cdef01c03df"
+      }
+     ],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/gustav-theodor-fechner.vorschule-der-aesthetik/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "638594bfc0c7ed51e250fef285d9e8f8987650daf6898a8efb1f9b7c13bf5318",
+        "non_substantial": "Three complete sentences and 102 words, counted by whitespace, make one coherent comparison of the philosophical and empirical approaches with the German original. They express an important claim but are a small part of the 283-page translated work and do not reproduce its examples, development or other passages.",
+        "normal_exploitation": "The source-linked comparative research display cannot substitute for the complete translation or its sustained evidence and argument and is not intended to displace its ordinary use; the use and accumulated excerpts require a fresh assessment if the presentation changes.",
+        "source_integrity": "The printed words and punctuation are retained; false PDF extraction paragraph breaks are recorded and replaced with spaces. Fechner, translator Aenne A. Brielmann, the 2020 work, source page and her CC BY-NC-SA licence are credited. The original German typographic emphasis is disclosed as absent in the English page."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-fechner-en-second",
+        "date": "2026-11-28",
+        "sha256": "b239b83a6ee576298612a63fc3211e47a3e8614e2641c588735aacc3887bccc9",
+        "assessment": "The independent reader assessed the corrected three-sentence 102-word quotation against the printed PDF and German source. It carries a substantive claim, yet its limited extent is justified by a comparison of the two approaches and cannot substitute for the 283-page work. On the described use, with accurate wording and attribution and no harm to normal exploitation, LFDA 148(I) supports the quotation; future cumulative uses need fresh review. CC BY-NC-SA is a separate licence with noncommercial and share-alike conditions."
+       }
+      }
+     ]
+    }
+   },
    "henri-bergson.le-rire": {
     "en": {
      "absent": {
@@ -8526,6 +8568,116 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Gustav Theodor Fechner, Preschool of Aesthetics, Part I, translated by Aenne A. Brielmann (2020), p. 8.",
+     "year": 2020,
+     "url": "https://aenneb.github.io/files/Preshool%20of%20aesthetics%20by%20Aenne%20A%20Brielmann.pdf",
+     "licence": "The translator publishes the translation under CC BY-NC-SA 4.0, with attribution, noncommercial use and share-alike for adaptations; the independently assessed short-quotation grounds are separate from that licence.",
+     "attribution": "Gustav Theodor Fechner, Preschool of Aesthetics, Part I, translated by Aenne A. Brielmann (2020), p. 8, CC BY-NC-SA 4.0.",
+     "maker": "codex-2026-11-28-fechner-en-maker",
+     "persons": [
+      {
+       "role": "translator",
+       "qid": "Q59694911",
+       "name": {
+        "en": "Aenne A Brielmann",
+        "ru": "Aenne A Brielmann"
+       },
+       "born": null,
+       "died": null,
+       "source": "https://www.wikidata.org/wiki/Q59694911",
+       "evidence": {
+        "file": "wikidata-Q59694911.json",
+        "sha256": "842a8c8b83f81d0ced280554badd759b8c7caecf97cceb912881367c455aa708",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q59694911.json"
+       }
+      },
+      {
+       "role": "author",
+       "qid": "Q76881",
+       "name": {
+        "en": "Gustav Fechner",
+        "ru": "Густав Теодор Фехнер"
+       },
+       "born": 1801,
+       "died": 1887,
+       "source": "https://www.wikidata.org/wiki/Q76881",
+       "evidence": {
+        "file": "wikidata-Q76881.json",
+        "sha256": "be1b81d0f2b005afb5274b083d9c906be54cecc0e1f704826a468148f4e739a9",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q76881.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: assess the specific research and comparative purpose, creative nature, limited amount and market effect; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review within the extent justified by purpose, subject to applicable national law; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): attributed quotation for research or education in an extent justified by the aim; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "licence_evidence": {
+      "edition": "Gustav Theodor Fechner, Preschool of Aesthetics, Part I, translated by Aenne A. Brielmann (2020), pp. 7–8.",
+      "licence_url": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "source": {
+       "file": "brielmann-site.html",
+       "url": "https://aenneb.github.io/",
+       "sha256": "e236db56f947a5966d63e58b08ea91a109b2ccd107aaa934da46a5e363406340"
+      },
+      "explanation": "Translator Brielmann links the exact hosted PDF and expressly licenses this translation CC BY-NC-SA 4.0; PDF title page repeats the same terms. Noncommercial use and share-alike obligations apply."
+     },
+     "normalization": "Preserve the printed words and punctuation. Join PDF line endings as spaces within the single printed paragraph; source German spaced emphasis is absent in the English print.",
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "638594bfc0c7ed51e250fef285d9e8f8987650daf6898a8efb1f9b7c13bf5318",
+      "non_substantial": "Three complete sentences and 102 words, counted by whitespace, make one coherent comparison of the philosophical and empirical approaches with the German original. They express an important claim but are a small part of the 283-page translated work and do not reproduce its examples, development or other passages.",
+      "normal_exploitation": "The source-linked comparative research display cannot substitute for the complete translation or its sustained evidence and argument and is not intended to displace its ordinary use; the use and accumulated excerpts require a fresh assessment if the presentation changes.",
+      "source_integrity": "The printed words and punctuation are retained; false PDF extraction paragraph breaks are recorded and replaced with spaces. Fechner, translator Aenne A. Brielmann, the 2020 work, source page and her CC BY-NC-SA licence are credited. The original German typographic emphasis is disclosed as absent in the English page."
+     },
+     "participants": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Aenne A Brielmann",
+        "ru": "Aenne A Brielmann"
+       },
+       "qid": "Q59694911",
+       "source": "https://www.wikidata.org/wiki/Q59694911",
+       "born": [],
+       "died": []
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Gustav Fechner",
+        "ru": "Густав Теодор Фехнер"
+       },
+       "qid": "Q76881",
+       "source": "https://www.wikidata.org/wiki/Q76881",
+       "born": [
+        {
+         "time": "+1801-04-19T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1887-11-18T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -8533,10 +8685,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -16194,15 +16342,21 @@
      "en": "Ch. I, p. 2"
     },
     "texts": {
-     "de": "Beide Behandlungsweisen lassen sich auch wohl als philosophische und empirische unterscheiden. An sich stehen sie nicht in Widerspruch mit einander, insofern eine richtige und vollendete Erkenntniss der obersten Principien des Seins, der göttlichen und menschlichen Dinge, auch die Principien einer richtigen Betrachtung der ästhetischen Verhältnisse einschliessen muss, gegenseits eine richtige Verallgemeinerung der erfahrungsmässigen Thatsachen und Gesetze des ästhetischen Gebietes in diese Erkenntnisse hineintreten muss. Beide durchmessen dasselbe Gebiet nur in entgegengesetzter Richtung; und überall ergänzt sich die Möglichkeit der Bewegung in einer Richtung durch eine solche in entgegengesetzter Richtung."
+     "de": "Beide Behandlungsweisen lassen sich auch wohl als philosophische und empirische unterscheiden. An sich stehen sie nicht in Widerspruch mit einander, insofern eine richtige und vollendete Erkenntniss der obersten Principien des Seins, der göttlichen und menschlichen Dinge, auch die Principien einer richtigen Betrachtung der ästhetischen Verhältnisse einschliessen muss, gegenseits eine richtige Verallgemeinerung der erfahrungsmässigen Thatsachen und Gesetze des ästhetischen Gebietes in diese Erkenntnisse hineintreten muss. Beide durchmessen dasselbe Gebiet nur in entgegengesetzter Richtung; und überall ergänzt sich die Möglichkeit der Bewegung in einer Richtung durch eine solche in entgegengesetzter Richtung.",
+     "en": "Both regimes can also be differentiated as philosophical and empirical. Per se, they do not stand in opposition to each other, given that the right and complete knowledge of the highest principles of being, of godly and human things, needs to include the principles of the right viewing angle on aesthetic conditions, and conversely that the correct generalization of the empirical facts and laws of the aesthetic field needs to tread into this knowledge. Both cover the same field but in opposite directions; and everywhere the possibility to move in one direction is complemented by the one to move in the other."
     },
     "links": {
-     "de": "https://archive.org/details/vorschulederaest12fechuoft/page/n15/mode/1up"
+     "de": "https://archive.org/details/vorschulederaest12fechuoft/page/n15/mode/1up",
+     "en": "https://aenneb.github.io/files/Preshool%20of%20aesthetics%20by%20Aenne%20A%20Brielmann.pdf"
     },
     "refs": [
      [
       "de",
       "First edition (Leipzig 1876), p. 2"
+     ],
+     [
+      "en",
+      "Gustav Theodor Fechner, Preschool of Aesthetics, Part I, translated by Aenne A. Brielmann (2020), p. 8., p. 8"
      ]
     ]
    }
