@@ -150,6 +150,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-27-poetics-metaphor.json"
   },
   {
+   "id": "codex-2026-11-27-poetics-plot-unity",
+   "model": "Codex",
+   "date": "2026-11-27",
+   "reads": "Aristotle, Poetics VI and VIII, in the Greek public corpus beside English and Russian translations.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-27-poetics-plot-unity.json"
+  },
+  {
    "id": "terra-2026-11-10-aesthetica",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -12244,6 +12251,62 @@
    "admission": "map",
    "grew_from": [
     "C:A-I080"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:plot-and-single-hero",
+   "type": "tos.entity.conception",
+   "of": [
+    "plot",
+    "unity-of-action",
+    "the-tragic"
+   ],
+   "areas": [
+    "area-tragic"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "voice": {
+    "ru": "Аристотель",
+    "en": "Aristotle"
+   },
+   "locus": "VI, 1450a; VIII, 1451a",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-bb82b60981c64ba990f31e843917ca19",
+       "tos.text-unit.sid-bb82b60981c64ba990f31e843917ca19"
+      ],
+      "s": 1770,
+      "e": 1820
+     },
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-6b4670ba50ca469f9183258d5fe1cd06",
+       "tos.text-unit.sid-6b4670ba50ca469f9183258d5fe1cd06"
+      ],
+      "s": 2,
+      "e": 201
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Состав событий занимает главное место в трагедии; единства фабулы не создаёт одно лишь присутствие единого героя, с которым происходят многие события.",
+    "en": "The arrangement of incidents holds the chief place in tragedy; a plot does not gain unity merely by following one hero through many events."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-27-poetics-plot-unity",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "A:E073"
    ]
   },
   {
