@@ -8,14 +8,14 @@ import {describe,it,expect} from 'vitest';
 import {createHash} from 'node:crypto';
 installReaderOccurrenceRules(rules);
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-function fixture({corrupt=false,author='Author',text='🌳 Kreis und Kreis.',terms=[{form:'Kreis',occurrences:[[1,2,7],[1,12,17]]}]}={}){
+function fixture({corrupt=false,author='Author',sourceUrl,additionalSourceUrls,text='🌳 Kreis und Kreis.',terms=[{form:'Kreis',occurrences:[[1,2,7],[1,12,17]]}]}={}){
  const files=new Map(),calls=[];
  const member=(path,value)=>{const bytes=Buffer.from(JSON.stringify(value)+'\n');files.set('/static/public-corpus/'+path,bytes);return {path,sha256:hash(bytes),bytes:bytes.length};};
  const source={workId:'work',expressionId:'expression',editionId:'edition',itemId:'item',fileId:'file',fileSha256:'a'.repeat(64),textLayerRef:'source.txt',textLayerSha256:'b'.repeat(64)};
- const units=[{id:'unit',ordinal:1,text,kind:'paragraph',reference:'Section 1'}];
+ const units=[{id:'unit',ordinal:1,text,kind:'paragraph',reference:'Section 1',...(sourceUrl?{sourceUrl}:{})}];
  const page=member('pages/text.json',{documentId:'work',versionId:'v1',revision:source.textLayerSha256,units});
  const index=member('indexes/forms.json',{terms});
- const version={id:'v1',label:'Edition',language:'de',revision:source.textLayerSha256,source,unitCount:1,pages:[{...page,firstOrdinal:1,count:1}],units:[{id:'unit',ordinal:1,page:0}],structure:[],searchIndex:index};
+ const version={id:'v1',label:'Edition',language:'de',role:'source',revision:source.textLayerSha256,source,...(additionalSourceUrls?{additionalSourceUrls}:{}),unitCount:1,pages:[{...page,firstOrdinal:1,count:1}],units:[{id:'unit',ordinal:1,page:0}],structure:[],searchIndex:index};
  const document={id:'work',title:'Work',author,versions:[version]};
  const descriptor=member('documents/work.json',document);
  member('manifest.json',{schema_version:'tos_public_corpus_snapshot_v1',revision:'c'.repeat(64),profiles:{zarathustra:{documentIds:['work'],initialDocumentId:'work'},antiquity:{documentIds:['work'],initialDocumentId:'work'}},documents:[{id:'work',title:'Work',author,manifest:descriptor}]});
@@ -71,6 +71,15 @@ describe('immutable public corpus delivery',()=>{
   files.set('/static/public-corpus/revisions/bad.json',Buffer.from('{'));
   const bad=createPublicCorpusProvider({fetch,manifestPath:'revisions/bad.json',expectedManifestSha256:hash(body)});
   await expect(bad.describe()).rejects.toMatchObject({code:'invalid_response'});
+ });
+ it('preserves the selected unit source link through the public reading window',async()=>{
+  const sourceUrl='https://www.gutenberg.org/files/42933/42933-h/42933-h.htm#i_1';
+  const additionalSourceUrls=['https://www.gutenberg.org/ebooks/42931'];
+  const {provider}=fixture({sourceUrl,additionalSourceUrls});
+  const page=await provider.window({documentId:'work',versionId:'v1'});
+  expect(page.units[0].sourceUrl).toBe(sourceUrl);
+  const document=await provider.document({documentId:'work'});
+  expect(document.versions[0].additionalSourceUrls).toEqual(additionalSourceUrls);
  });
  it('finds a work by a localized author alias without changing its source metadata',async()=>{
   const {provider}=fixture({author:'Diogenes Laertius'});

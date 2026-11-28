@@ -934,7 +934,17 @@ pub fn build(
                             .append(&mut occurrences);
                     }
                 }
-                units.push(json!({"id":id,"ordinal":i+1,"kind":s(unit,"unit_kind")?,"language":language,"reference":reference,"text":body}));
+                let mut delivered = json!({"id":id,"ordinal":i+1,"kind":s(unit,"unit_kind")?,"language":language,"reference":reference,"text":body});
+                let anchor_ref = unit["ordered_anchor_refs"][0]
+                    .as_str()
+                    .ok_or("anchor ref malformed")?;
+                if let Some(locator) = anchors[anchor_ref]["source_return"]["locator_ref"].as_str()
+                {
+                    if locator.starts_with("https://") && locator != s(version, "sourceUrl")? {
+                        delivered["sourceUrl"] = json!(locator);
+                    }
+                }
+                units.push(delivered);
             }
             let revision = s(&packet["source_layer"], "text_layer_sha256")?.to_owned();
             let version_id = s(version, "id")?.to_owned();
@@ -1071,7 +1081,25 @@ pub fn build(
                 } else {
                     None
                 };
-            versions.push(json!({"id":version_id,"label":version["label"],"language":version["language"],"role":version["role"],"revision":revision,"unitCount":selected_refs.len(),"source":{"workId":scope["work_ref"],"expressionId":scope["expression_ref"],"editionId":scope["edition_ref"],"itemId":scope["item_ref"],"fileId":scope["file_ref"],"fileSha256":scope["file_sha256"],"textLayerRef":source_ref,"textLayerSha256":revision},"sourceUrl":version["sourceUrl"],"attribution":version["attribution"],"license":version["license"],"pages":pages,"units":unit_summaries,"structure":structure,"searchIndex":search_index,"analysis":analysis}));
+            let mut delivered_version = json!({"id":version_id,"label":version["label"],"language":version["language"],"role":version["role"],"revision":revision,"unitCount":selected_refs.len(),"source":{"workId":scope["work_ref"],"expressionId":scope["expression_ref"],"editionId":scope["edition_ref"],"itemId":scope["item_ref"],"fileId":scope["file_ref"],"fileSha256":scope["file_sha256"],"textLayerRef":source_ref,"textLayerSha256":revision},"sourceUrl":version["sourceUrl"],"attribution":version["attribution"],"license":version["license"],"pages":pages,"units":unit_summaries,"structure":structure,"searchIndex":search_index,"analysis":analysis});
+            if let Some(scope_anchor) = segmentation["coverage"]["scope_anchor_ref"]
+                .as_str()
+                .and_then(|id| anchors.get(id))
+            {
+                if let Some(extra) =
+                    scope_anchor["source_return"]["additional_locator_refs"].as_array()
+                {
+                    let urls: Vec<&str> = extra
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .filter(|url| url.starts_with("https://"))
+                        .collect();
+                    if !urls.is_empty() {
+                        delivered_version["additionalSourceUrls"] = json!(urls);
+                    }
+                }
+            }
+            versions.push(delivered_version);
         }
         let mapping_ref = doc.get("mappingsRef").and_then(Value::as_str);
         let mapping_sha = doc.get("mappingsSha256").and_then(Value::as_str);
@@ -1313,9 +1341,9 @@ mod tests {
             "rights_and_visibility":{"source_visibility":if public{"public"}else{"local_only"},"packet_visibility":if public{"public"}else{"local_only"},"effective_visibility":if public{"public"}else{"local_only"},"private_source_used":false,"publication_authorized":public,"rights_record_refs":[rights_path]},
             "source_layer":{"visibility":if public{"public"}else{"local_only"},"publication_authorized":public,"text_layer_ref":"source.txt","text_layer_sha256":digest(text)},
             "source_scope":{"work_ref":"d","expression_ref":"expression","edition_ref":"edition","item_ref":"item","file_ref":format!("tos.file.sha256.{}",digest(text)),"file_sha256":digest(text)},
-            "anchors":[{"anchor_ref":"a1","anchor_role":"content","text_layer_ref":"source.txt","exact_sha256":digest(b"Alpha"),"selector":{"type":"text_position","position_unit":"unicode_code_point","interval":"half_open","start":0,"end":5}},{"anchor_ref":"a2","anchor_role":"content","text_layer_ref":"source.txt","exact_sha256":digest(b"beta"),"selector":{"type":"text_position","position_unit":"unicode_code_point","interval":"half_open","start":6,"end":10}}],
+            "anchors":[{"anchor_ref":"scope","anchor_role":"scope","source_return":{"locator_ref":"https://example.test/text","additional_locator_refs":["https://example.test/volume-2"]}},{"anchor_ref":"a1","anchor_role":"content","text_layer_ref":"source.txt","exact_sha256":digest(b"Alpha"),"source_return":{"locator_ref":"https://example.test/text#chapter"},"selector":{"type":"text_position","position_unit":"unicode_code_point","interval":"half_open","start":0,"end":5}},{"anchor_ref":"a2","anchor_role":"content","text_layer_ref":"source.txt","exact_sha256":digest(b"beta"),"source_return":{"locator_ref":"https://example.test/text"},"selector":{"type":"text_position","position_unit":"unicode_code_point","interval":"half_open","start":6,"end":10}}],
             "units":[{"unit_id":"u1","unit_kind":"surface_token","ordered_anchor_refs":["a1"]},{"unit_id":"u2","unit_kind":"surface_token","ordered_anchor_refs":["a2"]}],
-            "segmentations":[{"segmentation_id":"seg","ordered_unit_refs":["u1","u2"]}]
+            "segmentations":[{"segmentation_id":"seg","coverage":{"scope_anchor_ref":"scope"},"ordered_unit_refs":["u1","u2"]}]
         });
         let rights = json!({"visibility":if public{"public_payload"}else{"local_only"},"assessment_status":if public{"licensed"}else{"not_assessed"},"redistribution_posture":if public{"authorized"}else{"not_authorized"},"jurisdictions_reviewed":["US"],"scope_refs":["item",format!("tos.file.sha256.{}",digest(text))],"license_uri":"https://creativecommons.org/licenses/by-sa/4.0/","permissions":["Attribution: Test source"]});
         let packet_raw = serde_json::to_vec(&packet).unwrap();
@@ -1582,6 +1610,10 @@ mod tests {
             .unwrap();
         let doc: Value = serde_json::from_slice(&fs::read(output.join(doc_path)).unwrap()).unwrap();
         assert_eq!(doc["versions"][0]["unitCount"], 2);
+        assert_eq!(
+            doc["versions"][0]["additionalSourceUrls"],
+            json!(["https://example.test/volume-2"])
+        );
         assert_eq!(doc["versions"][0]["units"][0]["page"], 0);
         assert_eq!(doc["versions"][0]["units"][1]["page"], 0);
         let index_path = doc["versions"][0]["searchIndex"]["path"].as_str().unwrap();
@@ -1604,7 +1636,12 @@ mod tests {
         let page: Value =
             serde_json::from_slice(&fs::read(output.join(page_path)).unwrap()).unwrap();
         assert_eq!(page["units"][0]["text"], "Alpha");
+        assert_eq!(
+            page["units"][0]["sourceUrl"],
+            "https://example.test/text#chapter"
+        );
         assert_eq!(page["units"][1]["text"], "beta");
+        assert!(page["units"][1].get("sourceUrl").is_none());
         drop(selection);
 
         let private = tempfile::tempdir().unwrap();
