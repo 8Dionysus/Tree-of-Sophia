@@ -290,3 +290,9 @@ original claim evidence; update review and acceptance invalidation as needed.
 The distinction does not change the public-domain conclusion for this ancient
 hand, but a gate must not accept a statement stronger than its evidence. This
 request is separate from the modern translator's own quotation-rights review.
+
+## Independently retrieved image, different rendering digest
+
+In `gaius-plinius-secundus.naturalis-historia`, Huerta 1629 p. 652, the maker's image for IA n669 has SHA-256 `b606a3641ff30277cd5d68206b9b400a4e4ac508c8d18ebe30d429b0ac2df670`. A second reader independently retrieved and inspected that same numbered page through IA's JP2-to-JPEG route; its JPEG has SHA-256 `9b3df1e10ab3492b3ba24d9c5a228d59ccc38e625f7808c9d09de0f97aacc1f5`. The images have different renderings, not equal bytes. The reader also inspected a cached larger page image and reported a textual error, so this is not an acceptance request.
+
+`witness-gate --second` requires the second image to have exactly the maker's digest and URL, which rejects this independent rendering even when the same archival leaf can be examined. Please assess a supported way to retain each reader's actual image, digest and retrieval provenance and explicitly assess their page identity, while keeping the original maker's page and text revision binding. It should not assume that two differently rendered images are equivalent merely because their URLs or leaf numbers match, or relax text, rights, and independent review checks. A route to refetch the exact maker bytes, if available and independently reproducible, may also resolve this individual case. The reader's report and packet retain the actual evidence; the witness remains unaccepted.
