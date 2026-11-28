@@ -129,3 +129,60 @@ record does not by itself bind the rendered image digest to the source PDF's
 digest and rendering operation. Please clarify or implement that provenance;
 `fetch transcription --file` describes bytes fetched from its URL and must
 not silently label locally extracted text as the original PDF bytes.
+
+## Source-backed witness participant correction — 27 November
+
+In the unplanted Pope packet, the 1733 German witness records the original
+writer from DNB as `Pope, Alexander`, with a fetched source and dates. The
+original packet records `Alexander Pope` / `Александр Поуп` with Q164047.
+`witness-gate --second` does not match the inverted catalogue name to either
+original name. `witness-person-remove` only accepts a QID, while the sourced
+person has none; `witness-person-source` replaces only an exactly identical
+name object. Please provide a history-preserving kit route to correct or remove
+a source-backed person without a QID, then require renewed independent review.
+The two e-rara page images and initial independent reading are retained in the
+local witness; no acceptance or planting is claimed.
+
+## Complete quotation whose final period follows attribution — 27 November
+
+Lovecraft's Spanish candidate `I p24b` comes from Andrés Torres-Scott's
+translation in footnote 9, printed p. 44 of the UNAM journal article
+https://www.redalyc.org/journal/640/64069682002/64069682002.pdf#page=9.
+The quoted words form the complete original sentence, but the printed period
+follows the parenthetical `(traducción del autor)` outside the closing quotation
+mark. The kit's `witness-gate` requires the stored translation itself to end in
+sentence punctuation. Adding a period to the cited wording would invent a mark;
+including the attribution parenthesis inside the translation would misattribute
+it to Lovecraft. Please provide an evidence-bound representation of this case,
+so both sentence completeness and exact source punctuation can be reviewed.
+The parent work, this partial Spanish witness, the Mexico quotation assessment,
+and the remaining language searches are not yet accepted.
+
+## Recover a source scan binding after external page registration — 28 November
+
+In the local `george-santayana.the-sense-of-beauty` packet the maker compared
+both places against page-indexed Archive OCR, then used `kit.py page --file`
+with an image from that very Archive scan. This assigns the synthetic
+`external` scan to each place; `scan` changes only the default, `image` uses
+`setdefault`, `cut` retains the old binding, and `scan-withdraw external`
+refuses while places reference it. `compare` consequently does not use the
+available Archive OCR even when `find` locates the same text in the named
+scan. Please provide a source-evidenced, history-preserving kit command to
+rebind a place to an already registered scan, retaining its page images and
+requiring recomparison and a fresh second reading. Do not treat a supported
+rebind as proof of textual agreement. The local packet remains blocked; its
+translations and independent review are incomplete.
+
+## Spanish opening question mark in complete quotations — 28 November
+
+The local Croce Spanish witness now has a complete question at `I p11b`,
+from Sánchez-Rojas 1912 printed p. 55 (PDF p. 55): the printed sentence starts
+`¿Cómo ...?`. The independent second reader checked the page and the Italian
+alignment, but `witness-gate --second --accept` rejects it as lacking an
+uppercase or uncased initial. `sentences` strips `OPENING` before testing the
+first letter, and `OPENING` does not include the Spanish inverted question
+mark `¿` (the corresponding `¡` also needs consideration). Please support
+faithful complete Spanish punctuation in the owner's sentence validator, with
+appropriate focused coverage. Do not drop `¿` or alter the witness to pass.
+The witness remains unaccepted until the owner fix and renewed gate; the
+parent packet and other languages remain incomplete.

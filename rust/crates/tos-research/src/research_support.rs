@@ -152,12 +152,14 @@ pub fn fresh_or_matching_limit(
 }
 
 const UNIT_PACKET_SCHEMA_SHA: &str =
-    "6ba96f4298cf5e88ae261c53c46c7d51681d0f0f0faf3bcecce2e309a0e071ab";
+    "c2662f85afd2176bd7437f3d55011db120901f08a63a689f0995f5f4119e94e6";
 pub fn unit_packet_schema(ctx: &ResearchExecution, p: &Value) -> Result<()> {
     use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
     let raw = ctx.read("ToS/contracts/source-text-unit-packet-v1.schema.json")?;
     // V1 is an exact retained contract. Its two large arrays have only
     // minItems:1/items constraints and no global uniqueness/cardinality clause.
+    // The optional additional source locators are checked within each anchor;
+    // they do not constrain the two decomposed arrays across chunks.
     // A changed schema must receive a new decomposition review, never silently
     // weaken its new law to fit the backend's 1MiB instance cap.
     ensure(

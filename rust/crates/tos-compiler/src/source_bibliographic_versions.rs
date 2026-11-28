@@ -4,7 +4,9 @@
 use crate::knowledge_normalization::SourceRow;
 use crate::knowledge_stage::KnowledgeStage;
 use crate::source_bibliographic::{self as graph, BibliographicForms, BibliographicLimits};
-use crate::source_bibliographic_render::{array, digest, encode, text};
+use crate::source_bibliographic_render::{
+    array, digest, encode, receipt_request_digest_matches, text,
+};
 use crate::source_bibliographic_selected_files::SelectedBibliographicFilesV1;
 use crate::source_witness_catalog::{self as catalog, SourceCatalogValidator};
 use crate::{Error, Result};
@@ -5164,28 +5166,29 @@ fn claim_receipt(
     commands: &mut BTreeSet<String>,
     l: BibliographicLimits,
 ) -> Result<()> {
-    exact_keys(
-        receipt,
-        &[
-            "command_id",
-            "request_digest",
-            "principal_id",
-            "authority_ref",
-            "owner_configuration",
-            "recorded_at",
-            "reason",
-            "previous_source",
-            "source",
-            "previous_revision",
-            "archive_path",
-            "dependencies",
-            "source_bindings",
-            "changed_fields",
-            "forms",
-            "grants_admission",
-            "request",
-        ],
-    )?;
+    let mut keys = vec![
+        "command_id",
+        "request_digest",
+        "principal_id",
+        "authority_ref",
+        "owner_configuration",
+        "recorded_at",
+        "reason",
+        "previous_source",
+        "source",
+        "previous_revision",
+        "archive_path",
+        "dependencies",
+        "source_bindings",
+        "changed_fields",
+        "forms",
+        "grants_admission",
+        "request",
+    ];
+    if receipt.get("request_digest_profile").is_some() {
+        keys.push("request_digest_profile");
+    }
+    exact_keys(receipt, &keys)?;
     let request = &receipt["request"];
     let instant = text(receipt, "recorded_at")?;
     tos_validation::retirement_rules::observed_instant_order(instant, instant)
@@ -5199,8 +5202,7 @@ fn claim_receipt(
     changed.sort_by(|a, b| a.as_str().cmp(&b.as_str()));
     if !commands.insert(text(receipt, "command_id")?.into())
         || request["operation"] != "claim.revise"
-        || receipt["request_digest"]
-            != format!("sha256:{}", digest(request, l.catalog.max_row_bytes)?)
+        || !receipt_request_digest_matches(receipt, request, l.catalog.max_row_bytes)?
         || receipt["changed_fields"] != Value::Array(changed)
         || receipt["grants_admission"] != false
         || receipt["source"]["id"] != receipt["previous_source"]["id"]
