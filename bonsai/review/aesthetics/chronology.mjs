@@ -494,6 +494,8 @@ const between=(from,to,locale)=>{
   return before?`${bare(from)}–${bare(to)} ${locale==='ru'?'до н. э.':'BCE'}`:`${spoken(from,locale)}–${spoken(to,locale)}`;
 };
 const dating=(more)=>({role:'historical-time',calendar:null,year_numbering:'astronomical',...more});
+// A sentence ends once: wording that closes with its own point («IV в. до н. э.») takes none more.
+const closed=text=>/[.!?…]$/.test(text)?text:`${text}.`;
 
 const sources={},situations={},lifeOf={},workOf={};
 for(const [agent,entry] of Object.entries(library.agents)){
@@ -514,18 +516,26 @@ for(const [agent,entry] of Object.entries(library.agents)){
     :{kind:'unknown-date',...dating({certainty:'unknown',source_wording:{text:wording,language:'en'}})};
   situations[id]={type:'biographical-phase',subject:agent,label:{ru:`${entry.name.ru}: годы жизни`,en:`${entry.name.en}: lifetime`},
     dating:lifeDating,
-    statement:{ru:`Викиданные: ${entry.name.ru}, ${russian}.`,en:`Wikidata: ${entry.name.en}, ${wording}.`},
+    statement:{ru:`Викиданные: ${entry.name.ru}, ${closed(russian)}`,en:`Wikidata: ${entry.name.en}, ${closed(wording)}`},
     sources:[source],footing:'medium',epistemic:'reported'};
   lifeOf[agent]=id;
 }
 
-const works=new Map(layer('works').map(work=>[work.id,work])),named=new Map(layer('sources').map(source=>[source.key,source]));
+// A work's dating is the wording of the bonsai's own register, in the rows that hold the work (layer/works.json keys);
+// the register is its source. The texts and studies a register row lists are its bibliography of the work, and the
+// dating does not cite them as evidence of its date.
+const REGISTER='https://github.com/8Dionysus/Tree-of-Sophia/blob/main/bonsai/review/aesthetics/registry';
+const works=new Map(layer('works').map(work=>[work.id,work]));
 for(const [work,entry] of Object.entries(library.works)){
   const record=works.get(work);if(!record)throw new Error(`${work}: the layer holds no such work`);
-  const cited=(record.sources??[]).map(key=>named.get(key)).find(source=>/^https:\/\//.test(source?.url??''));
-  if(!cited)throw new Error(`${work}: the register names no source with an address`);
-  const wording=(record.dates??[])[0]??'',agent=entry.agents[0],source=`register-${cited.key.replace(/[^A-Za-z0-9]+/g,'-').toLowerCase()}`;
-  sources[source]={short:cited.title.split(/[.:—]/)[0].trim().slice(0,40),title:cited.title,url:cited.url};
+  const rows=(record.keys??[]).filter(key=>/^[A-D]:/.test(key));
+  if(!rows.length)throw new Error(`${work}: the layer names no register row of the work`);
+  const wording=(record.dates??[])[0]??'',agent=entry.agents[0];
+  const registers=[...new Set(rows.map(key=>key[0]))].sort().map(letter=>{
+    const id=`register-${letter.toLowerCase()}-works`;
+    sources[id]={short:`Aesthetics register ${letter}`,title:`The Aesthetics bonsai register, sheet ${letter}: works (bonsai/review/aesthetics/registry/${letter}/works.jsonl)`,url:`${REGISTER}/${letter}/works.jsonl`};
+    return id;
+  });
   // The register's first span of years is the work's own when it opens with the year the layer reads; a later span names an edition or a translation.
   const year=record.year,found=/(\d{4})\s*[–-]\s*(\d{4})/.exec(wording),span=found&&Number(found[1])===year?found:null;
   const when=span?{kind:'interval-assertion',...dating({certainty:wording.trim()===span[0]?'exact':'approximate',interval:{start:span[1],end:span[2]},source_wording:{text:wording,language:'ru'}})}
@@ -536,8 +546,8 @@ for(const [work,entry] of Object.entries(library.works)){
   const said=span?`${span[1]}–${span[2]}`:Number.isInteger(year)?String(year):when.kind==='relative-order'?`within the life of ${library.agents[agent].name.en}`:`as ${wording||'unknown'}`;
   const id=`tos.historical-process.${work}-dating`;
   situations[id]={type:'historical-process',work,label:{ru:`Датировка: «${title.ru}»`,en:`Dating: ${title.en}`},dating:when,
-    statement:{ru:`Реестр бонсая датирует произведение: ${wording}. Источник реестра: ${cited.title}.`,en:`The bonsai’s register dates the work ${said}. The register’s source: ${cited.title}.`},
-    sources:[source],footing:'medium',epistemic:when.kind==='relative-order'?'inferred':'reported'};
+    statement:{ru:`Реестр бонсая (${rows.join(', ')}) датирует произведение: ${closed(wording||'дата не указана')}`,en:`The bonsai’s register (${rows.join(', ')}) dates the work ${closed(said)}`},
+    sources:registers,footing:'medium',epistemic:when.kind==='relative-order'?'inferred':'reported'};
   workOf[work]=id;
 }
 
