@@ -2849,6 +2849,37 @@
      }
     }
    },
+   "lewis-carroll.through-the-looking-glass-and-what-alice-found": {
+    "ru": {
+     "absent": {
+      "language": "ru",
+      "reason": "No Russian text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/lewis-carroll.through-the-looking-glass-and-what-alice-found/witnesses/ru.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/lewis-carroll.through-the-looking-glass-and-what-alice-found/witnesses/ru.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "fcae8f3b255d0a8cd485b6594e195eadd1ff20eedde56e6695aafa4969832fa3",
+        "non_substantial": "Одна связная реплика из пяти предложений и 30 слов воспроизводится для сопоставления словослияния и образа бумажника с английским оригиналом; других цитат Демуровой в этом свидетеле нет. Закон не устанавливает числовой порог.",
+        "normal_exploitation": "На локальной карточке рядом с исходным местом стоит трактовка о двух значениях слова. Одна реплика не заменяет книгу или её обычное чтение; эта оценка относится к текущему объёму и должна пересматриваться при добавлении цитат.",
+        "source_integrity": "Точно сохранены слова, дефисы и восклицания с. 96 диссертации Е. А. Аввакумовой 2002, опубликованной научным журналом АлтГПУ; снято вводное диалоговое тире, курсив не передаётся. Прямо указаны автор Кэрролл, переводчица Н. М. Демурова, Наука 1978 с. 178 и диссертация с. 96. В книге 1978 на месте двух дефисов стоят длинные тире. Разрешение на полный PDF книги в ImWerden не установлено и основанием этой цитаты не является."
+       },
+       "review": {
+        "reader": "terra-2026-11-28-carroll-demurova-second",
+        "date": "2026-11-28",
+        "sha256": "4136b01a4c65aec756db583ae2a3454a8c4bd73b3655742a4c1f73771b8ace19",
+        "assessment": "Подтверждаю условную применимость LFDA 148(I) к нынешней одной реплике 30 слов: она сохраняет слова и знаки диссертационной цитаты с обозначенным исключением вводного знака и оформляется с автором, переводчицей и обоими источниками. По сообщению maker, лично проверившего локальный экран, рядом оригинал и трактовка словослияния; я этот экран не проверял. Пять предложений позволяют сопоставить компоненты неологизма и образ двух отделений. По сведениям maker других цитат Демуровой нет; одна реплика не заменяет обычное чтение книги и не выглядит существенным воспроизведением, но данных рынка нет. Вывод касается только текущего представления и объёма; при расширении необходима повторная оценка. Публичное размещение диссертации журналом подтверждено, разрешение на полную копию книги ImWerden неизвестно и не предполагается."
+       }
+      }
+     ]
+    }
+   },
    "rudolf-otto.das-heilige": {
     "en": {
      "absent": {
@@ -9723,15 +9754,117 @@
        ]
       }
      ]
+    },
+    "ru": {
+     "edition": "Льюис Кэрролл. Алиса в Зазеркалье, перевод Н. М. Демуровой. Москва: Наука, 1978, с. 178; цитата в диссертации Е. А. Аввакумовой, Барнаул, 2002, с. 96, опубликованной журналом АлтГПУ «Культура и текст».",
+     "year": 1978,
+     "url": "https://journal-altspu.ru/wp-content/uploads/2013/06/avvakumova1.pdf#page=96",
+     "licence": "Краткая цитата перевода, опубликованная в научной диссертации с указанием переводчицы и издания 1978, для сопоставления перевода с оригиналом. Правовой статус полного издания и разрешение на полную копию ImWerden отдельно не установлены.",
+     "attribution": "Льюис Кэрролл, «Алиса в Зазеркалье», перевод Н. М. Демуровой, Наука, 1978, с. 178; цитируется по Е. А. Аввакумовой, диссертация, 2002, с. 96, публикация журнала АлтГПУ.",
+     "maker": "codex-ru-week2-carroll-demurova",
+     "rights": {
+      "russia": {
+       "basis": "short-quotation",
+       "law": "ГК РФ ст. 1274 п. 1 пп. 1: краткая цитата правомерно опубликованного перевода для научного сопоставления с указанием автора, переводчика и источника; окончательный контекст показа требует отдельной проверки."
+      },
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 U.S.C. § 107: исследовательская цель и ограниченный объём рассматриваются вместе с характером перевода и влиянием на рынок; условия требуют независимой оценки."
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC art. 5(3)(d): цитата для критического сопоставления с указанием авторства и источника при применимых национальных нормах."
+      }
+     },
+     "persons": [
+      {
+       "role": "translator",
+       "qid": "Q4157706",
+       "name": {
+        "en": "Nina Demurova",
+        "ru": "Нина Михайловна Демурова"
+       },
+       "born": 1930,
+       "died": 2021,
+       "source": "https://www.wikidata.org/wiki/Q4157706",
+       "evidence": {
+        "file": "wikidata-Q4157706.json",
+        "sha256": "b3cd12df143d8ea74049f51145abe287ad304652ad96d7605aad97ac6e30739d",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q4157706.json"
+       }
+      },
+      {
+       "role": "author",
+       "qid": "Q38082",
+       "name": {
+        "en": "Lewis Carroll",
+        "ru": "Льюис Кэрролл"
+       },
+       "born": 1832,
+       "died": 1898,
+       "source": "https://www.wikidata.org/wiki/Q38082",
+       "evidence": {
+        "file": "wikidata-Q38082.json",
+        "sha256": "bf6021cd8fe1c5b9fae8576db79f765881748b89bbd3addf5cc429177edefe38",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q38082.json"
+       }
+      }
+     ],
+     "normalization": "Текст и два дефиса по странице диссертации; начальное диалоговое тире опущено. Диссертация сохраняет слова и восклицательные знаки книги 1978, но набирает два её длинных тире дефисами; курсив источника не воспроизведён.",
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "fcae8f3b255d0a8cd485b6594e195eadd1ff20eedde56e6695aafa4969832fa3",
+      "non_substantial": "Одна связная реплика из пяти предложений и 30 слов воспроизводится для сопоставления словослияния и образа бумажника с английским оригиналом; других цитат Демуровой в этом свидетеле нет. Закон не устанавливает числовой порог.",
+      "normal_exploitation": "На локальной карточке рядом с исходным местом стоит трактовка о двух значениях слова. Одна реплика не заменяет книгу или её обычное чтение; эта оценка относится к текущему объёму и должна пересматриваться при добавлении цитат.",
+      "source_integrity": "Точно сохранены слова, дефисы и восклицания с. 96 диссертации Е. А. Аввакумовой 2002, опубликованной научным журналом АлтГПУ; снято вводное диалоговое тире, курсив не передаётся. Прямо указаны автор Кэрролл, переводчица Н. М. Демурова, Наука 1978 с. 178 и диссертация с. 96. В книге 1978 на месте двух дефисов стоят длинные тире. Разрешение на полный PDF книги в ImWerden не установлено и основанием этой цитаты не является."
+     },
+     "participants": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Nina Demurova",
+        "ru": "Нина Михайловна Демурова"
+       },
+       "qid": "Q4157706",
+       "source": "https://www.wikidata.org/wiki/Q4157706",
+       "born": [
+        {
+         "year": 1930
+        }
+       ],
+       "died": [
+        {
+         "year": 2021
+        }
+       ]
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Lewis Carroll",
+        "ru": "Льюис Кэрролл"
+       },
+       "qid": "Q38082",
+       "source": "https://www.wikidata.org/wiki/Q38082",
+       "born": [
+        {
+         "time": "+1832-01-27T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1898-01-14T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [],
-   "unsearched": [
-    {
-     "language": "ru",
-     "reason": "No Russian text is taken in this pass: the line plants the original first."
-    }
-   ]
+   "absent": []
   },
   "oscar-wilde.preface-to-the-picture-of-dorian-gray": {
    "author": {
@@ -15681,17 +15814,26 @@
      "en": "Ch. VI, pp. 126–127"
     },
     "texts": {
-     "en": "“Well, ‘slithy’ means ‘lithe and slimy.’ ‘Lithe’ is the same as ‘active.’ You see it’s like a portmanteau—there are two meanings packed up into one word.”"
+     "en": "“Well, ‘slithy’ means ‘lithe and slimy.’ ‘Lithe’ is the same as ‘active.’ You see it’s like a portmanteau—there are two meanings packed up into one word.”",
+     "ru": "«Хливкие» - это хлипкие и ловкие. «Хлипкие» значит то же, что и «хилые». Понимаешь, это слово как бумажник. Раскроешь, а там два отделения! Так и тут - это слово раскладывается на два!"
     },
     "links": {
-     "en": "https://archive.org/details/throughlooking00carr/page/n145/mode/1up"
+     "en": "https://archive.org/details/throughlooking00carr/page/n145/mode/1up",
+     "ru": "https://journal-altspu.ru/wp-content/uploads/2013/06/avvakumova1.pdf"
     },
     "refs": [
      [
       "en",
       "Macmillan edition (London 1872), pp. 126–127"
+     ],
+     [
+      "ru",
+      "Льюис Кэрролл. Алиса в Зазеркалье, перевод Н. М. Демуровой. Москва: Наука, 1978, с. 178; цитата в диссертации Е. А. Аввакумовой, Барнаул, 2002, с. 96, опубликованной журналом АлтГПУ «Культура и текст»., 96"
      ]
-    ]
+    ],
+    "quotation_justification": {
+     "ru": "Связная реплика нужна для сопоставления неологизма, пояснения составляющих и образа бумажника с двумя значениями в английском оригинале."
+    }
    }
   },
   "oscar-wilde.preface-to-the-picture-of-dorian-gray": {

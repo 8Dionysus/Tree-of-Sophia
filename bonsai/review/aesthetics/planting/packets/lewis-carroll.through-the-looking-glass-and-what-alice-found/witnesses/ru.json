@@ -1,0 +1,217 @@
+{
+ "language": "ru",
+ "witness": {
+  "edition": "Льюис Кэрролл. Алиса в Зазеркалье, перевод Н. М. Демуровой. Москва: Наука, 1978, с. 178; цитата в диссертации Е. А. Аввакумовой, Барнаул, 2002, с. 96, опубликованной журналом АлтГПУ «Культура и текст».",
+  "year": 1978,
+  "url": "https://journal-altspu.ru/wp-content/uploads/2013/06/avvakumova1.pdf#page=96",
+  "licence": "Краткая цитата перевода, опубликованная в научной диссертации с указанием переводчицы и издания 1978, для сопоставления перевода с оригиналом. Правовой статус полного издания и разрешение на полную копию ImWerden отдельно не установлены.",
+  "attribution": "Льюис Кэрролл, «Алиса в Зазеркалье», перевод Н. М. Демуровой, Наука, 1978, с. 178; цитируется по Е. А. Аввакумовой, диссертация, 2002, с. 96, публикация журнала АлтГПУ.",
+  "maker": "codex-ru-week2-carroll-demurova",
+  "rights": {
+   "russia": {
+    "basis": "short-quotation",
+    "law": "ГК РФ ст. 1274 п. 1 пп. 1: краткая цитата правомерно опубликованного перевода для научного сопоставления с указанием автора, переводчика и источника; окончательный контекст показа требует отдельной проверки."
+   },
+   "usa": {
+    "basis": "short-quotation",
+    "law": "17 U.S.C. § 107: исследовательская цель и ограниченный объём рассматриваются вместе с характером перевода и влиянием на рынок; условия требуют независимой оценки."
+   },
+   "eu": {
+    "basis": "short-quotation",
+    "law": "Directive 2001/29/EC art. 5(3)(d): цитата для критического сопоставления с указанием авторства и источника при применимых национальных нормах."
+   }
+  },
+  "persons": [
+   {
+    "role": "translator",
+    "qid": "Q4157706",
+    "name": {
+     "en": "Nina Demurova",
+     "ru": "Нина Михайловна Демурова"
+    },
+    "born": 1930,
+    "died": 2021,
+    "source": "https://www.wikidata.org/wiki/Q4157706",
+    "evidence": {
+     "file": "wikidata-Q4157706.json",
+     "sha256": "b3cd12df143d8ea74049f51145abe287ad304652ad96d7605aad97ac6e30739d",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q4157706.json"
+    }
+   },
+   {
+    "role": "author",
+    "qid": "Q38082",
+    "name": {
+     "en": "Lewis Carroll",
+     "ru": "Льюис Кэрролл"
+    },
+    "born": 1832,
+    "died": 1898,
+    "source": "https://www.wikidata.org/wiki/Q38082",
+    "evidence": {
+     "file": "wikidata-Q38082.json",
+     "sha256": "bf6021cd8fe1c5b9fae8576db79f765881748b89bbd3addf5cc429177edefe38",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q38082.json"
+    }
+   }
+  ],
+  "normalization": "Текст и два дефиса по странице диссертации; начальное диалоговое тире опущено. Диссертация сохраняет слова и восклицательные знаки книги 1978, но набирает два её длинных тире дефисами; курсив источника не воспроизведён.",
+  "mexico_quotation": {
+   "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+   "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+   "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+   "scope_sha256": "fcae8f3b255d0a8cd485b6594e195eadd1ff20eedde56e6695aafa4969832fa3",
+   "non_substantial": "Одна связная реплика из пяти предложений и 30 слов воспроизводится для сопоставления словослияния и образа бумажника с английским оригиналом; других цитат Демуровой в этом свидетеле нет. Закон не устанавливает числовой порог.",
+   "normal_exploitation": "На локальной карточке рядом с исходным местом стоит трактовка о двух значениях слова. Одна реплика не заменяет книгу или её обычное чтение; эта оценка относится к текущему объёму и должна пересматриваться при добавлении цитат.",
+   "source_integrity": "Точно сохранены слова, дефисы и восклицания с. 96 диссертации Е. А. Аввакумовой 2002, опубликованной научным журналом АлтГПУ; снято вводное диалоговое тире, курсив не передаётся. Прямо указаны автор Кэрролл, переводчица Н. М. Демурова, Наука 1978 с. 178 и диссертация с. 96. В книге 1978 на месте двух дефисов стоят длинные тире. Разрешение на полный PDF книги в ImWerden не установлено и основанием этой цитаты не является."
+  }
+ },
+ "sources": [
+  {
+   "file": "dyrdin-2005.pdf",
+   "url": "https://lib.ulstu.ru/venec/v9/Dyrdin.pdf",
+   "sha256": "2534eadc16fa1a6aa0505285f142a7976828b355e60f4c29a1c38862e9275b36",
+   "fetched": "2026-11-28"
+  },
+  {
+   "file": "carroll-1978.pdf",
+   "url": "https://imwerden.de/pdf/carroll_alisa_v_strane_chudes_alisa_v_zazerkalje_1978_text.pdf",
+   "sha256": "e58558956a9d0698b6a02065cda882a479902fd1281f4c6fe6c66d4ce0d41023",
+   "fetched": "2026-11-28"
+  },
+  {
+   "file": "avvakumova-2002.pdf",
+   "url": "https://journal-altspu.ru/wp-content/uploads/2013/06/avvakumova1.pdf",
+   "sha256": "b5fdb73d47c34409e43c40bb5a79cd96a56fbd791572c89a8a996463934d3de2",
+   "fetched": "2026-11-28"
+  }
+ ],
+ "images": [
+  {
+   "file": "pdf-page-bfbeef80c76e2744-2534eadc16fa1a6aa0505285f142a7976828b355e60f4c29a1c38862e9275b36-114-f390cfc7c5b587a9c04d7da3c253327f0b7f6bf52cf8cb3b8fe4a77d1dfd7e76-maker.png",
+   "url": "https://lib.ulstu.ru/venec/v9/Dyrdin.pdf",
+   "sha256": "f390cfc7c5b587a9c04d7da3c253327f0b7f6bf52cf8cb3b8fe4a77d1dfd7e76",
+   "by": "maker",
+   "derived_from": {
+    "file": "dyrdin-2005.pdf",
+    "sha256": "2534eadc16fa1a6aa0505285f142a7976828b355e60f4c29a1c38862e9275b36",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 114,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-c8bcc44d21333651-e58558956a9d0698b6a02065cda882a479902fd1281f4c6fe6c66d4ce0d41023-183-c06acea56706b64465c11e20da288b0b91f7f2a280d5c0bc32215bcc4e3c58dd-maker.png",
+   "url": "https://imwerden.de/pdf/carroll_alisa_v_strane_chudes_alisa_v_zazerkalje_1978_text.pdf",
+   "sha256": "c06acea56706b64465c11e20da288b0b91f7f2a280d5c0bc32215bcc4e3c58dd",
+   "by": "maker",
+   "derived_from": {
+    "file": "carroll-1978.pdf",
+    "sha256": "e58558956a9d0698b6a02065cda882a479902fd1281f4c6fe6c66d4ce0d41023",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 183,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-c8bcc44d21333651-e58558956a9d0698b6a02065cda882a479902fd1281f4c6fe6c66d4ce0d41023-183-c06acea56706b64465c11e20da288b0b91f7f2a280d5c0bc32215bcc4e3c58dd-second.png",
+   "url": "https://imwerden.de/pdf/carroll_alisa_v_strane_chudes_alisa_v_zazerkalje_1978_text.pdf",
+   "sha256": "c06acea56706b64465c11e20da288b0b91f7f2a280d5c0bc32215bcc4e3c58dd",
+   "by": "second",
+   "derived_from": {
+    "file": "carroll-1978.pdf",
+    "sha256": "e58558956a9d0698b6a02065cda882a479902fd1281f4c6fe6c66d4ce0d41023",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 183,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-004c27a29b592c68-b5fdb73d47c34409e43c40bb5a79cd96a56fbd791572c89a8a996463934d3de2-96-8c62c1f6dec01eda4cabea289e0b9ccd8da558220b2e34f81ca6396184144cb0-maker.png",
+   "url": "https://journal-altspu.ru/wp-content/uploads/2013/06/avvakumova1.pdf",
+   "sha256": "8c62c1f6dec01eda4cabea289e0b9ccd8da558220b2e34f81ca6396184144cb0",
+   "by": "maker",
+   "derived_from": {
+    "file": "avvakumova-2002.pdf",
+    "sha256": "b5fdb73d47c34409e43c40bb5a79cd96a56fbd791572c89a8a996463934d3de2",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 96,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-004c27a29b592c68-b5fdb73d47c34409e43c40bb5a79cd96a56fbd791572c89a8a996463934d3de2-96-8c62c1f6dec01eda4cabea289e0b9ccd8da558220b2e34f81ca6396184144cb0-second.png",
+   "url": "https://journal-altspu.ru/wp-content/uploads/2013/06/avvakumova1.pdf",
+   "sha256": "8c62c1f6dec01eda4cabea289e0b9ccd8da558220b2e34f81ca6396184144cb0",
+   "by": "second",
+   "derived_from": {
+    "file": "avvakumova-2002.pdf",
+    "sha256": "b5fdb73d47c34409e43c40bb5a79cd96a56fbd791572c89a8a996463934d3de2",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 96,
+    "dpi": 150
+   }
+  }
+ ],
+ "places": {
+  "VI p126": {
+   "text": "«Хливкие» - это хлипкие и ловкие. «Хлипкие» значит то же, что и «хилые». Понимаешь, это слово как бумажник. Раскроешь, а там два отделения! Так и тут - это слово раскладывается на два!",
+   "transcription": {
+    "kind": "human-page",
+    "reason": "Лично прочитанная страница диссертации требует человеческой транскрипции: сохраняем напечатанные слова, дефисы и восклицания, исключая начальное диалоговое тире.",
+    "original_text": "«Хливкие» - это хлипкие и ловкие. «Хлипкие» значит то же, что и «хилые». Понимаешь, это слово как бумажник. Раскроешь, а там два отделения! Так и тут - это слово раскладывается на два!"
+   },
+   "page": "96",
+   "url": "https://journal-altspu.ru/wp-content/uploads/2013/06/avvakumova1.pdf",
+   "image_sha256": "8c62c1f6dec01eda4cabea289e0b9ccd8da558220b2e34f81ca6396184144cb0",
+   "alignment": "Демурова творчески передаёт слияние значений и образ портмоне: хлипкие и ловкие отличаются от английских lithe и slimy, а бумажник раскрыт через два отделения; различия существенны при сопоставлении.",
+   "lines": "Печатная страница 96 диссертации, окончание диалога в верхней половине, пять предложений с указанием переводчицы и книги 1978.",
+   "justification": "Связная реплика нужна для сопоставления неологизма, пояснения составляющих и образа бумажника с двумя значениями в английском оригинале."
+  }
+ },
+ "review": {
+  "reader": "terra-2026-11-28-carroll-demurova-second",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-28",
+  "places": {
+   "VI p126": {
+    "reads": "as the packet",
+    "alignment": "Лично прочитаны диссертация Аввакумовой с. 96, английский оригинал с. 126–127 и ранее печать 1978 с. 178 и содержание с. 358. Пять предложений, два дефиса и восклицания соответствуют диссертации; вводный знак диалога и курсив исключены. Она указывает Демурову и Наука 1978 с. 178; там вместо дефисов длинные тире. Перевод передаёт словослияние и образ двух смыслов через бумажник, но хлипкие и ловкие и хилые не буквальны к lithe и slimy и active; английская реплика содержит три предложения. Разрешение на полный PDF 1978 ImWerden не установлено.",
+    "image_sha256": "8c62c1f6dec01eda4cabea289e0b9ccd8da558220b2e34f81ca6396184144cb0"
+   }
+  },
+  "mexico_quotation": {
+   "reader": "terra-2026-11-28-carroll-demurova-second",
+   "date": "2026-11-28",
+   "sha256": "4136b01a4c65aec756db583ae2a3454a8c4bd73b3655742a4c1f73771b8ace19",
+   "assessment": "Подтверждаю условную применимость LFDA 148(I) к нынешней одной реплике 30 слов: она сохраняет слова и знаки диссертационной цитаты с обозначенным исключением вводного знака и оформляется с автором, переводчицей и обоими источниками. По сообщению maker, лично проверившего локальный экран, рядом оригинал и трактовка словослияния; я этот экран не проверял. Пять предложений позволяют сопоставить компоненты неологизма и образ двух отделений. По сведениям maker других цитат Демуровой нет; одна реплика не заменяет обычное чтение книги и не выглядит существенным воспроизведением, но данных рынка нет. Вывод касается только текущего представления и объёма; при расширении необходима повторная оценка. Публичное размещение диссертации журналом подтверждено, разрешение на полную копию книги ImWerden неизвестно и не предполагается."
+  }
+ },
+ "person_corrections": [
+  {
+   "removed": {
+    "role": "author",
+    "qid": "Q380",
+    "name": {
+     "en": "Meta Platforms",
+     "ru": "Meta Platforms"
+    },
+    "born": null,
+    "died": null,
+    "source": "https://www.wikidata.org/wiki/Q380",
+    "evidence": {
+     "file": "wikidata-Q380.json",
+     "sha256": "97b729289aed2bcf624c701e5b771c922aa8292421d68d977ea6e1e0cc770bb8",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q380.json"
+    }
+   },
+   "reason": "Ошибочно выбран Q380, организация Meta Platforms, не автор Льюис Кэрролл; подлинная карточка автора Q38082 подтверждена исходным пакетом.",
+   "date": "2026-11-28"
+  }
+ ]
+}
