@@ -17,7 +17,8 @@ question gives its `item` and `sha`; copy both into your verdict.
 
 ## Every verdict
 
-One JSON line per question in `reader-<n>.jsonl`. Whatever the type, a verdict
+One JSON line per question in your verdicts file (`reader-<n>.jsonl`, or the
+file the driver names for you). Whatever the type, a verdict
 carries:
 
 - `quotes` — the exact words (four characters or more) of a field of a row the
@@ -42,8 +43,9 @@ carries:
 `undecidable` answers any type when the evidence you can reach does not settle
 it; it needs only the note.
 
-When you are done, run `node ../../kit.mjs gate <packet> --reader <n>` and fix
-your file until it names no problem. Never run the gate without `--reader`.
+When you are done, run `node ../../kit.mjs gate <packet> --reader <n>` (adding
+`--file <your file>` when the driver named one) and fix your file until it
+names no problem. Never run the gate without `--reader`.
 
 ## Identity
 
