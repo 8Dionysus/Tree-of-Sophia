@@ -287,6 +287,7 @@ def cmd_fetch(args):
     path=packet(args.packet);name=args.name or re.sub(r'[^A-Za-z0-9._-]+','-',urllib.parse.urlparse(args.url).path.strip('/').split('/')[-1] or 'source')
     raw=open(args.file,'rb').read() if args.file else get(args.url)
     if name.endswith('.gz'):raw=gzip.decompress(raw);name=name[:-3]
+    if args.role=='transcription' and raw.startswith(b'%PDF-'):die('fetch PDF bytes as other, then derive their text with kit.py pdf-text')
     more={}
     if args.role=='transcription':
         text=plain(raw,name);
@@ -294,6 +295,100 @@ def cmd_fetch(args):
         more={'text':name+'.txt'}
     record(path,args.role,args.url,name,raw,**more)
     print(f"{name}: {len(raw)} bytes"+(f"; running text in {cache(path,name+'.txt')} ({len(text)} characters)" if more else ''))
+
+def pdf_text(raw):
+    if not raw.startswith(b'%PDF-'):die('the fetched source is not a PDF')
+    try:result=subprocess.run(['pdftotext','-layout','-','-'],input=raw,capture_output=True,check=True)
+    except (OSError,subprocess.CalledProcessError) as error:die(f'PDF text extraction failed: {error}')
+    if not result.stdout.strip():die('the PDF has no extractable text; use a page-image reading')
+    return result.stdout
+
+def cmd_pdf_text(args):
+    path=packet(args.packet);data=witness_data(path,args.language) if args.language else evidence(path)
+    if args.language and os.path.isfile(witness_file(path,args.language)+'.accepted'):die('an accepted witness cannot be changed')
+    if not args.language and part(path,'accepted.json'):die('an accepted packet cannot be changed')
+    sources=data.get('sources') or [];source=next((s for s in sources if s.get('file')==args.source and not s.get('derived_from')),None)
+    if not source or not lawful_url(source.get('url')):die('fetch the PDF source first')
+    local=(lambda name:witness_cache(path,args.language,name)) if args.language else (lambda name:cache(path,name))
+    raw=Path(local(source['file'])).read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=source.get('sha256'):die('the fetched PDF has changed')
+    text=pdf_text(raw);digest=hashlib.sha256(text).hexdigest();name='pdf-text-'+digest+'.txt'
+    version=subprocess.run(['pdftotext','-v'],capture_output=True,text=True).stderr.splitlines()[0]
+    Path(local(name)).write_bytes(text)
+    derived={'file':name,'url':source['url'],'sha256':digest,'fetched':today(),'derived_from':{'file':source['file'],'sha256':source['sha256'],'tool':'pdftotext','version':version,'options':['-layout']}}
+    if not args.language:derived.update({'role':'transcription','text':name})
+    data['sources']=[s for s in sources if s.get('file')!=name]+[derived]
+    if args.language:data['review']={};save(witness_file(path,args.language),data)
+    else:save(os.path.join(path,'evidence.json'),data)
+    print(f'{name}: derived from {source["file"]}; compare with the independently inspected page')
+
+def render_pdf_page(raw, page):
+    if not raw.startswith(b'%PDF-') or type(page) is not int or page < 1:die('a PDF and a positive physical page number are required')
+    try:result=subprocess.run(['pdftoppm','-f',str(page),'-l',str(page),'-singlefile','-r','150','-png'],input=raw,capture_output=True,check=True)
+    except (OSError,subprocess.CalledProcessError) as error:die(f'PDF page rendering failed: {error}')
+    if not valid_page_image(result.stdout):die('PDF page was not rendered; check its physical page number')
+    return result.stdout
+
+def cmd_pdf_page(args):
+    path=packet(args.packet);data=witness_data(path,args.language) if args.language else evidence(path)
+    if args.language and os.path.isfile(witness_file(path,args.language)+'.accepted'):die('an accepted witness cannot be changed')
+    if not args.language and part(path,'accepted.json'):die('an accepted packet cannot be changed')
+    if not args.language and (not args.loc or args.loc not in (part(path,'places.json') or {}).get('places',{})):die('give an existing original place with --loc')
+    source=next((s for s in data.get('sources',[]) if s.get('file')==args.source and not s.get('derived_from')),None)
+    if not source or not lawful_url(source.get('url')):die('fetch the PDF source first')
+    local=(lambda name:witness_cache(path,args.language,name)) if args.language else (lambda name:cache(path,name))
+    raw=Path(local(source['file'])).read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=source.get('sha256'):die('the fetched PDF has changed')
+    image=render_pdf_page(raw,args.page);digest=hashlib.sha256(image).hexdigest()
+    version=subprocess.run(['pdftoppm','-v'],capture_output=True,text=True).stderr.splitlines()[0]
+    provenance={'file':source['file'],'sha256':source['sha256'],'tool':'pdftoppm','version':version,'page':args.page,'dpi':150}
+    name=f'pdf-page-{args.page}-{digest}-{args.by}.png'
+    Path(local(name)).write_bytes(image)
+    record={'file':name,'url':source['url'],'sha256':digest,'by':args.by,'derived_from':provenance}
+    if args.language:
+        data['images']=[item for item in data.get('images',[]) if item.get('file')!=name]+[record]
+        if args.by=='maker':data['review']={}
+        save(witness_file(path,args.language),data)
+    else:
+        record.update({'item':'external','n':args.page,'loc':args.loc})
+        scan={'item':'external','ocr':False,'image_offset':0};data['scans']=scans(data);data['scans']['external']=scan;data['scan']=scan
+        data['images']=[item for item in data.get('images',[]) if not(item.get('file')==name and item.get('loc')==args.loc)]+[record]
+        if args.by=='maker':
+            place=data.setdefault('places',{}).setdefault(args.loc,{});place.update({'method':'image','scan':'external','images':sorted(set(place.get('images',[]))|{args.page})})
+        save(os.path.join(path,'evidence.json'),data)
+    print(f'{local(name)}\nsha256 {digest}: read the rendered PDF page')
+
+def derived_image_problems(sources,images,local,offline=False):
+    problems=[]
+    for image in images:
+        derived=image.get('derived_from')
+        if not derived:continue
+        if not isinstance(derived,dict):problems.append('invalid rendered PDF page provenance');continue
+        parent=next ( (s for s in sources if s.get('file')==derived.get('file') and s.get('sha256')==derived.get('sha256') and not s.get('derived_from')),None)
+        if not parent or image.get('url')!=parent.get('url') or derived.get('tool')!='pdftoppm' or not derived.get('version') or type(derived.get('page')) is not int or derived['page']<1 or derived.get('dpi')!=150:
+            problems.append('rendered PDF page needs its exact fetched predecessor and rendering operation');continue
+        if not offline:
+            try:
+                pdf=Path(local(parent['file'])).read_bytes();raw=Path(local(image['file'])).read_bytes()
+                if not pdf.startswith(b'%PDF-') or hashlib.sha256(pdf).hexdigest()!=parent['sha256'] or hashlib.sha256(raw).hexdigest()!=image.get('sha256') or not valid_page_image(raw):problems.append('rendered PDF page or its predecessor has changed')
+            except (OSError,KeyError):problems.append('rendered PDF page or its predecessor is missing')
+    return problems
+
+def derived_source_problems(sources,local,offline=False):
+    problems=[]
+    for source in sources:
+        derived=source.get('derived_from')
+        if not derived:continue
+        if not isinstance(derived,dict):problems.append('invalid derived PDF text provenance');continue
+        parent=next((item for item in sources if item.get('file')==derived.get('file') and item.get('sha256')==derived.get('sha256')),None)
+        if not parent or source.get('url')!=parent.get('url') or derived.get('tool')!='pdftotext' or not derived.get('version') or derived.get('options')!=['-layout']:
+            problems.append('derived PDF text needs its exact fetched predecessor and extraction operation');continue
+        if not offline:
+            try:
+                pdf=Path(local(parent['file'])).read_bytes();text=Path(local(source['file'])).read_bytes()
+                if not pdf.startswith(b'%PDF-') or hashlib.sha256(pdf).hexdigest()!=parent['sha256'] or hashlib.sha256(text).hexdigest()!=source.get('sha256'):problems.append('derived PDF text or its predecessor has changed')
+            except (OSError,KeyError):problems.append('derived PDF text or its predecessor is missing')
+    return problems
 
 def scans(ev):
     """Every scan a packet reads (a work in several volumes has several), by its Archive item. ev['scan'] is the one the commands work on."""
@@ -1371,6 +1466,8 @@ def gate(path,second=False,offline=False):
         if loc in locs and loc not in enlarged(ev,'maker'):owe(f'correction {work} {loc}: {what} rests on the eye alone, for the transcription reads otherwise and the OCR of the page does not read it either. Look at the line at the size of the scan: kit.py image . N --loc "{loc}" --zoom TOP-BOTTOM (the leaf of the place; the band of the page height in percent that holds the line). Keep the correction where the enlarged line bears it letter by letter; where it does not, put the word of the transcription back (kit.py cut) and take the correction out')
     if not locator_only:
         # the evidence, recomputed from the fetched files
+        problems.extend(derived_source_problems(ev.get('sources') or [],lambda name:cache(path,name),offline))
+        problems.extend(derived_image_problems(ev.get('sources') or [],ev.get('images') or [],lambda name:cache(path,name),offline))
         scan=ev.get('scan') or {};taken=shots(ev,'maker');live=not offline and bool(ev.get('sources')) and all(os.path.exists(cache(path,source['file'])) for source in ev['sources'])
         ocr_files={source['file'] for source in ev.get('sources',[]) if source['role']=='scan-ocr'}
         all_from_scan=bool(locs) and all((ev.get('places',{}).get(loc) or {}).get('from_scan') and (ev['places'][loc].get('transcription') in ocr_files) for loc in locs)
@@ -2242,6 +2339,8 @@ def cmd_witness_anonymous_clear(args):
 
 def witness_problems(path,lang,data,second=False,offline=False):
     problems=[];add=problems.append;witness=data.get('witness') or {};places=data.get('places') or {}
+    problems.extend(derived_source_problems(data.get('sources') or [],lambda name:witness_cache(path,lang,name),offline))
+    problems.extend(derived_image_problems(data.get('sources') or [],data.get('images') or [],lambda name:witness_cache(path,lang,name),offline))
     if data.get('language')!=lang:add('language differs from filename')
     quoted=any(((witness.get('rights') or {}).get(country) or {}).get('basis')=='short-quotation' for country in JURISDICTIONS)
     if quoted:
@@ -2436,6 +2535,8 @@ def main():
     sub('witness-gate',cmd_witness_gate,P,(('language',),{}),(('--second',),{'action':'store_true'}),(('--offline',),{'action':'store_true'}),(('--accept',),{'action':'store_true'}))
     sub('queue',cmd_queue);sub('open',cmd_open,(('work',),{}));sub('task',cmd_task,P);sub('status',cmd_status);sub('ready',cmd_ready)
     sub('fetch',cmd_fetch,P,(('role',),{'choices':['transcription','other']}),(('url',),{}),(('--name',),{}),(('--file',),{'help':'take the bytes from a local file already fetched from URL'}))
+    sub('pdf-page',cmd_pdf_page,P,(('source',),{}),(('page',),{'type':int}),(('--language',),{}),(('--loc',),{}),(('--by',),{'choices':['maker','second'],'default':'maker'}))
+    sub('pdf-text',cmd_pdf_text,P,(('source',),{}),(('--language',),{'help':'derive from a translation witness source'}))
     sub('ia',cmd_ia,P,(('item',),{}),(('--long-s',),{'action':'store_true','help':'the print sets the long s, which the OCR reads as f'}),(('--dir',),{}),(('--files',),{}))
     sub('find',cmd_find,P,(('words',),{}),(('--in',),{'dest':'inside'}));sub('leaf',cmd_leaf,P,(('n',),{'type':int}));sub('scan',cmd_scan,P,(('item',),{'nargs':'?'}));sub('scan-withdraw',cmd_scan_withdraw,P,(('item',),{}),(('--reason',),{'required':True}))
     sub('image',cmd_image,P,(('n',),{'type':int}),(('--loc',),{}),(('--width',),{'type':int,'default':1100}),(('--by',),{'choices':['maker','second'],'default':'maker'}),(('--file',),{}),(('--scan',),{'help':'the Archive item, where the packet reads several scans'}),(('--zoom',),{'help':'TOP-BOTTOM in percent of the page height: the lines of a correction, enlarged'}))

@@ -467,6 +467,26 @@ each witness. The packet acceptance binds those reviewed language files.
 Existing accepted packets and continuations retain gaps as `owes`.
 
 
+### PDF with an extractable text layer
+
+Fetch the PDF bytes as `other` (or `witness-fetch` for a translation), then
+extract the text and render each physical PDF page used by the place:
+
+```sh
+K fetch . other https://example.org/book.pdf --name book.pdf
+K pdf-text . book.pdf
+K pdf-page . book.pdf 12 --loc 'I p10'       # physical PDF page, starting at 1
+K pdf-page . book.pdf 12 --loc 'I p10' --by second
+```
+
+For a translation, use `witness-fetch` and add `--language en` to both
+commands; `pdf-page` then records an image usable by `witness-cut` and
+`witness-review`. The commands retain the PDF digest, extracted text or image
+digest, tool version and operation. The printed page in the edition may differ
+from the physical PDF page. Both readers must open and read the rendered image;
+rendering or matching hashes does not constitute a page reading. Licences and
+rights of the precise edition still require independent assessment.
+
 ### Licensed editions still under copyright
 
 Use `licensed` for a protected edition covered by an open licence; it does not

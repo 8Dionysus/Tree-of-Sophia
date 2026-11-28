@@ -1074,6 +1074,54 @@ class HtmlTranscriptionTest(unittest.TestCase):
         self.assertNotIn('Contents',text)
         self.assertNotIn('Footer',text)
 
+class DerivedPdfTest(unittest.TestCase):
+    def test_pdf_transcription_keeps_its_fetched_predecessor(self):
+        import argparse, hashlib, json, shutil, tempfile
+        from pathlib import Path
+        if not shutil.which('pdftotext'):self.skipTest('pdftotext is not installed')
+        stream=b'BT /F1 12 Tf 72 720 Td (A complete sentence.) Tj ET'
+        objects=[b'<< /Type /Catalog /Pages 2 0 R >>',b'<< /Type /Pages /Kids [3 0 R] /Count 1 >>',b'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',b'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',b'<< /Length '+str(len(stream)).encode()+b' >>\nstream\n'+stream+b'\nendstream']
+        pdf=bytearray(b'%PDF-1.4\n');offsets=[]
+        for index,obj in enumerate(objects,1):
+            offsets.append(len(pdf));pdf.extend(f'{index} 0 obj\n'.encode()+obj+b'\nendobj\n')
+        xref=len(pdf);pdf.extend(b'xref\n0 6\n0000000000 65535 f \n')
+        for offset in offsets:pdf.extend(f'{offset:010d} 00000 n \n'.encode())
+        pdf.extend(f'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n'.encode())
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir();source={'file':'book.pdf','url':'https://example.org/book.pdf','role':'other','sha256':hashlib.sha256(pdf).hexdigest()}
+            (path/'evidence.json').write_text(json.dumps({'sources':[source]}))
+            with patch.object(kit,'CACHE',str(Path(tmp)/'cache')):
+                Path(kit.cache(str(path),'book.pdf')).write_bytes(pdf)
+                kit.cmd_pdf_text(argparse.Namespace(packet=str(path),source='book.pdf',language=None))
+                sources=json.loads((path/'evidence.json').read_text())['sources'];derived=sources[-1]
+                self.assertIn('A complete sentence.',Path(kit.cache(str(path),derived['file'])).read_text())
+                self.assertEqual(derived['derived_from']['sha256'],source['sha256'])
+                self.assertEqual(kit.derived_source_problems(sources,lambda n:kit.cache(str(path),n)),[])
+                if shutil.which('pdftoppm'):
+                    (path/'places.json').write_text(json.dumps({'places':{'p1':{}}}))
+                    for by in ('maker','second'):
+                        kit.cmd_pdf_page(argparse.Namespace(packet=str(path),source='book.pdf',page=1,language=None,loc='p1',by=by))
+                    ev=json.loads((path/'evidence.json').read_text());images=ev['images']
+                    self.assertEqual(images[0]['sha256'],images[1]['sha256'])
+                    self.assertEqual(images[0]['derived_from']['sha256'],source['sha256'])
+                    self.assertEqual(kit.derived_image_problems(sources,images,lambda n:kit.cache(str(path),n)),[])
+                    altered=[dict(images[0],derived_from=dict(images[0]['derived_from'],page=0))]
+                    self.assertTrue(kit.derived_image_problems(sources,altered,lambda n:kit.cache(str(path),n),offline=True))
+                Path(kit.cache(str(path),'book.pdf')).write_bytes(b'%PDF-changed')
+                self.assertTrue(kit.derived_source_problems(sources,lambda n:kit.cache(str(path),n)))
+                if shutil.which('pdftoppm'):self.assertTrue(kit.derived_image_problems(sources,images,lambda n:kit.cache(str(path),n)))
+                # A translation stores its independent source and page evidence in its witness file.
+                witness_path=Path(kit.witness_file(str(path),'en'));witness_path.parent.mkdir(exist_ok=True)
+                witness_path.write_text(json.dumps({'language':'en','sources':[source],'images':[],'review':{'reader':'old'}}))
+                Path(kit.witness_cache(str(path),'en','book.pdf')).write_bytes(pdf)
+                kit.cmd_pdf_text(argparse.Namespace(packet=str(path),source='book.pdf',language='en'))
+                if shutil.which('pdftoppm'):
+                    kit.cmd_pdf_page(argparse.Namespace(packet=str(path),source='book.pdf',page=1,language='en',loc=None,by='maker'))
+                    data=json.loads(witness_path.read_text());self.assertFalse(data['review'])
+                    self.assertEqual(kit.derived_image_problems(data['sources'],data['images'],lambda n:kit.witness_cache(str(path),'en',n)),[])
+                    (Path(str(witness_path)+'.accepted')).write_text('{}')
+                    with self.assertRaises(SystemExit):kit.cmd_pdf_page(argparse.Namespace(packet=str(path),source='book.pdf',page=1,language='en',loc=None,by='maker'))
+
 class ReopenUnplantedTest(unittest.TestCase):
     def test_reopen_keeps_predecessor_and_requires_new_review(self):
         import argparse, json, tempfile
