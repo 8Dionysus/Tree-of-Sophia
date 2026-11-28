@@ -2145,6 +2145,37 @@
      ]
     }
    },
+   "charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No translation is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/charles-baudelaire.de-l-essence-du-rire-et-generalement-du-comique/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "66d9139b847f6c737b9312cb58ccb9e3bdd727fb786d7c452435868a9b876aae",
+        "non_substantial": "Three distinct excerpts containing five complete sentences and 131 words in all are used to compare specific conceptions with the French original; the translated essay spans pp. 140–161 of a much larger collection. They include central definitions, but do not reproduce the sustained argument, examples or analysis, and the extent is limited to what the comparison needs.",
+        "normal_exploitation": "The source-linked educational research places these short passages beside the original and its own conceptual interpretation; they cannot replace the full translated essay or book, whose commentary, examples and literary development remain necessary, and they do not displace the publisher’s ordinary market.",
+        "source_integrity": "The selected sentences follow the publisher-authorized Cambridge page images exactly, preserving wording, spelling and punctuation, with no typographic emphasis in these English passages. Baudelaire, translator P. E. Charvet, the 1981 edition and each printed page are credited."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-baudelaire-charvet-second",
+        "date": "2026-11-28",
+        "sha256": "b384d5c00f474902b07e7a959be6d60e524d7efdbd6b180414333aa3f022e570",
+        "assessment": "Independent second reader: the three distinct excerpts total 18 + 35 + 78 = 131 words and five sentences from a 22-page translated essay (pp. 140–161). They contain valuable central definitions; for this attributed comparison with the French, their limited extent is proportionate and does not substitute for the full essay and its development. This is a conditional assessment for the described research use, not a general permission or guarantee."
+       }
+      }
+     ]
+    }
+   },
    "david-hume.of-the-standard-of-taste": {
     "de": {
      "absent": null,
@@ -8780,16 +8811,115 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Charles Baudelaire, Selected Writings on Art and Artists, translated by P. E. Charvet (Cambridge University Press, 1981), pp. 145, 151–152.",
+     "year": 1981,
+     "url": "https://books.google.com/books?id=zjg5AAAAIAAJ",
+     "licence": "Protected translation; attributed short quotation for research and comparison, subject to review by jurisdiction. Google Books pages shown with Cambridge University Press permission.",
+     "attribution": "Charles Baudelaire, Selected Writings on Art and Artists, translated by P. E. Charvet (Cambridge University Press, 1981), pp. 145, 151–152.",
+     "maker": "codex-2026-11-28-baudelaire-charvet-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q501",
+       "name": {
+        "en": "Charles Baudelaire",
+        "ru": "Шарль Бодлер"
+       },
+       "born": 1821,
+       "died": 1867,
+       "source": "https://www.wikidata.org/wiki/Q501",
+       "evidence": {
+        "file": "wikidata-Q501.json",
+        "sha256": "266d81bd498701ae3ea2eb53f28a0518398c07598b38de8629f4900cdae4af67",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q501.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Charvet, Patrick Edward",
+        "ru": "Charvet, Patrick Edward"
+       },
+       "born": 1903,
+       "died": null,
+       "source": "https://id.loc.gov/authorities/names/n50036240.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-e09dac807b4c10ba.html",
+        "sha256": "b66d0ca5a889f71add6813e918fd4e2777c63597004bc72368f38fd476b2cd10",
+        "url": "https://id.loc.gov/authorities/names/n50036240.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: assess the research and comparative purpose, nature of the translated work, limited amount and market effect for the precise display; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, within extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "normalization": "Preserve the printed words, spelling and punctuation; join only line endings.",
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "66d9139b847f6c737b9312cb58ccb9e3bdd727fb786d7c452435868a9b876aae",
+      "non_substantial": "Three distinct excerpts containing five complete sentences and 131 words in all are used to compare specific conceptions with the French original; the translated essay spans pp. 140–161 of a much larger collection. They include central definitions, but do not reproduce the sustained argument, examples or analysis, and the extent is limited to what the comparison needs.",
+      "normal_exploitation": "The source-linked educational research places these short passages beside the original and its own conceptual interpretation; they cannot replace the full translated essay or book, whose commentary, examples and literary development remain necessary, and they do not displace the publisher’s ordinary market.",
+      "source_integrity": "The selected sentences follow the publisher-authorized Cambridge page images exactly, preserving wording, spelling and punctuation, with no typographic emphasis in these English passages. Baudelaire, translator P. E. Charvet, the 1981 edition and each printed page are credited."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Charles Baudelaire",
+        "ru": "Шарль Бодлер"
+       },
+       "qid": "Q501",
+       "source": "https://www.wikidata.org/wiki/Q501",
+       "born": [
+        {
+         "time": "+1821-04-09T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1867-08-31T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Charvet, Patrick Edward",
+        "ru": "Charvet, Patrick Edward"
+       },
+       "source": "https://id.loc.gov/authorities/names/n50036240.json",
+       "born": [
+        {
+         "year": 1903
+        }
+       ],
+       "died": []
+      }
+     ]
     }
    },
    "absent": [],
    "unsearched": [
     {
      "language": "ru",
-     "reason": "No translation is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
      "reason": "No translation is taken in this pass: the line plants the original first."
     }
    ]
@@ -15968,15 +16098,21 @@
      "en": "§ III, p. 367"
     },
     "texts": {
-     "fr": "Aussi, il fallait dire : Le rire vient de l’idée de sa propre supériorité."
+     "fr": "Aussi, il fallait dire : Le rire vient de l’idée de sa propre supériorité.",
+     "en": "And so the way it should have been put is: Laughter comes from a man’s idea of his own superiority."
     },
     "links": {
-     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n375/mode/1up"
+     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n375/mode/1up",
+     "en": "https://books.google.com.mx/books/content?id=zjg5AAAAIAAJ&hl=ru&pg=PA145&img=1&zoom=3&sig=ACfU3U1x3cVc9Cts2VrRsyY9V-IQdoQ5fA&w=1280"
     },
     "refs": [
      [
       "fr",
       "Curiosités esthétiques (Paris, 1868), p. 367"
+     ],
+     [
+      "en",
+      "Charles Baudelaire, Selected Writings on Art and Artists, translated by P. E. Charvet (Cambridge University Press, 1981), pp. 145, 151–152., p. 145"
      ]
     ]
    },
@@ -15986,15 +16122,21 @@
      "en": "§ V, p. 374–375"
     },
     "texts": {
-     "fr": "Le comique est, au point de vue artistique, une imitation ; le grotesque, une création. Le comique est une imitation mêlée d’une certaine faculté créatrice, c’est-à-dire d’une idéalité artistique."
+     "fr": "Le comique est, au point de vue artistique, une imitation ; le grotesque, une création. Le comique est une imitation mêlée d’une certaine faculté créatrice, c’est-à-dire d’une idéalité artistique.",
+     "en": "From the artistic point of view, the comic is an imitation; the grotesque, a creation. The comic is an imitation mixed with a certain degree of creative capacity, or, in other words, of artistic ideality."
     },
     "links": {
-     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n382/mode/1up"
+     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n382/mode/1up",
+     "en": "https://books.google.com.mx/books/content?id=zjg5AAAAIAAJ&hl=ru&pg=PA151&img=1&zoom=3&sig=ACfU3U04KhwOdjwTaG6hpJtZLHSwXdHbZg&w=1280"
     },
     "refs": [
      [
       "fr",
       "Curiosités esthétiques (Paris, 1868), pp. 374–375"
+     ],
+     [
+      "en",
+      "Charles Baudelaire, Selected Writings on Art and Artists, translated by P. E. Charvet (Cambridge University Press, 1981), pp. 145, 151–152., p. 151"
      ]
     ]
    },
@@ -16004,15 +16146,21 @@
      "en": "§ V, p. 375–376"
     },
     "texts": {
-     "fr": "J’appellerai désormais le grotesque comique absolu, comme antithèse au comique ordinaire, que j’appellerai comique significatif. Le comique significatif est un langage plus clair, plus facile à comprendre pour le vulgaire, et surtout plus facile à analyser, son élément étant visiblement double : l’art et l’idée morale ; mais le comique absolu, se rapprochant beaucoup plus de la nature, se présente sous une espèce une, et qui veut être saisie par intuition."
+     "fr": "J’appellerai désormais le grotesque comique absolu, comme antithèse au comique ordinaire, que j’appellerai comique significatif. Le comique significatif est un langage plus clair, plus facile à comprendre pour le vulgaire, et surtout plus facile à analyser, son élément étant visiblement double : l’art et l’idée morale ; mais le comique absolu, se rapprochant beaucoup plus de la nature, se présente sous une espèce une, et qui veut être saisie par intuition.",
+     "en": "From now on I shall refer to the grotesque as the absolute comic, in contrast to the ordinary comic, which I shall call the significative comic. The significative comic speaks a language that is clearer, easier for the common man to understand, and especially easier to analyse, its element being obviously double: art and the moral idea; but the absolute comic, coming as it does much closer to nature, appears as a unity that must be grasped intuitively."
     },
     "links": {
-     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n383/mode/1up"
+     "fr": "https://archive.org/details/curiositsesthti00baudgoog/page/n383/mode/1up",
+     "en": "https://books.google.com.mx/books/content?id=zjg5AAAAIAAJ&hl=ru&pg=PA152&img=1&zoom=3&sig=ACfU3U3HEl7kWZMMmBVAraP-KmgbGTuiUA&w=1280"
     },
     "refs": [
      [
       "fr",
       "Curiosités esthétiques (Paris, 1868), pp. 375–376"
+     ],
+     [
+      "en",
+      "Charles Baudelaire, Selected Writings on Art and Artists, translated by P. E. Charvet (Cambridge University Press, 1981), pp. 145, 151–152., p. 152"
      ]
     ]
    },
