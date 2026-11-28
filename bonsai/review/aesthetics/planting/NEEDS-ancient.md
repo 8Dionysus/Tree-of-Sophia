@@ -147,3 +147,16 @@ against files already present, even when state is missing, stale, or an
 interrupted reader has not yet been recorded. Preserve existing evidence and
 concurrent readers; report a failure instead of overwriting. A new output
 directory is the interim workaround, not a recovery of the lost log.
+
+## Pliny witness: repair unsupported legacy participants
+
+On fresh main `d5471497`, the Pliny retake confirmed that
+`witness-person-remove` requires a QID. The three original English witness
+participant records are strings without QIDs, while independently sourced
+structured participants were subsequently added alongside them. The supported
+command cannot select the unsupported records, so the witness gate still
+fails. Please provide an auditable correction for these exact pre-existing
+records without deleting the evidenced participants or changing the source
+witness. The packet also reports a separate imprecise-death-date mismatch and
+an English two-page image binding to resolve; Spanish and other translations
+remain unfinished.
