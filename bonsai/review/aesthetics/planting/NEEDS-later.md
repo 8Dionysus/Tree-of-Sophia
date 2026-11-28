@@ -157,3 +157,32 @@ it to Lovecraft. Please provide an evidence-bound representation of this case,
 so both sentence completeness and exact source punctuation can be reviewed.
 The parent work, this partial Spanish witness, the Mexico quotation assessment,
 and the remaining language searches are not yet accepted.
+
+## Recover a source scan binding after external page registration — 28 November
+
+In the local `george-santayana.the-sense-of-beauty` packet the maker compared
+both places against page-indexed Archive OCR, then used `kit.py page --file`
+with an image from that very Archive scan. This assigns the synthetic
+`external` scan to each place; `scan` changes only the default, `image` uses
+`setdefault`, `cut` retains the old binding, and `scan-withdraw external`
+refuses while places reference it. `compare` consequently does not use the
+available Archive OCR even when `find` locates the same text in the named
+scan. Please provide a source-evidenced, history-preserving kit command to
+rebind a place to an already registered scan, retaining its page images and
+requiring recomparison and a fresh second reading. Do not treat a supported
+rebind as proof of textual agreement. The local packet remains blocked; its
+translations and independent review are incomplete.
+
+## Spanish opening question mark in complete quotations — 28 November
+
+The local Croce Spanish witness now has a complete question at `I p11b`,
+from Sánchez-Rojas 1912 printed p. 55 (PDF p. 55): the printed sentence starts
+`¿Cómo ...?`. The independent second reader checked the page and the Italian
+alignment, but `witness-gate --second --accept` rejects it as lacking an
+uppercase or uncased initial. `sentences` strips `OPENING` before testing the
+first letter, and `OPENING` does not include the Spanish inverted question
+mark `¿` (the corresponding `¡` also needs consideration). Please support
+faithful complete Spanish punctuation in the owner's sentence validator, with
+appropriate focused coverage. Do not drop `¿` or alter the witness to pass.
+The witness remains unaccepted until the owner fix and renewed gate; the
+parent packet and other languages remain incomplete.
