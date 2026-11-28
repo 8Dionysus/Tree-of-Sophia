@@ -2864,6 +2864,37 @@
      "corrections": []
     }
    },
+   "friedrich-schiller.ueber-naive-und-sentimentalische-dichtung": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-naive-und-sentimentalische-dichtung/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-naive-und-sentimentalische-dichtung/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "5ec48462b7b6930391a158cc3ddd3f4ec9308e06c65815fa2b0f9866fdfbd8b8",
+        "non_substantial": "One complete sentence of 15 words out of Aczel’s substantial thesis and a single formulation from his series of Schiller translations. Its conceptual importance is acknowledged; the whole sentence is needed to compare the contrast with the German original, and cumulative use requires reassessment.",
+        "normal_exploitation": "The attributed research comparison alongside the German sentence does not replace the thesis, its argument or a complete translated essay. Actual presentation, cumulative quotations and any commercial use may change this assessment.",
+        "source_integrity": "The exact English words and full stop of printed p. 71 are preserved; the outer quotation marks enclose a longer discontinuous passage and are omitted. Schiller, translator Aczel, the 1990 thesis, page and translator statement in n. 81 p. 308 are identified."
+       },
+       "review": {
+        "reader": "terra-2026-11-28-schiller-aczel-second",
+        "date": "2026-11-28",
+        "sha256": "841cbe42da4011ee3301cf563cbc1539db5e35993fcd0311711dbcbb82ac4627",
+        "assessment": "I independently read the exact source-bound pages and the German original. This 15-word complete sentence is needed to compare the contrast and small relative to the thesis and Aczel’s series of translations, with its conceptual importance acknowledged. In the attributed research context it does not substitute for the thesis or translated essay. The exact words and printed stop are preserved with external quotation marks removed; Schiller, Aczel and the source pages are identified. This is specific to the stated use, not an open licence or blanket permission."
+       }
+      }
+     ]
+    }
+   },
    "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie": {
     "en": {
      "absent": {
@@ -5430,6 +5461,106 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, Über naive und sentimentalische Dichtung, translated by Richard Louis Aczel in National Character and European Identity in Hungarian Literature 1772–1848, doctoral thesis, University of London, 1990, p. 71 and note 81 p. 308.",
+     "year": 1990,
+     "url": "https://discovery.ucl.ac.uk/id/eprint/10124290/1/National_character_and_Europea.pdf",
+     "licence": "Publicly accessible university repository copy; the 1990 translation is assessed as a limited quotation, not assumed to be public domain or under an open licence.",
+     "attribution": "Friedrich Schiller, translated by Richard Louis Aczel, National Character and European Identity in Hungarian Literature 1772–1848 (University of London thesis, 1990), p. 71 and note 81 p. 308.",
+     "maker": "codex-2026-11-28-schiller-aczel-en-maker",
+     "normalization": "Retain the sentence and punctuation printed on p. 71, with the enclosing quotation mark of the longer quotation excluded.",
+     "persons": [
+      {
+       "role": "translator",
+       "qid": "Q122110842",
+       "name": {
+        "en": "Richard Aczel",
+        "ru": "Richard Aczel"
+       },
+       "born": null,
+       "died": null,
+       "source": "https://www.wikidata.org/wiki/Q122110842",
+       "evidence": {
+        "file": "wikidata-Q122110842.json",
+        "sha256": "d009ed3d1f62d29a94115fa80e21e76a66d23c249c8e6b4f1f4ff91a147fb32e",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q122110842.json"
+       }
+      },
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "9e333c4292d89a61a12920139fccff88e85a747899eb8b55b62886a8b68dc6e7",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC section 107: the specific attributed 15-word quotation is for comparative research and criticism of the German source; fair use is contextual and depends on actual presentation and cumulative use. https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d) permits quotation for criticism or review to the extent justified, with source and author, subject to applicable national implementations and actual use. https://eur-lex.europa.eu/eli/dir/2001/29/oj"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1) permits attribution of quotations from lawfully published works for scientific and educational purposes in an amount justified by the purpose. https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "5ec48462b7b6930391a158cc3ddd3f4ec9308e06c65815fa2b0f9866fdfbd8b8",
+      "non_substantial": "One complete sentence of 15 words out of Aczel’s substantial thesis and a single formulation from his series of Schiller translations. Its conceptual importance is acknowledged; the whole sentence is needed to compare the contrast with the German original, and cumulative use requires reassessment.",
+      "normal_exploitation": "The attributed research comparison alongside the German sentence does not replace the thesis, its argument or a complete translated essay. Actual presentation, cumulative quotations and any commercial use may change this assessment.",
+      "source_integrity": "The exact English words and full stop of printed p. 71 are preserved; the outer quotation marks enclose a longer discontinuous passage and are omitted. Schiller, translator Aczel, the 1990 thesis, page and translator statement in n. 81 p. 308 are identified."
+     },
+     "participants": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Richard Aczel",
+        "ru": "Richard Aczel"
+       },
+       "qid": "Q122110842",
+       "source": "https://www.wikidata.org/wiki/Q122110842",
+       "born": [],
+       "died": []
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -5437,10 +5568,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -14715,15 +14842,21 @@
      "en": "Satirical poetry, p. 12"
     },
     "texts": {
-     "de": "In der Satyre wird die Wirklichkeit als Mangel, dem Ideal als der hoͤchſten Realitaͤt gegenuͤber geſtellt."
+     "de": "In der Satyre wird die Wirklichkeit als Mangel, dem Ideal als der hoͤchſten Realitaͤt gegenuͤber geſtellt.",
+     "en": "In satire, reality as a deficiency is set against the ideal as the highest reality."
     },
     "links": {
-     "de": "https://archive.org/details/Horen341795b/page/n649/mode/1up"
+     "de": "https://archive.org/details/Horen341795b/page/n649/mode/1up",
+     "en": "https://discovery.ucl.ac.uk/id/eprint/10124290/1/National_character_and_Europea.pdf"
     },
     "refs": [
      [
       "de",
       "Die Horen, 1795, 12. Stück, p. 12"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, Über naive und sentimentalische Dichtung, translated by Richard Louis Aczel in National Character and European Identity in Hungarian Literature 1772–1848, doctoral thesis, University of London, 1990, p. 71 and note 81 p. 308., 71"
      ]
     ]
    }
