@@ -14,7 +14,7 @@ Every session is `codex exec`, never plan mode and never an app-server turn.
 
 Environment: CODEX (binary), TOS_PLANTING_MODEL, TOS_PLANTING_EFFORT, TOS_PLANTING_OUT (logs and state).
 """
-import argparse,concurrent.futures,datetime,json,os,re,subprocess,sys,threading,time
+import argparse,concurrent.futures,datetime,fcntl,json,os,re,subprocess,sys,tempfile,threading,time
 
 HERE=os.path.dirname(os.path.abspath(__file__));KIT=os.path.join(HERE,'kit.py');PACKETS=os.path.join(HERE,'packets');ROOT=os.path.abspath(os.path.join(HERE,'..','..','..','..'))
 CODEX=os.environ.get('CODEX') or os.path.expanduser('~/.local/bin/codex')
@@ -29,23 +29,52 @@ def now():return datetime.datetime.now().isoformat(timespec='seconds')
 def out(work,*names):
     home=os.path.join(OUT,work);os.makedirs(home,exist_ok=True);return os.path.join(home,*names)
 def state(work,**change):
-    path=out(work,'state.json');value=json.load(open(path)) if os.path.exists(path) else {'work':work,'sessions':[],'tokens':{}}
-    if change:
-        value.update(change);value['at']=now()
-        with open(path,'w') as file:json.dump(value,file,ensure_ascii=False,indent=1)
-    return value
+    path=out(work,'state.json');lock=out(work,'state.lock')
+    with open(lock,'a') as guard:
+        fcntl.flock(guard,fcntl.LOCK_EX)
+        if os.path.exists(path):
+            with open(path) as file:value=json.load(file)
+        else:value={'work':work,'sessions':[],'tokens':{}}
+        if change:
+            session=change.pop('_session',None)
+            if session is not None:
+                value.setdefault('sessions',[]).append(session);total=value.setdefault('tokens',{})
+                for name,count in session.get('tokens',{}).items():total[name]=total.get(name,0)+count
+            value.update(change);value['at']=now()
+            fd,temp=tempfile.mkstemp(prefix='.state-',dir=os.path.dirname(path))
+            try:
+                with os.fdopen(fd,'w') as file:json.dump(value,file,ensure_ascii=False,indent=1)
+                os.replace(temp,path)
+            finally:
+                if os.path.exists(temp):os.unlink(temp)
+        return value
 def kit(*args):
     run=subprocess.run([sys.executable,KIT,*args],capture_output=True,text=True);return run.returncode,(run.stdout+run.stderr).strip()
 
+def reserve_reader_outputs(work,role,start):
+    """Atomically reserve both files; interrupted runs remain evidence, never overwritten."""
+    n=start
+    while True:
+        log=out(work,f'{n:02d}-{role}.jsonl');last=out(work,f'{n:02d}-{role}.md')
+        try:file=open(log,'x')
+        except FileExistsError:n+=1;continue
+        try:
+            with open(last,'x'):pass
+        except FileExistsError:
+            file.close();os.unlink(log);n+=1;continue
+        except BaseException:
+            file.close();os.unlink(log);raise
+        return n,log,last,file
+
 def codex(work,role,prompt,resume=None):
     """One codex exec turn in the packet directory. Returns the thread, whether the usage limit ended it, and its tokens."""
-    st=state(work);n=len(st['sessions'])+1;log=out(work,f'{n:02d}-{role}.jsonl');last=out(work,f'{n:02d}-{role}.md')
+    st=state(work);n,log,last,file=reserve_reader_outputs(work,role,len(st['sessions'])+1)
     if '/extensions/' in work:
         prompt=prompt.replace('../../AGENTS.md','../../../../AGENTS.md').replace('../../MAKER.md','../../../../MAKER.md').replace('../../SECOND-READER.md','../../../../SECOND-READER.md').replace('../../kit.py','../../../../kit.py')
         prompt+='\n\nThis is an extension directory: the K command in the guides means python3 ../../../../kit.py. Read and change this extension only; the accepted parent stays intact.'
     command=[CODEX,'exec']+(['resume',resume] if resume else [])+['--json','-m',MODEL,'-c',f'model_reasoning_effort={EFFORT}','--dangerously-bypass-approvals-and-sandbox','--skip-git-repo-check','-o',last,prompt]
     started=now()
-    with open(log,'w') as file:
+    with file:
         try:code=subprocess.run(command,cwd=os.path.join(PACKETS,work),stdout=file,stderr=subprocess.STDOUT,timeout=TURN).returncode
         except subprocess.TimeoutExpired:code='timeout'
     thread=resume;limit=False;tokens={}
@@ -57,10 +86,7 @@ def codex(work,role,prompt,resume=None):
         if 'usage limit' in message or 'rate limit' in message.lower():limit=message
         for name,value in (event.get('usage') or {}).items():
             if isinstance(value,int):tokens[name]=tokens.get(name,0)+value
-    st=state(work);total=st['tokens']
-    for name,value in tokens.items():total[name]=total.get(name,0)+value
-    st['sessions'].append({'n':n,'role':role,'thread':thread,'resumed':bool(resume),'started':started,'ended':now(),'exit':code,'tokens':tokens,**({'limit':limit} if limit else {})})
-    state(work,sessions=st['sessions'],tokens=total)
+    state(work,_session={'n':n,'role':role,'thread':thread,'resumed':bool(resume),'started':started,'ended':now(),'exit':code,'tokens':tokens,**({'limit':limit} if limit else {})})
     if limit:LIMIT.set()
     return thread,limit
 
@@ -86,6 +112,13 @@ SECOND_ON="""You are the second reader of the packet in this directory (../../AG
 Settle each line as ../../SECOND-READER.md says, then run `python3 ../../kit.py gate . --second` again."""
 
 def have(work,name):return os.path.exists(os.path.join(PACKETS,work,name))
+def reopen_findings(work):
+    path=os.path.join(PACKETS,work,'reopen-history.json')
+    if not os.path.isfile(path):return ''
+    with open(path,encoding='utf-8') as file:history=json.load(file)
+    if not isinstance(history,list):raise ValueError('invalid reopen history')
+    return '\n'.join(f'{index}. {item.get("finding", "invalid finding")}' for index,item in enumerate(history,1))
+
 OUTSIDE=('limit','line-broken')          # ends that say nothing about the packet: it goes on from where it stands
 
 def until_open(work,role,first,again,turns,second=False,thread=None):
@@ -128,25 +161,53 @@ def run(work,retake=False):
         owes=not shut and bool(re.search(r'gate: open, owes [1-9]',gate_text))
         if (retake and disputed(work)) or shut or owes:          # an open gate without owes goes straight to its second reader
             first=MAKER.format(work=work)+('\n\n'+RETAKE if retake and disputed(work) else '')+('\n\n'+OWES.format(gate='\n'.join(gate_text.splitlines()[:60])) if owes else '')
+            findings=reopen_findings(work)
+            if findings:first+='\n\nAddress each recorded reopening finding using kit.py reopen-response before handoff:\n'+findings
             maker,got=until_open(work,'maker',first,MAKER_ON,MAKER_TURNS)
             if got=='blocked':return run(work)                   # the block gets its second look
             if got!='open':return end(got if got in OUTSIDE else 'maker-stuck')
     for round_ in range(1,RETURNS+2):
         review=os.path.join(PACKETS,work,'review.json')
         if os.path.exists(review):os.replace(review,out(work,f'review-{round_-1}.json'))
-        _,got=until_open(work,'second',SECOND.format(work=work),SECOND_ON,SECOND_TURNS,second=True)
+        findings=reopen_findings(work)
+        second_prompt=SECOND.format(work=work)+(('\n\nIndependently assess every reopening finding using kit.py reopen-review after completing the packet review:\n'+findings) if findings else '')
+        _,got=until_open(work,'second',second_prompt,SECOND_ON,SECOND_TURNS,second=True)
         if got!='open':return end(got if got in OUTSIDE else 'second-stuck')
         if json.load(open(review)).get('accept'):
             code,text=kit('accept',os.path.join(PACKETS,work),'--by','planting-line')
             return end('accepted' if code==0 else 'accept-failed',note=text[-300:])
         if round_<=RETURNS:
-            maker,got=until_open(work,'maker',MAKER_BACK,MAKER_ON,MAKER_TURNS,thread=maker)
+            feedback=kit('gate',os.path.join(PACKETS,work))[1]
+            maker,got=until_open(work,'maker',MAKER_BACK+'\n\nCurrent gate findings:\n'+feedback,MAKER_ON,MAKER_TURNS,thread=maker)
             if got!='open':return end(got if got in OUTSIDE or got=='blocked' else 'maker-stuck')
     answer=json.load(open(review))
+    if re.search(r'^- reopen \d+: second reader found the issue unresolved',kit('gate',os.path.join(PACKETS,work))[1],re.M):return end('reopen-disputed')
     if any(item.get('reads')!='as the packet' for item in answer.get('images') or []):return end('page-disputed')
     code,text=kit('settle',os.path.join(PACKETS,work))
     reading=json.load(open(os.path.join(PACKETS,work,'reading.json')))
     if code or not reading['conceptions']:return end('disputed',note=text[-300:])
+    findings=reopen_findings(work)
+    if findings:
+        # Settling changes the scope that was assessed. The maker must address
+        # each finding on the reduced reading and a fresh reader must review it.
+        prompt=MAKER_BACK+'\n\nThe line settled disputed items under left. Address every reopening finding again on this exact settled reading with kit.py reopen-response:\n'+findings
+        maker,got=until_open(work,'maker',prompt,MAKER_ON,MAKER_TURNS,thread=maker)
+        if got!='open':return end(got if got in OUTSIDE or got=='blocked' else 'maker-stuck')
+        # Preserve the preceding review before a fresh independent assessment.
+        n=1
+        while True:
+            prior=out(work,f'review-settled-{n}.json')
+            try:
+                with open(prior,'x') as saved,open(review) as original:saved.write(original.read())
+                break
+            except FileExistsError:n+=1
+        os.unlink(review)
+        prompt=SECOND.format(work=work)+'\n\nIndependently assess every reopening finding on the settled reading using kit.py reopen-review after completing the packet review:\n'+findings
+        _,got=until_open(work,'second',prompt,SECOND_ON,SECOND_TURNS,second=True)
+        if got!='open':return end(got if got in OUTSIDE else 'second-stuck')
+        answer=json.load(open(review))
+        if not answer.get('accept'):return end('reopen-disputed')
+        reading=json.load(open(os.path.join(PACKETS,work,'reading.json')))
     basis=f"Made by {reading['reader']['id']}; read a second time by {answer['reader']['id']}, who confirms the {len(reading['conceptions'])} conceptions and {len(reading['links'])} links kept. What the second reader does not confirm after {RETURNS} returns to the maker is under left, marked disputed."
     code,text=kit('accept',os.path.join(PACKETS,work),'--by','planting-line','--basis',basis)
     return end('accepted-in-part' if code==0 else 'accept-failed',note=text[-300:])

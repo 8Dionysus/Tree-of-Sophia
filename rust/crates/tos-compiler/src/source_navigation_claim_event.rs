@@ -21,7 +21,7 @@ use crate::{
         supplied_bibliographic_evidence, supplied_bibliographic_identity,
         supplied_bibliographic_maker_with_fallback, supplied_claim_navigation_descriptor,
     },
-    source_bibliographic_render::digest as source_digest,
+    source_bibliographic_render::{digest as source_digest, receipt_request_digest_matches},
     source_bibliographic_selected_files::SelectedBibliographicFilesV1,
     source_bibliographic_versions::resolve_selected_claim_version_v1,
     source_navigation_event::{
@@ -4738,17 +4738,14 @@ fn validate_claim_history(
         let request = receipt
             .get("request")
             .ok_or(Error::Invalid("navigation Claim history request"))?;
-        let expected_request_digest = format!(
-            "sha256:{}",
-            source_digest(request, limits.catalog.max_row_bytes)?
-        );
+        let request_digest_matches =
+            receipt_request_digest_matches(receipt, request, limits.catalog.max_row_bytes)?;
         if !commands.insert(command)
             || previous.get("id") != successor.get("id")
             || previous_version.checked_add(1) != Some(successor_version)
             || request.get("operation").and_then(Value::as_str) != Some("claim.revise")
             || receipt.get("grants_admission") != Some(&Value::Bool(false))
-            || receipt.get("request_digest").and_then(Value::as_str)
-                != Some(expected_request_digest.as_str())
+            || !request_digest_matches
         {
             return Err(Error::Invalid("navigation Claim history transition shape"));
         }
