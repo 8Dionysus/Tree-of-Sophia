@@ -4483,12 +4483,15 @@ compatible.
   proposals to one exact predecessor, preserving everything outside them;
 - `text-layer.normalize`: actually execute one declared NFC, NFD, NFKC or NFKD
   transformation under the named declared Unicode database version;
+- `text-layer.normalize-editorial`: apply only explicitly supplied,
+  digest-bound ordered edits under the versioned editorial policy; it performs
+  no spelling inference or implicit text changes;
 - `text-layer.record-transcription`: record supplied manual or model
   transcription bytes, without executing the reported upstream transcription;
 - `text-layer.record-ocr`: record supplied OCR bytes, without launching an OCR
   engine or producing an OCR execution receipt.
 
-All four create a new private `source-text-layer.v1.json`, never an update to
+All five create a new private `source-text-layer.v1.json`, never an update to
 the input. Correction/normalization has one exact predecessor, a new opaque
 layer identity, version `previous.layer_version + 1`, and `supersedes_layer_ref`
 equal to the predecessor identity. The raw predecessor record/content and
@@ -4507,18 +4510,55 @@ refs/digests, manifest digest, language, maker and limits. The differences are:
   Existing source anchors keep their identities and exact bytes.
 - `derivation_access` keeps separate current authority, expiry, visibility and
   exact rights bindings, with `operation` equal to `correction`,
-  `unicode_normalization`, `manual_transcription`, `model_transcription` or
-  `ocr` as selected by the fixed policy. Both Item/File and the **new layer**
+  `unicode_normalization`, `editorial_normalization`,
+  `manual_transcription`, `model_transcription` or `ocr` as selected by the
+  fixed policy. Both Item/File and the **new layer**
   need their own applicable existing derivation-rights basis.
-- `policy` must equal `source_text_layer_proposal.derivation_policy(operation,
-  unicode_form=...)`. Normalization requires an explicit supported form; other
-  operations use `none`. For `record-transcription`, the optional
+- `policy` must match the fixed operation profile in
+  `source_text_layer_derived_proposal.rs`. The editorial profile is shown below.
+  Unicode normalization requires an explicit supported form.
+  Editorial normalization uses `editorial` and its separate versioned
+  `editorial_normalization_policy`; other operations use `none`. For
+  `record-transcription`, the optional
   `transcription_method` selects `manual_transcription` (default) or
-  `model_transcription`. This helper returns the supported versioned policy values. Normalization maker must be software, with method
-  `tos.unicode.normalize.v1` and version equal to the policy's actual Unicode
+  `model_transcription`. This helper returns the supported versioned policy values. Unicode normalization
+  maker must be software, with method `tos.unicode.normalize.v1` and version equal to the policy's actual Unicode
   database version.
 - `member` and `selector` do not occur in this grant. `input` and `material`
   have the exact operation-specific shapes below.
+
+For `text-layer.normalize-editorial`, the exact `policy` value is:
+
+```json
+{
+  "schema_version": "tos_native_text_layer_derivation_policy_v1",
+  "operation": "text-layer.normalize-editorial",
+  "method": "editorial_normalization",
+  "encoding": "UTF-8-strict",
+  "text_max_bytes": 131072,
+  "edits_max_count": 256,
+  "input_scope": "whole-exact-representation",
+  "unicode_normalization": "editorial",
+  "unicode_database_version": null,
+  "edits": "ordered-explicit-half-open-code-point-proposals-no-diff",
+  "whitespace": "unchanged-except-explicit-edits-or-selected-Unicode-form",
+  "result_origin": "applied-explicit-editorial-edits",
+  "provider_execution_verified": false,
+  "source_layout_fidelity": "not-assessed",
+  "quality_assessment": "not-performed",
+  "inherited_quality": "not-transferred",
+  "uncertainty": "source-annotations-retained-without-resolution",
+  "editorial_normalization_policy": {
+    "schema_version": "tos_native_editorial_normalization_policy_v1",
+    "policy_id": "tos.editorial-normalization.explicit-edits",
+    "policy_version": 1,
+    "scope": "apply-only-explicit-digest-bound-ordered-edits",
+    "implicit_changes_allowed": false,
+    "preserve_unmentioned_input": true,
+    "acceptance": "separate-source-visible-review-required"
+  }
+}
+```
 
 For correction/normalization, `input` is `{kind: "text_layer", binding: ...}`,
 where the binding uses existing `tos_native_text_layer_binding_v1` and agrees
@@ -4529,7 +4569,8 @@ must be the whole exact UTF-8 representation with scope `[0, length)` and the
 same source/language as the new layer. Its own recorded rights are checked
 before its content is opened. No original payload is opened by these methods.
 
-Correction `material` is `{edits: [...]}`. Each edit has exactly `start`, `end`,
+Correction and editorial normalization `material` is `{edits: [...]}`. Each
+edit has exactly `start`, `end`,
 `input_exact`, `input_sha256`, `output_exact`, `reason`, and `confidence` in
 `[0, 1]`. Spans are ordered, nonoverlapping, half-open Unicode code points;
 the input bytes/digest must match the predecessor. Insert/delete/replace are
@@ -4540,12 +4581,26 @@ status. Review status records the separate source-visible assessment, while make
 records the correction supplier. Source-near correction of an already normalized layer is unsupported;
 it cannot silently erase that predecessor's normalization posture.
 
-Normalization `material` is `{}`. The executor records one explicit whole-text
+Unicode normalization `material` is `{}`. The executor records one explicit whole-text
 Unicode operation, including when the result bytes happen to be unchanged.
 The receipt records the applied normalization. The new layer is
 `normalized_text`; source fidelity and diplomatic fidelity require separate
 assessment. No trimming, whitespace collapse or unrelated editorial
 rewrite is performed.
+
+Editorial normalization uses the same digest-bound edit shape, with at most
+256 ordered, nonoverlapping half-open code-point edits. Each edit binds the
+exact predecessor substring and its SHA-256; output preserves every
+unmentioned byte. The version 1 policy forbids implicit changes. The
+predecessor must be unnormalized and remains retained unchanged. Its private
+successor is a `normalized_text` layer with
+`character_normalization: "editorial"` and `editorial_reading` as its
+preservation goal. This operation adds no public grant, review, acceptance or
+publication authority.
+The public bibliographic TextUnit compiler continues to reject `owner-local`
+paths; it does not consume this private derivative or publish a TextUnit from
+it. Private comparison uses the separate owner assessment and retained-layer
+resolution routes.
 
 For supplied OCR/transcription, `input` is `{kind: "acquired_file", anchor:
 {anchor_id, record_ref, record_sha256}}`. The existing v2 anchor must bind the
@@ -4570,7 +4625,8 @@ It cannot substitute a declared provider name for observed execution evidence.
 ##### Bounds, retained evidence and downstream route
 
 Input and output text are each at most 128 KiB, further narrowed by the grant;
-correction has at most 128 edits, with per-reason length bounded at 2,048
+correction has at most 128 edits and editorial normalization at most 256,
+with per-reason length bounded at 2,048
 characters. This also bounds explicit input/output strings in the layer record.
 No quadratic edit search runs. Original acquired Files retain the 512 MiB
 streamed-fixity ceiling; no image/PDF decompression or provider process is run.

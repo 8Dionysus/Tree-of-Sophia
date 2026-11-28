@@ -28,6 +28,10 @@ impl Resolver<'_, '_, '_> {
         } else {
             "ToS/source-witnesses/"
         };
+        // This public TextUnit compiler intentionally excludes `owner-local`
+        // packages. Private editorial normalization stays on the private
+        // assessment/retained-resolution route and cannot flow into public
+        // TextUnit generation through this metadata adapter.
         if !reference.starts_with(home)
             || reference.len() > 4096
             || reference.contains(['\\', '\0'])
@@ -647,6 +651,21 @@ impl Resolver<'_, '_, '_> {
         // No content read occurs. The sealed source cut, exact byte hashes and
         // private catalog receipt retain currentness; no assessment is applied.
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod private_path_tests {
+    use super::*;
+
+    #[test]
+    fn public_bibliographic_compiler_refuses_private_owner_local_layers() {
+        assert!(Resolver::path(
+            "ToS/source-witnesses/owner-local/sid-private/layers/layer/source-text-layer.v1.json",
+            false,
+            false,
+        )
+        .is_err());
     }
 }
 

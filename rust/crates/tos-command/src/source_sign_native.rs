@@ -18,6 +18,7 @@ const MAX_METADATA_BYTES: usize = 8_388_608;
 const MAX_CONTENT_BYTES: usize = 8_388_608;
 const MAX_DERIVED_TEXT_BYTES: usize = 131_072;
 const MAX_EDITS: usize = 128;
+const MAX_EDITORIAL_EDITS: usize = 256;
 const ASSESSMENT_SCHEMA: &str = "native-text-unit-assessment-subject.schema.json";
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 
@@ -920,6 +921,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         let ordinary = match operation {
             "text-layer.correct" => "correction",
             "text-layer.normalize" => "unicode_normalization",
+            "text-layer.normalize-editorial" => "editorial_normalization",
             "text-layer.record-transcription" => "manual_transcription",
             "text-layer.record-ocr" => "ocr",
             _ if observed => "ocr",
@@ -950,7 +952,10 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             Some(cmd::text(policy_ref, "policy_sha256")?),
         )?;
         let method = cmd::text(derivation, "method")?;
-        let role = if operation == "text-layer.normalize" {
+        let role = if matches!(
+            operation,
+            "text-layer.normalize" | "text-layer.normalize-editorial"
+        ) {
             "normalized_text"
         } else if operation == "text-layer.record-ocr" || observed {
             "raw_ocr"
@@ -1003,7 +1008,13 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                 "derived native layer differs from retained exact configuration",
             ));
         }
-        if ["text-layer.correct", "text-layer.normalize"].contains(&operation) {
+        if [
+            "text-layer.correct",
+            "text-layer.normalize",
+            "text-layer.normalize-editorial",
+        ]
+        .contains(&operation)
+        {
             let binding = cmd::field(cmd::field(config, "input")?, "binding")?;
             let target = cmd::field(binding, "text_layer")?;
             if previous.len() != 1 {
@@ -1044,12 +1055,14 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                     "derived native predecessor version lineage or source scope differs",
                 ));
             }
-            if operation == "text-layer.correct"
-                && (cmd::text(prior, "layer_role")? == "normalized_text"
-                    || cmd::text(
-                        cmd::field(prior, "representation")?,
-                        "character_normalization",
-                    )? != "none")
+            if matches!(
+                operation,
+                "text-layer.correct" | "text-layer.normalize-editorial"
+            ) && (cmd::text(prior, "layer_role")? == "normalized_text"
+                || cmd::text(
+                    cmd::field(prior, "representation")?,
+                    "character_normalization",
+                )? != "none")
             {
                 return Err(SourceCommandError::Denied(
                     "source-near native correction cannot erase predecessor normalization",
@@ -1346,7 +1359,13 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             .ok_or(SourceCommandError::Invalid(
                 "retained derived native content operation",
             ))?;
-        if !["text-layer.correct", "text-layer.normalize"].contains(&operation) {
+        if ![
+            "text-layer.correct",
+            "text-layer.normalize",
+            "text-layer.normalize-editorial",
+        ]
+        .contains(&operation)
+        {
             if text.len() as u64 != cmd::integer(cmd::field(&config, "material")?, "byte_size")? {
                 return Err(SourceCommandError::Conflict(
                     "native supplied result size differs from retained material",
@@ -1380,9 +1399,14 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         })?;
         let changes = cmd::field(cmd::field(layer, "derivation")?, "change_payload")?;
         let operations = cmd::array(changes, "operations")?;
+        let max_edits = if operation == "text-layer.normalize-editorial" {
+            MAX_EDITORIAL_EDITS
+        } else {
+            MAX_EDITS
+        };
         if cmd::text(changes, "kind")? != "explicit_operations"
             || operations.is_empty()
-            || operations.len() > MAX_EDITS
+            || operations.len() > max_edits
         {
             return Err(SourceCommandError::Invalid(
                 "native derived changes leave exact explicit operation profile",
