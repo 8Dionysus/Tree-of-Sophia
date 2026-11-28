@@ -1102,6 +1102,11 @@
       "candidates": [],
       "searches": [
         {
+          "service": "Google Books publisher preview, operator visual inspection in IAB",
+          "url": "https://books.google.com/books?id=e4a5-ItuU1oC",
+          "result": "Hackett Publishing illustrated reprint 1976, 277 pages, ISBN 9780915144341. Operator personally viewed printed pages 111 and 120; reading access is not a grant of reproduction rights. See empty-browser.md; other languages and applicable rights remain to be investigated."
+        },
+        {
           "service": "OpenAlex title search",
           "query": "Languages of Art",
           "url": "https://api.openalex.org/works?search=Languages+of+Art&per-page=3",
@@ -1911,6 +1916,12 @@
           "born": 1924,
           "died": 2013,
           "dates_source": "https://www.wikidata.org/wiki/Special:EntityData/Q365129.json"
+        },
+        {
+          "role": "translator (Spanish edition)",
+          "name": "Jorge Roaro",
+          "dates": "unverified",
+          "source": "https://studiahumanitatis.eu/ojs/index.php/disputatio/es/article/view/danto-mundo"
         }
       ],
       "jurisdiction_basis": {
@@ -1923,7 +1934,7 @@
         "original": "unverified",
         "ru": "unverified",
         "en": "unverified",
-        "es": "unverified",
+        "es": "candidate: full Spanish translation by Jorge Roaro, Disputatio 2013, pp. 53–71; page-level alignment and rights assessment pending",
         "de": "unverified",
         "zh-Hans": "unverified"
       },
@@ -1931,6 +1942,10 @@
         {
           "url": "https://www.helsinki.fi/assets/drupal/2024-03/Danto-Artworld-1964.pdf",
           "observation": "University-hosted PDF returned HTTP 200; 473,895 bytes; SHA-256 7fc793014704b7c84ed276fe364813ceb5ab09a213d06d899b681165602968b0. Its first page identifies the Journal of Philosophy, 1964, pp. 571–584; extraction contains text. Compare registered pp. 579–584 against page images; reuse permissions require separate assessment."
+        },
+        {
+          "url": "https://studiahumanitatis.eu/ojs/index.php/disputatio/article/download/danto-mundo/349",
+          "observation": "Publisher PDF returned HTTP 200; 361,625 bytes; SHA-256 3a8ae5c7a54520d145eb890ef9f10ed16eb37ead862e4029c7dcb2fc21995b98. Title identifies Jorge Roaro as translator, Disputatio 2013, pp. 53–71; the PDF abstract describes the translation as complete. The publisher article page links CC BY-NC-ND 4.0; PDF title mentions Creative Commons without version. Compare each selected place against page images and assess licence applicability and rights of author and translator separately."
         }
       ],
       "participants_incomplete": true,
@@ -2623,6 +2638,11 @@
       "participants_incomplete": true,
       "searches": [
         {
+          "service": "Google Books publisher preview, operator visual inspection in IAB",
+          "url": "https://books.google.co.uk/books?id=SXpMC9416y4C&pg=PA110",
+          "result": "Oxford University Press 1958 reprint, ISBN 9780195002096: operator personally viewed printed page 110, distinguishing expression of emotion from discharge. Page 128 displayed a page number but its image could not be captured. Reproduction basis remains to be established."
+        },
+        {
           "service": "OpenAlex title search",
           "query": "The Principles of Art",
           "url": "https://api.openalex.org/works?search=The+Principles+of+Art&per-page=3",
@@ -3215,6 +3235,10 @@
         {
           "url": "https://commons.pacificu.edu/downloads/m5w7f-bce79/saito_a9928ca7-f990-465d-b8c1-0dd36ec3e702.pdf",
           "observation": "Repository PDF, 21 leaves, SHA-256 a8ae67bc0bc156a4b71838dc8d71e805498aec9ae805f7c5e931b7dffc4f7758; visual check leaf 5 contains II.i Japan and opening of utamakura passage, leaf 6 continues it and starts II.ii United States. It is a web-page capture without verified printed pagination; old PDF numbering cannot be silently assumed. Leaf 21 visually states copyright 2002 Humboldt State University; this identifies a claimed rights holder and does not itself settle whether a CC licence was later granted."
+        },
+        {
+          "url": "https://commons.pacificu.edu/works/publication-article/m5w7f-bce79",
+          "observation": "2026-11-27 operator app-browser inspection: Pacific Repository identifies Essays in Philosophy 3(1), 2002, publisher Pacific University Libraries and copyright 2002 Humboldt State University. Its embedded 21-page PDF viewer loaded text on leaves 1–2; no specific open licence was stated in the displayed article metadata. This does not establish reuse rights or a reading of the target leaves."
         }
       ],
       "participants_incomplete": true,
@@ -5270,6 +5294,10 @@
         {
           "url": "https://catalog.hathitrust.org/Record/000307636",
           "observation": "HathiTrust Bibliographic API identifies the 1981 French edition by ISBN 2718602104, with University of Michigan copy mdp.39015001806663 marked Limited (search-only) for US rights. This is a holding and restriction for that particular copy, not a finding about other editions or a text witness."
+        },
+        {
+          "url": "https://books.google.com.mx/books/umichpress?id=9Z9biHaoLZIC&pg=PA1",
+          "observation": "2026-11-27 operator app-browser inspection: University of Michigan Press Google Books preview visibly displayed printed page 1, The Precession of Simulacra. Viewer says pages are displayed with publisher permission and not all pages are available. This establishes viewing of this English translation page, not a licence to reproduce it or French original pagination."
         }
       ],
       "searches": [
@@ -7447,6 +7475,11 @@
       "participants_incomplete": true,
       "searches": [
         {
+          "service": "CIDOB official anthology and PDF; visual and file inspection",
+          "url": "https://www.cidob.org/publicaciones/habitar-frontera-sentir-pensar-descolonialidad-antologia-1999-2014",
+          "result": "The publisher's 2015 Habitar la frontera anthology includes Aesthesis descolonial, starting p. 399. Maker compared journal p. 14 with anthology pp. 400 and 402: first passage agrees, second differs in wording and tense. The original publisher PDF SHA-256 is 4ce3373c4a9128db3470f144d94116fd0894a842097b047a631ff22ea587d1c0. Neither access nor edition agreement settles translation rights or quotation conditions."
+        },
+        {
           "service": "OpenAlex title search",
           "query": "Aiesthesis decolonial",
           "url": "https://api.openalex.org/works?search=Aiesthesis+decolonial&per-page=3",
@@ -7572,10 +7605,19 @@
         {
           "url": "https://revistas.uma.es/index.php/contrastes/article/download/11567/11930",
           "observation": "Publisher PDF, SHA-256 80ab5b81a04ca1c94c11f007426a8a6f0337cce67f83719b75b2c89758ef2774; 20 leaves. Compared images: leaf 4 is printed p. 38 and leaf 16 p. 50, within the two register loci. Search for translations and independent reading remain."
+        },
+        {
+          "url": "https://revistas.uma.es/index.php/contrastes/article/view/11567",
+          "observation": "2026-11-27 operator app-browser inspection: journal issue 25(3), 2020, article pp. 35–54, online 2021-01-19; full-text link is explicitly labelled PDF (INGLÉS). The journal licence section specifies CC BY-NC-SA 4.0 for journal content and separately addresses image rights. Applicability of noncommercial and share-alike terms to the proposed use requires review; Spanish title and abstract do not establish a full Spanish translation."
         }
       ],
       "participants_incomplete": true,
       "searches": [
+        {
+          "service": "Contrastes publisher article page, operator inspection in IAB",
+          "url": "https://revistas.uma.es/index.php/contrastes/es/article/view/11567",
+          "result": "For DOI 10.24310/Contrastescontrastes.v25i3.11567 the publisher identifies volume 25(3), 2020, pages 35-54 and online publication 19 January 2021; the PDF is labelled English. The article page states CC BY-NC-SA 4.0 for published content and makes authors responsible for rights in protected images. Earlier 2012 edition, third-party material and the intended noncommercial and share-alike use need separate review."
+        },
         {
           "service": "OpenAlex title search",
           "query": "Everyday Aesthetics and World-Making",
