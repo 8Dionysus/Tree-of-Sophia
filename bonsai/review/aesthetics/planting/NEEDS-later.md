@@ -142,3 +142,18 @@ name object. Please provide a history-preserving kit route to correct or remove
 a source-backed person without a QID, then require renewed independent review.
 The two e-rara page images and initial independent reading are retained in the
 local witness; no acceptance or planting is claimed.
+
+## Complete quotation whose final period follows attribution — 27 November
+
+Lovecraft's Spanish candidate `I p24b` comes from Andrés Torres-Scott's
+translation in footnote 9, printed p. 44 of the UNAM journal article
+https://www.redalyc.org/journal/640/64069682002/64069682002.pdf#page=9.
+The quoted words form the complete original sentence, but the printed period
+follows the parenthetical `(traducción del autor)` outside the closing quotation
+mark. The kit's `witness-gate` requires the stored translation itself to end in
+sentence punctuation. Adding a period to the cited wording would invent a mark;
+including the attribution parenthesis inside the translation would misattribute
+it to Lovecraft. Please provide an evidence-bound representation of this case,
+so both sentence completeness and exact source punctuation can be reviewed.
+The parent work, this partial Spanish witness, the Mexico quotation assessment,
+and the remaining language searches are not yet accepted.
