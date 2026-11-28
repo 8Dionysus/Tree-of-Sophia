@@ -5840,7 +5840,19 @@
       "areas": [
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [{"name": "Nelson Goodman", "role": "author", "birth": 1906, "death": 1998, "evidence": ["https://hollisarchives.lib.harvard.edu/catalog/hua30020"]}],
+      "original_candidates": [
+        {"edition": "Ways of Worldmaking, Hackett, 1978", "publisher": "https://hackettpublishing.com/literature/aesthetics/ways-of-worldmaking", "scholarly_quote": "https://www.pure.ed.ac.uk/ws/portalfiles/portal/186010194/FormilanASM2020StyleTypologies.pdf#page=6", "status": "The researcher read a complete quotation attributed to book p27 in a university manuscript; the selected register range pp32–40 and the book image itself are not verified. Chapter II also appeared as a distinct 1975 article; their page numbers must not be mixed."}
+      ],
+      "translation_candidates": [
+        {"language": "ru", "edition": "Способы создания миров, translated M. V. Lebedev, 2001", "status": "Scholarly quotations found as text-layer candidates; actual book pages and rights not verified. A separate online text says it corrects editorial errors and cannot automatically be identified with print."},
+        {"language": "es", "edition": "Maneras de hacer mundos, translated Carlos Thiebaut, Visor 1990", "catalogue": "https://isegoria.revistas.csic.es/index.php/isegoria/article/download/303/304", "status": "Bibliographical evidence only; target pages and rights unverified."},
+        {"language": "de", "edition": "Weisen der Welterzeugung, translated Max Looser, Suhrkamp 1984", "catalogue": "https://gams.uni-graz.at/o:reko.good.1978", "status": "University record includes other chapters, not the target style passage; rights unverified."}
+      ],
+      "requested_places": ["C:A-I057 style, book pp32–40; precise sentence and edition to be established"],
+      "remaining": "Verify original and translated pages, distinguish the 1975 and 1978 texts, assess rights and search remaining languages. No absence finding."
     },
     {
       "work": "noel-carroll.the-grotesque-today",
@@ -6075,7 +6087,17 @@
       "areas": [
         "AE22"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [{"name": "Richard Wollheim", "role": "author", "birth": 1923, "death": 2003, "evidence": ["https://press.princeton.edu/books/paperback/9780691252292/painting-as-an-art"]}],
+      "original_candidates": [
+        {"edition": "Painting as an Art, Princeton University Press, copyright 1987; 2023 reissue", "publisher": "https://press.princeton.edu/books/paperback/9780691252292/painting-as-an-art", "scholarly_quote": "https://repository.up.ac.za/server/api/core/bitstreams/664d152d-e5e5-4d81-8b89-95a412446527/content", "status": "A Pretoria thesis quotes a complete sentence attributed to book p46, but its pronoun requires surrounding context. The book page, edition alignment and rights remain unverified; the London 1987 edition is separate."}
+      ],
+      "translation_candidates": [
+        {"language": "es", "edition": "La pintura como arte, translated Bernardo Moreno Carrillo, Madrid: Visor, 1997", "catalogue": "https://biblioteca.unap.edu.pe/opac_css/index.php?lvl=notice_display&id=16623", "status": "Catalogued translation; target page and rights unverified."}
+      ],
+      "requested_places": ["C:A-I058 seeing-in, p46 and the distinction between configurational and recognitional aspects"],
+      "remaining": "Verify the cited book edition, complete contextual sentences, contributors and rights; search the other translations. A Chinese translation of Art and Its Objects is a different work. No absence finding."
     },
     {
       "work": "robert-hopkins.picture-image-and-experience",
