@@ -249,3 +249,19 @@ imported attribution through the owning correction process. Until then the
 translator remains unidentified; neither the absence of an attribution on
 inspected pages nor the 1997 book credit proves who translated the 1996 text.
 The local packet and its rights and language searches remain blocked.
+
+## External image command prints an invented Archive link
+
+In `joseph-kosuth.art-after-philosophy`, the maker used `kit.py image ...
+--file` for a local copy of a Studio International page while the selected
+scan was `external`. The command saved an `external-n55.jpg` image without a
+source URL and printed an `archive.org/details/external/page/n55` link even
+though the image is from Studio, not Internet Archive. The maker subsequently
+used `kit.py page` to record the actual Studio URLs; the place links now point
+to Studio, and no Archive provenance is claimed. `cmd_image` currently
+constructs its printed URL unconditionally from the scan item. Please have
+the owner prevent invented Archive links for external scans and preserve or
+request the exact source URL for file-backed images, including an independent
+reader's matching provenance. A printed link or a hash alone does not establish
+source authority. The local packet remains unaccepted; its changed places
+need fresh independent review, a Mexico assessment and language searches.
