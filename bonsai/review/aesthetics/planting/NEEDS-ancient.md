@@ -160,3 +160,20 @@ records without deleting the evidenced participants or changing the source
 witness. The packet also reports a separate imprecise-death-date mismatch and
 an English two-page image binding to resolve; Spanish and other translations
 remain unfinished.
+
+## A translation-source block and original-language OCR
+
+The `aristotle.de-anima` retake verified that the footnote boundary is fixed:
+the English and German witness maker gates now pass. Russian, Spanish and
+Chinese witness searches remain incomplete. A `sources` block explaining
+that those translation pages have not been established was rejected because
+the packet has page-indexed OCR of its Greek original. The check in
+`gate` applies to any OCR scan without considering which language the
+blocked source must supply. Original Greek OCR cannot provide a translated
+witness. The maker recorded a `kit` block with the exact reproduction; the
+blocked state does not claim that any translation is absent.
+
+Please distinguish a missing original transcription, where the OCR fallback
+is appropriate, from an identified translation-source obstacle. Preserve the
+requirement for an actual documented search and do not turn incomplete search
+into a finding of absence.
