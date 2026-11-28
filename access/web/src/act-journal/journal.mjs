@@ -1,6 +1,8 @@
 // The act journal of this browser: records in a store, folds in the shared Rust journal (tos-web-rules,
 // act_journal.rs). Appending happens under one lock per journal, so tabs never give two records the same
-// sequence; a tab that missed records reads them from the store before it appends.
+// sequence; a tab that missed records reads them from the store before it appends. The machine holds only what
+// the store holds: when the store refuses a write, the machine is built again from the stored records before the
+// next act, so the next act takes the next stored sequence and the journal opens whole after a reload.
 import {ACT_KINDS,draftAct} from './drafts.mjs';
 
 let JournalRules=null;
@@ -28,11 +30,11 @@ const failure=error=>new ActJournalError(String(error?.message??error),String(er
 export function createActJournal({store,registry=ACT_KINDS,name='tos-act-journal-v1',locks=globalThis.navigator?.locks,channel=globalThis.BroadcastChannel}={}){
   if(!JournalRules)throw new ActJournalError('act_rules_unavailable','The act journal rules are unavailable.');
   if(!store)throw new ActJournalError('act_store_unavailable','The act store is unavailable.');
-  const machine=new JournalRules(bytes(registry));
+  let machine=new JournalRules(bytes(registry));
   const listeners=new Set();
   const status={loaded:0,damaged:null,persistent:false,warning:null};
   const opened=Promise.resolve(store).then(value=>{store=value;status.persistent=Boolean(value.persistent);status.warning=value.warning??null;});
-  let known=0,disposed=false;
+  let known=0,disposed=false,stale=false;
   const broadcast=channel?new channel(name):null;
 
   // Read every record the machine has not seen yet. A refused stored record marks the journal damaged and stops.
@@ -51,6 +53,22 @@ export function createActJournal({store,registry=ACT_KINDS,name='tos-act-journal
     status.loaded=known;
     return added;
   }
+  // The machine again from the store alone. Until this succeeds the journal stays stale and tries again before
+  // the next act; a stored record it refuses marks the journal damaged, as on opening.
+  async function rebuild(){
+    stale=true;
+    machine.free?.();machine=new JournalRules(bytes(registry));
+    known=0;status.damaged=null;
+    await sync();
+    stale=false;
+  }
+  // Store the acts the machine has just taken; a refused write takes them back out of the machine.
+  async function persist(out){
+    if(!out.length)return;
+    try{await store.put(out.map(item=>({seq:item.seq,id:item.record.id,record:item.record})));}
+    catch(error){await rebuild().catch(()=>{});throw error;}
+    known+=out.length;
+  }
   const serialize=task=>locks?locks.request(name,task):task();
   const notify=detail=>{for(const listener of listeners){try{listener(detail);}catch(error){console.error('Act journal listener',error);}}};
 
@@ -62,6 +80,7 @@ export function createActJournal({store,registry=ACT_KINDS,name='tos-act-journal
     if(disposed)throw new ActJournalError('act_journal_closed');
     await ready;
     return serialize(async()=>{
+      if(stale)await rebuild();
       await sync();
       if(status.damaged)throw new ActJournalError('act_journal_damaged',`The act journal stopped at record ${status.damaged.seq}: ${status.damaged.error}`);
       const out=[];
@@ -69,13 +88,12 @@ export function createActJournal({store,registry=ACT_KINDS,name='tos-act-journal
         let result;
         try{result=parse(machine.append(bytes(draft)));}catch(error){
           // Records already appended in this call stay; the caller learns which draft was refused.
-          if(out.length)await store.put(out.map(item=>({seq:item.seq,id:item.record.id,record:item.record})));
-          known+=out.length;
+          await persist(out);
           const refused=failure(error);refused.index=out.length;refused.appended=out;throw refused;
         }
         out.push(result);
       }
-      if(out.length){await store.put(out.map(item=>({seq:item.seq,id:item.record.id,record:item.record})));known+=out.length;}
+      await persist(out);
       status.loaded=known;
       broadcast?.postMessage({seq:known});
       notify({type:'append',acts:out});

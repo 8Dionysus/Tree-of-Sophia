@@ -6,8 +6,10 @@
 //                                                                   cut the questions of a queue (identity by default; kind, latin,
 //                                                                   dates or living) no packet holds yet into new packets
 //   node bonsai/review/population/line/kit.mjs show <packet> [<item>]   the questions as a reader reads them
-//   node bonsai/review/population/line/kit.mjs gate <packet> [--reader N]   0: open · 1: problems in the verdicts · 3: a fault of the line;
-//                                                                   with --reader, only that reader's problems
+//   node bonsai/review/population/line/kit.mjs gate <packet> [--reader N [--file F]]
+//                                                                   0: open · 1: problems in the verdicts · 3: a fault of the line;
+//                                                                   with --reader, only that reader's problems; --file reads that
+//                                                                   reader's verdicts from F, where drive.mjs keeps them apart
 //   node bonsai/review/population/line/kit.mjs accept <packet> --by <who>   append the verdicts both readers agree on to decisions.jsonl
 //   node bonsai/review/population/line/kit.mjs status
 //
@@ -20,7 +22,7 @@
 
 import {createHash} from 'node:crypto';
 import {appendFileSync,existsSync,mkdirSync,readFileSync,readdirSync,writeFileSync} from 'node:fs';
-import {dirname,join} from 'node:path';
+import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {fold} from '../keys.mjs';
 import {yearTolerance} from '../resolve.mjs';
@@ -333,8 +335,11 @@ export function agreement(entry,one,two){
   return {agreed:true,verdict:'dates',relation:null,value:{birth:settle(one.birth,two.birth),death:settle(one.death,two.death),activity:settleActivity(one.activity,two.activity),living:Boolean(one.living)}};
 }
 
-/** Problems of one packet's verdicts; `fault` marks a problem of the line rather than of a reader. */
-export function gatePacket(packet){
+/**
+ * Problems of one packet's verdicts; `fault` marks a problem of the line rather than of a reader. `files` names a
+ * reader's verdicts kept outside the packet ({1: path}); the packet's own reader-N.jsonl is read otherwise.
+ */
+export function gatePacket(packet,{files={}}={}){
   const problems=[],faults=[];
   if(retired(packet))return {problems,faults:[`${packet} is retired; its open questions are in newer packets`],agreed:[]};
   if(!existsSync(packetFile(packet,'packet.json'))||!existsSync(packetFile(packet,'items.jsonl')))return {problems,faults:['packet.json or items.jsonl is missing (run kit.mjs packets)'],agreed:[]};
@@ -347,7 +352,7 @@ export function gatePacket(packet){
   }
   const answers=[];
   for(const reader of [1,2]){
-    const path=packetFile(packet,`reader-${reader}.jsonl`);
+    const path=files[reader]??packetFile(packet,`reader-${reader}.jsonl`);
     if(!existsSync(path)){problems.push(`reader-${reader}.jsonl is missing`);continue;}
     let lines;
     try{lines=readJsonl(path);}catch(error){problems.push(`reader-${reader}.jsonl: ${error.message}`);continue;}
@@ -510,8 +515,9 @@ function main([command,...args]){
     else if(command==='show'&&args[0])show(args[0],args[1]&&!args[1].startsWith('--')?args[1]:null);
     else if(command==='gate'&&args[0]){
       // A reader sees only its own problems and never whether the other reader agrees.
-      const reader=option('--reader');
-      const {problems,faults,agreed}=gatePacket(args[0]);
+      const reader=option('--reader'),file=option('--file');
+      if(file&&!['1','2'].includes(reader))throw new Error('--file needs --reader 1 or 2');
+      const {problems,faults,agreed}=gatePacket(args[0],{files:file?{[reader]:resolve(file)}:{}});
       for(const fault of faults)console.log(`line: ${fault}`);
       if(faults.length)process.exit(3);
       const shown=reader?problems.filter(problem=>[`reader-${reader} `,`reader-${reader}.`,`reader-${reader}:`].some(prefix=>problem.startsWith(prefix))):problems;
@@ -521,7 +527,7 @@ function main([command,...args]){
     }
     else if(command==='accept'&&args[0]&&option('--by'))accept(args[0],option('--by'));
     else if(command==='status')status();
-    else{console.error(`usage: kit.mjs queues [--check] | packets [--type ${TYPES.join('|')}] [--size N] | show <packet> [<item>] | gate <packet> [--reader N] | accept <packet> --by <who> | status`);process.exit(2);}
+    else{console.error(`usage: kit.mjs queues [--check] | packets [--type ${TYPES.join('|')}] [--size N] | show <packet> [<item>] | gate <packet> [--reader N [--file F]] | accept <packet> --by <who> | status`);process.exit(2);}
   }catch(error){console.error(`${error.line?'line: ':''}${error.message}`);process.exit(error.line?3:1);}
 }
 
