@@ -1705,7 +1705,31 @@
       "areas": [
         "AE20"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "Hamlet on the Holodeck, MIT Press; institutional course scan labels the source 1998",
+          "url": "https://is.cuni.cz/studium/predmety/index.php?did=28742&do=download&kod=JJM169",
+          "sha256": "dc981b86a0821499d0a996ca474813a0173f29778ea0b5fd501d418d31c3b734",
+          "status": "Researcher personally read printed spread pp98–99, PDF leaf 2, covering the three requested readings. The PDF labels the edition 1998 but its title and copyright pages were not inspected; access through a university does not establish public redistribution or quotation rights."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Hamlet en la holocubierta, Paidós 1999, translated Susana Pajares Tosca",
+          "translator": "https://jamillan.com/hamlet.htm",
+          "secondary_quote": "https://dialnet.unirioja.es/descarga/articulo/7739864.pdf",
+          "status": "Translator identifies the translation and a scholarly source cites p111 for I049; the translated book page and rights remain unverified."
+        }
+      ],
+      "requested_places": [
+        "B:B-I026 p98",
+        "B:B-I038 p99",
+        "B:B-I049 p99"
+      ],
+      "remaining": "Review the exact edition and scan authority, compare all language candidates and assess quotation rights independently; no absence finding."
     },
     {
       "work": "jean-paul-sartre.l-imaginaire",
@@ -2799,7 +2823,8 @@
           "edition": "Illusion and Art, in R. L. Gregory and E. H. Gombrich (eds.), Illusion in Nature and Art, London 1973, pp193–243",
           "author_archive": "https://gombricharchive.files.wordpress.com/2011/04/showdis24.pdf",
           "bibliography": "https://gombricharchive.wordpress.com/bibliography/",
-          "status": "Researcher personally read PDF pp1 and 15–16 of the retyped archive text, not a scan of printed book pages. In the driver example an illusion can be evoked again after the error is recognized; the author does not claim it must persist continuously. Archive pagination must not be silently mapped onto the 1973 edition, and reuse rights are unverified."
+          "status": "Researcher personally read PDF pp1 and 15–16 of the retyped archive text, not a scan of printed book pages. In the driver example an illusion can be evoked again after the error is recognized; the author does not claim it must persist continuously. Archive pagination must not be silently mapped onto the 1973 edition, and reuse rights are unverified. Archive reports permission from heirs and efforts to secure other rights; this is not a general republication licence.",
+          "archive_rights": "https://gombricharchive.wordpress.com/"
         }
       ],
       "requested_places": [
@@ -2807,7 +2832,15 @@
         "B:B-D-I073 recognition and appearance",
         "B:B-D-R026"
       ],
-      "remaining": "Independently compare the actual edition and passages, research translations and all applicable rights. Illusion in Nature and Art is not Art and Illusion. No absence finding."
+      "remaining": "Independently compare the actual edition and passages, research translations and all applicable rights. Illusion in Nature and Art is not Art and Illusion. No absence finding.",
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Teresa de Lauretis, Alicia ya no, translated Silvia Iglesias Recuero, Cátedra 1992, pp99–100",
+          "catalogue": "https://pmbhum.unsa.edu.ar/opac_css/index.php?id=496&lvl=categ_see",
+          "status": "A secondary discussion includes short translated fragments and cites the 1973 chapter; attribution of the specific quotation and correspondence to a complete source sentence are unverified."
+        }
+      ]
     },
     {
       "work": "erwin-panofsky.meaning-in-the-visual-arts",
