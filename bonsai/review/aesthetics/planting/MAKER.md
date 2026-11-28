@@ -15,6 +15,12 @@ for every concept its key and its slug. A register reading is what a research
 register wrote about a place of the work: locus, thesis, concepts. It tells
 you where to look and what to test. It is no ground: the place is.
 
+A `sources` block defaults to the original work. If the remaining obstacle is
+a translation source, record `source_scope: "translation"`, the interface
+`language`, and `tried` entries with an HTTPS `url` and specific `outcome`.
+An incomplete search is a block, never an absent-language finding; original
+OCR does not supply the translation.
+
 ## 2. The edition
 
 Find, by fetching pages (law 7):
@@ -304,6 +310,10 @@ K witness-image . en https://example.org/page38 --name second38.jpg --by second
 K witness-review . en 'I p39a' --reader another-reader --alignment 'Both pages read against the original place.'
 ```
 
+When one source image shows a spread, use the same image for both distinct
+printed page numbers. For a correction on a shared image, add `--page` to
+select the printed page whose span contains it.
+
 The spans cover the whole place in order; each records the words read on that
 page. The review binds the URL, printed page and digest of every image. A page
 range needs an image for every page. For a correction on an additional page, pass
@@ -423,6 +433,12 @@ fetches the trusted reference, checks that the name stands in it and records
 its digest; `--anonymous` marks the unnamed hand of a text (a scholiast, a
 compiler) whose dating the reference gives. Every metadata change
 requires a fresh independent reading before acceptance.
+For a legacy unsupported participant stored as a string, remove only the exact
+string with `witness-person-remove-legacy . en 'Name' --reason '…'`. The
+command preserves the removed value and reason, leaves sourced participants in
+place and requires a fresh second reading; duplicate identical strings must be
+resolved explicitly rather than guessed.
+
 For an unaccepted witness, `witness-person-remove . ru author Q123 --reason
 'Reason for removing this mistaken identity.'` preserves the removed record
 and clears the second reading; verify the replacement before reviewing again.
@@ -433,6 +449,17 @@ page …'` withdraws the acceptance, retains the complete predecessor and
 clears the second reading. Correct the reading through the kit and obtain a
 new independent review. This route refuses already planted works and packets
 with accepted translation witnesses or correction receipts.
+
+After `reopen`, read every numbered finding in `reopen-history.json` and
+address it in the actual reading or explain with source evidence why it does
+not hold. The packet maker records each response and its exact reading scope:
+
+```sh
+K reopen-response . 1 --maker MAKER_ID --assessment 'Specific response to the finding and the source words that support it.'
+```
+
+Changing the reading or places invalidates this response. A different second
+reader must assess the finding after their complete packet review.
 
 For a work already in `fragments.json` that predates the line and has no
 packet, run `K witness-parent WORK` first. It creates a witness-only parent;
@@ -466,6 +493,26 @@ The maker prepares source and image evidence; the separate second reader reviews
 each witness. The packet acceptance binds those reviewed language files.
 Existing accepted packets and continuations retain gaps as `owes`.
 
+
+### PDF with an extractable text layer
+
+Fetch the PDF bytes as `other` (or `witness-fetch` for a translation), then
+extract the text and render each physical PDF page used by the place:
+
+```sh
+K fetch . other https://example.org/book.pdf --name book.pdf
+K pdf-text . book.pdf
+K pdf-page . book.pdf 12 --loc 'I p10'       # physical PDF page, starting at 1
+K pdf-page . book.pdf 12 --loc 'I p10' --by second
+```
+
+For a translation, use `witness-fetch` and add `--language en` to both
+commands; `pdf-page` then records an image usable by `witness-cut` and
+`witness-review`. The commands retain the PDF digest, extracted text or image
+digest, tool version and operation. The printed page in the edition may differ
+from the physical PDF page. Both readers must open and read the rendered image;
+rendering or matching hashes does not constitute a page reading. Licences and
+rights of the precise edition still require independent assessment.
 
 ### Licensed editions still under copyright
 

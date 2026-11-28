@@ -290,3 +290,21 @@ original claim evidence; update review and acceptance invalidation as needed.
 The distinction does not change the public-domain conclusion for this ancient
 hand, but a gate must not accept a statement stronger than its evidence. This
 request is separate from the modern translator's own quotation-rights review.
+
+## Independently retrieved image, different rendering digest
+
+In `gaius-plinius-secundus.naturalis-historia`, Huerta 1629 p. 652, the maker's image for IA n669 has SHA-256 `b606a3641ff30277cd5d68206b9b400a4e4ac508c8d18ebe30d429b0ac2df670`. A second reader independently retrieved and inspected that same numbered page through IA's JP2-to-JPEG route; its JPEG has SHA-256 `9b3df1e10ab3492b3ba24d9c5a228d59ccc38e625f7808c9d09de0f97aacc1f5`. The images have different renderings, not equal bytes. The reader also inspected a cached larger page image and reported a textual error, so this is not an acceptance request.
+
+`witness-gate --second` requires the second image to have exactly the maker's digest and URL, which rejects this independent rendering even when the same archival leaf can be examined. Please assess a supported way to retain each reader's actual image, digest and retrieval provenance and explicitly assess their page identity, while keeping the original maker's page and text revision binding. It should not assume that two differently rendered images are equivalent merely because their URLs or leaf numbers match, or relax text, rights, and independent review checks. A route to refetch the exact maker bytes, if available and independently reproducible, may also resolve this individual case. The reader's report and packet retain the actual evidence; the witness remains unaccepted.
+
+## Bekker line ranges and preserving a witness correction
+
+For `aristotle.problemata`, Forster's `XXX.1 p953a` and `XXX.1 p954b` each occupy a single image (IA leaves n326 and n331). The witness page labels also contain the Bekker line ranges `10–14` and `21–28`. The current witness gate treats those numbers as printed page ranges and requires an image for every intervening page, although these are lines on one leaf. Please distinguish a structured line locator from an actual printed-page range without weakening coverage of real multipage quotations.
+
+The existing witness includes the page-verified OCR correction `atra- 25 bilious` → `atrabilious`. `witness-cut` and `witness-cut-candidate` replace the place record, so recutting with a different address would discard its previous cut and correction history. Please provide a supported address correction or migration that retains the complete predecessor and its corrections, records the relation to the new record, binds the real images and invalidates stale review as needed. Until then the existing witness remains unchanged and unaccepted; dates, rights and independent review remain separate requirements.
+
+## Unknown original author and historical attribution
+
+For `pseudo-longinus.peri-hypsous`, the original author's identity is disputed. The [Basel edition](https://www.ub.unibas.ch/cmsdata/spezialkataloge/gg/images/gg0233_001_tit.jpg) names Dionysius Longinus; its title and [1554 dedication](https://www.ub.unibas.ch/cmsdata/spezialkataloge/gg/images/gg0233_002_vor.jpg) support an early named edition, not an observed anonymous first publication. A historic attribution is not proof of authorship, an authorial pseudonym, lawful initial disclosure, or a death date. The named modern translator and the editor of a particular Greek text are separate contributors.
+
+The existing `witness-anonymous` route describes an anonymously published translation and cannot honestly represent this unknown original author. Please assess a source-backed representation of disputed or unknown original authorship and, where evidence permits, the relevant publication and jurisdiction-specific rights assessments, each with independent review. Alternatively, consider how a justified conservative historical death bound recorded for the original contributor can be carried into the witness without inventing a precise year. Keep the gate closed when the necessary facts or legal basis are not established; do not transfer an old original's status to a later translation, editorial text, or scan.
