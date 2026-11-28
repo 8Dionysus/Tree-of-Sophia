@@ -1,0 +1,216 @@
+{
+ "reader": {
+  "id": "codex-2026-11-19-tolstoy-maker",
+  "model": "codex",
+  "date": "2026-11-19",
+  "reads": "Русский текст части XIII Сочинений Толстого (1903), в сопоставлении с чтениями реестров."
+ },
+ "note": "English witness, editorial warning: XI p374 in Maude 1898 p. 113 omits the Russian clauses about unsatisfied curiosity and satisfying it; its discussion of new information and guessing is related, not a complete equivalent. The 1903 Russian printing and 1898 Maude translation represent different textual editions. Tolstoy’s preface to the first English edition describes censorship of Russian publications and also authorial corrections and additions; do not attribute any particular difference to censorship without separate evidence. Independent reader ru-maude-independent-20261119 reported six prior alignments and withheld V p316; the historical report is retained outside the packet. A fresh independent reading of the changed witness remains required.",
+ "library": {
+  "agents": {
+   "leo-tolstoy": {
+    "tree": "tos.agent.leo-tolstoy"
+   }
+  },
+  "works": {
+   "leo-tolstoy.chto-takoe-iskusstvo": {
+    "title": {
+     "ru": "Что такое искусство?",
+     "en": "What Is Art?"
+    },
+    "original": "ru",
+    "tree": "tos.work.leo-tolstoy.chto-takoe-iskusstvo",
+    "places": "fragments"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "leo-tolstoy.chto-takoe-iskusstvo:transmission-of-feeling",
+   "of": [
+    "C:A-C019",
+    "D:B-C3603",
+    "D:B-C3602"
+   ],
+   "areas": [
+    "AE23",
+    "AE36",
+    "AE01"
+   ],
+   "work": "leo-tolstoy.chto-takoe-iskusstvo",
+   "locus": "Гл. V",
+   "formula": [
+    {
+     "place": "V p316"
+    },
+    {
+     "place": "V p317"
+    }
+   ],
+   "thesis": {
+    "ru": "Искусство есть деятельность, в которой человек сознательно передаёт другим испытываемые им чувства внешними знаками, а другие заражаются этими чувствами и переживают их.",
+    "en": "Art is an activity in which one person consciously conveys feelings to others by external signs, and the others are infected by and experience those feelings."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "from": [
+    "C:A-I026",
+    "D:B-I024",
+    "A:E033"
+   ],
+   "note": "Определение в главе V подтверждает передачу чувства; для понятий прекрасного и художественной красоты это место не дает отдельного определения."
+  },
+  {
+   "id": "leo-tolstoy.chto-takoe-iskusstvo:art-is-infectious",
+   "of": [
+    "B:C-C010"
+   ],
+   "areas": [
+    "AE17"
+   ],
+   "work": "leo-tolstoy.chto-takoe-iskusstvo",
+   "locus": "Гл. XV",
+   "formula": [
+    {
+     "place": "XV p410"
+    }
+   ],
+   "thesis": {
+    "ru": "Заразительность искусства выделяет настоящее искусство от поддельного.",
+    "en": "The infectiousness of art distinguishes real art from its counterfeit."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "Чтение B:C-I056 связывает оценку с определением в главе V; это место называет признак искусства. Автономия как понятие реестра здесь отдельно не утверждается.",
+   "from": [
+    "B:C-I056"
+   ]
+  },
+  {
+   "id": "leo-tolstoy.chto-takoe-iskusstvo:religious-assessment-of-feeling",
+   "of": [
+    "B:C-C010",
+    "D:B-C3203",
+    "D:B-C3201"
+   ],
+   "areas": [
+    "AE17",
+    "AE32"
+   ],
+   "work": "leo-tolstoy.chto-takoe-iskusstvo",
+   "locus": "Гл. XVI",
+   "formula": [
+    {
+     "place": "XVI p414"
+    }
+   ],
+   "thesis": {
+    "ru": "Религиозное сознание своего времени оценивает чувства по их доброте и нужности для блага людей.",
+    "en": "The religious consciousness of a time assesses feelings by their goodness and their value for the well-being of people."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "Место называет оценку чувств религиозным сознанием; для полного тезиса об объединении и различии оценок нужны дополнительные места.",
+   "from": [
+    "B:C-I042",
+    "D:B-I025"
+   ]
+  },
+  {
+   "id": "leo-tolstoy.chto-takoe-iskusstvo:entertainment-and-infection",
+   "of": [
+    "A:C012",
+    "A:C098",
+    "A:C093"
+   ],
+   "areas": [
+    "AE12"
+   ],
+   "work": "leo-tolstoy.chto-takoe-iskusstvo",
+   "locus": "Гл. XI",
+   "formula": [
+    {
+     "place": "XI p374"
+    }
+   ],
+   "thesis": {
+    "ru": "Занимательность вызывает любопытство, сообщает новые сведения или дает удовольствие разгадывания; умственное усилие слушателя, зрителя или читателя мешает заражению чувством художника.",
+    "en": "Entertainment arouses curiosity, supplies new information or gives pleasure in deciphering meaning; the mental effort of listener, viewer or reader hinders infection with the artist’s feeling."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "A:E166"
+   ]
+  },
+  {
+   "id": "leo-tolstoy.chto-takoe-iskusstvo:effects-act-on-nerves",
+   "of": [
+    "A:C099"
+   ],
+   "areas": [
+    "AE04",
+    "AE05",
+    "AE12"
+   ],
+   "work": "leo-tolstoy.chto-takoe-iskusstvo",
+   "locus": "Гл. XI",
+   "formula": [
+    {
+     "place": "XI p373"
+    }
+   ],
+   "thesis": {
+    "ru": "Поразительность, эффект новизны, контраста и ужасности воздействуют на нервы без передачи чувства.",
+    "en": "Striking effects of novelty, contrast and horror act on the nerves without transmitting feeling."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "Место говорит об ужасности и воздействии на нервы; понятия эстетизации жестокости и страдания здесь не утверждены.",
+   "from": [
+    "A:E167"
+   ]
+  },
+  {
+   "id": "leo-tolstoy.chto-takoe-iskusstvo:art-foreign-to-workers",
+   "of": [
+    "D:B-C3408"
+   ],
+   "areas": [
+    "AE34"
+   ],
+   "work": "leo-tolstoy.chto-takoe-iskusstvo",
+   "locus": "Гл. VIII",
+   "formula": [
+    {
+     "place": "VIII p336"
+    }
+   ],
+   "thesis": {
+    "ru": "Искусство высших классов чуждо большинству рабочего народа дороговизной и содержанием: оно передаёт чувства людей, удалённых от условий трудовой жизни.",
+    "en": "The art of the upper classes is alien to most working people in its cost and content: it transmits the feelings of people removed from the conditions of working life."
+   },
+   "status": "text",
+   "verdict": "revise",
+   "note": "Реестровое чтение о народном искусстве сужено до высказывания о чуждости искусства высших классов рабочему народу; канон здесь не назван.",
+   "from": [
+    "D:B-I026"
+   ]
+  }
+ ],
+ "links": [],
+ "left": [
+  {
+   "key": "A:R162",
+   "reason": "Глава XI различает занимательность и художественное впечатление; связь с понятием прекрасного в этом месте не утверждена."
+  },
+  {
+   "key": "A:R163",
+   "reason": "Глава XI говорит об эффектности и воздействии на нервы; выбранное предложение не устанавливает связь эффектности со страданием как концептом."
+  },
+  {
+   "key": "A:R175",
+   "reason": "Это исследовательское сопоставление двух авторов, а не связь, утверждённая Толстым в указанном месте."
+  }
+ ]
+}
