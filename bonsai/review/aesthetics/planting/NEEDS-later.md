@@ -194,3 +194,20 @@ parent packet and other languages remain incomplete.
 ## Mexico quotation where the three recorded bases are public domain
 
 Kandinsky's 1912 German text is recorded as public domain in Russia, the USA and the EU; that does not establish Mexican public-domain status. The maker needs to assess a short quotation under Mexico's LFDA article 148(I) for the exact selected places. `kit.py mexico-quotation` currently rejects the assessment with `record a short-quotation basis before the Mexican quotation assessment` unless at least one of those other three jurisdictions is marked `short-quotation`. Please allow a separate Mexican assessment and independent review without misclassifying a public-domain basis elsewhere. Until then the Mexican assessment remains open; the source and the other jurisdictional bases must not be falsified to open the gate.
+
+## Publisher-authored HTML summary as the original source
+
+The local Lara Harb `arabic-poetics` packet draws C:A-I102 from the author's
+chapter 5 Summary published at https://www.cambridge.org/core/books/abs/arabic-poetics/nazm-wonder-and-the-inimitability-of-the-quran/B980231F9936B751EF11029D69CF4554.
+The source is the publisher's HTML summary itself, with the structural locator
+`Chapter 5 Summary`, paragraph 2; it is not a scan or a claim that book pages
+203–251 were read. The current gate reports `no scan is named`, requires a
+scan and a transcription as witness sources, and requires a maker-fetched
+raster page image digest for quotation evidence. Please assess an owner route
+for a genuine born-digital source that binds exact fetched HTML bytes, source
+URL and structural location to both independent readers and preserves checks
+of text, context, lawful quotation and currentness. A screenshot alone should
+not pretend to be a printed edition or serve as proof of rights. The packet is
+not accepted: language searches and an independent assessment of the Mexican
+quotation, including the effect of two sentences out of the seven-sentence
+summary, remain open. The current gate did not itself emit a `line:` prefix.
