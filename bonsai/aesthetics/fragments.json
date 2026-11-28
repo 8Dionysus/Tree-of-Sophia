@@ -2179,6 +2179,37 @@
      }
     }
    },
+   "edith-stein.zum-problem-der-einfuehlung": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/edith-stein.zum-problem-der-einfuehlung/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/edith-stein.zum-problem-der-einfuehlung/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "27d31fe448a5304183745d0c5ace72db4c086ca0089a6753ed7334c3aa9a2aa7",
+        "non_substantial": "Three complete sentences of 45 words are selected from a 113-page book for the specific purpose of comparing an account of empathy with its German original. They express a key distinction but neither reproduce its development nor substitute for the book.",
+        "normal_exploitation": "The attributed comparative research presentation reproduces this short passage alongside the original and a project interpretation; it does not replace the complete translated book in its ordinary market.",
+        "source_integrity": "All three sentences, spelling and punctuation follow the publisher-authorized page image without altering their wording. The author, translator, edition and printed page are attributed."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-stein-empathy-en-second",
+        "date": "2026-11-28",
+        "sha256": "25864b308bfbc9879678112345b4819d4b7931ae4a56b16d9bb4b341e349134f",
+        "assessment": "Independent reader compared LFDA article 148(I) with this 45-word passage in the actual comparative research context. Three complete sentences in a 113-page work, accurate attribution and unaltered wording support the limited display, with no substitution for normal exploitation. The passage carries a key conceptual distinction and the amount and actual context must be reassessed if further quotations are added. This is not a blanket licence."
+       }
+      }
+     ]
+    }
+   },
    "friedrich-nietzsche.die-froehliche-wissenschaft": {
     "en": {
      "absent": {
@@ -8651,6 +8682,104 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Edith Stein, On the Problem of Empathy, translated by Waltraut Stein (The Hague: Martinus Nijhoff, 1964; Springer reprint 2013), p. 10.",
+     "year": 2013,
+     "url": "https://books.google.com/books?id=0uS9BwAAQBAJ&pg=PA10",
+     "licence": "Protected translation; attributed short quotation for scholarship and comparison, subject to jurisdiction and review. Publisher-authorized Google Books preview.",
+     "attribution": "Edith Stein, On the Problem of Empathy, translated by Waltraut Stein (Martinus Nijhoff, 1964; Springer reprint, 2013), p. 10.",
+     "maker": "codex-2026-11-28-stein-empathy-en-maker",
+     "persons": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Waltraut Stein",
+        "ru": "Waltraut Stein"
+       },
+       "born": null,
+       "died": null,
+       "source": "https://plato.stanford.edu/entries/stein/",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-705a7f02222d1369.html",
+        "sha256": "b0ae36126f628ae82d5c7df3841d1e18b5402a93bd0b836f7e155efdb12a9ab3",
+        "url": "https://plato.stanford.edu/entries/stein/"
+       }
+      },
+      {
+       "role": "author",
+       "qid": "Q76749",
+       "name": {
+        "en": "Edith Stein",
+        "ru": "Эдит Штайн"
+       },
+       "born": 1891,
+       "died": null,
+       "source": "https://www.wikidata.org/wiki/Q76749",
+       "evidence": {
+        "file": "wikidata-Q76749.json",
+        "sha256": "d018baf3a565835810d73577b2d8c8657ed30c517fb4145b1a90182e91aff149",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q76749.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: assess the research and comparative purpose, nature of the translated work, limited amount and market effect for the precise display; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, within extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "27d31fe448a5304183745d0c5ace72db4c086ca0089a6753ed7334c3aa9a2aa7",
+      "non_substantial": "Three complete sentences of 45 words are selected from a 113-page book for the specific purpose of comparing an account of empathy with its German original. They express a key distinction but neither reproduce its development nor substitute for the book.",
+      "normal_exploitation": "The attributed comparative research presentation reproduces this short passage alongside the original and a project interpretation; it does not replace the complete translated book in its ordinary market.",
+      "source_integrity": "All three sentences, spelling and punctuation follow the publisher-authorized page image without altering their wording. The author, translator, edition and printed page are attributed."
+     },
+     "participants": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Waltraut Stein",
+        "ru": "Waltraut Stein"
+       },
+       "source": "https://plato.stanford.edu/entries/stein/",
+       "born": [],
+       "died": []
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Edith Stein",
+        "ru": "Эдит Штайн"
+       },
+       "qid": "Q76749",
+       "source": "https://www.wikidata.org/wiki/Q76749",
+       "born": [
+        {
+         "time": "+1891-10-12T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1942-08-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -8658,10 +8787,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -15529,15 +15654,21 @@
      "en": "Part II, § 2, p. 9"
     },
     "texts": {
-     "de": "Nun also zur Einfühlung selbst. Auch hier handelt es sich um einen Akt, der originär ist als gegenwärtiges Erlebnis, aber nicht-originär seinem Gehalt nach. Und dieser Gehalt ist ein Erlebnis, das wiederum in verschiedenen Vollzugsformen auftreten kann, wie Erinnerung, Erwartung, Phantasie."
+     "de": "Nun also zur Einfühlung selbst. Auch hier handelt es sich um einen Akt, der originär ist als gegenwärtiges Erlebnis, aber nicht-originär seinem Gehalt nach. Und dieser Gehalt ist ein Erlebnis, das wiederum in verschiedenen Vollzugsformen auftreten kann, wie Erinnerung, Erwartung, Phantasie.",
+     "en": "So now to empathy itself. Here, too, we are dealing with an act which is primordial as present experience though non-primordial in content. And this content is an experience which, again, can be had in different ways such as in memory, expectation, or in fancy."
     },
     "links": {
-     "de": "https://archive.org/details/zum-problem-der-einfuhlung/page/n18/mode/1up"
+     "de": "https://archive.org/details/zum-problem-der-einfuhlung/page/n18/mode/1up",
+     "en": "https://books.google.com.mx/books/publisher/content?id=0uS9BwAAQBAJ&hl=ru&pg=PA10&img=1&zoom=3&sig=ACfU3U1mKjWlZz7vpOrbgu1FB_jVnxrB1g&w=1280"
     },
     "refs": [
      [
       "de",
       "First printing (Halle 1917), p. 9"
+     ],
+     [
+      "en",
+      "Edith Stein, On the Problem of Empathy, translated by Waltraut Stein (The Hague: Martinus Nijhoff, 1964; Springer reprint 2013), p. 10., p. 10"
      ]
     ]
    }
