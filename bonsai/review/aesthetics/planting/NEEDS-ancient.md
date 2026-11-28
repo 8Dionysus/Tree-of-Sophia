@@ -324,29 +324,3 @@ The existing witness includes the page-verified OCR correction `atra- 25 bilious
 For `pseudo-longinus.peri-hypsous`, the original author's identity is disputed. The [Basel edition](https://www.ub.unibas.ch/cmsdata/spezialkataloge/gg/images/gg0233_001_tit.jpg) names Dionysius Longinus; its title and [1554 dedication](https://www.ub.unibas.ch/cmsdata/spezialkataloge/gg/images/gg0233_002_vor.jpg) support an early named edition, not an observed anonymous first publication. A historic attribution is not proof of authorship, an authorial pseudonym, lawful initial disclosure, or a death date. The named modern translator and the editor of a particular Greek text are separate contributors.
 
 The existing `witness-anonymous` route describes an anonymously published translation and cannot honestly represent this unknown original author. Please assess a source-backed representation of disputed or unknown original authorship and, where evidence permits, the relevant publication and jurisdiction-specific rights assessments, each with independent review. Alternatively, consider how a justified conservative historical death bound recorded for the original contributor can be carried into the witness without inventing a precise year. Keep the gate closed when the necessary facts or legal basis are not established; do not transfer an old original's status to a later translation, editorial text, or scan.
-
-## Visible attribution for a quoted translation
-
-For the Chinese witness of Kenko's *Tsurezuregusa* §137, three sentences are
-quoted from Wang Xinxi as reproduced in Lu Wanxia's 2019 article, p. 145;
-the article's p. 138 identifies the translator. The maker recorded the
-intermediary edition and attribution, original PDF, derivative text and page
-image, and a conditional short-quotation assessment. The independent reader
-found that the current public Aesthetics `fillPlace` in
-`access/web/src/public-research/fragments.mjs` displays the work author,
-title, original `place.label` and optional `witness.short`, but does not
-render `witness.attribution` or the translation's `place.refs`. The current
-Chinese witness has no `short`, and `witness-info` does not allow one. Thus a
-prospective reader would see neither Wang nor Lu and the printed page 145;
-the link points to the article PDF but is labelled as the whole work. The
-short-quotation assessment assumes visible source and translator attribution,
-so this witness remains unaccepted despite its open maker gate.
-
-Please coordinate with the public-reader owner on a source-visible caption and
-link for the exact displayed language and intermediary, including translator,
-article and page. A supported witness metadata field may be one part of the
-solution, but retaining a value in generated data alone does not show it to a
-reader. Review the actual public presentation and quotation context, preserve
-the Japanese and translated locators separately, and renew rights and
-independent review for the final exact payload. This request does not grant
-quotation rights or assert that all other display paths are covered.
