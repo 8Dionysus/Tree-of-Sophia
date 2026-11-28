@@ -34,21 +34,104 @@ const LEGACY_TOPOLOGY: [&str; 3] = [
     "expression-edition-claims.jsonl",
     "edition-item-claims.jsonl",
 ];
-// A bounded migration of already retained witnesses. The historical July
-// streams remain the evidence for their own batch.
-const RHETORIC_TOPOLOGY_HOME: &str =
-    "ToS/source-witnesses/works/aristotle/rhetoric/topology/retained-2026-11-19/";
-const RHETORIC_TOPOLOGY_EVENT: &str = "tos.event.annotation.rhetoric-topology.retained-2026-11-19";
-pub(crate) const RHETORIC_TOPOLOGY_PROVENANCE: &str = concat!(
-    "ToS/source-witnesses/works/aristotle/rhetoric/topology/retained-2026-11-19/",
-    "provenance.jsonl",
-);
-const RHETORIC_TOPOLOGY_PROVENANCE_SHA256: &str =
-    "b5d6b5102e2de1aa72863b136fe45dc13323241e7b5953648a5efba3bebe15d5";
+// A work reconciles retained topology streams in a batch home of its own,
+// `ToS/source-witnesses/works/<work>/topology/<batch>/`, beside the provenance
+// journal that records the reconciliation. The batch declares its event and the
+// journal's digest in JSON next to those streams; the historical July streams
+// remain the evidence for their own batch.
+const TOPOLOGY_RECONCILIATION_DECLARATION: &str = "bibliography-topology-reconciliation.json";
+const TOPOLOGY_RECONCILIATION_SCHEMA: &str = "tos_bibliographic_topology_reconciliation_v1";
 
-pub(crate) fn rhetoric_topology_reconciliation(path: &str) -> bool {
-    path.strip_prefix(RHETORIC_TOPOLOGY_HOME)
-        .is_some_and(|basename| LEGACY_TOPOLOGY.contains(&basename))
+/// The batch home `ToS/source-witnesses/works/<work>/topology/<batch>` a directory names.
+fn topology_batch_home(home: &str) -> Option<&str> {
+    let (work, batch) = home
+        .strip_prefix("ToS/source-witnesses/works/")?
+        .rsplit_once("/topology/")?;
+    (!work.is_empty() && !batch.is_empty() && !batch.contains('/')).then_some(home)
+}
+
+/// Whether a legacy topology stream lies in a work's reconciliation batch home.
+pub(crate) fn topology_reconciliation(path: &str) -> bool {
+    path.rsplit_once('/').is_some_and(|(home, basename)| {
+        LEGACY_TOPOLOGY.contains(&basename) && topology_batch_home(home).is_some()
+    })
+}
+
+/// Whether a path is the provenance journal of a work's reconciliation batch home.
+pub(crate) fn topology_reconciliation_receipt(path: &str) -> bool {
+    path.strip_suffix("/provenance.jsonl")
+        .and_then(topology_batch_home)
+        .is_some()
+}
+
+/// The work home `ToS/source-witnesses/works/<work>/` of a reconciliation batch stream.
+fn topology_work_home(path: &str) -> Option<&str> {
+    path.rfind("/topology/").map(|end| &path[..=end])
+}
+
+struct TopologyReconciliation {
+    event_id: String,
+    receipt: String,
+    receipt_sha256: Digest256,
+}
+
+/// The declaration beside a reconciled stream: its event and the exact provenance
+/// journal of its batch. A missing or malformed declaration is an issue.
+fn topology_reconciliation_declaration(
+    source: &dyn BiblioSourceAccess,
+    claim_path: &str,
+    rules: &mut Rules<'_>,
+    location: &str,
+) -> Result<Option<TopologyReconciliation>, ItemRefusal> {
+    let Some((home, _)) = claim_path
+        .rsplit_once('/')
+        .filter(|(home, _)| topology_batch_home(home).is_some())
+    else {
+        return Ok(None);
+    };
+    let path = format!("{home}/{TOPOLOGY_RECONCILIATION_DECLARATION}");
+    if !source.path_presence(&path, rules)? {
+        rules.issue("topology-reconciliation-declaration", location)?;
+        return Ok(None);
+    }
+    let ceiling = rules.limits.max_member_bytes;
+    rules.limits.max_member_bytes = ceiling.min(1024);
+    let raw = source.read_current(&path, rules);
+    rules.limits.max_member_bytes = ceiling;
+    let raw = raw?;
+    let raw_state =
+        raw.len() + path.len() + std::mem::size_of::<Vec<u8>>() + std::mem::size_of::<String>();
+    reserve(&mut rules.state, raw_state, rules.limits.max_state_bytes)?;
+    let (declaration, declaration_state) = strict_decoded(&raw, rules)?;
+    reserve(
+        &mut rules.state,
+        declaration_state,
+        rules.limits.max_state_bytes,
+    )?;
+    rules.read(path.len() + 71, || PredicateRead::ExactPath {
+        path: path.clone(),
+        digest: Digest256::of_bytes(&raw).to_prefixed(),
+    })?;
+    let found = declaration
+        .as_object()
+        .filter(|object| object.len() == 3)
+        .filter(|_| s(&declaration, "schema_version") == Some(TOPOLOGY_RECONCILIATION_SCHEMA))
+        .and_then(|_| {
+            let event_id = s(&declaration, "event_id").filter(|id| id.starts_with("tos.event."))?;
+            let receipt_sha256 = Digest256::from_hex(s(&declaration, "receipt_sha256")?).ok()?;
+            Some(TopologyReconciliation {
+                event_id: event_id.to_owned(),
+                receipt: format!("{home}/provenance.jsonl"),
+                receipt_sha256,
+            })
+        });
+    drop(declaration);
+    drop(raw);
+    rules.state -= raw_state + declaration_state;
+    if found.is_none() {
+        rules.issue("topology-reconciliation-declaration", location)?;
+    }
+    Ok(found)
 }
 
 const TOPOLOGY_EVENT: &str =
@@ -3268,10 +3351,17 @@ fn inspect_claim_inner(
                 rules.issue("legacy-Claim-object", &location)?;
             }
         }
-        let reconciled_topology = rhetoric_topology_reconciliation(&claim.path);
+        let reconciled_topology = topology_reconciliation(&claim.path);
+        let reconciliation = if reconciled_topology {
+            topology_reconciliation_declaration(source, &claim.path, rules, &location)?
+        } else {
+            None
+        };
         if LEGACY_TOPOLOGY.contains(&basename) {
             let topology_event = if reconciled_topology {
-                RHETORIC_TOPOLOGY_EVENT
+                reconciliation
+                    .as_ref()
+                    .map_or("", |declaration| declaration.event_id.as_str())
             } else {
                 TOPOLOGY_EVENT
             };
@@ -3318,9 +3408,8 @@ fn inspect_claim_inner(
                 if let Some(id) = s(row, field) {
                     if let Some(record) = records.current_record(id)? {
                         if reconciled_topology
-                            && !record
-                                .path
-                                .starts_with("ToS/source-witnesses/works/aristotle/rhetoric/")
+                            && !topology_work_home(&claim.path)
+                                .is_some_and(|home| record.path.starts_with(home))
                         {
                             outside_work = true;
                         }
@@ -3459,36 +3548,37 @@ fn inspect_claim_inner(
             }
         }
         if reconciled_topology {
-            let digest = Digest256::from_hex(RHETORIC_TOPOLOGY_PROVENANCE_SHA256)
-                .map_err(|_| ItemRefusal::Unsupported("Rhetoric topology receipt digest".into()))?;
-            if source.resolve_recorded_input(
-                RHETORIC_TOPOLOGY_PROVENANCE,
-                digest,
-                rules,
-                &location,
-            )? != RecordedInputResolution::Resolved
-            {
-                rules.issue("rhetoric-topology-reconciliation-receipt", &location)?;
-            }
-            if let Some(event) = events.event(RHETORIC_TOPOLOGY_EVENT)? {
-                event_posture(
-                    &event,
-                    "declared-bibliographic-topology-reconciliation",
+            if let Some(declaration) = reconciliation.as_ref() {
+                if source.resolve_recorded_input(
+                    &declaration.receipt,
+                    declaration.receipt_sha256,
                     rules,
                     &location,
-                )?;
-                for output in event["outputs"].as_array().into_iter().flatten() {
-                    let (Some(path), Some(digest)) = (s(output, "ref"), s(output, "sha256")) else {
-                        rules.issue("rhetoric-topology-reconciliation-output", &location)?;
-                        continue;
-                    };
-                    let digest = Digest256::from_hex(digest).map_err(|_| {
-                        ItemRefusal::Unsupported("Rhetoric topology output digest".into())
-                    })?;
-                    if source.resolve_recorded_input(path, digest, rules, &location)?
-                        != RecordedInputResolution::Resolved
-                    {
-                        rules.issue("rhetoric-topology-reconciliation-output", &location)?;
+                )? != RecordedInputResolution::Resolved
+                {
+                    rules.issue("topology-reconciliation-receipt", &location)?;
+                }
+                if let Some(event) = events.event(&declaration.event_id)? {
+                    event_posture(
+                        &event,
+                        "declared-bibliographic-topology-reconciliation",
+                        rules,
+                        &location,
+                    )?;
+                    for output in event["outputs"].as_array().into_iter().flatten() {
+                        let (Some(path), Some(digest)) = (s(output, "ref"), s(output, "sha256"))
+                        else {
+                            rules.issue("topology-reconciliation-output", &location)?;
+                            continue;
+                        };
+                        let digest = Digest256::from_hex(digest).map_err(|_| {
+                            ItemRefusal::Unsupported("topology reconciliation output digest".into())
+                        })?;
+                        if source.resolve_recorded_input(path, digest, rules, &location)?
+                            != RecordedInputResolution::Resolved
+                        {
+                            rules.issue("topology-reconciliation-output", &location)?;
+                        }
                     }
                 }
             }
@@ -5123,7 +5213,7 @@ fn inspect_batches(
 ) -> Result<(), ItemRefusal> {
     let topology = claims.iter().filter(|c| {
         !c.native
-            && !rhetoric_topology_reconciliation(&c.path)
+            && !topology_reconciliation(&c.path)
             && LEGACY_TOPOLOGY
                 .iter()
                 .any(|basename| c.path.ends_with(basename))
