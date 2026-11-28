@@ -244,3 +244,29 @@ method, image digest and separate maker/second-reader evidence. This should
 not turn a screenshot into proof of authority, text accuracy, equivalence,
 or permission to quote; the reader must still inspect the page and assess
 rights in each jurisdiction.
+
+## Modern translator identified by library and contemporary review
+
+For Kenkō's *Tsurezuregusa* §137, the publisher-hosted journal article
+https://clc.shisu.edu.cn/CN/article/downloadArticleFile.do?attachType=PDF&id=35
+credits its Chinese quotation to 王新禧 in its note on printed p. 138 and
+shows all three selected sentences on p. 145. CiNii's authority record
+https://ci.nii.ac.jp/author/DA17317409 identifies that translator and his
+2011 translation of *Tsurezuregusa* and *Hōjōki*; the contemporary review
+https://wyb.chinawriter.com.cn/Pad/content/201202/01/content33096.html
+identifies him as a gardener under 30 when that edition appeared. The
+article cites a 2016 edition; neither source establishes its exact page or
+proves identity of every word with the 2011 edition. A current, identifiable
+translator's works cannot be treated as public domain on the strength of the
+ancient author's date.
+
+`witness-person-source` rejects CiNii and the journal review's domain, while
+no confidently matched Wikidata identity has been found. Please support an
+auditable, bounded identification and rights assessment for a named living or
+recent translator, backed by suitable national library authority and primary
+bibliographic evidence, without requiring an invented exact date or an
+unverified QID. The review must retain source URLs and the distinction between
+bibliographic identity, corroborated age, present-day status and any legal
+basis. A short-quotation assessment remains specific to the actual three
+sentences and independently reviewed use; this request does not itself admit
+or license them. The separate PDF-derivative evidence gap also remains.
