@@ -252,6 +252,17 @@ or Greek middle dot. An opening must occur exactly once within the selected
 reference. The same aligner then pairs the resulting clauses and preserves their
 offsets in the original units.
 
+If a digital transcription joins two sentences where an inspected printing
+separates them, a local pair with `sentenceAnchors` may declare
+`verifiedTargetSentenceBreaks`. Each entry records exact adjacent `before` and
+`after` text and an HTTPS `source` for the printed page. The text on the two
+sides, separated by one space, must occur exactly once inside a sentence of the
+revision-bound translation reference; missing or ambiguous evidence stops the
+alignment. This option cannot be combined with preceding or following unit
+continuations. It separates the existing characters for pairing, retaining their
+original unit offsets and punctuation. It does not correct the corpus text or
+substitute a page reference for independent source review.
+
 When a translation covers only part of a corpus work, a stand may declare its
 `translation-scopes.json` entry with the source URL, exact original and
 translation versions and text-layer revisions, and first and last original unit IDs. The mechanism checks
