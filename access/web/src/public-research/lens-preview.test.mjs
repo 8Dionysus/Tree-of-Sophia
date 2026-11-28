@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {lensMembers} from './lens-preview.mjs';
+import {lensMembers,lensPointer} from './lens-preview.mjs';
 
 const graph={nodes:[
   {id:'a',materialId:'m:a'},{id:'b',materialId:'m:b'},{id:'c',materialId:'m:c'},
@@ -32,5 +32,31 @@ describe('the stars a lens would show',()=>{
     expect(asked).toBe(1);
     lensMembers('time',{graph,timeline:positions(),view});
     expect(asked).toBe(1);
+  });
+});
+
+describe('the lens a preview follows',()=>{
+  it('keeps the preview while the keyboard still holds the lens the pointer leaves, and the other way round',()=>{
+    const heard=[];const at=lensPointer(id=>heard.push(id));
+    at.focus('time');at.enter('time');at.leave('time');
+    expect(at.shown).toBe('time');
+    at.blur('time');
+    expect(at.shown).toBeNull();
+    at.enter('space');at.focus('space');at.blur('space');
+    expect(at.shown).toBe('space');
+    at.leave('space');
+    expect(heard).toEqual(['time',null,'space',null]);
+  });
+
+  it('follows the pointer over the keyboard, and a late leave of another lens changes nothing',()=>{
+    const at=lensPointer(()=>{});
+    at.focus('time');at.enter('space');
+    expect(at.shown).toBe('space');
+    at.leave('time');
+    expect(at.shown).toBe('space');
+    at.leave('space');
+    expect(at.shown).toBe('time');
+    at.clear();
+    expect(at.shown).toBeNull();
   });
 });

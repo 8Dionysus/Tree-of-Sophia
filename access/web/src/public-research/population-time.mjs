@@ -20,7 +20,8 @@ export function memberSpan(member,{chronology,reader}){
   for(const phase of member.phases??[]){
     const dating=chronology.situations?.[phase]?.dating,interval=dating?.interval;
     const year=dating?.kind==='date-assertion'?yearOfLexeme(dating.value):interval?yearOfLexeme(interval.start??interval.end):null;
-    if(Number.isFinite(year))return {from:year,to:year,situation:phase,certainty:dating.certainty,open:dating.kind!=='date-assertion'};
+    // One year spans that year, [year, year+1), as a dated life's years do (lexemeBounds).
+    if(Number.isFinite(year))return {from:year,to:year+1,situation:phase,certainty:dating.certainty,open:dating.kind!=='date-assertion'};
   }
   return null;
 }

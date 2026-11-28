@@ -4,16 +4,18 @@
 //   node bonsai/review/population/line/drive.mjs [--count N] [--parallel P] [--packets p-0001,p-0002]
 //
 // For each packet that is not accepted: two fresh `codex exec` sessions in the packet's folder, reader 1 and
-// reader 2, at the same time and without each other's file. The gate (kit.mjs gate) decides whether they are
-// done; while it refuses a reader's verdicts, that reader's session is resumed with the gate's own lines, twice
-// at most. Where the gate opens, kit.mjs accept writes the agreed verdicts as decisions. A usage or rate limit
-// stops the whole line; a fault of the line (exit 3) stops it too.
+// reader 2, at the same time. Each writes its verdicts to a file of its own outside the packet
+// (<logs>/<packet>/verdicts/reader-N.jsonl), so neither reader's file stands where the other works; each session
+// is told only its own path. The gate (kit.mjs gate --reader N --file F) decides whether a reader is done; while it
+// refuses a reader's verdicts, that reader's session is resumed with the gate's own lines, twice at most. Once both
+// readers pass, both files are laid in the packet, and where the whole gate opens, kit.mjs accept writes the agreed
+// verdicts as decisions. A usage or rate limit stops the whole line; a fault of the line (exit 3) stops it too.
 //
 // Environment: CODEX (binary, default ~/.local/bin/codex), TOS_POPULATION_MODEL (default gpt-6.1-terra),
 // TOS_POPULATION_EFFORT (default high), TOS_POPULATION_OUT (logs; default ~/.local/share/claude-codex/out/population).
 
 import {spawn,spawnSync} from 'node:child_process';
-import {createWriteStream,existsSync,mkdirSync,readFileSync,readdirSync} from 'node:fs';
+import {copyFileSync,createWriteStream,existsSync,mkdirSync,readFileSync,readdirSync} from 'node:fs';
 import {homedir} from 'node:os';
 import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -30,11 +32,14 @@ const RESUMES=2;
 let stopped=null;
 
 const kit=(...args)=>{const run=spawnSync(process.execPath,[KIT,...args],{encoding:'utf8'});return {code:run.status,text:`${run.stdout}${run.stderr}`.trim()};};
+// Where a reader's verdicts wait until both readers pass their gates: outside the packet, under the logs.
+const verdicts=(packet,reader)=>join(OUT,packet,'verdicts',`reader-${reader}.jsonl`);
+const ownGate=(packet,reader)=>kit('gate',packet,'--reader',String(reader),'--file',verdicts(packet,reader));
 
-function prompt(reader){
+function prompt(reader,file){
   return `You are reader ${reader} of the Population line of the Tree of Sophia. Read ../../AGENTS.md and ../../READER.md first (packet.json names the questions' type, and READER.md has its section), then the questions: node ../../kit.mjs show ${'$'}(basename "$PWD"). `+
-    `Answer every question in reader-${reader}.jsonl, one JSON line per question, as READER.md says. Never open reader-${reader===1?2:1}.jsonl. `+
-    `When you are done, run: node ../../kit.mjs gate ${'$'}(basename "$PWD") --reader ${reader} — and fix your file until it names no problem. Stop then.`;
+    `Answer every question in ${file}, one JSON line per question, as READER.md says; that file is yours alone, and the other reader's verdicts are nowhere you are asked to look. `+
+    `When you are done, run: node ../../kit.mjs gate ${'$'}(basename "$PWD") --reader ${reader} --file ${file} — and fix your file until it names no problem. Stop then.`;
 }
 
 function codex(packet,reader,text,thread=null){
@@ -61,20 +66,29 @@ function codex(packet,reader,text,thread=null){
 }
 
 async function reader(packet,number){
-  let session=await codex(packet,number,prompt(number));
+  const file=verdicts(packet,number);mkdirSync(dirname(file),{recursive:true});
+  let session=await codex(packet,number,prompt(number,file));
   for(let turn=0;turn<RESUMES&&!session.limit;turn++){
-    const gate=kit('gate',packet);
+    const gate=ownGate(packet,number);
+    if(gate.code!==1)break;
     const mine=gate.text.split('\n').filter(line=>line.startsWith(`reader-${number}`));
-    if(gate.code===3||!mine.length)break;
-    session=await codex(packet,number,`The gate refused these verdicts of yours:\n${mine.slice(0,60).join('\n')}\nFix reader-${number}.jsonl and run the gate again with --reader ${number}.`,session.thread);
+    session=await codex(packet,number,`The gate refused these verdicts of yours:\n${mine.slice(0,60).join('\n')}\nFix ${file} and run the gate again with --reader ${number} --file ${file}.`,session.thread);
   }
   if(session.limit)stopped='the usage limit';
 }
 
 async function runPacket(packet){
   if(stopped||existsSync(join(PACKETS,packet,'accepted.json')))return;
-  await Promise.all([1,2].filter(number=>!existsSync(join(PACKETS,packet,`reader-${number}.jsonl`))||kit('gate',packet).code===1).map(number=>reader(packet,number)));
+  // Verdicts a reader left in the packet before the files were kept apart wait outside it like the others.
+  for(const number of [1,2]){const inside=join(PACKETS,packet,`reader-${number}.jsonl`),file=verdicts(packet,number);if(existsSync(inside)&&!existsSync(file)){mkdirSync(dirname(file),{recursive:true});copyFileSync(inside,file);}}
+  await Promise.all([1,2].filter(number=>!existsSync(verdicts(packet,number))||ownGate(packet,number).code===1).map(number=>reader(packet,number)));
   if(stopped)return;
+  const own=[1,2].map(number=>ownGate(packet,number));
+  const fault=own.find(gate=>gate.code===3);
+  if(fault){stopped=`a fault of the line in ${packet}: ${fault.text}`;return;}
+  if(own.some(gate=>gate.code!==0)){console.log(`${packet}: a reader's gate is shut\n${own.map(gate=>gate.text).join('\n').split('\n').slice(0,6).join('\n')}`);return;}
+  // Both readers have passed: their verdicts are laid in the packet together, and only then compared.
+  for(const number of [1,2])copyFileSync(verdicts(packet,number),join(PACKETS,packet,`reader-${number}.jsonl`));
   const gate=kit('gate',packet);
   if(gate.code===3){stopped=`a fault of the line in ${packet}: ${gate.text}`;return;}
   if(gate.code!==0){console.log(`${packet}: gate shut\n${gate.text.split('\n').slice(0,6).join('\n')}`);return;}
