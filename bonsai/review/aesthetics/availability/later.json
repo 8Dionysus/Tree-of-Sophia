@@ -936,6 +936,14 @@
             "wikidata": "Q5268261",
             "viaf": "17110947"
           }
+        },
+        {
+          "name": "张今 (Zhang Jin)",
+          "role": "Chinese translator of 1965 edition",
+          "dates_status": "identity and life dates not established; do not equate namesakes",
+          "evidence": [
+            "https://pear.ilovelibrary.cn/sxswdx/book.aspx?BiblioRecPath=%E5%9B%BE%E4%B9%A6%E6%80%BB%E5%BA%93%2F54044"
+          ]
         }
       ],
       "original_language": "en",
@@ -1045,6 +1053,18 @@
           "source": "Internet Archive advancedsearch and Open Library",
           "url": "https://archive.org/advancedsearch.php?q=title%3A%28%22the+principles+of+aesthetics%22%29+AND+creator%3A%28parker%29&output=json",
           "result": "English title/author search returned 18 records including distinct 1920 and 1946 editions. Limited Chinese and Spanish title/author queries returned zero; Open Library Chinese title/author queries returned zero, Google Books API 429. These do not establish absence: a 2001 Chinese edition has separately been found in HKU. Verify source edition and target pages."
+        },
+        {
+          "source": "Shaanxi Provincial Party School library catalogue",
+          "query": "美学原理, record 图书总库/54044",
+          "url": "https://pear.ilovelibrary.cn/sxswdx/book.aspx?BiblioRecPath=%E5%9B%BE%E4%B9%A6%E6%80%BB%E5%BA%93%2F54044",
+          "result": "Catalogue records Parker, translated by 张今, Beijing: 商务印书馆, 1965, 337 pages, call number B8019/4240, and states translation based on the 1946 edition. The catalogue entry is not a view of the title page or selected passages; rights and translator dates remain unverified."
+        },
+        {
+          "source": "JULAC/HKU discovery network catalogue API",
+          "query": "美学原理 帕克 张今",
+          "url": "https://julac-network.primo.exlibrisgroup.com/discovery/search?vid=852JULAC_HKU:HKU&tab=LibraryCatalog&search_scope=DiscoveryNetwork&query=any,contains,%E7%BE%8E%E5%AD%A6%E5%8E%9F%E7%90%86%20%E5%B8%95%E5%85%8B%20%E5%BC%A0%E4%BB%8A",
+          "result": "Six records returned; two identify the 2001 Guangxi Normal University Press Chinese edition, translator 张今, ISBN 7563331786, 331 pages. The record identifies the English title, not which English edition was translated. Physical holdings are listed; target text was not viewed."
         }
       ],
       "remaining": "Search mandatory catalogs and actual translations for ru, es, de and zh-Hans, verify rights and independent semantic review. C:A-I041 rapid plot claim is not established by pp.83–84; p92 does discuss a plot ending too simply and quickly and loss of interest. Determine the scope of this connection independently; no absence inferred.",
