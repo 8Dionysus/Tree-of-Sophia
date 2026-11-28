@@ -177,3 +177,16 @@ Please distinguish a missing original transcription, where the OCR fallback
 is appropriate, from an identified translation-source obstacle. Preserve the
 requirement for an actual documented search and do not turn incomplete search
 into a finding of absence.
+
+## Sourced ancient author bounds in translation witnesses
+
+For Pseudo-Longinus, the fresh retake confirmed that `person --died-before`
+can represent an anonymous original author with a sourced bound. Translation
+witnesses also record the original author, but `witness-person-source` only
+accepts an exact `--died` year, and `witness-person` cannot recover a usable
+bound from the anonymous Wikidata identity. Please support the same sourced,
+uncertainty-preserving bound and anonymity in the translation-witness route,
+with independently reviewable evidence and all translator/editor rights kept
+separate. The available alternative of quotation or licence still needs
+assessment for the actual passages; this request asserts neither public
+domain for an edition nor absence of other sources.
