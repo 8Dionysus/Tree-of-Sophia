@@ -3242,6 +3242,34 @@
      }
     }
    },
+   "oscar-wilde.the-decay-of-lying": {
+    "es": {
+     "absent": null,
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/oscar-wilde.the-decay-of-lying/witnesses/es.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/oscar-wilde.the-decay-of-lying/witnesses/es.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "3193df26c411f2a5f4b4d244f4ab352d71103d6145123a82044aa89840483b34",
+        "non_substantial": "One complete sentence of 27 Spanish words is selected from a longer translated essay and book for comparison with its English original. It expresses a significant proposition; using the complete sentence is necessary to compare the causal contrast. Further accumulation would require fresh assessment.",
+        "normal_exploitation": "An attributed, source-linked scholarly comparison of this isolated sentence does not replace the essay or book, their context or usual market. Actual display and commercial context may alter this assessment.",
+        "source_integrity": "The words, accents and punctuation are retained from the published secondary quotation, with whitespace normalized. Wilde, translator Martínez Victorio, Langre 2002 and the quoting article are credited; the book was not inspected, its exact page within the cited range and its typography remain unknown."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-wilde-langre-independent-second",
+        "date": "2026-11-28",
+        "sha256": "f74c066c0152fc2edfae851b28d61d39035f4011525387b453d69a73b7ef9329",
+        "assessment": "Independent review: the exact 27-word sentence is a significant proposition, but its complete causal contrast is needed for the stated comparison with the English original. In the identified research display this isolated excerpt is proportionate to the longer translated essay and does not substitute for its normal exploitation; aggregation or changed commercial context requires a fresh assessment. The words and punctuation match the published secondary quotation, with whitespace normalized; cite Wilde, translator Luis Martínez Victorio, Langre 2002 and Logos 2025 p. 159. The original book, its exact page within pp. 111–113 and its typography were not inspected; article-wide quotation italics are not asserted to be the book typography. This assessment applies to Mexico LFDA 148(I) only and assumes the actual display retains those conditions."
+       }
+      }
+     ]
+    }
+   },
    "otto-rank.der-doppelgaenger": {
     "en": {
      "absent": {
@@ -9481,6 +9509,105 @@
       "reasoning": "Wilde’s English text is transcribed by David Price for Project Gutenberg from the 1913 Methuen edition and compared against the 1905 Brentano’s scan. Line-break hyphens are joined and whitespace normalized by the kit."
      },
      "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Oscar Wilde",
+        "ru": "Оскар Уайльд"
+       },
+       "qid": "Q30875",
+       "source": "https://www.wikidata.org/wiki/Q30875",
+       "born": [
+        {
+         "time": "+1854-10-16T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1900-11-30T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      }
+     ]
+    },
+    "es": {
+     "edition": "Oscar Wilde, La decadencia de la mentira, translated by Luis Martínez Victorio (Madrid: Langre, 2002), pp. 111–113 as cited by the 2025 Logos article, p. 159. The book itself was not inspected; the article does not identify the precise page of this sentence within that range.",
+     "year": 2002,
+     "url": "https://revistas.userena.cl/index.php/logos/article/download/2579/2612/8066",
+     "licence": "The article is publicly readable; no unrestricted licence for the 2002 translation is claimed. The excerpt requires a separate quotation assessment.",
+     "attribution": "Oscar Wilde; Spanish translation by Luis Martínez Victorio, La decadencia de la mentira (Langre, 2002), pp. 111–113, quoted in Logos (2025), p. 159.",
+     "maker": "codex-2026-11-28-wilde-langre-maker",
+     "normalization": "Preserve Spanish words, accents and punctuation; normalize whitespace and line-break hyphenation. Italic type in the citing article marks quotation; the original translation’s emphasis was not inspected.",
+     "persons": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Luis Martínez Victorio",
+        "ru": "Luis Martínez Victorio"
+       },
+       "born": null,
+       "died": null,
+       "source": "https://id.loc.gov/authorities/names/nr2006016125.madsrdf_raw.jsonld",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-2a4b1fa51cf743eb.html",
+        "sha256": "55583b19eb4905b77167d777cc586125354b30a26c80bdb072aae882a8b450c2",
+        "url": "https://id.loc.gov/authorities/names/nr2006016125.madsrdf_raw.jsonld"
+       }
+      },
+      {
+       "role": "author",
+       "qid": "Q30875",
+       "name": {
+        "en": "Oscar Wilde",
+        "ru": "Оскар Уайльд"
+       },
+       "born": 1854,
+       "died": 1900,
+       "source": "https://www.wikidata.org/wiki/Q30875",
+       "evidence": {
+        "file": "wikidata-Q30875.json",
+        "sha256": "d5ea64f5fcbb72f78206e753a4d1120440933169bdbcd1e4b5a8b1c334c7f3d0",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q30875.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC section 107: one attributed sentence is used for comparative research and criticism. Fair use depends on actual display, aggregation and commercial context. https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d) concerns attributed quotation for criticism or review to the extent justified, subject to national implementation and actual context. https://eur-lex.europa.eu/eli/dir/2001/29/oj"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1) allows attributed quotation of lawfully published works for research and education to the extent justified by purpose. https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "3193df26c411f2a5f4b4d244f4ab352d71103d6145123a82044aa89840483b34",
+      "non_substantial": "One complete sentence of 27 Spanish words is selected from a longer translated essay and book for comparison with its English original. It expresses a significant proposition; using the complete sentence is necessary to compare the causal contrast. Further accumulation would require fresh assessment.",
+      "normal_exploitation": "An attributed, source-linked scholarly comparison of this isolated sentence does not replace the essay or book, their context or usual market. Actual display and commercial context may alter this assessment.",
+      "source_integrity": "The words, accents and punctuation are retained from the published secondary quotation, with whitespace normalized. Wilde, translator Martínez Victorio, Langre 2002 and the quoting article are credited; the book was not inspected, its exact page within the cited range and its typography remain unknown."
+     },
+     "participants": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Luis Martínez Victorio",
+        "ru": "Luis Martínez Victorio"
+       },
+       "source": "https://id.loc.gov/authorities/names/nr2006016125.madsrdf_raw.jsonld",
+       "born": [],
+       "died": []
+      },
       {
        "role": "author",
        "name": {
@@ -17074,15 +17201,21 @@
      "en": "Dialogue, p. 41"
     },
     "texts": {
-     "en": "At present, people see fogs, not because there are fogs, but because poets and painters have taught them the mysterious loveliness of such effects."
+     "en": "At present, people see fogs, not because there are fogs, but because poets and painters have taught them the mysterious loveliness of such effects.",
+     "es": "Hoy en día, la gente ve nieblas no porque hay nieblas, sino porque los poetas y los pintores les han enseñado la misteriosa belleza de tales efectos."
     },
     "links": {
-     "en": "https://archive.org/details/decayoflyingpenp00wild/page/n66/mode/1up"
+     "en": "https://archive.org/details/decayoflyingpenp00wild/page/n66/mode/1up",
+     "es": "https://revistas.userena.cl/index.php/logos/article/download/2579/2612/8066"
     },
     "refs": [
      [
       "en",
       "Intentions (New York: Brentano’s, 1905), p. 41"
+     ],
+     [
+      "es",
+      "Oscar Wilde, La decadencia de la mentira, translated by Luis Martínez Victorio (Madrid: Langre, 2002), pp. 111–113 as cited by the 2025 Logos article, p. 159. The book itself was not inspected; the article does not identify the precise page of this sentence within that range., p. 159"
      ]
     ]
    }
