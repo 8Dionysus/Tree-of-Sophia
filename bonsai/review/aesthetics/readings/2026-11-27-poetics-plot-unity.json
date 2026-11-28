@@ -1,0 +1,66 @@
+{
+  "reader": {
+    "id": "codex-2026-11-27-poetics-plot-unity",
+    "model": "Codex",
+    "date": "2026-11-27",
+    "reads": "Aristotle, Poetics VI and VIII, in the Greek public corpus beside English and Russian translations."
+  },
+  "library": {
+    "agents": {
+      "aristotle": {
+        "tree": "tos.agent.aristotle"
+      }
+    },
+    "works": {
+      "aristotle.poetics": {
+        "title": {
+          "ru": "Поэтика",
+          "en": "Poetics"
+        },
+        "original": "grc",
+        "tree": "tos.work.retained-antiquity.poetics"
+      }
+    }
+  },
+  "conceptions": [
+    {
+      "id": "aristotle.poetics:plot-and-single-hero",
+      "of": [
+        "A:C150",
+        "A:C151",
+        "A:C005"
+      ],
+      "areas": [
+        "AE05"
+      ],
+      "work": "aristotle.poetics",
+      "locus": "VI, 1450a; VIII, 1451a",
+      "voice": {
+        "ru": "Аристотель",
+        "en": "Aristotle"
+      },
+      "formula": [
+        {
+          "unit": "Глава 6",
+          "from": "μέγιστον δὲ τούτων ἐστὶν",
+          "to": "ἡ τῶν πραγμάτων σύστασις."
+        },
+        {
+          "unit": "Глава 8",
+          "from": "μῦθος δ’ ἐστὶν εἷς",
+          "to": "ἐξ ὧν μία οὐδεμία γίνεται πρᾶξις."
+        }
+      ],
+      "thesis": {
+        "ru": "Состав событий занимает главное место в трагедии; единства фабулы не создаёт одно лишь присутствие единого героя, с которым происходят многие события.",
+        "en": "The arrangement of incidents holds the chief place in tragedy; a plot does not gain unity merely by following one hero through many events."
+      },
+      "status": "text",
+      "verdict": "confirmed",
+      "from": [
+        "A:E073"
+      ]
+    }
+  ],
+  "links": []
+}
