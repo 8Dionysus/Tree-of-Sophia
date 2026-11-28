@@ -437,6 +437,20 @@
           "other_urls": ["https://ddd.uab.cat/pub/tfg/2020/tfg_282373/Ciencia_y_Narrativa_en_Lovecraft.pdf"]
         },
         {
+          "source": "Latinoamérica, UNAM, article by Andrés Torres-Scott",
+          "result": "Personally inspected printed p44, PDF page 9: footnote 9 gives a complete Spanish counterpart of A:E129 and identifies it as the article author's translation. The article cites an English edition, Oxford 2013 pp446–447; independently compare the Spanish with the 1927 printing and assess quotation rights and the translator's identity and dates before admission.",
+          "url": "https://www.redalyc.org/journal/640/64069682002/64069682002.pdf#page=9"
+        },
+        {
+          "source": "China Writers Association, Google Books and WeRead",
+          "result": "A 2023 academic article quotes a Chinese counterpart of A:E128 and footnote 20 cites Chen Feiya's 2014 translation, Northwest University Press, p118. Google Books gives ISBN 9787560434001 and 305 pages. WeRead's Chinese introduction required paid membership after the preview; the primary book page, exact alignment, translator dates and rights remain unverified. This does not establish A:E129.",
+          "url": "https://www.chinawriter.com.cn/n1/2023/0221/c404027-32627956.html",
+          "other_urls": [
+            "https://books.google.com.mx/books?id=pPEurgEACAAJ",
+            "https://weread.qq.com/web/reader/97432740813ab6aa9g01225fkc51323901dc51ce410c121b"
+          ]
+        },
+        {
           "source": "SPbGUPTD institutional journal article",
           "url": "https://publish.sutd.ru/docs/content/promtechdes_ser_tech_2025_3.pdf",
           "result": "Russian sentence corresponding to A:E129 appears in article p.144 with bibliographic citation to Domino 2010. Exact translator and book pagination not identified. Accessible article is not an open licence for full translation."
@@ -601,6 +615,18 @@
           ],
           "birth": 1897,
           "death": 1986
+        },
+        {
+          "name": "Ángel Vegue y Goldoni",
+          "role": "reviser of the second Spanish edition",
+          "birth": 1877,
+          "death": 1939,
+          "identifiers": {"wikidata": "Q87739479"},
+          "evidence": [
+            "https://diccionariobiograficodecastillalamancha.es/biografias/vegue-y-goldoni-angel/",
+            "https://www.wikidata.org/wiki/Q87739479",
+            "https://iiif.archive.org/iiif/croce-benedetto.-estetica-ocr-1926$6/full/1200,/0/default.jpg"
+          ]
         }
       ],
       "original_candidates": [
@@ -651,7 +677,14 @@
           "language": "es",
           "edition": "Estética, second Spanish edition, revised by Ángel Vegue y Goldoni, 1926",
           "scan": "https://archive.org/details/croce-benedetto.-estetica-ocr-1926",
-          "status": "OCR of the editorial note attributes the 1912 translation to the third Italian edition and the revised 1926 version to the fifth; OCR p47 includes both sides of a contrast absent in the 1912 scan. Check title and page images, source alignment, editor identity and independent rights before use."
+          "status": "Personally inspected title and editorial note on p10: the first Spanish translation follows the third Italian edition and this revision the fifth. Chapter I opening contains both images and concepts, matching the corresponding contrast in Italian 1902 p3 and differing from the first Spanish edition; scandata calls this p47, but its number is not visible on the chapter opening. Personally inspected chapter IV opening (scandata p77, number not visible) and printed p79 on symbol and allegory. Exact full-sentence alignment for all places, rights and independent review remain open.",
+          "page_images": [
+            "https://iiif.archive.org/iiif/croce-benedetto.-estetica-ocr-1926$6/full/1200,/0/default.jpg",
+            "https://iiif.archive.org/iiif/croce-benedetto.-estetica-ocr-1926$13/full/1200,/0/default.jpg",
+            "https://iiif.archive.org/iiif/croce-benedetto.-estetica-ocr-1926$50/full/1200,/0/default.jpg",
+            "https://iiif.archive.org/iiif/croce-benedetto.-estetica-ocr-1926$80/full/1200,/0/default.jpg",
+            "https://iiif.archive.org/iiif/croce-benedetto.-estetica-ocr-1926$82/full/1200,/0/default.jpg"
+          ]
         },
         {
           "language": "zh-Hans",
