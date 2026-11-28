@@ -168,7 +168,7 @@ function quoteAttribution({document, version, unit, quote, locale}) {
   const originalTitle = localized(document?.title, locale);
   const edition = localized(version?.edition, locale) || version?.label || version?.id || '';
   const locator = withMarkerRange(apparatusLabel(unit,locale) || corpusSectionLabel(readableUnitLocator(unit,locale),locale,version?.id) || localized(version?.locator || document?.locator, locale) || unit?.unitId || '',unit,version?.id);
-  const source = safeExternalUrl(attr(version?.sourceUrl || version?.source_url || document?.sourceUrl));
+  const source = safeExternalUrl(attr(unit?.sourceUrl)) || safeExternalUrl(attr(version?.sourceUrl || version?.source_url || document?.sourceUrl));
   const licenseUrl = safeExternalUrl(attr(version?.license?.url));
   const license = licenseUrl ? `${localized(version?.license?.label, locale) || ((copyLocale(locale)==='en') ? localeText('License',locale) : 'Лицензия')}: ${licenseUrl}` : '';
   return [quote ? `«${quote}»` : '', [author,title,work && work !== title && work !== originalTitle ? work : ''].filter(Boolean).join(' · '), edition, locator, source, license].filter(Boolean).join('\n');
@@ -1308,7 +1308,15 @@ export function mountCorpusReader({
       }
     }, 'cr-bookmark'));
     tools.lastChild.setAttribute('aria-label', t('bookmark'));
-    tools.append(button(t('copy'), copySelected, 'cr-copy')); body.append(tools);
+    tools.append(button(t('copy'), copySelected, 'cr-copy'));
+    const sourceVersion = activeVersion(selected.versionId);
+    const sourceUrl = safeExternalUrl(attr(selected.unit?.sourceUrl)) || safeExternalUrl(attr(sourceVersion?.sourceUrl || sourceVersion?.source_url || activeDocument()?.sourceUrl));
+    if (sourceUrl) {
+      const sourceLink = element('a', 'text-button', sourceLinkLabel(sourceUrl, uiLocale()));
+      sourceLink.href = sourceUrl; sourceLink.target = '_blank'; sourceLink.rel = 'noopener noreferrer';
+      tools.append(sourceLink);
+    }
+    body.append(tools);
     const label = element('label', 'cr-note-label', `${t('addNote')} · ${unitLabel(selected.unit)}`);
     noteEditor = element('textarea', 'cr-note-editor'); noteEditor.rows = 7; noteEditor.maxLength = READER_LIMITS.note; noteEditor.placeholder = t('notePlaceholder'); noteEditor.value = draft?.key===referenceKey(selected.reference)&&draft.recordId===selected.noteId?draft.text:selectedNote?.text || '';
     noteEditor.addEventListener('input', () => {
@@ -1430,10 +1438,15 @@ export function mountCorpusReader({
         ? `Retained corpus snapshot: ${version.snapshotRevision}` : `Сохранённый снимок корпуса: ${version.snapshotRevision}`));
       if (version.witnessNote) section.append(element('p', '', localized(version.witnessNote, uiLocale())));
       if (version.transcriptionNote) section.append(element('p', '', localized(version.transcriptionNote, uiLocale())));
-      if (sourceUrl) { const link = element('a', '', sourceLinkLabel(sourceUrl, uiLocale())); link.href = sourceUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link); }
+      const additionalSources = Array.isArray(version.additionalSourceUrls) ? version.additionalSourceUrls.map(safeExternalUrl).filter(Boolean) : [];
+      if (sourceUrl) { const link = element('a', '', `${sourceLinkLabel(sourceUrl, uiLocale())}${additionalSources.length ? ' · 1' : ''}`); link.href = sourceUrl; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link); }
+      for (const [index, url] of additionalSources.entries()) {
+        const link = element('a', '', `${sourceLinkLabel(url, uiLocale())} · ${index + 2}`);
+        link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link);
+      }
       for (const witness of version.witnessSources ?? []) {
         const url = safeExternalUrl(witness?.url);
-        if (!url || url === sourceUrl) continue;
+        if (!url || url === sourceUrl || additionalSources.includes(url)) continue;
         const link = element('a', '', `${sourceLinkLabel(url, uiLocale())}${witness.part ? ` · ${witness.part}` : ''}`);
         link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; section.append(link);
       }

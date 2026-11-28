@@ -919,16 +919,21 @@ impl Planning<'_, '_> {
             }
             // Native packets retain their taxonomy and one collection root;
             // a profile basename must not count the same packet as a record.
-            if basename != "source-text-unit-packet.v1.json"
-                && (basenames.contains(basename)
-                    || basename.ends_with(".jsonl")
-                        && (basename.contains("provenance") || basename.contains("anchor")))
+            if !matches!(
+                basename,
+                "source-text-unit-packet.v1.json" | "source-text-unit-packet.v2.json"
+            ) && (basenames.contains(basename)
+                || basename.ends_with(".jsonl")
+                    && (basename.contains("provenance") || basename.contains("anchor")))
             {
                 catalog::source_ref(path)?;
                 self.select(path, SOURCE_FILES)?;
             }
             if (basename.starts_with("semantic-annotation") && basename.ends_with(".json")
-                || basename == "source-text-unit-packet.v1.json")
+                || matches!(
+                    basename,
+                    "source-text-unit-packet.v1.json" | "source-text-unit-packet.v2.json"
+                ))
                 && !path
                     .split('/')
                     .any(|part| matches!(part, "payload" | "local-content" | "catalog"))
