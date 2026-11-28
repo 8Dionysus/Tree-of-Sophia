@@ -197,7 +197,7 @@ Kandinsky's 1912 German text is recorded as public domain in Russia, the USA and
 
 ## Publisher-authored HTML summary as the original source
 
-The local Lara Harb `arabic-poetics` packet draws C:A-I102 from the author's
+The local Lara Harb `arabic-poetics` packet draws C:A-I102 from the publisher's
 chapter 5 Summary published at https://www.cambridge.org/core/books/abs/arabic-poetics/nazm-wonder-and-the-inimitability-of-the-quran/B980231F9936B751EF11029D69CF4554.
 The source is the publisher's HTML summary itself, with the structural locator
 `Chapter 5 Summary`, paragraph 2; it is not a scan or a claim that book pages
@@ -211,7 +211,8 @@ not pretend to be a printed edition or serve as proof of rights. The packet is
 not accepted: language searches and an independent assessment of the Mexican
 quotation, including the effect of the selected quotation on the seven-sentence
 summary, remain open. The first draft used two sentences; it was subsequently
-reduced to one, which still requires a fresh independent assessment. The current gate did not itself emit a `line:` prefix.
+reduced to one, which still requires a fresh independent assessment. The current
+gate did not itself emit a `line:` prefix.
 
 ## Independent Mexico assessment needs an explicit outcome
 
@@ -219,11 +220,13 @@ The second reader could not affirm that the first Harb HTML quotation satisfied
 the Mexican requirements: it reproduced the whole second paragraph, 74 of 184
 words of the summary. The maker then reduced it to one 45-word sentence; a
 fresh second reading confirms the wording but leaves the legal assessment
-unresolved because the final display and other quotations are not yet known. `mexico-quotation-review` currently records
+unresolved because the final display and other quotations are not yet known.
+`mexico-quotation-review` currently records
 an arbitrary assessment string; `mexico_problems` checks its length, reviewer,
 date and digest but does not distinguish approval from rejection or pending.
 Please support an explicit evidence-bound approval, rejection or pending
 outcome, and require approval for a clean gate without converting uncertainty
 into approval. The reader did not invoke the command, so no approval has been
-recorded; the local packet remains unaccepted. The one-sentence revision supports a narrower conception, but its reduced
-length does not itself establish legal clearance.
+recorded; the local packet remains unaccepted. The one-sentence revision
+supports a narrower conception, but its reduced length does not itself
+establish legal clearance.
