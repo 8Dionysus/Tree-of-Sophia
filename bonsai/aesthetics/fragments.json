@@ -2856,6 +2856,31 @@
      ]
     }
    },
+   "georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/georg-wilhelm-friedrich-hegel.vorlesungen-ueber-die-aesthetik/witnesses/en.json",
+     "corrections": [],
+     "page_sources": {
+      "Einleitung p92a": [
+       {
+        "page": "p. 135",
+        "url": "https://archive.org/download/introductiontohe00hege/page/n174.jpg",
+        "image_sha256": "9652e5936431b307e6d3310573995523e5ef76124110602b945f01cb7b83e775"
+       },
+       {
+        "page": "p. 136",
+        "url": "https://archive.org/download/introductiontohe00hege/page/n175.jpg",
+        "image_sha256": "2dfa81623a4796964000eaac2a73723d845be2f591dce823e5ca91398744746c"
+       }
+      ]
+     }
+    }
+   },
    "gotthold-ephraim-lessing.laokoon": {
     "en": {
      "absent": {
@@ -6955,6 +6980,142 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "G. W. F. Hegel, The Introduction to Hegel’s Philosophy of Fine Art, translated with notes and a prefatory essay by Bernard Bosanquet (London: Kegan Paul, Trench & Co., 1886), pp. 135–136. This place is compared with Hotho’s 1835 German edition; the precise German source edition of the translation is not established.",
+     "year": 1886,
+     "url": "https://archive.org/details/introductiontohe00hege",
+     "licence": "Historical translation, public domain on grounds specified for each jurisdiction.",
+     "attribution": "G. W. F. Hegel, The Introduction to Hegel’s Philosophy of Fine Art, translated by Bernard Bosanquet (London: Kegan Paul, Trench & Co., 1886), pp. 135–136; compared with the 1835 edition edited by Heinrich Gustav Hotho.",
+     "maker": "codex-2026-11-28-hegel-bosanquet-maker",
+     "normalization": "Line-break hyphenation and the paragraph boundary between the two printed pages are normalized to spaces; wording and punctuation are retained.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q9235",
+       "name": {
+        "en": "Georg Wilhelm Friedrich Hegel",
+        "ru": "Георг Вильгельм Фридрих Гегель"
+       },
+       "born": 1770,
+       "died": 1831,
+       "source": "https://www.wikidata.org/wiki/Q9235",
+       "evidence": {
+        "file": "wikidata-Q9235.json",
+        "sha256": "e39e21b8b99aa3a0eae60626fafc191cbf88193e4d8b32c155b94c8d4ddeae68",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q9235.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q72950",
+       "name": {
+        "en": "Heinrich Gustav Hotho",
+        "ru": "Генрих Густав Гото"
+       },
+       "born": 1802,
+       "died": 1873,
+       "source": "https://www.wikidata.org/wiki/Q72950",
+       "evidence": {
+        "file": "wikidata-Q72950.json",
+        "sha256": "989f24eef22f47369b919002cc6714fe95153ccfcaa94c04d815fd438e36adcd",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q72950.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q822329",
+       "name": {
+        "en": "Bernard Bosanquet",
+        "ru": "Бернард Бозанкет"
+       },
+       "born": 1848,
+       "died": 1923,
+       "source": "https://www.wikidata.org/wiki/Q822329",
+       "evidence": {
+        "file": "wikidata-Q822329.json",
+        "sha256": "9d0f7685c723517239bdf43a2cc7faada8f7a3c585c3eee2a30b543df208b0bb",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q822329.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published 1886, outside the maximum 95-year term, 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: 70 years after the death of author, editor and translator; latest recorded death 1923. https://eur-lex.europa.eu/eli/dir/2006/116/oj"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code article 1281: 70 years after death, conservatively adding four wartime years; latest recorded death 1923. https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Georg Wilhelm Friedrich Hegel",
+        "ru": "Георг Вильгельм Фридрих Гегель"
+       },
+       "qid": "Q9235",
+       "source": "https://www.wikidata.org/wiki/Q9235",
+       "born": [
+        {
+         "time": "+1770-08-27T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1831-11-14T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Heinrich Gustav Hotho",
+        "ru": "Генрих Густав Гото"
+       },
+       "qid": "Q72950",
+       "source": "https://www.wikidata.org/wiki/Q72950",
+       "born": [
+        {
+         "time": "+1802-05-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1873-12-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Bernard Bosanquet",
+        "ru": "Бернард Бозанкет"
+       },
+       "qid": "Q822329",
+       "source": "https://www.wikidata.org/wiki/Q822329",
+       "born": [
+        {
+         "year": 1848
+        }
+       ],
+       "died": [
+        {
+         "year": 1923
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -6962,10 +7123,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -14819,15 +14976,21 @@
      "en": "Introduction, pp. 92–93"
     },
     "texts": {
-     "de": "Wie nun ein Inhalt, um überhaupt wahr zu seyn, so konkreter Art seyn muß, fordert auch die Kunst die gleiche Konkretion, weil das nur abstrakt Allgemeine in sich selbst nicht die Bestimmung hat, zur Besonderung und Erscheinung und zur Einheit mit sich in derselben fortzuschreiten. Soll nun einem wahrhaften und deshalb konkreten Inhalt eine sinnliche Form und Gestaltung entsprechen, so muß diese drittens gleichfalls ein individuelles in sich vollständig Konkretes und Einzelnes seyn."
+     "de": "Wie nun ein Inhalt, um überhaupt wahr zu seyn, so konkreter Art seyn muß, fordert auch die Kunst die gleiche Konkretion, weil das nur abstrakt Allgemeine in sich selbst nicht die Bestimmung hat, zur Besonderung und Erscheinung und zur Einheit mit sich in derselben fortzuschreiten. Soll nun einem wahrhaften und deshalb konkreten Inhalt eine sinnliche Form und Gestaltung entsprechen, so muß diese drittens gleichfalls ein individuelles in sich vollständig Konkretes und Einzelnes seyn.",
+     "en": "Now, as a content in order to possess truth at all must be of this concrete nature, art demands the same concreteness, because a mere abstract universal has not in itself the vocation to advance to particularity and phenomenal manifestation and to unity with itself therein. If a true and therefore concrete content is to have corresponding to it a sensuous form and modelling, this sensuous form must, in the third place, be no less emphatically something individual, wholly concrete in itself, and one."
     },
     "links": {
-     "de": "https://archive.org/details/10045986/page/n113/mode/1up"
+     "de": "https://archive.org/details/10045986/page/n113/mode/1up",
+     "en": "https://archive.org/download/introductiontohe00hege/page/n174.jpg"
     },
     "refs": [
      [
       "de",
       "Hotho edition (Berlin 1835), pp. 92–93"
+     ],
+     [
+      "en",
+      "G. W. F. Hegel, The Introduction to Hegel’s Philosophy of Fine Art, translated with notes and a prefatory essay by Bernard Bosanquet (London: Kegan Paul, Trench & Co., 1886), pp. 135–136. This place is compared with Hotho’s 1835 German edition; the precise German source edition of the translation is not established., p. 135, p. 136"
      ]
     ]
    },
