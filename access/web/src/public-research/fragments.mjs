@@ -389,7 +389,11 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         quote.append(...nodes);
         const witness=witnessOf(language);
         const caption=el('figcaption','ps-fragment-cite');
-        caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label),local(witness?.short),language==='ru'&&isPreReform(text)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
+        // Translation references name the edition and page of this text, not the original page.
+        const translated=profile==='aesthetics'&&language!==work.original;
+        const reference=translated?(place.refs?.find(ref=>Array.isArray(ref)&&ref[0]===language&&typeof ref[1]==='string')?.[1]||local(witness?.attribution)||local(witness?.edition)||local(witness?.short)||words('fragmentTranslation')):null;
+        const author=local(work.author),title=local(work.title),short=local(witness?.short),fullReference=reference&&author&&title&&reference.includes(author)&&reference.includes(title);
+        caption.append(el('span','ps-fragment-source',[fullReference?null:author,fullReference?null:title,translated?reference:local(place.label),translated&&reference?.includes(short)?null:short,language==='ru'&&isPreReform(text)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
       }
       if(profile==='aesthetics'&&resolveLocale(locale())!==work.original&&!available.includes(resolveLocale(locale())))figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
@@ -406,6 +410,10 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       const witness=witnessOf(showing[0]);
       const [url,opens]=place.links?.[showing[0]]?[place.links[showing[0]],'work']:place.url?[place.url,place.opens??'book']:[witness?.url,witness?.opens??'work'];
       if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words({quotation:'fragmentQuoted',book:'fragmentBook'}[opens]??'fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
+      if(profile==='aesthetics')for(const language of showing.filter(value=>value!==work.original)){
+        const translated=place.links?.[language];
+        if(typeof translated==='string'&&/^https:\/\//.test(translated)&&translated!==url){const link=el('a','text-button ps-fragment-whole',`↗ ${words('fragmentTranslation')}`);link.href=translated;link.lang=language==='zh-Hans'?'zh':language;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
+      }
       copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     paint();
