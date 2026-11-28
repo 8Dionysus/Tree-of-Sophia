@@ -222,3 +222,25 @@ retain the source and edition distinction. Alternatively, a documented way to
 collate an existing transcription against a different printing must preserve
 both sources and each correction. A transcription or scan alone establishes
 neither a verified reading nor the contributors' rights.
+
+## Independent image of a lawful web edition
+
+The Sophocles *Antigone* packet has identified an authorized electronic
+edition at https://yunqi.qq.com/read/25912987/5; its
+https://yunqi.qq.com/detail/25912987 catalogue names the translator, publisher
+and the digital rights provider's authorization. Both short prologue passages
+are visible in the HTML chapter. The edition does not show print pagination,
+but chapter 5 is an exact structural locator; the maker fetched the HTML through
+the kit and has not claimed to inspect a printed page.
+
+`witness-cut` still requires a registered page image. `witness-image` can
+record an image URL and optional supplied image bytes, but does not represent
+a browser screenshot as a derivative of an independently visited HTML URL:
+using the HTML URL as if it delivered those image bytes would obscure their
+origin. Please provide a verifiable route for recording a browser-rendered
+page screenshot or other independently inspectable visual evidence of an
+unpaginated lawful electronic edition, with source URL, capture time and
+method, image digest and separate maker/second-reader evidence. This should
+not turn a screenshot into proof of authority, text accuracy, equivalence,
+or permission to quote; the reader must still inspect the page and assess
+rights in each jurisdiction.
