@@ -131,3 +131,19 @@ Please provide a supported, audited way to remove or replace an erroneous
 provisional witness participant, invalidating the second review as needed.
 Do not silently equate names or suppress unsupported participants; the maker's
 error and every identity still require review.
+
+## Preserve existing reader logs when resuming a line
+
+On 27 November the `aristotle.de-anima` output directory already contained
+`01-maker.jsonl` and `01-maker.md`, while its `state.json` had no recorded
+sessions. `drive.py` chooses the next filename from `len(sessions) + 1` and
+opens the JSONL with mode `w`. A retake consequently overwrote the earlier
+`01-maker.jsonl`; the old final message and the directed continuation's
+JSONL and message remain. The current session is writing to the same name,
+so the previous event log cannot be inferred from it.
+
+Please make allocation of reader log and final-message names collision-safe
+against files already present, even when state is missing, stale, or an
+interrupted reader has not yet been recorded. Preserve existing evidence and
+concurrent readers; report a failure instead of overwriting. A new output
+directory is the interim workaround, not a recovery of the lost log.
