@@ -2063,6 +2063,40 @@
      "corrections": []
     }
    },
+   "david-hume.of-the-standard-of-taste": {
+    "de": {
+     "absent": null,
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/david-hume.of-the-standard-of-taste/witnesses/de.json",
+     "corrections": [],
+     "page_sources": {
+      "IV p224": [
+       {
+        "page": "p. 259",
+        "url": "https://archive.org/download/11916063bsb/page/n278.jpg",
+        "image_sha256": "122bdeae72580dad1b619e28383d4e77c1ecfea803a82cb09105377fb912829d"
+       },
+       {
+        "page": "p. 260",
+        "url": "https://archive.org/download/11916063bsb/page/n279.jpg",
+        "image_sha256": "84c58b6d2ab7be58d27f17a68512a9f043e56bbb6d69d215d68148880ca8e451"
+       }
+      ],
+      "IV p226": [
+       {
+        "page": "p. 261",
+        "url": "https://archive.org/download/11916063bsb/page/n280.jpg",
+        "image_sha256": "e7f21de26c0dd709255018c6a65dcb8c4c6ee363306c51626e398e1cc1b445f9"
+       },
+       {
+        "page": "p. 262",
+        "url": "https://archive.org/download/11916063bsb/page/n281.jpg",
+        "image_sha256": "54a00a6bc1beeb056454497ecb69f42e10a5d0082e3a1851ddef802f867f06c1"
+       }
+      ]
+     }
+    }
+   },
    "friedrich-nietzsche.die-froehliche-wissenschaft": {
     "en": {
      "absent": {
@@ -2602,6 +2636,37 @@
        }
       ]
      }
+    }
+   },
+   "rudolf-otto.das-heilige": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/rudolf-otto.das-heilige/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/rudolf-otto.das-heilige/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "8bcb728cea4d05dc5290100f52645cc9776b05b7bc7a398cd7fb9df9d1611e47",
+        "non_substantial": "This quotation consists of the two complete printed sentences, 62 words in total, needed to compare the chosen definition in a long scholarly monograph; it does not reproduce the surrounding argument or substitute for the translation.",
+        "normal_exploitation": "The passage is attributed and used for research and education with the German original and conceptual context. A single brief extract does not replace the book or interfere with its normal reading and sale.",
+        "source_integrity": "The printed wording and quotation marks remain intact, with whitespace and line-break hyphenation normalized. The author, translator, title, edition, source and page 13 are identified; no new wording has been added."
+       },
+       "review": {
+        "reader": "codex-2026-11-27-otto-en-second",
+        "date": "2026-11-27",
+        "sha256": "c5a68a8d90727b21a19c194cbd815ab8241ed8494bfd2725db47f4977b6b54d7",
+        "assessment": "The 62-word selection is two complete sentences from a lengthy disclosed monograph, needed together for the contrast between ordinary fear and the distinct response; it is not a simulated substantial reproduction of the book. The research stand presents the original and the reader language as cited grounds for its own conceptual reading, with work, translator, edition and page. On that stated use, the extract does not substitute for normal exploitation, and the wording and punctuation follow the printed source. This assessment depends on the actual presentation remaining within that scope and does not determine rights in other jurisdictions."
+       }
+      }
+     ]
     }
    }
   }
@@ -3731,6 +3796,113 @@
          "qualifiers": [
           "Q26877139"
          ]
+        }
+       ]
+      }
+     ]
+    },
+    "de": {
+     "edition": "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), pp. 252, 259–264, 268.",
+     "year": 1759,
+     "url": "https://archive.org/details/11916063bsb",
+     "licence": "Historical translation in the public domain in the listed jurisdictions; Bayerische Staatsbibliothek digitisation.",
+     "attribution": "David Hume, translated by Friedrich Gabriel Resewitz, Vier Abhandlungen (1759).",
+     "maker": "codex-2026-11-27-hume-de-maker",
+     "normalization": "Long s rendered as s; line breaks and line-end hyphenation normalized, historical spelling and punctuation retained.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q37160",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "born": 1711,
+       "died": 1776,
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "evidence": {
+        "file": "wikidata-Q37160.json",
+        "sha256": "8286cadd63aabcb3fe74a8b8801e2b1bd1d81d5954568e68cc60b142a7275d30",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q37160.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q1459190",
+       "name": {
+        "en": "Friedrich Gabriel Resewitz",
+        "ru": "Friedrich Gabriel Resewitz"
+       },
+       "born": 1729,
+       "died": 1806,
+       "source": "https://www.wikidata.org/wiki/Q1459190",
+       "evidence": {
+        "file": "wikidata-Q1459190.json",
+        "sha256": "727c18235868dc39efa2621fef6068e39b44f94548758e018015a920c17b1a1e",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q1459190.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published in 1759, prior to 1931; 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: 70 years after the latest death, translator Resewitz 1806: https://eur-lex.europa.eu/eli/dir/2006/116/oj"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code article 1281: 70 years after death with four years conservatively added; latest death 1806: https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "qid": "Q37160",
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "born": [
+        {
+         "time": "+1711-04-26T00:00:00Z",
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
+        }
+       ],
+       "died": [
+        {
+         "time": "+1776-08-25T00:00:00Z",
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Friedrich Gabriel Resewitz",
+        "ru": "Friedrich Gabriel Resewitz"
+       },
+       "qid": "Q1459190",
+       "source": "https://www.wikidata.org/wiki/Q1459190",
+       "born": [
+        {
+         "year": 1729
+        }
+       ],
+       "died": [
+        {
+         "year": 1806
         }
        ]
       }
@@ -7683,6 +7855,113 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Rudolf Otto, The Idea of the Holy, translated John W. Harvey (London: Oxford University Press, 1924), p. 13.",
+     "year": 1924,
+     "url": "https://archive.org/details/in.ernet.dli.2015.22259",
+     "licence": "Historical translation public domain in USA; candidate limited quotation in other jurisdictions, with named source and translator.",
+     "attribution": "Rudolf Otto, translated John W. Harvey, The Idea of the Holy (Oxford University Press, 1924), p. 13.",
+     "maker": "codex-2026-11-27-otto-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q76748",
+       "name": {
+        "en": "Rudolf Otto",
+        "ru": "Рудольф Отто"
+       },
+       "born": 1869,
+       "died": 1937,
+       "source": "https://www.wikidata.org/wiki/Q76748",
+       "evidence": {
+        "file": "wikidata-Q76748.json",
+        "sha256": "cbbcb5f163a2263fe0d3b1a1b6ec555beea33be5b321a2dc39749b248f4307c8",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q76748.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q127869871",
+       "name": {
+        "en": "John W. Harvey",
+        "ru": "John W. Harvey"
+       },
+       "born": 1889,
+       "died": 1967,
+       "source": "https://www.wikidata.org/wiki/Q127869871",
+       "evidence": {
+        "file": "wikidata-Q127869871.json",
+        "sha256": "0793321ddb25b821574b94af5f4a91a47b8e161995569aab8a61cf766b2523d4",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q127869871.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published in 1924 before 1931, US Copyright Act 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d), attributed quotation for research and critique limited to the selected comparison, subject to applicable national implementations: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education in an extent justified by the aim, with author and source: https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "8bcb728cea4d05dc5290100f52645cc9776b05b7bc7a398cd7fb9df9d1611e47",
+      "non_substantial": "This quotation consists of the two complete printed sentences, 62 words in total, needed to compare the chosen definition in a long scholarly monograph; it does not reproduce the surrounding argument or substitute for the translation.",
+      "normal_exploitation": "The passage is attributed and used for research and education with the German original and conceptual context. A single brief extract does not replace the book or interfere with its normal reading and sale.",
+      "source_integrity": "The printed wording and quotation marks remain intact, with whitespace and line-break hyphenation normalized. The author, translator, title, edition, source and page 13 are identified; no new wording has been added."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Rudolf Otto",
+        "ru": "Рудольф Отто"
+       },
+       "qid": "Q76748",
+       "source": "https://www.wikidata.org/wiki/Q76748",
+       "born": [
+        {
+         "time": "+1869-09-25T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1937-03-07T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "John W. Harvey",
+        "ru": "John W. Harvey"
+       },
+       "qid": "Q127869871",
+       "source": "https://www.wikidata.org/wiki/Q127869871",
+       "born": [
+        {
+         "year": 1889
+        }
+       ],
+       "died": [
+        {
+         "year": 1967
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -7690,10 +7969,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -10961,15 +11236,21 @@
      "en": "Diss. IV, pp. 217–218"
     },
     "texts": {
-     "en": "Where the organs are so fine, as to allow nothing to escape them; and at the same time so exact as to perceive every ingredient in the composition: This we call delicacy of taste, whether we employ these terms in the natural or metaphorical sense."
+     "en": "Where the organs are so fine, as to allow nothing to escape them; and at the same time so exact as to perceive every ingredient in the composition: This we call delicacy of taste, whether we employ these terms in the natural or metaphorical sense.",
+     "de": "Wo aber die Organen so fein sind, daß sie nichts entwischen lassen, und zugleich so genau sind, daß sie jedes Ingredient in der Mischung gewahr werden; so nennen wir das die Zärtlichkeit des Geschmacks, wir mögen diese Ausdrücke in eigentlicher oder uneigentlicher Bedeutung nehmen."
     },
     "links": {
-     "en": "https://archive.org/details/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/page/n232/mode/1up"
+     "en": "https://archive.org/details/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/page/n232/mode/1up",
+     "de": "https://archive.org/download/11916063bsb/page/n271.jpg"
     },
     "refs": [
      [
       "en",
       "First edition (London, 1757), pp. 217–218"
+     ],
+     [
+      "de",
+      "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), pp. 252, 259–264, 268., p. 252"
      ]
     ]
    },
@@ -10979,15 +11260,21 @@
      "en": "Diss. IV, pp. 224–225"
     },
     "texts": {
-     "en": "An orator addresses himself to a particular audience, and must have a regard to their particular genius, interests, opinions, passions, and prejudices; otherwise he hopes in vain to govern their resolutions, and inflame their affections. Should they even have entertained some prepossessions against him, however unreasonable, he must not overlook this disadvantage; but before he enters upon the subject, must endeavour to conciliate their affection, and acquire their good graces. A critic of a different age or nation, who should peruse this discourse, must have all these circumstances in his eye, and must place himself in the same situation as the audience, in order to form a true judgment of the oration."
+     "en": "An orator addresses himself to a particular audience, and must have a regard to their particular genius, interests, opinions, passions, and prejudices; otherwise he hopes in vain to govern their resolutions, and inflame their affections. Should they even have entertained some prepossessions against him, however unreasonable, he must not overlook this disadvantage; but before he enters upon the subject, must endeavour to conciliate their affection, and acquire their good graces. A critic of a different age or nation, who should peruse this discourse, must have all these circumstances in his eye, and must place himself in the same situation as the audience, in order to form a true judgment of the oration.",
+     "de": "Ein Redner wendet sich an eine besondere Versammlung, und muß auf ihr besonderes Genie, Interesse, Meynungen, Leidenschaften und Vorurtheile Acht haben; sonst hoffet er vergebens ihre Entschliessungen zu regieren, und ihre Leidenschaften zu entflammen. Sollten sie auch einige vorgefaßte Meynungen gegen ihn gehegt haben, und wären sie auch noch so ungegründet, so muß er diesen Nachtheil nicht übersehen; sondern ehe er sich in seine Materie einläßt, muß er ihre Gunst zu gewinnen und ihre Zuneigung zu erwerben suchen. Ein Kunstrichter eines andern Zeitalters oder von einem andern Volk, muß alle diese Umstände vor Augen haben, und sich mit jener Versammlung in gleiche Stellung setzen, wenn er von der Rede ein richtiges Urtheil fällen will."
     },
     "links": {
-     "en": "https://archive.org/details/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/page/n239/mode/1up"
+     "en": "https://archive.org/details/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/page/n239/mode/1up",
+     "de": "https://archive.org/download/11916063bsb/page/n278.jpg"
     },
     "refs": [
      [
       "en",
       "First edition (London, 1757), pp. 224–225"
+     ],
+     [
+      "de",
+      "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), pp. 252, 259–264, 268., p. 259, p. 260"
      ]
     ]
    },
@@ -10997,15 +11284,21 @@
      "en": "Diss. IV, p. 226"
     },
     "texts": {
-     "en": "In all the nobler productions of genius, there is a mutual relation and correspondence of parts; nor can either the beauties or blemishes be perceived by him, whose thought is not capacious enough to comprehend all those parts, and compare them with each other, in order to perceive the consistence and uniformity of the whole. Every work of art has also a certain end or purpose, for which it is calculated; and is to be deemed more or less perfect, as it is more or less fitted to attain this end."
+     "en": "In all the nobler productions of genius, there is a mutual relation and correspondence of parts; nor can either the beauties or blemishes be perceived by him, whose thought is not capacious enough to comprehend all those parts, and compare them with each other, in order to perceive the consistence and uniformity of the whole. Every work of art has also a certain end or purpose, for which it is calculated; and is to be deemed more or less perfect, as it is more or less fitted to attain this end.",
+     "de": "In allen vorzüglichen Werken des Genies findet man eine gegenseitige Beziehung und Uebereinstimmung der Theile; und derjenige kann weder die Schönheiten, noch die Fehler gewahr werden, dessen Verstand nicht groß genug ist, alle diese Theile zu fassen, und mit einander zu vergleichen, um die Einförmigkeit und den Zusammenhang des Ganzen zu verstehen. Ein jedes Werk der Kunst hat gleichfals einen gewissen Endzweck oder Absicht, wozu es verfertiget ist; und muß für mehr oder minder vollkommen geschätzt werden, je nachdem es mehr oder weniger geschickt ist, diesen Endzweck zu erreichen."
     },
     "links": {
-     "en": "https://archive.org/details/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/page/n241/mode/1up"
+     "en": "https://archive.org/details/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/page/n241/mode/1up",
+     "de": "https://archive.org/download/11916063bsb/page/n280.jpg"
     },
     "refs": [
      [
       "en",
       "First edition (London, 1757), p. 226"
+     ],
+     [
+      "de",
+      "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), pp. 252, 259–264, 268., p. 261, p. 262"
      ]
     ]
    },
@@ -11033,15 +11326,21 @@
      "en": "Diss. IV, p. 232"
     },
     "texts": {
-     "en": "But notwithstanding all our endeavours to fix a standard of taste, and reconcile the various apprehensions of men, there still remain two sources of variation, which, tho' they be not sufficient to confound all the boundaries of beauty and deformity, will often serve to vary the degrees of our approbation or blame. The one is the different humours of particular men; the other, the particular manners and opinions of our age and country."
+     "en": "But notwithstanding all our endeavours to fix a standard of taste, and reconcile the various apprehensions of men, there still remain two sources of variation, which, tho' they be not sufficient to confound all the boundaries of beauty and deformity, will often serve to vary the degrees of our approbation or blame. The one is the different humours of particular men; the other, the particular manners and opinions of our age and country.",
+     "de": "Es bleiben aber doch, aller unserer Mühe ungeachtet, eine Grundregel des Geschmacks auszumachen, und die verschiedenen Begriffe der Menschen mit einander zu vereinigen, noch zwo Quellen der Verschiedenheit übrig; die zwar nicht alle Gränzen der Schönheit und Häßlichkeit zu vermischen im Stande sind, aber doch oft die Grade unsers Lobes und Tadels ändern können. Die erste ist die verschiedene Gemüthsart eines jeden Menschen; und die zweyte, die besondern Sitten und Meynungen unserer Zeit und unsers Landes."
     },
     "links": {
-     "en": "https://archive.org/details/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/page/n247/mode/1up"
+     "en": "https://archive.org/details/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/page/n247/mode/1up",
+     "de": "https://archive.org/download/11916063bsb/page/n287.jpg"
     },
     "refs": [
      [
       "en",
       "First edition (London, 1757), p. 232"
+     ],
+     [
+      "de",
+      "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), pp. 252, 259–264, 268., p. 268"
      ]
     ]
    },
@@ -11051,15 +11350,21 @@
      "en": "Diss. IV, p. 228"
     },
     "texts": {
-     "en": "Thus, though the principles of taste be universal, and nearly, if not entirely the same in all men; yet few are qualified to give judgment on any work of art, or establish their own sentiment as the standard of beauty."
+     "en": "Thus, though the principles of taste be universal, and nearly, if not entirely the same in all men; yet few are qualified to give judgment on any work of art, or establish their own sentiment as the standard of beauty.",
+     "de": "Ob also gleich die Grundregeln des Geschmacks allgemein, und beynahe, wo nicht gänzlich einerley bey allen Menschen sind; so sind doch nur wenige geschickt, von einem Werk der Kunst zu urtheilen, oder ihre eigene Empfindung zur Grundregel der Schönheit zu setzen."
     },
     "links": {
-     "en": "https://archive.org/details/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/page/n243/mode/1up"
+     "en": "https://archive.org/details/bim_eighteenth-century_four-dissertations-i-t_hume-david_1757/page/n243/mode/1up",
+     "de": "https://archive.org/download/11916063bsb/page/n282.jpg"
     },
     "refs": [
      [
       "en",
       "First edition (London, 1757), p. 228"
+     ],
+     [
+      "de",
+      "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), pp. 252, 259–264, 268., p. 263"
      ]
     ]
    }
@@ -13726,15 +14031,21 @@
      "en": "Ch. IV, p. 13"
     },
     "texts": {
-     "de": "Tremor ist an sich nur Furcht: ein wohlbekanntes ‘natürliches’ Gefühl. Es dient uns hier als nächstgelegene aber selber doch nur analogische Bezeichnung für eine ganz art-besondere Gefühls-reaktion, die zwar Ähnlichkeit hat mit der Furcht und darum durch sie analogisch angedeutet werden kann, die aber selber noch ganz etwas anderes ist als Sichfürchten."
+     "de": "Tremor ist an sich nur Furcht: ein wohlbekanntes ‘natürliches’ Gefühl. Es dient uns hier als nächstgelegene aber selber doch nur analogische Bezeichnung für eine ganz art-besondere Gefühls-reaktion, die zwar Ähnlichkeit hat mit der Furcht und darum durch sie analogisch angedeutet werden kann, die aber selber noch ganz etwas anderes ist als Sichfürchten.",
+     "en": "‘Tremor’ is in itself merely the perfectly familiar and ‘natural’ emotion of fear. But here the term is taken, aptly enough but still only by analogy, to denote a quite specific kind of emotional response, wholly distinct from that of being afraid, though it so far resembles it that the analogy of fear may be used to throw light upon its nature."
     },
     "links": {
-     "de": "https://archive.org/details/dasheiligeuberda00otto/page/n24/mode/1up"
+     "de": "https://archive.org/details/dasheiligeuberda00otto/page/n24/mode/1up",
+     "en": "https://archive.org/download/in.ernet.dli.2015.22259/page/n33.jpg"
     },
     "refs": [
      [
       "de",
       "13th edition (1925), p. 13"
+     ],
+     [
+      "en",
+      "Rudolf Otto, The Idea of the Holy, translated John W. Harvey (London: Oxford University Press, 1924), p. 13., p. 13"
      ]
     ]
    },
