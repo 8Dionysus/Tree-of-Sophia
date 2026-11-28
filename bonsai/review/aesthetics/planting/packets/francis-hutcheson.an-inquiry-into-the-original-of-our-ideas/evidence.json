@@ -130,7 +130,7 @@
     48
    ],
    "printed": [
-    "16"
+    "17"
    ],
    "differences": [
     {
@@ -150,6 +150,21 @@
      "ocr": "™ LV <",
      "leaf": 48,
      "stands": "transcription"
+    }
+   ],
+   "page_number_corrections": [
+    {
+     "leaf": 48,
+     "from": "16",
+     "to": "17",
+     "url": "https://archive.org/download/aninquiryintothe00hutcuoft/page/n48.jpg",
+     "image_sha256": "74d20dd2ec9bf64886a80bc6089862ab9e37d6df7b06729c2d41c0a525a7ed82",
+     "file": "page-number-74d20dd2ec9bf64886a80bc6089862ab9e37d6df7b06729c2d41c0a525a7ed82.img",
+     "by": "codex-01a22045-maker",
+     "second": "codex-page-second-reader",
+     "second_model": "Codex independent subagent",
+     "assessment": "Independent reader inspected the full page image and read the printed page number 17.",
+     "date": "2026-11-27"
     }
    ]
   },
@@ -177,8 +192,8 @@
     42
    ],
    "printed": [
-    "9",
-    "10"
+    "10",
+    "11"
    ],
    "differences": [
     {
@@ -320,6 +335,34 @@
      "leaf": 42,
      "stands": "transcription",
      "note": "Read both scanned pages 10 and 11, leaves n41 and n42; the differences are OCR errors, a margin heading or a footnote marker."
+    }
+   ],
+   "page_number_corrections": [
+    {
+     "leaf": 41,
+     "from": "9",
+     "to": "10",
+     "url": "https://archive.org/download/aninquiryintothe00hutcuoft/page/n41.jpg",
+     "image_sha256": "82288a8d876c8c032019bbe7ce156a58a3b5e0713924e09bbcce9ce8028c2b54",
+     "file": "page-number-82288a8d876c8c032019bbe7ce156a58a3b5e0713924e09bbcce9ce8028c2b54.img",
+     "by": "codex-01a22045-maker",
+     "second": "codex-page-second-reader",
+     "second_model": "Codex independent subagent",
+     "assessment": "Independent reader inspected the full page image and read the printed page number 10.",
+     "date": "2026-11-27"
+    },
+    {
+     "leaf": 42,
+     "from": "10",
+     "to": "11",
+     "url": "https://archive.org/download/aninquiryintothe00hutcuoft/page/n42.jpg",
+     "image_sha256": "b4fa8d05e027870b5588aab0444b1cac36a770d724345328fc1b433ed306fccd",
+     "file": "page-number-b4fa8d05e027870b5588aab0444b1cac36a770d724345328fc1b433ed306fccd.img",
+     "by": "codex-01a22045-maker",
+     "second": "codex-page-second-reader",
+     "second_model": "Codex independent subagent",
+     "assessment": "Independent reader inspected the full page image and read the printed page number 11.",
+     "date": "2026-11-27"
     }
    ]
   }
