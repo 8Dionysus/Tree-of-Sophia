@@ -2061,6 +2061,26 @@
      "unsearched": null,
      "record": "bonsai/review/aesthetics/planting/packets/baruch-spinoza.ethics/witnesses/en.json",
      "corrections": []
+    },
+    "ru": {
+     "absent": {
+      "language": "ru",
+      "reason": "No Russian text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/baruch-spinoza.ethics/witnesses/ru.json",
+     "corrections": [
+      {
+       "loc": "III affects3 p184",
+       "from": "большого",
+       "to": "большего",
+       "offset": 32,
+       "reason": "Орфографическая нормализация сравнительной степени: печатное «большаго» в современном языке — «большего», речь о степени совершенства; сохраняется слово издания.",
+       "url": "https://viewer.rsl.ru/api/v1/document/rsl01003632012/page/100",
+       "page": "p. 193",
+       "image_sha256": "73840843cdfce23aa13afe532b275209f98688049d0f649a2bb8018deecadf4a"
+      }
+     ]
     }
    },
    "david-hume.of-the-standard-of-taste": {
@@ -5482,15 +5502,144 @@
        ]
       }
      ]
+    },
+    "ru": {
+     "edition": "Бенедикт Спиноза. Этика, изложенная геометрическим методом. Второе издание перевода под редакцией В. И. Модестова. СПб.: Л. Ф. Пантелеев, 1892, с. 125 и 193.",
+     "year": 1892,
+     "url": "https://search.rsl.ru/ru/record/01003632012",
+     "licence": "Текст и перевод общественное достояние; статус изображений РГБ отдельно.",
+     "attribution": "Бенедикт Спиноза, «Этика», перевод под редакцией В. И. Модестова, СПб., 1892, с. 125 и 193.",
+     "maker": "ru-direction-spinoza-maker-20261119",
+     "normalization": "Russian spelling modernized from the page by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged.",
+     "persons": [
+      {
+       "role": "translator",
+       "qid": "Q4299389",
+       "name": {
+        "en": "Vasily Modestov",
+        "ru": "Василий Иванович Модестов"
+       },
+       "born": 1839,
+       "died": 1907,
+       "source": "https://www.wikidata.org/wiki/Q4299389",
+       "evidence": {
+        "file": "wikidata-Q4299389.json",
+        "sha256": "49e5507feb094a2cb159d8c7af99f18dd813614baa59390a433ac31658da44e5",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q4299389.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q4299389",
+       "name": {
+        "en": "Vasily Modestov",
+        "ru": "Василий Иванович Модестов"
+       },
+       "born": 1839,
+       "died": 1907,
+       "source": "https://www.wikidata.org/wiki/Q4299389",
+       "evidence": {
+        "file": "wikidata-Q4299389.json",
+        "sha256": "49e5507feb094a2cb159d8c7af99f18dd813614baa59390a433ac31658da44e5",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q4299389.json"
+       }
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Benedictus de Spinoza",
+        "ru": "Бенедикт Спиноза"
+       },
+       "born": 1632,
+       "died": 1677,
+       "source": "https://www.wikidata.org/wiki/Special:EntityData/Q35802.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-196bc2e0f98d5a55.html",
+        "sha256": "1f54e5bbe926af378b4b14e20d00203122710c93021980dcf7e8aa0c0d9a28a1",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q35802.json"
+       }
+      }
+     ],
+     "rights": {
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и 231-ФЗ ст. 6: автор умер в 1677, переводчик и редактор Модестов в 1907, сроки истекли."
+      },
+      "usa": {
+       "basis": "public-domain",
+       "law": "Public domain: this Russian translation and edition were published in 1892 before 1931."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC art. 1: author died 1677, translator-editor died 1907, more than 70 years ago."
+      },
+      "mexico": {
+       "basis": "public-domain",
+       "law": "LFDA art. 29 I: 100 years following deaths of author in 1677 and translator-editor in 1907 have elapsed."
+      }
+     },
+     "participants": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Vasily Modestov",
+        "ru": "Василий Иванович Модестов"
+       },
+       "qid": "Q4299389",
+       "source": "https://www.wikidata.org/wiki/Q4299389",
+       "born": [
+        {
+         "year": 1839
+        }
+       ],
+       "died": [
+        {
+         "year": 1907
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Vasily Modestov",
+        "ru": "Василий Иванович Модестов"
+       },
+       "qid": "Q4299389",
+       "source": "https://www.wikidata.org/wiki/Q4299389",
+       "born": [
+        {
+         "year": 1839
+        }
+       ],
+       "died": [
+        {
+         "year": 1907
+        }
+       ]
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Benedictus de Spinoza",
+        "ru": "Бенедикт Спиноза"
+       },
+       "source": "https://www.wikidata.org/wiki/Special:EntityData/Q35802.json",
+       "born": [
+        {
+         "year": 1632
+        }
+       ],
+       "died": [
+        {
+         "year": 1677
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [],
-   "unsearched": [
-    {
-     "language": "ru",
-     "reason": "No Russian text is taken in this pass: the line plants the original first."
-    }
-   ]
+   "absent": []
   },
   "buffon.discours-sur-le-style": {
    "author": {
@@ -12785,11 +12934,13 @@
     },
     "texts": {
      "la": "Per Affectum intelligo Corporis affectiones, quibus ipsius Corporis agendi potentia augetur, vel minuitur, juvatur vel coërcetur, et simul harum affectionum ideas. Si itaque alicujus harum affectionum adaequata possimus esse causa, tum per Affectum actionem intelligo; alias passionem.",
-     "en": "By emotion I mean the modifications of the body, whereby the active power of the said body is increased or diminished, aided or constrained, and also the ideas of such modifications.\n\nN.B. If we can be the adequate cause of any of these modifications, I then call the emotion an activity, otherwise I call it a passion, or state wherein the mind is passive."
+     "en": "By emotion I mean the modifications of the body, whereby the active power of the said body is increased or diminished, aided or constrained, and also the ideas of such modifications.\n\nN.B. If we can be the adequate cause of any of these modifications, I then call the emotion an activity, otherwise I call it a passion, or state wherein the mind is passive.",
+     "ru": "Под аффектом я разумею испытываемые телом ощущения, которыми способность действия нашего тела увеличивается или уменьшается, усиливается или задерживается, и вместе с тем идеи этих ощущений. Итак, если мы можем быть полною причиною какого-нибудь из этих испытываемых нами ощущений, тогда под аффектом я разумею действие, а в других случаях — страсть."
     },
     "links": {
      "la": "https://archive.org/details/benedictidespin01spingoog/page/n170/mode/1up",
-     "en": "https://archive.org/download/chiefworksofbene02spin/page/n155.jpg"
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n155.jpg",
+     "ru": "https://viewer.rsl.ru/api/v1/document/rsl01003632012/page/66"
     },
     "refs": [
      [
@@ -12799,6 +12950,10 @@
      [
       "en",
       "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 130"
+     ],
+     [
+      "ru",
+      "Бенедикт Спиноза. Этика, изложенная геометрическим методом. Второе издание перевода под редакцией В. И. Модестова. СПб.: Л. Ф. Пантелеев, 1892, с. 125 и 193., p. 125"
      ]
     ]
    },
@@ -12809,11 +12964,13 @@
     },
     "texts": {
      "la": "Laetitia est hominis transitio a minore ad majorem perfectionem.",
-     "en": "Pleasure is the transition of a man from a less to a greater perfection."
+     "en": "Pleasure is the transition of a man from a less to a greater perfection.",
+     "ru": "Радость есть переход человека от меньшего к большему совершенству."
     },
     "links": {
      "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up",
-     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg"
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg",
+     "ru": "https://viewer.rsl.ru/api/v1/document/rsl01003632012/page/100"
     },
     "refs": [
      [
@@ -12823,6 +12980,10 @@
      [
       "en",
       "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 174"
+     ],
+     [
+      "ru",
+      "Бенедикт Спиноза. Этика, изложенная геометрическим методом. Второе издание перевода под редакцией В. И. Модестова. СПб.: Л. Ф. Пантелеев, 1892, с. 125 и 193., p. 193"
      ]
     ]
    },
@@ -12833,11 +12994,13 @@
     },
     "texts": {
      "la": "Tristitia est hominis transitio a majore ad minorem perfectionem.",
-     "en": "Pain is the transition of a man from a greater to a less perfection."
+     "en": "Pain is the transition of a man from a greater to a less perfection.",
+     "ru": "Печаль есть переход человека от большего к меньшему совершенству."
     },
     "links": {
      "la": "https://archive.org/details/benedictidespin01spingoog/page/n218/mode/1up",
-     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg"
+     "en": "https://archive.org/download/chiefworksofbene02spin/page/n199.jpg",
+     "ru": "https://viewer.rsl.ru/api/v1/document/rsl01003632012/page/100"
     },
     "refs": [
      [
@@ -12847,6 +13010,10 @@
      [
       "en",
       "Benedict de Spinoza, The Chief Works, vol. II, translated and introduced by R. H. M. Elwes, revised edition, London: George Bell and Sons, 1891; Internet Archive chiefworksofbene02spin scan, p. 174"
+     ],
+     [
+      "ru",
+      "Бенедикт Спиноза. Этика, изложенная геометрическим методом. Второе издание перевода под редакцией В. И. Модестова. СПб.: Л. Ф. Пантелеев, 1892, с. 125 и 193., p. 193"
      ]
     ]
    }
