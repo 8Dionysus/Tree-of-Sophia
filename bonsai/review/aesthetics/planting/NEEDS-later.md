@@ -172,3 +172,17 @@ rebind a place to an already registered scan, retaining its page images and
 requiring recomparison and a fresh second reading. Do not treat a supported
 rebind as proof of textual agreement. The local packet remains blocked; its
 translations and independent review are incomplete.
+
+## Spanish opening question mark in complete quotations — 28 November
+
+The local Croce Spanish witness now has a complete question at `I p11b`,
+from Sánchez-Rojas 1912 printed p. 55 (PDF p. 55): the printed sentence starts
+`¿Cómo ...?`. The independent second reader checked the page and the Italian
+alignment, but `witness-gate --second --accept` rejects it as lacking an
+uppercase or uncased initial. `sentences` strips `OPENING` before testing the
+first letter, and `OPENING` does not include the Spanish inverted question
+mark `¿` (the corresponding `¡` also needs consideration). Please support
+faithful complete Spanish punctuation in the owner's sentence validator, with
+appropriate focused coverage. Do not drop `¿` or alter the witness to pass.
+The witness remains unaccepted until the owner fix and renewed gate; the
+parent packet and other languages remain incomplete.
