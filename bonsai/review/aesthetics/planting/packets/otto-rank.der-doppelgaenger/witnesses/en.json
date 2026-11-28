@@ -1,0 +1,171 @@
+{
+ "language": "en",
+ "witness": {
+  "rights": {
+   "usa": {
+    "basis": "short-quotation",
+    "law": "17 USC 107 fair use: assess the research and comparative purpose, nature of the translated work, limited amount and market effect for the precise display; https://www.copyright.gov/title17/92chap1.html#107"
+   },
+   "eu": {
+    "basis": "short-quotation",
+    "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, within extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+   },
+   "russia": {
+    "basis": "short-quotation",
+    "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+   }
+  },
+  "edition": "Otto Rank, The Double: A Psychoanalytic Study, translated and edited by Harry Tucker Jr. (London: Maresfield Library, 1989), pp. 79–80, quoted in Natasha Romanova, Female Doubling in Galeran de Bretagne, Reading Medieval Studies, p. 94 n. 3.",
+  "year": 1989,
+  "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+  "licence": "Protected translation: attributed short quotation for research and comparison from an institutional scholarly quotation; no open licence or public-domain status asserted.",
+  "attribution": "Otto Rank, The Double: A Psychoanalytic Study, translated by Harry Tucker Jr. (Maresfield Library, 1989), pp. 79–80, quoted in Natasha Romanova, Female Doubling in Galeran de Bretagne, Reading Medieval Studies, p. 94 n. 3.",
+  "maker": "codex-2026-11-28-rank-tucker-en-maker",
+  "persons": [
+   {
+    "role": "author",
+    "qid": "Q84172",
+    "name": {
+     "en": "Otto Rank",
+     "ru": "Отто Ранк"
+    },
+    "born": 1884,
+    "died": 1939,
+    "source": "https://www.wikidata.org/wiki/Q84172",
+    "evidence": {
+     "file": "wikidata-Q84172.json",
+     "sha256": "9128d80d810d5bb2a0bd640dc9f13741fe82e3dc6ba05227aecad6f14c210d6d",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q84172.json"
+    }
+   },
+   {
+    "role": "translator",
+    "name": {
+     "en": "Harry Tucker, Jr.",
+     "ru": "Harry Tucker, Jr."
+    },
+    "born": null,
+    "died": null,
+    "source": "https://lccn.loc.gov/79132257/mods",
+    "evidence": {
+     "kind": "reference",
+     "file": "person-8b412c52096bf8ee.html",
+     "sha256": "7d435c7eb0d18f9fb72b5a5e28c563e36de8baf24d31f25368baa1bdc0c7e6cd",
+     "url": "https://lccn.loc.gov/79132257/mods"
+    }
+   }
+  ],
+  "normalization": "Preserve wording and punctuation of the actual scholarly quotation; join only printed line endings.",
+  "mexico_quotation": {
+   "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+   "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+   "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+   "scope_sha256": "d63c7ce0c864e12d8807942b3b7baec07a6f255e3d04f247a6f3728317b2f9e7",
+   "non_substantial": "Two complete sentences totalling 63 words are used only to compare the wording of one selected German sentence with its English translation. The excerpt expresses a consequential interpretation, but omits the larger argument and evidence of the translated study, which occupies about eighty pages; no other Tucker passages are present in this witness.",
+   "normal_exploitation": "The attributed comparative display is a limited research quotation and is not a substitute for reading or purchasing the translated study, whose examples, argument and context remain necessary; it is not intended to displace its ordinary market.",
+   "source_integrity": "The quotation preserves the wording and punctuation of Romanova’s lawfully available printed note, with Rank, translator Harry Tucker Jr., the Tucker edition and pages as cited by Romanova, and Romanova p94 as the directly examined source credited. Two PDF text-layer errors were corrected against the image."
+  }
+ },
+ "sources": [
+  {
+   "file": "romanova-2004.pdf",
+   "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+   "sha256": "12318a1f3cd29aba4670bfef8d98fce596a2592e5b00c6cedd920a29b3520f13",
+   "fetched": "2026-11-28"
+  },
+  {
+   "file": "pdf-text-20658f377b9beea8-12318a1f3cd29aba4670bfef8d98fce596a2592e5b00c6cedd920a29b3520f13-94a75f2fb04364bc526d9f05e7c8808314f3a9bdd5424159bd755fd5023f6008.txt",
+   "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+   "sha256": "94a75f2fb04364bc526d9f05e7c8808314f3a9bdd5424159bd755fd5023f6008",
+   "fetched": "2026-11-28",
+   "derived_from": {
+    "file": "romanova-2004.pdf",
+    "sha256": "12318a1f3cd29aba4670bfef8d98fce596a2592e5b00c6cedd920a29b3520f13",
+    "tool": "pdftotext",
+    "version": "pdftotext version 26.08.0",
+    "options": [
+     "-layout"
+    ]
+   }
+  }
+ ],
+ "images": [
+  {
+   "file": "pdf-page-20658f377b9beea8-12318a1f3cd29aba4670bfef8d98fce596a2592e5b00c6cedd920a29b3520f13-20-ae5f3923952c2ad60c99b3d97cdd0b1e15a244977717a468e2bcc0a49f1cd19c-maker.png",
+   "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+   "sha256": "ae5f3923952c2ad60c99b3d97cdd0b1e15a244977717a468e2bcc0a49f1cd19c",
+   "by": "maker",
+   "derived_from": {
+    "file": "romanova-2004.pdf",
+    "sha256": "12318a1f3cd29aba4670bfef8d98fce596a2592e5b00c6cedd920a29b3520f13",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 20,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-20658f377b9beea8-12318a1f3cd29aba4670bfef8d98fce596a2592e5b00c6cedd920a29b3520f13-20-ae5f3923952c2ad60c99b3d97cdd0b1e15a244977717a468e2bcc0a49f1cd19c-second.png",
+   "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+   "sha256": "ae5f3923952c2ad60c99b3d97cdd0b1e15a244977717a468e2bcc0a49f1cd19c",
+   "by": "second",
+   "derived_from": {
+    "file": "romanova-2004.pdf",
+    "sha256": "12318a1f3cd29aba4670bfef8d98fce596a2592e5b00c6cedd920a29b3520f13",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 20,
+    "dpi": 150
+   }
+  }
+ ],
+ "places": {
+  "V p109": {
+   "text": "The frequent slaying of the double, through which the hero seeks to protect himself permanently from the pursuit of his self, is really a suicidal act. It is, to be sure, in the painless form of slaying a different ego: an unconscious illusion of the splitting-off of a bad, culpable ego – a separation which, moreover, appears to be the precondition for every suicide.",
+   "source": "pdf-text-20658f377b9beea8-12318a1f3cd29aba4670bfef8d98fce596a2592e5b00c6cedd920a29b3520f13-94a75f2fb04364bc526d9f05e7c8808314f3a9bdd5424159bd755fd5023f6008.txt",
+   "page": "p. 94",
+   "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+   "image_sha256": "ae5f3923952c2ad60c99b3d97cdd0b1e15a244977717a468e2bcc0a49f1cd19c",
+   "alignment": "The two complete sentences correspond to the single German sentence on p109. Pursuit compresses the plural Verfolgungen; the added a separation specifies the antecedent of welche, which in German can also refer to the illusion. Source is Romanova’s printed scholarly quotation, not the uninspected Tucker pages.",
+   "lines": "5",
+   "corrections": [
+    {
+     "from": "pursuit afhis self",
+     "to": "pursuit of his self",
+     "offset": 105,
+     "reason": "Romanova p94 prints of his; the PDF text layer joined the preposition and pronoun and changed the vowel.",
+     "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+     "page": "p. 94",
+     "image_sha256": "ae5f3923952c2ad60c99b3d97cdd0b1e15a244977717a468e2bcc0a49f1cd19c"
+    },
+    {
+     "from": "ego - a separation which , moreover,",
+     "to": "ego – a separation which, moreover,",
+     "offset": 284,
+     "reason": "Romanova p94 prints a dash and the comma directly after which; the PDF text layer changed spacing and dash.",
+     "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+     "page": "p. 94",
+     "image_sha256": "ae5f3923952c2ad60c99b3d97cdd0b1e15a244977717a468e2bcc0a49f1cd19c"
+    }
+   ]
+  }
+ },
+ "review": {
+  "reader": "codex-2026-11-28-rank-tucker-second",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-28",
+  "places": {
+   "V p109": {
+    "reads": "as the packet",
+    "alignment": "The independent reader personally examined the source-bound PDF rendering of Romanova p94 and the German print p109. Both complete English sentences, punctuation, dash, and absence of emphasis match the corrected packet; the next sentence lies outside this place. Pursuit compresses plural Verfolgungen, and a separation makes one possible antecedent of welche explicit. This is Romanova’s quoted witness, not a page of Tucker personally inspected.",
+    "image_sha256": "ae5f3923952c2ad60c99b3d97cdd0b1e15a244977717a468e2bcc0a49f1cd19c"
+   }
+  },
+  "mexico_quotation": {
+   "reader": "codex-2026-11-28-rank-tucker-second",
+   "date": "2026-11-28",
+   "sha256": "e29b221f2a1c8ca8e91d8adef3e1b993155766935fc0e71a8ab577d2c2103ac5",
+   "assessment": "The independent reader considered this exact 63-word excerpt and comparison: it contains a significant claim, but is a small portion of the translated study and cannot replace its analysis or ordinary market; source, author and translator are to be credited and the wording preserved. This assessment concerns the described research use under LFDA 148(I), is conditional, and is not an assurance of permission for other uses."
+  }
+ }
+}

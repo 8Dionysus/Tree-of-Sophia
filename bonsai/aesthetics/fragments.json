@@ -3062,6 +3062,58 @@
      }
     }
    },
+   "otto-rank.der-doppelgaenger": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/otto-rank.der-doppelgaenger/witnesses/en.json",
+     "corrections": [
+      {
+       "loc": "V p109",
+       "from": "pursuit afhis self",
+       "to": "pursuit of his self",
+       "offset": 105,
+       "reason": "Romanova p94 prints of his; the PDF text layer joined the preposition and pronoun and changed the vowel.",
+       "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+       "page": "p. 94",
+       "image_sha256": "ae5f3923952c2ad60c99b3d97cdd0b1e15a244977717a468e2bcc0a49f1cd19c"
+      },
+      {
+       "loc": "V p109",
+       "from": "ego - a separation which , moreover,",
+       "to": "ego – a separation which, moreover,",
+       "offset": 284,
+       "reason": "Romanova p94 prints a dash and the comma directly after which; the PDF text layer changed spacing and dash.",
+       "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+       "page": "p. 94",
+       "image_sha256": "ae5f3923952c2ad60c99b3d97cdd0b1e15a244977717a468e2bcc0a49f1cd19c"
+      }
+     ],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/otto-rank.der-doppelgaenger/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "d63c7ce0c864e12d8807942b3b7baec07a6f255e3d04f247a6f3728317b2f9e7",
+        "non_substantial": "Two complete sentences totalling 63 words are used only to compare the wording of one selected German sentence with its English translation. The excerpt expresses a consequential interpretation, but omits the larger argument and evidence of the translated study, which occupies about eighty pages; no other Tucker passages are present in this witness.",
+        "normal_exploitation": "The attributed comparative display is a limited research quotation and is not a substitute for reading or purchasing the translated study, whose examples, argument and context remain necessary; it is not intended to displace its ordinary market.",
+        "source_integrity": "The quotation preserves the wording and punctuation of Romanova’s lawfully available printed note, with Rank, translator Harry Tucker Jr., the Tucker edition and pages as cited by Romanova, and Romanova p94 as the directly examined source credited. Two PDF text-layer errors were corrected against the image."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-rank-tucker-second",
+        "date": "2026-11-28",
+        "sha256": "e29b221f2a1c8ca8e91d8adef3e1b993155766935fc0e71a8ab577d2c2103ac5",
+        "assessment": "The independent reader considered this exact 63-word excerpt and comparison: it contains a significant claim, but is a small portion of the translated study and cannot replace its analysis or ordinary market; source, author and translator are to be credited and the wording preserved. This assessment concerns the described research use under LFDA 148(I), is conditional, and is not an assurance of permission for other uses."
+       }
+      }
+     ]
+    }
+   },
    "rudolf-otto.das-heilige": {
     "en": {
      "absent": {
@@ -11070,6 +11122,105 @@
        ]
       }
      ]
+    },
+    "en": {
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: assess the research and comparative purpose, nature of the translated work, limited amount and market effect for the precise display; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, within extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "edition": "Otto Rank, The Double: A Psychoanalytic Study, translated and edited by Harry Tucker Jr. (London: Maresfield Library, 1989), pp. 79–80, quoted in Natasha Romanova, Female Doubling in Galeran de Bretagne, Reading Medieval Studies, p. 94 n. 3.",
+     "year": 1989,
+     "url": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf",
+     "licence": "Protected translation: attributed short quotation for research and comparison from an institutional scholarly quotation; no open licence or public-domain status asserted.",
+     "attribution": "Otto Rank, The Double: A Psychoanalytic Study, translated by Harry Tucker Jr. (Maresfield Library, 1989), pp. 79–80, quoted in Natasha Romanova, Female Doubling in Galeran de Bretagne, Reading Medieval Studies, p. 94 n. 3.",
+     "maker": "codex-2026-11-28-rank-tucker-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q84172",
+       "name": {
+        "en": "Otto Rank",
+        "ru": "Отто Ранк"
+       },
+       "born": 1884,
+       "died": 1939,
+       "source": "https://www.wikidata.org/wiki/Q84172",
+       "evidence": {
+        "file": "wikidata-Q84172.json",
+        "sha256": "9128d80d810d5bb2a0bd640dc9f13741fe82e3dc6ba05227aecad6f14c210d6d",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q84172.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Harry Tucker, Jr.",
+        "ru": "Harry Tucker, Jr."
+       },
+       "born": null,
+       "died": null,
+       "source": "https://lccn.loc.gov/79132257/mods",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-8b412c52096bf8ee.html",
+        "sha256": "7d435c7eb0d18f9fb72b5a5e28c563e36de8baf24d31f25368baa1bdc0c7e6cd",
+        "url": "https://lccn.loc.gov/79132257/mods"
+       }
+      }
+     ],
+     "normalization": "Preserve wording and punctuation of the actual scholarly quotation; join only printed line endings.",
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "d63c7ce0c864e12d8807942b3b7baec07a6f255e3d04f247a6f3728317b2f9e7",
+      "non_substantial": "Two complete sentences totalling 63 words are used only to compare the wording of one selected German sentence with its English translation. The excerpt expresses a consequential interpretation, but omits the larger argument and evidence of the translated study, which occupies about eighty pages; no other Tucker passages are present in this witness.",
+      "normal_exploitation": "The attributed comparative display is a limited research quotation and is not a substitute for reading or purchasing the translated study, whose examples, argument and context remain necessary; it is not intended to displace its ordinary market.",
+      "source_integrity": "The quotation preserves the wording and punctuation of Romanova’s lawfully available printed note, with Rank, translator Harry Tucker Jr., the Tucker edition and pages as cited by Romanova, and Romanova p94 as the directly examined source credited. Two PDF text-layer errors were corrected against the image."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Otto Rank",
+        "ru": "Отто Ранк"
+       },
+       "qid": "Q84172",
+       "source": "https://www.wikidata.org/wiki/Q84172",
+       "born": [
+        {
+         "time": "+1884-04-22T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1939-10-31T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Harry Tucker, Jr.",
+        "ru": "Harry Tucker, Jr."
+       },
+       "source": "https://lccn.loc.gov/79132257/mods",
+       "born": [],
+       "died": []
+      }
+     ]
     }
    },
    "absent": [],
@@ -11077,10 +11228,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -17015,15 +17162,21 @@
      "en": "Section V, p. 109"
     },
     "texts": {
-     "de": "Die häufige Tötung des Doppelgängers, durch die sich der Held vor den Verfolgungen durch sein Ich endgültig zu schützen sucht, ist eigentlich ein Selbstmord — und zwar in der schmerzlosen Form der Tötung eines anderen Ichs: eine unbewußte Illusion von Abspaltung eines bösen, strafwürdigen Ich, welche übrigens die Vorbedingung jedes Selbstmordes zu sein scheint."
+     "de": "Die häufige Tötung des Doppelgängers, durch die sich der Held vor den Verfolgungen durch sein Ich endgültig zu schützen sucht, ist eigentlich ein Selbstmord — und zwar in der schmerzlosen Form der Tötung eines anderen Ichs: eine unbewußte Illusion von Abspaltung eines bösen, strafwürdigen Ich, welche übrigens die Vorbedingung jedes Selbstmordes zu sein scheint.",
+     "en": "The frequent slaying of the double, through which the hero seeks to protect himself permanently from the pursuit of his self, is really a suicidal act. It is, to be sure, in the painless form of slaying a different ego: an unconscious illusion of the splitting-off of a bad, culpable ego – a separation which, moreover, appears to be the precondition for every suicide."
     },
     "links": {
-     "de": "https://archive.org/details/Rank_1925_Doppelgaenger_k/page/n112/mode/1up"
+     "de": "https://archive.org/details/Rank_1925_Doppelgaenger_k/page/n112/mode/1up",
+     "en": "https://www.reading.ac.uk/gcms/-/media/project/functions/research/graduate-centre-for-medieval-studies/documents/rms200405-n-romanova-female-doubling-in-galeran-de-bretagne.pdf"
     },
     "refs": [
      [
       "de",
       "1925 edition, section V, p. 109"
+     ],
+     [
+      "en",
+      "Otto Rank, The Double: A Psychoanalytic Study, translated and edited by Harry Tucker Jr. (London: Maresfield Library, 1989), pp. 79–80, quoted in Natasha Romanova, Female Doubling in Galeran de Bretagne, Reading Medieval Studies, p. 94 n. 3., p. 94"
      ]
     ]
    }
