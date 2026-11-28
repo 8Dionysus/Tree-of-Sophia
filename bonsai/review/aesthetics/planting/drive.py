@@ -14,7 +14,7 @@ Every session is `codex exec`, never plan mode and never an app-server turn.
 
 Environment: CODEX (binary), TOS_PLANTING_MODEL, TOS_PLANTING_EFFORT, TOS_PLANTING_OUT (logs and state).
 """
-import argparse,concurrent.futures,datetime,json,os,re,subprocess,sys,threading,time
+import argparse,concurrent.futures,datetime,fcntl,json,os,re,subprocess,sys,tempfile,threading,time
 
 HERE=os.path.dirname(os.path.abspath(__file__));KIT=os.path.join(HERE,'kit.py');PACKETS=os.path.join(HERE,'packets');ROOT=os.path.abspath(os.path.join(HERE,'..','..','..','..'))
 CODEX=os.environ.get('CODEX') or os.path.expanduser('~/.local/bin/codex')
@@ -29,23 +29,52 @@ def now():return datetime.datetime.now().isoformat(timespec='seconds')
 def out(work,*names):
     home=os.path.join(OUT,work);os.makedirs(home,exist_ok=True);return os.path.join(home,*names)
 def state(work,**change):
-    path=out(work,'state.json');value=json.load(open(path)) if os.path.exists(path) else {'work':work,'sessions':[],'tokens':{}}
-    if change:
-        value.update(change);value['at']=now()
-        with open(path,'w') as file:json.dump(value,file,ensure_ascii=False,indent=1)
-    return value
+    path=out(work,'state.json');lock=out(work,'state.lock')
+    with open(lock,'a') as guard:
+        fcntl.flock(guard,fcntl.LOCK_EX)
+        if os.path.exists(path):
+            with open(path) as file:value=json.load(file)
+        else:value={'work':work,'sessions':[],'tokens':{}}
+        if change:
+            session=change.pop('_session',None)
+            if session is not None:
+                value.setdefault('sessions',[]).append(session);total=value.setdefault('tokens',{})
+                for name,count in session.get('tokens',{}).items():total[name]=total.get(name,0)+count
+            value.update(change);value['at']=now()
+            fd,temp=tempfile.mkstemp(prefix='.state-',dir=os.path.dirname(path))
+            try:
+                with os.fdopen(fd,'w') as file:json.dump(value,file,ensure_ascii=False,indent=1)
+                os.replace(temp,path)
+            finally:
+                if os.path.exists(temp):os.unlink(temp)
+        return value
 def kit(*args):
     run=subprocess.run([sys.executable,KIT,*args],capture_output=True,text=True);return run.returncode,(run.stdout+run.stderr).strip()
 
+def reserve_reader_outputs(work,role,start):
+    """Atomically reserve both files; interrupted runs remain evidence, never overwritten."""
+    n=start
+    while True:
+        log=out(work,f'{n:02d}-{role}.jsonl');last=out(work,f'{n:02d}-{role}.md')
+        try:file=open(log,'x')
+        except FileExistsError:n+=1;continue
+        try:
+            with open(last,'x'):pass
+        except FileExistsError:
+            file.close();os.unlink(log);n+=1;continue
+        except BaseException:
+            file.close();os.unlink(log);raise
+        return n,log,last,file
+
 def codex(work,role,prompt,resume=None):
     """One codex exec turn in the packet directory. Returns the thread, whether the usage limit ended it, and its tokens."""
-    st=state(work);n=len(st['sessions'])+1;log=out(work,f'{n:02d}-{role}.jsonl');last=out(work,f'{n:02d}-{role}.md')
+    st=state(work);n,log,last,file=reserve_reader_outputs(work,role,len(st['sessions'])+1)
     if '/extensions/' in work:
         prompt=prompt.replace('../../AGENTS.md','../../../../AGENTS.md').replace('../../MAKER.md','../../../../MAKER.md').replace('../../SECOND-READER.md','../../../../SECOND-READER.md').replace('../../kit.py','../../../../kit.py')
         prompt+='\n\nThis is an extension directory: the K command in the guides means python3 ../../../../kit.py. Read and change this extension only; the accepted parent stays intact.'
     command=[CODEX,'exec']+(['resume',resume] if resume else [])+['--json','-m',MODEL,'-c',f'model_reasoning_effort={EFFORT}','--dangerously-bypass-approvals-and-sandbox','--skip-git-repo-check','-o',last,prompt]
     started=now()
-    with open(log,'w') as file:
+    with file:
         try:code=subprocess.run(command,cwd=os.path.join(PACKETS,work),stdout=file,stderr=subprocess.STDOUT,timeout=TURN).returncode
         except subprocess.TimeoutExpired:code='timeout'
     thread=resume;limit=False;tokens={}
@@ -57,10 +86,7 @@ def codex(work,role,prompt,resume=None):
         if 'usage limit' in message or 'rate limit' in message.lower():limit=message
         for name,value in (event.get('usage') or {}).items():
             if isinstance(value,int):tokens[name]=tokens.get(name,0)+value
-    st=state(work);total=st['tokens']
-    for name,value in tokens.items():total[name]=total.get(name,0)+value
-    st['sessions'].append({'n':n,'role':role,'thread':thread,'resumed':bool(resume),'started':started,'ended':now(),'exit':code,'tokens':tokens,**({'limit':limit} if limit else {})})
-    state(work,sessions=st['sessions'],tokens=total)
+    state(work,_session={'n':n,'role':role,'thread':thread,'resumed':bool(resume),'started':started,'ended':now(),'exit':code,'tokens':tokens,**({'limit':limit} if limit else {})})
     if limit:LIMIT.set()
     return thread,limit
 

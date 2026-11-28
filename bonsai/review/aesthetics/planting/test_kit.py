@@ -1074,6 +1074,30 @@ class HtmlTranscriptionTest(unittest.TestCase):
         self.assertNotIn('Contents',text)
         self.assertNotIn('Footer',text)
 
+class ReaderOutputReservationTest(unittest.TestCase):
+    def test_existing_and_concurrent_outputs_are_never_overwritten(self):
+        import concurrent.futures, tempfile
+        from pathlib import Path
+        import drive
+        with tempfile.TemporaryDirectory() as tmp, patch.object(drive,'OUT',tmp):
+            home=Path(tmp)/'work';home.mkdir()
+            (home/'01-maker.jsonl').write_text('previous event log')
+            (home/'02-maker.md').write_text('previous final answer')
+            def reserve(_):
+                n,log,last,handle=drive.reserve_reader_outputs('work','maker',1)
+                with handle:handle.write(str(n))
+                return n,log,last
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:allocated=list(pool.map(reserve,range(4)))
+            self.assertEqual(len({n for n,_,_ in allocated}),4)
+            self.assertEqual((home/'01-maker.jsonl').read_text(),'previous event log')
+            self.assertEqual((home/'02-maker.md').read_text(),'previous final answer')
+            self.assertTrue(all(Path(log).read_text()==str(n) and Path(last).exists() for n,log,last in allocated))
+            def finish(n):drive.state('work',_session={'n':n,'tokens':{'input_tokens':1}})
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:list(pool.map(finish,range(20)))
+            state=drive.state('work')
+            self.assertEqual(len(state['sessions']),20)
+            self.assertEqual(state['tokens']['input_tokens'],20)
+
 class DerivedPdfTest(unittest.TestCase):
     def test_pdf_transcription_keeps_its_fetched_predecessor(self):
         import argparse, hashlib, json, shutil, tempfile
@@ -1112,6 +1136,10 @@ class DerivedPdfTest(unittest.TestCase):
                     ev=json.loads((path/'evidence.json').read_text());images=ev['images']
                     self.assertEqual(images[0]['sha256'],images[1]['sha256'])
                     self.assertEqual(images[0]['derived_from']['sha256'],source['sha256'])
+                    read=[{'loc':'p1','n':1,'reads':'as the packet'}]
+                    self.assertEqual(kit.pdf_page_review_problems(ev,{'p1':{}},read),[])
+                    self.assertTrue(kit.pdf_page_review_problems(dict(ev,images=images[:1]),{'p1':{}},read))
+                    self.assertTrue(kit.pdf_page_review_problems(ev,{'p1':{}},[]))
                     self.assertEqual(kit.derived_image_problems(sources,images,lambda n:kit.cache(str(path),n)),[])
                     altered=[dict(images[0],derived_from=dict(images[0]['derived_from'],page=0))]
                     self.assertTrue(kit.derived_image_problems(sources,altered,lambda n:kit.cache(str(path),n),offline=True))

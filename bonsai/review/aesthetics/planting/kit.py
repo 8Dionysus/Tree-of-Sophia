@@ -375,6 +375,17 @@ def derived_image_problems(sources,images,local,offline=False):
             except (OSError,KeyError):problems.append('rendered PDF page or its predecessor is missing')
     return problems
 
+def pdf_page_review_problems(ev,locs,looked):
+    problems=[];images=ev.get('images') or []
+    for loc in locs:
+        entry=(ev.get('places') or {}).get(loc) or {}
+        maker=[image for image in images if image.get('by')=='maker' and image.get('loc')==loc and (image.get('derived_from') or {}).get('tool')=='pdftoppm' and image.get('n') in (entry.get('images') or [])]
+        for image in maker:
+            same=lambda other: other.get('by')=='second' and other.get('loc')==loc and other.get('n')==image.get('n') and other.get('sha256')==image.get('sha256') and other.get('derived_from')==image.get('derived_from')
+            reviewed=any(item.get('loc')==loc and item.get('n')==image.get('n') and item.get('reads')=='as the packet' for item in looked)
+            if not any(same(other) for other in images) or not reviewed:problems.append(f'review.images: {loc} needs the same rendered PDF page {image.get("n")} and its second reading')
+    return problems
+
 def derived_source_problems(sources,local,offline=False):
     problems=[]
     for source in sources:
@@ -1619,6 +1630,7 @@ def second_gate(path,reading,ev,locs,owe=None,locator_only=False):
                 add(f'review.locators: {loc} needs the second reader’s account of reading the same book')
     else:
         seen=shots(ev,'second');looked=[item for item in review.get('images') or [] if item.get('loc') in locs]   # a page looked at for a place that has since left the packet asks nothing
+        problems.extend(pdf_page_review_problems(ev,locs,looked))
         need=min(len(locs),max(3,math.ceil(len(locs)*0.3)))
         whole=[loc for loc,entry in ev['places'].items() if entry.get('method')=='image' and loc in locs]     # a place that has left the packet stays in the evidence and asks nothing
         if len({item.get('loc') for item in looked})<need:add(f'review.images: the second reader looks at the pages of at least {need} places; {len(looked)} are recorded')
