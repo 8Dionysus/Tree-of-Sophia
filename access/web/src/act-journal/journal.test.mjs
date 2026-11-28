@@ -42,6 +42,33 @@ test('a changed stored record stops the journal instead of folding it',async()=>
   await expect(journal.append(ticket({id:'t2'}))).rejects.toMatchObject({code:'act_journal_damaged'});
 });
 
+test('a refused write leaves the journal whole: the next act takes the next stored sequence, and it reopens',async()=>{
+  const memory=createMemoryActStore();let refuse=1;
+  const store={...memory,put:async rows=>{if(refuse-->0)throw new Error('quota exceeded');return memory.put(rows);}};
+  const journal=open(store);await journal.ready;
+  await expect(journal.append(ticket({id:'t1'}))).rejects.toThrow('quota exceeded');
+  // The refused act is not folded: the machine holds only what the store holds.
+  expect(journal.size).toBe(0);
+  expect((await journal.query({view:'board'})).tickets).toHaveLength(0);
+  expect((await journal.append(ticket({id:'t1'}))).seq).toBe(1);
+  expect((await journal.append(ticket({id:'t2'}))).seq).toBe(2);
+  const again=open(memory);const status=await again.ready;
+  expect(status.damaged).toBeNull();
+  expect(again.size).toBe(2);
+  expect((await again.append(ticket({id:'t3'}))).seq).toBe(3);
+});
+
+test('a refused write after a refused draft keeps the earlier acts out of the machine too',async()=>{
+  const memory=createMemoryActStore();let refuse=1;
+  const store={...memory,put:async rows=>{if(refuse-->0)throw new Error('disk full');return memory.put(rows);}};
+  const journal=open(store);await journal.ready;
+  await expect(journal.appendMany([ticket({id:'t1'}),ticket({id:'t2',targets:[]})])).rejects.toThrow('disk full');
+  expect(journal.size).toBe(0);
+  expect((await journal.append(ticket({id:'t1'}))).seq).toBe(1);
+  const again=open(memory);expect((await again.ready).damaged).toBeNull();
+  expect(again.size).toBe(1);
+});
+
 test('the workspace journal is mirrored once',async()=>{
   const workspace=createBrowserResearchWorkspace({persistence:false});
   const journal=open();await journal.ready;

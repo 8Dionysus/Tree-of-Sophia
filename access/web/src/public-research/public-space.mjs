@@ -51,7 +51,7 @@ import {createCoreView} from './core-view.mjs';
 import '../../constructor/style.css';
 import './public-space.css';
 import './space-icons.css';
-import {lensMembers} from './lens-preview.mjs';
+import {lensMembers,lensPointer} from './lens-preview.mjs';
 
 const el=(tag,cls='',value)=>{const node=document.createElement(tag);if(cls)node.className=cls;if(value!==undefined)node.textContent=value;return node;};
 const button=(value,cls='')=>{const node=el('button',cls,value);node.type='button';return node;};
@@ -241,6 +241,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   let state=model.getState(),lens=lenses.some(item=>item.id===linkedLens)?linkedLens:defaultLens,enabled=new Set(relationKinds),selected=null,selectedEdge=null,searchValue='',route=null,routeIndex=0,compareIds=[],connectIds=[],interaction=null,panelMode='detail',personalState=workspace?.getState?.()??null,destroyed=false,routeDockTouched=false;
   // The lens pointed at in the rail, and the stars each lens shows, kept until the space's state changes.
   let previewing=null,memberState=null;const memberCache=new Map();
+  // The pointer and the keyboard each hold a lens; the preview follows the pointer's, else the keyboard's.
+  const lensAt=lensPointer(id=>previewLens(id));
   // A measuring lens can be linked with what it measures by: the proximity criterion, the concept traced through time.
   const linkedCriterion=new URLSearchParams(location.search).get('treeCriterion'),linkedConcept=new URLSearchParams(location.search).get('treeConcept');
   let criterion=criteria.some(item=>item.id===linkedCriterion)?linkedCriterion:criteria[0]?.id??null,traceConcept=linkedConcept||null,measureOpen=false,nearCenter=null;
@@ -1333,7 +1335,7 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
   }
   function paintLenses(){
     // The lenses are laid again: a lens pointed at before is gone, and so is its preview.
-    previewLens(null);
+    lensAt.clear();previewLens(null);
     lensList.replaceChildren();
     // Lenses that only group come first; those that measure follow apart, and show their scale on the map.
     let previous=null;
@@ -1352,8 +1354,8 @@ export function mountPublicResearchSpace({host,header,profile,locale=()=> 'ru',l
       // The lenses are drawn again; the keyboard stays on the one it chose.
       if(refocus)lensList.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});});
       // Pointing at a lens, or reaching it by the keyboard, lights in the space the stars it would show.
-      b.addEventListener('pointerenter',()=>previewLens(item.id));b.addEventListener('pointerleave',()=>previewLens(null));
-      b.addEventListener('focus',()=>previewLens(item.id));b.addEventListener('blur',()=>previewLens(null));
+      b.addEventListener('pointerenter',()=>lensAt.enter(item.id));b.addEventListener('pointerleave',()=>lensAt.leave(item.id));
+      b.addEventListener('focus',()=>lensAt.focus(item.id));b.addEventListener('blur',()=>lensAt.blur(item.id));
       lensList.append(b);}
     // On a phone the lenses scroll in one row; the chosen one stays in sight, also when a link opened it.
     const chosen=lensList.querySelector('[aria-pressed="true"]');
