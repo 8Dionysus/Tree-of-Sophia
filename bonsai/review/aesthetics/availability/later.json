@@ -3711,7 +3711,41 @@
         "AE18",
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "The Reading Process: A Phenomenological Approach, New Literary History 3(2), Winter 1972, pp279–299",
+          "secondary_quotation": "https://escholarship.org/content/qt3c0838zx/qt3c0838zx_noSplash_64ec5f1cee8aabd424f031e00d023d9b.pdf?t=rdo53s",
+          "status": "Researcher found an indexed university dissertation p10 note 18 reproducing a sentence attributed to journal p281; its PDF did not download and the journal image has not been inspected. An indexed institutional copy of the journal now returns 404. Do not present either as a personally checked original or transplant pagination from The Implied Reader."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "ru",
+          "edition": "Процесс чтения, in Современная литературная теория, ed. and translated I. V. Kabanova, Flinta/Nauka 2004, pp201–224",
+          "catalogue": "https://visnik.org.ua/pdf/v2017-04-04-tkachuk.pdf",
+          "status": "Bibliographic lead; target passages and rights unverified."
+        },
+        {
+          "language": "es",
+          "edition": "Estética de la recepción, ed. Mayoral 1987 pp215–243; separate Warning edition 1989 pp149–164",
+          "catalogue": "https://dialnet.unirioja.es/descarga/tesis/25229.pdf",
+          "status": "Bibliographic leads; translator and target passages not confirmed. El acto de leer is a different book."
+        },
+        {
+          "language": "de",
+          "edition": "Der Lesevorgang: Eine phänomenologische Perspektive, in Warning, Rezeptionsästhetik 1975, pp253–276",
+          "catalogue": "https://www.smb.museum/fileadmin/website/Institute/Institut_fuer_Museumsforschung/Publikationen/Mitteilungen/MIT053.pdf",
+          "status": "Bibliographic lead; source text, translation status and rights unverified."
+        }
+      ],
+      "requested_places": [
+        "B:D-I031 section I pp279–280",
+        "B:D-I032 pp280–281",
+        "B:D-R020"
+      ],
+      "remaining": "Find a lawful readable journal image and verify exact sentence boundaries, context and edition relationships. Investigate all requested languages and rights; no absence finding."
     },
     {
       "work": "wolfgang-welsch.aestheticization-processes",
