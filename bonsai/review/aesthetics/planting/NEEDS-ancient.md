@@ -163,7 +163,7 @@ directory is the interim workaround, not a recovery of the lost log.
 
 On fresh main `d5471497`, the Pliny retake confirmed that
 `witness-person-remove` requires a QID. The three original English witness
-participant records are strings without QIDs, while independently sourced
+participant records are dictionaries with string-valued `name` and no QIDs, while independently sourced
 structured participants were subsequently added alongside them. The supported
 command cannot select the unsupported records, so the witness gate still
 fails. Please provide an auditable correction for these exact pre-existing
@@ -171,6 +171,22 @@ records without deleting the evidenced participants or changing the source
 witness. The packet also reports a separate imprecise-death-date mismatch and
 an English two-page image binding to resolve; Spanish and other translations
 remain unfinished.
+
+After line #517, `witness-person-remove-legacy` selects a person record that
+is itself a string; it does not select these dictionaries. The earlier phrase
+“participant records are strings” was imprecise: the values of their `name`
+fields are strings. Each record also retains its role, stated death year and
+source, but lacks the fetched evidence required by the gate. The three
+independently evidenced QID records remain alongside them. Please support an
+exact, auditable selection of an unsupported record without a QID, preserving
+the removed dictionary and reason and invalidating review. Do not remove the
+evidenced records or infer identity merely from matching names.
+
+The separate two-page maker binding has now been recorded with
+`witness-add-page`: the printed transition is after “For in such” on p. 280,
+continuing “works as these” on p. 281. The offline maker gate no longer reports
+missing page coverage; it still reports three unsupported hands. Both pages
+and all text still need an independent second reading before acceptance.
 
 ## A translation-source block and original-language OCR
 
