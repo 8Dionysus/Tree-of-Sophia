@@ -392,8 +392,8 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         // Translation references name the edition and page of this text, not the original page.
         const translated=profile==='aesthetics'&&language!==work.original;
         const reference=translated?(place.refs?.find(ref=>Array.isArray(ref)&&ref[0]===language&&typeof ref[1]==='string')?.[1]||local(witness?.attribution)||local(witness?.edition)||local(witness?.short)||words('fragmentTranslation')):null;
-        const author=local(work.author),title=local(work.title),fullReference=reference&&author&&title&&reference.includes(author)&&reference.includes(title);
-        caption.append(el('span','ps-fragment-source',[fullReference?null:author,fullReference?null:title,translated?reference:local(place.label),translated?null:local(witness?.short),language==='ru'&&isPreReform(text)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
+        const author=local(work.author),title=local(work.title),short=local(witness?.short),fullReference=reference&&author&&title&&reference.includes(author)&&reference.includes(title);
+        caption.append(el('span','ps-fragment-source',[fullReference?null:author,fullReference?null:title,translated?reference:local(place.label),translated&&reference?.includes(short)?null:short,language==='ru'&&isPreReform(text)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
         figure.append(quote,caption);
       }
       if(profile==='aesthetics'&&resolveLocale(locale())!==work.original&&!available.includes(resolveLocale(locale())))figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));

@@ -22,6 +22,10 @@ describe('Aesthetics fragment language',()=>{
       const all=node=>[node,...node.children.flatMap(all)];
       expect(all(figure).filter(node=>node.tagName==='blockquote').map(node=>node.lang)).toEqual(['de']);
       expect(all(figure).map(node=>node.textContent)).toContain('fragmentTranslationUnavailable');
+      const english=createFragments({profile:'aesthetics',locale:()=> 'en',t:key=>key});
+      const translated=english.fragment({w:'immanuel-kant.kritik-der-urteilskraft',loc:'§1 203.09-15'});
+      for(let i=0;i<100&&translated.attributes['aria-busy'];i++)await new Promise(resolve=>setTimeout(resolve,5));
+      expect(all(translated).some(node=>node.textContent.includes('Bernard 1914')&&node.textContent.includes('tr. J. H. Bernard'))).toBe(true);
     }finally{globalThis.document=prior;}
   });
   it('shows the translation edition and links its own page',async()=>{
