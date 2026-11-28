@@ -1410,9 +1410,10 @@ fn stated_years(text: &str) -> Vec<i64> {
     let common = [" ad ", " ce ", " a d ", " n chr ", " ap j c "]
         .iter()
         .any(|marker| words.contains(marker))
-        || tokens.windows(2).enumerate().any(|(index, pair)| {
-            pair == ["c", "e"] && (index == 0 || tokens[index - 1] != "b")
-        })
+        || tokens
+            .windows(2)
+            .enumerate()
+            .any(|(index, pair)| pair == ["c", "e"] && (index == 0 || tokens[index - 1] != "b"))
         || words.matches(" н э ").count() > words.matches(" до н э ").count();
     if before && common {
         return Vec::new();
