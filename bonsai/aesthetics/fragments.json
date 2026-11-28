@@ -2114,6 +2114,37 @@
      ]
     }
    },
+   "buffon.discours-sur-le-style": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/buffon.discours-sur-le-style/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/buffon.discours-sur-le-style/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "3afc8584632020e63a085063c84768f9d5505b126d3fd9aaea8eb2a23d15938d",
+        "non_substantial": "One twelve-word sentence from an eleven-page translated discourse presents a specific definition for comparison without reproducing the discourse or substituting for it.",
+        "normal_exploitation": "The scholarly display presents an attributed sentence alongside the French original; this does not replace access to the discourse or the containing book. The assessment is limited to that display.",
+        "source_integrity": "The words and punctuation reproduce one complete sentence on the 1930 printed page; author, translator, edition and page are attributed."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-buffon-en-second",
+        "date": "2026-11-28",
+        "sha256": "e74d601690e3a1401daf64ecb754e391fed796288cdcc0e3af42013938de91f9",
+        "assessment": "The exact 12-word sentence is a small selection from an eleven-page published translation, shown beside the French original for research into the definition of style. Its central conceptual importance is acknowledged, but this bounded comparison is no substitute for the full discourse or book. LFDA 148(I) requires attribution, unchanged quotation and no effect on normal exploitation. This contextual assessment applies only to the specific passage and display and should be revisited if the aggregate or display changes; other jurisdictions require separate analysis."
+       }
+      }
+     ]
+    }
+   },
    "david-hume.of-the-standard-of-taste": {
     "de": {
      "absent": null,
@@ -2699,6 +2730,37 @@
      "unsearched": null,
      "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-die-tragische-kunst/witnesses/en.json",
      "corrections": []
+    }
+   },
+   "friedrich-schlegel.ueber-das-studium-der-griechischen-poesie": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schlegel.ueber-das-studium-der-griechischen-poesie/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/friedrich-schlegel.ueber-das-studium-der-griechischen-poesie/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "5c58993dabe4420aec787c5c8080ae3fb8bf28c0d5d6d40d062a66ec4cc4743f",
+        "non_substantial": "One sentence of 16 words from a book-length translation is selected to compare a specific German sentence and does not reproduce its argument or substitute for the book.",
+        "normal_exploitation": "The credited research comparison presents only this brief sentence with the original and does not replace reading the translation; this assessment is limited to the selected sentence and display.",
+        "source_integrity": "The complete sentence, spelling and punctuation follow the publisher-authorized page image; the author, translator, edition and page are attributed and no words are altered."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-schlegel-study-en-second",
+        "date": "2026-11-28",
+        "sha256": "68ad5c61c34b6d7ceb2e143d0c9bc56b561e0552b3fb0777ea2337916bc0b5d7",
+        "assessment": "One 16-word sentence from a published book-length translation is reproduced to compare one original sentence within a research presentation; the surrounding argument is omitted and this small excerpt does not substitute for the translation. LFDA 148(I) additionally requires source attribution, unchanged text and no effect on normal exploitation. The assessment is limited to the exact displayed comparison and must be reconsidered if the aggregate excerpts or presentation change; it does not settle other jurisdictions."
+       }
+      }
+     ]
     }
    },
    "georg-simmel.philosophie-der-landschaft": {
@@ -4898,6 +4960,112 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schlegel, On the Study of Greek Poetry, translated and edited by Stuart Barnett (Albany: State University of New York Press, 2001), p. 21.",
+     "year": 2001,
+     "url": "https://books.google.com/books?id=1NIlOE5oP_UC&pg=PA21",
+     "licence": "Protected translation, attributed short quotation for scholarship and comparison only, subject to jurisdiction and review; Google Books displays this page with SUNY Press permission.",
+     "attribution": "Friedrich Schlegel, On the Study of Greek Poetry, translated and edited by Stuart Barnett (Albany: SUNY Press, 2001), p. 21; Google Books publisher-authorized preview.",
+     "maker": "codex-2026-11-28-schlegel-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q157271",
+       "name": {
+        "en": "Friedrich Schlegel",
+        "ru": "Фридрих Шлегель"
+       },
+       "born": 1772,
+       "died": 1829,
+       "source": "https://www.wikidata.org/wiki/Q157271",
+       "evidence": {
+        "file": "wikidata-Q157271.json",
+        "sha256": "03c35f4caf30611f3f4c211548e08c0c5b6535ea0b45faf132a3a8c38c42799c",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q157271.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Stuart Barnett",
+        "ru": "Stuart Barnett"
+       },
+       "born": 1960,
+       "died": null,
+       "source": "https://id.loc.gov/authorities/names/n97060572.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-d5a2d0e761f81050.html",
+        "sha256": "c0da28bbfec9c0413749ec229dfee21b1e233def9fcb132238e765fc9057b3b2",
+        "url": "https://id.loc.gov/authorities/names/n97060572.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: assess the research and comparative purpose, nature of the translated work, limited amount and market effect for the precise display; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, within extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "5c58993dabe4420aec787c5c8080ae3fb8bf28c0d5d6d40d062a66ec4cc4743f",
+      "non_substantial": "One sentence of 16 words from a book-length translation is selected to compare a specific German sentence and does not reproduce its argument or substitute for the book.",
+      "normal_exploitation": "The credited research comparison presents only this brief sentence with the original and does not replace reading the translation; this assessment is limited to the selected sentence and display.",
+      "source_integrity": "The complete sentence, spelling and punctuation follow the publisher-authorized page image; the author, translator, edition and page are attributed and no words are altered."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schlegel",
+        "ru": "Фридрих Шлегель"
+       },
+       "qid": "Q157271",
+       "source": "https://www.wikidata.org/wiki/Q157271",
+       "born": [
+        {
+         "time": "+1772-03-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1829-01-12T00:00:00Z",
+         "precision": 11
+        },
+        {
+         "time": "+1829-01-11T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Stuart Barnett",
+        "ru": "Stuart Barnett"
+       },
+       "source": "https://id.loc.gov/authorities/names/n97060572.json",
+       "born": [
+        {
+         "year": 1960
+        }
+       ],
+       "died": []
+      }
+     ]
     }
    },
    "absent": [],
@@ -4905,10 +5073,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -6275,6 +6439,116 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Georges-Louis Leclerc, comte de Buffon, Discourse on Style, in Theories of Style, with Especial Reference to Prose Composition: Essays, Excerpts, and Translations, arranged and adapted by Lane Cooper (New York: Macmillan, 1930), p. 171. The Internet Archive catalogue gives 1907; the specific scanned copy's title page reads 1930. The title names Cooper as arranger and adapter, while an Ohio State dissertation attributes the translation to him in a 1952 revision of the 1907 work: https://etd.ohiolink.edu/acprod/odb_etd/ws/send_file/send?accession=osu1487256826303975&disposition=inline (p. 38).",
+     "year": 1930,
+     "url": "https://archive.org/details/theoriesofstylew00coop/page/n198/mode/1up",
+     "licence": "1930 US publication is public domain in the United States; attributed limited quotation for research, criticism and comparison is separately assessed in other territories.",
+     "attribution": "Buffon, Discourse on Style, translated and adapted by Lane Cooper, Theories of Style, with Especial Reference to Prose Composition (New York: Macmillan, 1930), p. 171; scan of the 1930 printing.",
+     "maker": "codex-2026-11-28-buffon-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q229264",
+       "name": {
+        "en": "Georges-Louis Leclerc, Comte de Buffon",
+        "ru": "Жорж-Луи Леклерк де Бюффон"
+       },
+       "born": 1707,
+       "died": 1788,
+       "source": "https://www.wikidata.org/wiki/Q229264",
+       "evidence": {
+        "file": "wikidata-Q229264.json",
+        "sha256": "ab99843922019fc58a03cfb824e994bd122d3f3ac6a4b375bb04357689fe1912",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q229264.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Lane Cooper",
+        "ru": "Lane Cooper"
+       },
+       "born": 1875,
+       "died": 1959,
+       "source": "https://id.loc.gov/authorities/names/n50017972.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-c098ce819ae31f3f.html",
+        "sha256": "da00bc57ad8af07c013d205edd832094337f7a1b5ec535d3fc6ad196ca25d028",
+        "url": "https://id.loc.gov/authorities/names/n50017972.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "The title page of the scanned New York printing bears 1930, before the US 1931 public-domain cutoff in 2026; the archive catalogue instead lists 1907."
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review to the extent justified by purpose, subject to applicable national implementations; Cooper died 1959 and his translation may remain protected; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of lawfully published work for research and education to the extent justified by the aim, with author and source; Cooper died 1959; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "3afc8584632020e63a085063c84768f9d5505b126d3fd9aaea8eb2a23d15938d",
+      "non_substantial": "One twelve-word sentence from an eleven-page translated discourse presents a specific definition for comparison without reproducing the discourse or substituting for it.",
+      "normal_exploitation": "The scholarly display presents an attributed sentence alongside the French original; this does not replace access to the discourse or the containing book. The assessment is limited to that display.",
+      "source_integrity": "The words and punctuation reproduce one complete sentence on the 1930 printed page; author, translator, edition and page are attributed."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Georges-Louis Leclerc, Comte de Buffon",
+        "ru": "Жорж-Луи Леклерк де Бюффон"
+       },
+       "qid": "Q229264",
+       "source": "https://www.wikidata.org/wiki/Q229264",
+       "born": [
+        {
+         "time": "+1707-09-07T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1788-04-15T00:00:00Z",
+         "precision": 11
+        },
+        {
+         "time": "+1788-04-16T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Lane Cooper",
+        "ru": "Lane Cooper"
+       },
+       "source": "https://id.loc.gov/authorities/names/n50017972.json",
+       "born": [
+        {
+         "year": 1875
+        }
+       ],
+       "died": [
+        {
+         "year": 1959
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -6282,10 +6556,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -12956,15 +13226,21 @@
      "en": "Study, p. 16"
     },
     "texts": {
-     "de": "Das Neue wird alt, das Seltene gemein, und die Stachel des Reizenden werden stumpf."
+     "de": "Das Neue wird alt, das Seltene gemein, und die Stachel des Reizenden werden stumpf.",
+     "en": "The new becomes old; the unusual becomes common; the frisson of what is charming becomes dull."
     },
     "links": {
-     "de": "https://archive.org/details/10927143bsb/page/n41/mode/1up"
+     "de": "https://archive.org/details/10927143bsb/page/n41/mode/1up",
+     "en": "https://books.google.com.mx/books/content?id=1NIlOE5oP_UC&hl=ru&pg=PA21&img=1&zoom=3&sig=ACfU3U35GEeG0uyGfdk9xJMFozV9vsdNNg&w=1280"
     },
     "refs": [
      [
       "de",
       "Die Griechen und Römer (1797), p. 16"
+     ],
+     [
+      "en",
+      "Friedrich Schlegel, On the Study of Greek Poetry, translated and edited by Stuart Barnett (Albany: State University of New York Press, 2001), p. 21., p. 21"
      ]
     ]
    }
@@ -13841,15 +14117,21 @@
      "en": "Discourse, p. 5"
     },
     "texts": {
-     "fr": "Le style n’est que l’ordre et le mouvement qu’on met dans ses pensées."
+     "fr": "Le style n’est que l’ordre et le mouvement qu’on met dans ses pensées.",
+     "en": "Style is simply the order and movement one gives to one’s thoughts."
     },
     "links": {
-     "fr": "https://archive.org/details/oeuvrescomplte01buff/page/n84/mode/1up"
+     "fr": "https://archive.org/details/oeuvrescomplte01buff/page/n84/mode/1up",
+     "en": "https://archive.org/download/theoriesofstylew00coop/page/n198.jpg"
     },
     "refs": [
      [
       "fr",
       "Œuvres complètes de Buffon, vol. 1 (Paris, 1829), p. 5"
+     ],
+     [
+      "en",
+      "Georges-Louis Leclerc, comte de Buffon, Discourse on Style, in Theories of Style, with Especial Reference to Prose Composition: Essays, Excerpts, and Translations, arranged and adapted by Lane Cooper (New York: Macmillan, 1930), p. 171. The Internet Archive catalogue gives 1907; the specific scanned copy's title page reads 1930. The title names Cooper as arranger and adapter, while an Ohio State dissertation attributes the translation to him in a 1952 revision of the 1907 work: https://etd.ohiolink.edu/acprod/odb_etd/ws/send_file/send?accession=osu1487256826303975&disposition=inline (p. 38)., p. 171"
      ]
     ]
    },
