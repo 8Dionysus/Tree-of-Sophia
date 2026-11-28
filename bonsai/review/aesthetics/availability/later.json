@@ -2849,7 +2849,48 @@
       "areas": [
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "Meaning in the Visual Arts, 1955, chapter I pp28–32",
+          "secondary_excerpt": "https://critique-of-ar.net/excerpts/Panofsky.htm",
+          "edition_history": "https://www.alianzaeditorial.es/primer_capitulo/el-significado-en-las-artes-visuales.pdf",
+          "status": "Researcher inspected secondary excerpts, not images of target pages. Publisher preview says chapter I revises and adds to Studies in Iconology (1939); a Cambridge study notes the third level is designated differently. An OCR lead indicates the conventional secondary level can be absent in some works; verify the printed context before treating analytical levels as universally sequential."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "El significado en las artes visuales, translated Nicanor Ancochea Millet, Alianza 1979",
+          "publisher": "https://www.alianzaeditorial.es/libro/alianza-forma-af/el-significado-en-las-artes-visuales-erwin-panofsky-9788420686523/",
+          "status": "Publisher preview identifies edition but omits target passages."
+        },
+        {
+          "language": "ru",
+          "edition": "Смысл и толкование изобразительного искусства, translated V. V. Simonov, Akademichesky Proekt 1999, from the 1957 English edition",
+          "catalogue": "https://opac.liart.ru/record/307/52534c412f3335363833",
+          "status": "Bibliographic lead; target pages and rights unverified."
+        },
+        {
+          "language": "de",
+          "edition": "Sinn und Deutung in der bildenden Kunst, translated Wilhelm Höck, DuMont 1975/1978",
+          "catalogue": "https://www.khist.uzh.ch/dam/jcr%3A00000000-5531-7893-0000-0000431c0274/Richtlinien%202.3.pdf",
+          "status": "University documentation identifies edition and translator; target pages not checked. The later Studien zur Ikonologie uses the 1955 chapter in Höck’s translation, not automatically the 1939 text."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "Translations associated with 傅志强 (1987) and 邵宏 (2024)",
+          "publisher": "https://www.cp.com.cn/book/4d87a2a8-1.html",
+          "status": "Catalogue leads; target pages, edition correspondence and rights unverified."
+        }
+      ],
+      "requested_places": [
+        "B:C-A-I107 pp28–32",
+        "B:C-A-I108 pp28–30",
+        "B:C-A-R052"
+      ],
+      "remaining": "Inspect actual English pages and distinguish 1939, 1955 and later translations. Assess rights and exact translation passages; no absence finding."
     },
     {
       "work": "fredric-jameson.postmodernism-or-the-cultural-logic-of-late",
