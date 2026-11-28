@@ -2461,6 +2461,37 @@
      }
     }
    },
+   "friedrich-schiller.ueber-anmut-und-wuerde": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No translation is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-anmut-und-wuerde/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/friedrich-schiller.ueber-anmut-und-wuerde/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "f6f60d3692bd4e7f6aed8db46c9d69dc6bbd7fc42e908f6faf5545cae56be1d8",
+        "non_substantial": "One complete sentence of 23 words is selected from a translation spanning pages 123–170 to compare the conception of grace with the German original; it does not reproduce the argument or substitute for reading the translation. Its conceptual significance is acknowledged.",
+        "normal_exploitation": "The comparison reproduces one short sentence alongside the original with contextual interpretation, while crediting the author, translator, edition and page; it does not replace the book or its market.",
+        "source_integrity": "The exact complete sentence, wording, spelling and punctuation follow the publisher-authorized page image without alteration; the credited author, translator, source and page identify the published work."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-schiller-grace-en-second",
+        "date": "2026-11-28",
+        "sha256": "26fd87fe9884b3ff3708ea880b7d824595e2fee8bd8b4865c51f5e01eb1cf84f",
+        "assessment": "Independent reader checked LFDA art. 148(I) against this 23-word complete sentence and the cited page. The short comparative display alongside the original and project interpretation, source and participant attribution, exact text, and lack of market substitution support this narrow assessment. Its importance within the argument is acknowledged; reassess the cumulative amount if further passages are added. This is not a general licence."
+       }
+      }
+     ]
+    }
+   },
    "friedrich-schiller.ueber-das-erhabene": {
     "en": {
      "absent": {
@@ -3426,16 +3457,110 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Schiller, On Grace and Dignity, translated by Jane Veronica Curran, in Schiller’s On Grace and Dignity in Its Cultural Context, edited by Jane V. Curran and Christophe Fricker (Rochester, NY: Camden House, 2005), p. 153.",
+     "year": 2005,
+     "url": "https://books.google.com/books?id=z6mquq2Fv1kC&pg=PA153",
+     "licence": "Protected translation; attributed short quotation for scholarship and comparison, subject to jurisdiction and review. Google Books publisher-authorized preview.",
+     "attribution": "Friedrich Schiller, On Grace and Dignity, translated by Jane V. Curran, in Curran and Fricker, eds., Schiller’s On Grace and Dignity in Its Cultural Context (Camden House, 2005), p. 153.",
+     "maker": "codex-2026-11-28-schiller-grace-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q22670",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "born": 1759,
+       "died": 1805,
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "evidence": {
+        "file": "wikidata-Q22670.json",
+        "sha256": "9e333c4292d89a61a12920139fccff88e85a747899eb8b55b62886a8b68dc6e7",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q22670.json"
+       }
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Jane Veronica Curran",
+        "ru": "Jane Veronica Curran"
+       },
+       "born": null,
+       "died": null,
+       "source": "https://id.loc.gov/authorities/names/nr96025122.json",
+       "evidence": {
+        "kind": "reference",
+        "file": "person-3ca467e35178b9c3.html",
+        "sha256": "553bacef4e914d17d60e1f3baa100d1623aa6dc5f2bb835d197270fe5acc1e5c",
+        "url": "https://id.loc.gov/authorities/names/nr96025122.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "short-quotation",
+       "law": "17 USC 107 fair use: assess the research and comparative purpose, nature of the translated work, limited amount and market effect for the precise display; https://www.copyright.gov/title17/92chap1.html#107"
+      },
+      "eu": {
+       "basis": "short-quotation",
+       "law": "Directive 2001/29/EC article 5(3)(d): attributed quotation for criticism or review, within extent justified by purpose and subject to applicable national implementations; https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32001L0029"
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1): quotation of a lawfully published work for research and education to the extent justified by the aim, with author and source; https://www.consultant.ru/document/cons_doc_LAW_64629/84bbd636598a59112a4fe972432343dd4f51da1d/"
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "f6f60d3692bd4e7f6aed8db46c9d69dc6bbd7fc42e908f6faf5545cae56be1d8",
+      "non_substantial": "One complete sentence of 23 words is selected from a translation spanning pages 123–170 to compare the conception of grace with the German original; it does not reproduce the argument or substitute for reading the translation. Its conceptual significance is acknowledged.",
+      "normal_exploitation": "The comparison reproduces one short sentence alongside the original with contextual interpretation, while crediting the author, translator, edition and page; it does not replace the book or its market.",
+      "source_integrity": "The exact complete sentence, wording, spelling and punctuation follow the publisher-authorized page image without alteration; the credited author, translator, source and page identify the published work."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Schiller",
+        "ru": "Фридрих Шиллер"
+       },
+       "qid": "Q22670",
+       "source": "https://www.wikidata.org/wiki/Q22670",
+       "born": [
+        {
+         "time": "+1759-11-10T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1805-05-09T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Jane Veronica Curran",
+        "ru": "Jane Veronica Curran"
+       },
+       "source": "https://id.loc.gov/authorities/names/nr96025122.json",
+       "born": [],
+       "died": []
+      }
+     ]
     }
    },
    "absent": [],
    "unsearched": [
     {
      "language": "ru",
-     "reason": "No translation is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
      "reason": "No translation is taken in this pass: the line plants the original first."
     }
    ]
@@ -12365,15 +12490,21 @@
      "en": "pp. 187–188"
     },
     "texts": {
-     "de": "In einer schönen Seele ist es also, wo Sinnlichkeit und Vernunft, Pflicht und Neigung harmoniren, und Grazie ist ihr Ausdruck in der Erscheinung."
+     "de": "In einer schönen Seele ist es also, wo Sinnlichkeit und Vernunft, Pflicht und Neigung harmoniren, und Grazie ist ihr Ausdruck in der Erscheinung.",
+     "en": "It is in a beautiful soul that sensuousness and reason, duty and inclination are in harmony, and grace is their expression as appearance."
     },
     "links": {
-     "de": "https://archive.org/details/10040246bsb/page/n76/mode/1up"
+     "de": "https://archive.org/details/10040246bsb/page/n76/mode/1up",
+     "en": "https://books.google.com.mx/books/content?id=z6mquq2Fv1kC&hl=ru&pg=PA153&img=1&zoom=3&sig=ACfU3U1dW9HIN1sp3n8b7BmnhWMH36rIrg&w=1280"
     },
     "refs": [
      [
       "de",
       "Göschen 1793, pp. 187–188"
+     ],
+     [
+      "en",
+      "Friedrich Schiller, On Grace and Dignity, translated by Jane Veronica Curran, in Schiller’s On Grace and Dignity in Its Cultural Context, edited by Jane V. Curran and Christophe Fricker (Rochester, NY: Camden House, 2005), p. 153., p. 153"
      ]
     ]
    },
