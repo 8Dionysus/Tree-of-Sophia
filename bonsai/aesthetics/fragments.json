@@ -2179,6 +2179,14 @@
      }
     }
    },
+   "david-hume.of-tragedy": {
+    "de": {
+     "absent": null,
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/david-hume.of-tragedy/witnesses/de.json",
+     "corrections": []
+    }
+   },
    "edith-stein.zum-problem-der-einfuehlung": {
     "en": {
      "absent": {
@@ -8849,6 +8857,113 @@
          "qualifiers": [
           "Q26877139"
          ]
+        }
+       ]
+      }
+     ]
+    },
+    "de": {
+     "edition": "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), p. 217.",
+     "year": 1759,
+     "url": "https://archive.org/details/11916063bsb",
+     "licence": "Historical translation in the public domain in the listed jurisdictions; Bayerische Staatsbibliothek digitisation.",
+     "attribution": "David Hume, translated by Friedrich Gabriel Resewitz, Vier Abhandlungen (1759).",
+     "maker": "codex-2026-11-28-hume-tragedy-de-maker",
+     "normalization": "Long s rendered as s; line breaks and line-end hyphenation normalized, historical spelling and punctuation retained.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q37160",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "born": 1711,
+       "died": 1776,
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "evidence": {
+        "file": "wikidata-Q37160.json",
+        "sha256": "8286cadd63aabcb3fe74a8b8801e2b1bd1d81d5954568e68cc60b142a7275d30",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q37160.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q1459190",
+       "name": {
+        "en": "Friedrich Gabriel Resewitz",
+        "ru": "Friedrich Gabriel Resewitz"
+       },
+       "born": 1729,
+       "died": 1806,
+       "source": "https://www.wikidata.org/wiki/Q1459190",
+       "evidence": {
+        "file": "wikidata-Q1459190.json",
+        "sha256": "727c18235868dc39efa2621fef6068e39b44f94548758e018015a920c17b1a1e",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q1459190.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published in 1759, prior to 1931; 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: 70 years after the latest death, translator Resewitz 1806: https://eur-lex.europa.eu/eli/dir/2006/116/oj"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code article 1281: 70 years after death with four years conservatively added; latest death 1806: https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "qid": "Q37160",
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "born": [
+        {
+         "time": "+1711-04-26T00:00:00Z",
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
+        }
+       ],
+       "died": [
+        {
+         "time": "+1776-08-25T00:00:00Z",
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Friedrich Gabriel Resewitz",
+        "ru": "Friedrich Gabriel Resewitz"
+       },
+       "qid": "Q1459190",
+       "source": "https://www.wikidata.org/wiki/Q1459190",
+       "born": [
+        {
+         "year": 1729
+        }
+       ],
+       "died": [
+        {
+         "year": 1806
         }
        ]
       }
@@ -15945,15 +16060,21 @@
      "en": "Diss. III, p. 185"
     },
     "texts": {
-     "en": "It seems an unaccountable pleasure, which the spectators of a well-wrote tragedy receive from sorrow, terror, anxiety, and other passions, which are in themselves disagreeable and uneasy. The more they are touched and affected, the more are they delighted with the spectacle, and as soon as the uneasy passions cease to operate, the piece is at an end."
+     "en": "It seems an unaccountable pleasure, which the spectators of a well-wrote tragedy receive from sorrow, terror, anxiety, and other passions, which are in themselves disagreeable and uneasy. The more they are touched and affected, the more are they delighted with the spectacle, and as soon as the uneasy passions cease to operate, the piece is at an end.",
+     "de": "Das Vergnügen scheint sich nicht erklären zu lassen, welches die Zuschauer eines wohlgeschriebenen Trauerspiels aus der Betrübniß, dem Schrecken, der Angst, und aus andern Leidenschaften empfinden, indem diese ihrer Natur nach unangenehm und verdrießlich sind. Je mehr sie durch das Schauspiel gerührt und bewegt werden, desto mehr Vergnügen finden sie daran, und so bald die unangenehmen Leidenschaften aufhören zu wirken, gehet auch das Stück zu Ende."
     },
     "links": {
-     "en": "https://archive.org/details/fourdissertatio00humegoog/page/n199/mode/1up"
+     "en": "https://archive.org/details/fourdissertatio00humegoog/page/n199/mode/1up",
+     "de": "https://archive.org/download/11916063bsb/page/n236.jpg"
     },
     "refs": [
      [
       "en",
       "First edition (London 1757), p. 185"
+     ],
+     [
+      "de",
+      "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), p. 217., p. 217"
      ]
     ]
    },

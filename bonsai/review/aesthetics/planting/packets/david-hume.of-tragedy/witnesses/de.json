@@ -1,0 +1,101 @@
+{
+ "language": "de",
+ "witness": {
+  "edition": "David Hume, Vier Abhandlungen, translated by Friedrich Gabriel Resewitz (Quedlinburg and Leipzig: Andreas Franz Biesterfeld, 1759), p. 217.",
+  "year": 1759,
+  "url": "https://archive.org/details/11916063bsb",
+  "licence": "Historical translation in the public domain in the listed jurisdictions; Bayerische Staatsbibliothek digitisation.",
+  "attribution": "David Hume, translated by Friedrich Gabriel Resewitz, Vier Abhandlungen (1759).",
+  "maker": "codex-2026-11-28-hume-tragedy-de-maker",
+  "normalization": "Long s rendered as s; line breaks and line-end hyphenation normalized, historical spelling and punctuation retained.",
+  "persons": [
+   {
+    "role": "author",
+    "qid": "Q37160",
+    "name": {
+     "en": "David Hume",
+     "ru": "Дэвид Юм"
+    },
+    "born": 1711,
+    "died": 1776,
+    "source": "https://www.wikidata.org/wiki/Q37160",
+    "evidence": {
+     "file": "wikidata-Q37160.json",
+     "sha256": "8286cadd63aabcb3fe74a8b8801e2b1bd1d81d5954568e68cc60b142a7275d30",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q37160.json"
+    }
+   },
+   {
+    "role": "translator",
+    "qid": "Q1459190",
+    "name": {
+     "en": "Friedrich Gabriel Resewitz",
+     "ru": "Friedrich Gabriel Resewitz"
+    },
+    "born": 1729,
+    "died": 1806,
+    "source": "https://www.wikidata.org/wiki/Q1459190",
+    "evidence": {
+     "file": "wikidata-Q1459190.json",
+     "sha256": "727c18235868dc39efa2621fef6068e39b44f94548758e018015a920c17b1a1e",
+     "url": "https://www.wikidata.org/wiki/Special:EntityData/Q1459190.json"
+    }
+   }
+  ],
+  "rights": {
+   "usa": {
+    "basis": "public-domain",
+    "law": "Published in 1759, prior to 1931; 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+   },
+   "eu": {
+    "basis": "public-domain",
+    "law": "Directive 2006/116/EC article 1: 70 years after the latest death, translator Resewitz 1806: https://eur-lex.europa.eu/eli/dir/2006/116/oj"
+   },
+   "russia": {
+    "basis": "public-domain",
+    "law": "Russian Civil Code article 1281: 70 years after death with four years conservatively added; latest death 1806: https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+   }
+  }
+ },
+ "sources": [],
+ "images": [
+  {
+   "file": "resewitz-p217.jpg",
+   "url": "https://archive.org/download/11916063bsb/page/n236.jpg",
+   "sha256": "c882557dc8a9a872373d6ad71039f632646a832852e6139436fe2830aba43d9a",
+   "by": "maker"
+  },
+  {
+   "file": "second-resewitz-p217.jpg",
+   "url": "https://archive.org/download/11916063bsb/page/n236.jpg",
+   "sha256": "c882557dc8a9a872373d6ad71039f632646a832852e6139436fe2830aba43d9a",
+   "by": "second"
+  }
+ ],
+ "places": {
+  "III p185a": {
+   "text": "Das Vergnügen scheint sich nicht erklären zu lassen, welches die Zuschauer eines wohlgeschriebenen Trauerspiels aus der Betrübniß, dem Schrecken, der Angst, und aus andern Leidenschaften empfinden, indem diese ihrer Natur nach unangenehm und verdrießlich sind. Je mehr sie durch das Schauspiel gerührt und bewegt werden, desto mehr Vergnügen finden sie daran, und so bald die unangenehmen Leidenschaften aufhören zu wirken, gehet auch das Stück zu Ende.",
+   "transcription": {
+    "kind": "human-page",
+    "reason": "The source-bound BSB OCR does not reproduce a usable reading of these Fraktur sentences; the Google Books accessibility text is visible in its viewer but automated fetch returns 403. Both complete sentences are transcribed directly from the 1759 BSB image, retaining historical spelling and punctuation and normalizing long s and line endings.",
+    "original_text": "Das Vergnügen scheint sich nicht erklären zu lassen, welches die Zuschauer eines wohlgeschriebenen Trauerspiels aus der Betrübniß, dem Schrecken, der Angst, und aus andern Leidenschaften empfinden, indem diese ihrer Natur nach unangenehm und verdrießlich sind. Je mehr sie durch das Schauspiel gerührt und bewegt werden, desto mehr Vergnügen finden sie daran, und so bald die unangenehmen Leidenschaften aufhören zu wirken, gehet auch das Stück zu Ende."
+   },
+   "page": "p. 217",
+   "url": "https://archive.org/download/11916063bsb/page/n236.jpg",
+   "image_sha256": "c882557dc8a9a872373d6ad71039f632646a832852e6139436fe2830aba43d9a",
+   "alignment": "Two complete sentences correspond to the opening of the English III p185a. They preserve the unexplained pleasure, sorrow, terror, anxiety and unpleasant passions, the proportion of being moved to delight, and the ending of the performance when unpleasant passions cease. German indem adds a causal connection to the characterization of the passions; the relationship is disclosed."
+  }
+ },
+ "review": {
+  "reader": "codex-2026-11-28-hume-tragedy-de-second",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-28",
+  "places": {
+   "III p185a": {
+    "reads": "as the packet",
+    "alignment": "Independent reader personally opened the BSB 1759 image n236 p217 and the 1757 English scan n199, compared both complete sentences word by word, confirmed the transcription, historical spelling and punctuation and found no meaningful emphasis. The German preserves the same argument; indem makes the relation between the passions and their unpleasant nature more explicit, but the reader finds no material alteration. The reader separately rejected p185b: resentment becomes a desire for revenge and cries become sighs.",
+    "image_sha256": "c882557dc8a9a872373d6ad71039f632646a832852e6139436fe2830aba43d9a"
+   }
+  }
+ }
+}
