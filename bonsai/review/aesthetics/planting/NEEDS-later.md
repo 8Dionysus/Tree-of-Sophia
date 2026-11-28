@@ -129,3 +129,16 @@ record does not by itself bind the rendered image digest to the source PDF's
 digest and rendering operation. Please clarify or implement that provenance;
 `fetch transcription --file` describes bytes fetched from its URL and must
 not silently label locally extracted text as the original PDF bytes.
+
+## Source-backed witness participant correction — 27 November
+
+In the unplanted Pope packet, the 1733 German witness records the original
+writer from DNB as `Pope, Alexander`, with a fetched source and dates. The
+original packet records `Alexander Pope` / `Александр Поуп` with Q164047.
+`witness-gate --second` does not match the inverted catalogue name to either
+original name. `witness-person-remove` only accepts a QID, while the sourced
+person has none; `witness-person-source` replaces only an exactly identical
+name object. Please provide a history-preserving kit route to correct or remove
+a source-backed person without a QID, then require renewed independent review.
+The two e-rara page images and initial independent reading are retained in the
+local witness; no acceptance or planting is claimed.
