@@ -1182,6 +1182,9 @@ def language_coverage(path,entry,original,legacy_work=False,held=False,second=Fa
         if not os.path.isfile(file) and os.path.isfile(search) and (not legacy_work or os.path.isfile(search+'.accepted')):
             raw=Path(search).read_bytes()
             if os.path.isfile(search+'.accepted') and load(search+'.accepted').get('sha256')!=hashlib.sha256(raw).hexdigest():problems.append(f'{lang}: search changed since acceptance');continue
+            # A translation accepted later, in an extension of this work, takes precedence over the accepted search that
+            # found none: the search stays as the record of its day and the work holds the witness.
+            if os.path.isfile(search+'.accepted') and lang in ((((world()['fragments'].get('works') or {}).get(work_of(path)) or {}).get('witnesses')) or {}):continue
             problems.extend(f'{lang}: {issue}' for issue in language_search_problems(path,lang,json.loads(raw),second=second))
             continue
         if os.path.isfile(file):

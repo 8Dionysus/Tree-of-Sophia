@@ -283,8 +283,11 @@ function treePath(tree){
   const author=authors.find(name=>existsSync(join(root,'ToS/source-witnesses/works',name,title,'work.json')));
   return [author??owner,title,'work.json'];
 }
-const stored=existsSync(join(home,'identities.json'))?json(join(home,'identities.json')).checked:null;
+const storedIdentities=existsSync(join(home,'identities.json'))?json(join(home,'identities.json')):null,stored=storedIdentities?.checked??null;
 identities.checked=stored??{tree_revision:null,date:null,basis:{ru:'Записи ToS/source-witnesses на этой ревизии: «resolved» — Древо уже держит эту идентичность, «to-mint» — её пришлось бы создать маршрутом владельца источника.',en:'ToS/source-witnesses records at this revision: resolved means the Tree already holds the identity; to-mint means its source-owner route would have to create it.'}};
+// The media graft, each work of art an Artifact and each image a representation, is written by the media tool
+// (bonsai/lib/media.mjs addMedia) into the same map; planting carries it as it stands.
+for(const section of ['artifacts','representations'])if(storedIdentities?.[section])identities[section]=storedIdentities[section];
 
 // Participant lives are source data from the recorded Wikidata identities.
 const lives=layer('lives'),lifeByItem=new Map(Object.values(lives).map(life=>[life.item,life]));
