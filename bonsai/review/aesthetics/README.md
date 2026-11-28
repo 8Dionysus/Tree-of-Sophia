@@ -101,6 +101,15 @@ of register C were rewritten in the media workbook; the layer takes the later
 reading. For register B the pass also recorded, reading by reading, whether it
 reached the digital place of the text (`place_check`): 122 of 229 reached.
 
+Later source-backed author date corrections live in `inputs/agents.json`.
+The unifier preserves the workbook wording in the registry and under
+`register_dates`, and records the correction and source digest in the layer.
+`python3 bonsai/review/aesthetics/unify.py --refresh-agent-dates` reapplies
+these decisions to an existing layer after checking the original registry;
+add `--check` to verify without writing. The full workbook rebuild applies
+them too. A removed or contradicted death
+year is unknown, not an inferred current status or public-domain finding.
+
 ## Planting
 
 ```sh

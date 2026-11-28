@@ -17,6 +17,9 @@ describe('territorial fragment rights',()=>{
     expect(wholeExternalSentence('هذه جملة كاملة؟')).toBe(true);
     expect(wholeExternalSentence('εἰ ξυμπονήσεις;')).toBe(true);
     expect(wholeExternalSentence('नाट्यशास्त्रम्।')).toBe(true);
+    expect(wholeExternalSentence('¿Cómo se explica la belleza?','es')).toBe(true);
+    expect(wholeExternalSentence('¡Qué hermoso es!','es')).toBe(true);
+    expect(wholeExternalSentence('¿cómo se explica?','es')).toBe(false);
     expect(wholeExternalSentence('Not a complete sentence;')).toBe(false);
     expect(wholeExternalSentence('lowercase fragment.')).toBe(false);
     expect(wholeExternalSentence('illud autem nobile est.','la')).toBe(true);

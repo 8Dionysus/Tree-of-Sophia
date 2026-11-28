@@ -45,8 +45,11 @@ const fragments=existsSync(join(home,'fragments.json'))?json(join(home,'fragment
  *  packet is planted: its reading joins the records, its places and their provenance join the places module. `--packet NAME`
  *  reads one more packet as if it were accepted, so that a reader can try the planting before anyone accepts it. */
 const packetsDir=join(here,'planting','packets'),tried=process.argv.includes('--packet')?process.argv[process.argv.indexOf('--packet')+1]:null;
+const witnessOnlyExtension=directory=>existsSync(join(directory,'scope.json'))&&json(join(directory,'scope.json')).kind==='witness-only';
+const acceptedWitness=directory=>existsSync(join(directory,'witnesses'))&&readdirSync(join(directory,'witnesses')).some(file=>file.endsWith('.json.accepted'));
+const staleWikidataBound=(person,original=false)=>person?.died_before!=null&&person?.death_bound?.from==='wikidata'&&(person.death_bound.semantics!=='exclusive'||person.death_bound.year!==person.died_before||!(original?person.wikidata_evidence:person.evidence));
 const packets=(existsSync(packetsDir)?readdirSync(packetsDir,{withFileTypes:true}).filter(entry=>entry.isDirectory()).map(entry=>entry.name).sort():[])
-  .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried||(fragments.works[name]&&!(fragments.provenance.packets??[]).includes(name)&&['witnesses','language-searches'].some(part=>{const dir=join(packetsDir,name,part);return existsSync(dir)&&readdirSync(dir).some(file=>file.endsWith('.json.accepted'));})));
+  .filter(name=>existsSync(join(packetsDir,name,'accepted.json'))||name===tried||(fragments.works[name]&&!(fragments.provenance.packets??[]).includes(name)&&(['witnesses','language-searches'].some(part=>{const dir=join(packetsDir,name,part);return existsSync(dir)&&readdirSync(dir).some(file=>file.endsWith('.json.accepted'));})||(()=>{const dir=join(packetsDir,name,'extensions');return existsSync(dir)&&readdirSync(dir,{withFileTypes:true}).some(entry=>entry.isDirectory()&&witnessOnlyExtension(join(dir,entry.name))&&acceptedWitness(join(dir,entry.name)));})())));
 const seconds=[],whole=[];
 // Withdraw the previous search projection before reconstructing accepted searches.
 for(const [name,languages] of Object.entries(fragments.provenance.language_search_packets??{})){
@@ -62,18 +65,21 @@ const searchPackets={};
 for(const [name,languages] of Object.entries(fragments.provenance.translation_packets??{})){
   const work=fragments.works[name];if(!work)continue;
   for(const [lang,previous] of Object.entries(languages)){
-    delete work.witnesses?.[lang];
+    for(const key of previous.witness_keys??[lang])delete work.witnesses?.[key];
     if(previous.absent){work.absent??=[];if(!work.absent.some(item=>item.language===lang))work.absent.push(previous.absent);}
     if(previous.unsearched){work.unsearched??=[];if(!work.unsearched.some(item=>item.language===lang))work.unsearched.push(previous.unsearched);}
-    for(const place of Object.values(fragments.places[name]??{})){
+    for(const [loc,place] of Object.entries(fragments.places[name]??{})){
+      if(previous.place_sources&&!(loc in previous.place_sources))continue;
       delete place.texts?.[lang];delete place.links?.[lang];delete place.addresses?.[lang];delete place.quotation_justification?.[lang];
+      if(place.emphasis){delete place.emphasis[lang];if(!Object.keys(place.emphasis).length)delete place.emphasis;}
+      if(place.witness){delete place.witness[lang];if(!Object.keys(place.witness).length)delete place.witness;}
       if(place.addresses&&!Object.keys(place.addresses).length)delete place.addresses;
       if(place.refs)place.refs=place.refs.filter(ref=>ref[0]!==lang);
       if(place.quotation_justification&&!Object.keys(place.quotation_justification).length)delete place.quotation_justification;
     }
   }
 }
-const translationPackets={};
+const translationPackets={},translationWitnessKeys={},translationLocations={};
 const sameWitness=(a,b)=>{const strip=value=>Object.fromEntries(Object.entries(value??{}).filter(([key])=>!['maker','participants','mexico_quotation'].includes(key)));return isDeepStrictEqual(strip(a),strip(b));};
 // Extension-only places are rebuilt from the accepted extension packets.
 for(const [name,places] of Object.entries(fragments.provenance.extension_places??{})){
@@ -100,6 +106,7 @@ for(const name of fragments.provenance.packets??[])if(!packets.includes(name)){
 for(const name of packets){
   const at=join(packetsDir,name),path=`bonsai/review/aesthetics/planting/packets/${name}`;
   const hasReading=existsSync(join(at,'accepted.json'))||name===tried;
+  if(existsSync(join(at,'accepted.json'))&&existsSync(join(at,'evidence.json'))&&(json(join(at,'evidence.json')).persons??[]).some(person=>staleWikidataBound(person,true)))fail(`packet ${name}: accepted original has an older Wikidata bound; preserve its acceptance and obtain a reviewed correction`);
   const places=hasReading?json(join(at,'places.json')):{entry:null,places:{},corrections:[]};
   if(hasReading){
     records.push({name:`planting/packets/${name}/reading.json`,path:`${path}/reading.json`,...json(join(at,'reading.json'))});
@@ -124,7 +131,13 @@ for(const name of packets){
   const witnessRoots=[{dir:join(at,'witnesses'),path}];
   for(const extension of existsSync(extensionsDir)?readdirSync(extensionsDir,{withFileTypes:true}).filter(item=>item.isDirectory()).map(item=>item.name).sort():[]){
     const ext=join(extensionsDir,extension),selector=`${name}/extensions/${extension}`;
+    if(witnessOnlyExtension(ext)){
+      if(json(join(ext,'scope.json')).work!==name)fail(`extension ${selector}: wrong work`);
+      if(acceptedWitness(ext))witnessRoots.push({dir:join(ext,'witnesses'),path:`${path}/extensions/${extension}`});
+      continue;
+    }
     if(!existsSync(join(ext,'accepted.json'))&&tried!==selector)continue;
+    if(existsSync(join(ext,'accepted.json'))&&existsSync(join(ext,'evidence.json'))&&(json(join(ext,'evidence.json')).persons??[]).some(person=>staleWikidataBound(person,true)))fail(`extension ${selector}: accepted original has an older Wikidata bound; preserve its acceptance and obtain a reviewed correction`);
     const extensionPath=`${path}/extensions/${extension}`,extensionPlacesFile=json(join(ext,'places.json'));
     witnessRoots.push({dir:join(ext,'witnesses'),path:extensionPath});
     if(extensionPlacesFile.work!==name||extensionPlacesFile.entry)fail(`extension ${selector}: wrong work or duplicate entry`);
@@ -156,14 +169,22 @@ for(const name of packets){
     if(!existsSync(accept))continue;
     const raw=readFileSync(full),record=JSON.parse(raw),receipt=json(accept),lang=file.slice(0,-5);
     if(receipt.sha256!==createHash('sha256').update(raw).digest('hex')||record.language!==lang)fail(`packet ${name}: ${lang} witness changed since review`);
-    const previous=translationPackets[name]?.[lang],existing=fragments.works[name].witnesses?.[lang];
-    if(lang===fragments.works[name].original||(existing&&(!previous||!sameWitness(existing,record.witness))))fail(`packet ${name}: witness ${lang} is a different or untracked edition`);
-    if(!existing)fragments.works[name].witnesses[lang]=record.witness;
+    if((record.witness?.persons??[]).some(person=>staleWikidataBound(person)))fail(`packet ${name}: accepted ${lang} witness has an older Wikidata bound; preserve it and obtain a reviewed correction`);
+    const previous=translationPackets[name]?.[lang],witnesses=fragments.works[name].witnesses,existing=witnesses?.[lang];
+    if(lang===fragments.works[name].original||(existing&&!previous))fail(`packet ${name}: witness ${lang} is an untracked edition`);
+    const keys=(translationWitnessKeys[name]??={})[lang]??=[];
+    let witnessKey=keys.find(key=>sameWitness(witnesses[key],record.witness));
+    if(!witnessKey){
+      witnessKey=existing?`${lang}-${createHash('sha256').update(`${witnessPath}/witnesses/${file}`).digest('hex')}`:lang;
+      if(witnesses[witnessKey])fail(`packet ${name}: witness key ${witnessKey} is already in use`);
+      witnesses[witnessKey]=record.witness;
+    }
     const absent=(fragments.works[name].absent??[]).find(item=>item.language===lang)??null;
     const unsearched=(fragments.works[name].unsearched??[]).find(item=>item.language===lang)??null;
     const corrections=Object.entries(record.places??{}).flatMap(([loc,place])=>(place.corrections??[]).map(correction=>({loc,...correction})));
     const sourceRecord=`${witnessPath}/witnesses/${file}`;
-    if(previous){previous.records??=[previous.record];previous.records.push(sourceRecord);previous.corrections.push(...corrections);}
+    if(!keys.includes(witnessKey))keys.push(witnessKey);
+    if(previous){previous.records??=[previous.record];previous.records.push(sourceRecord);previous.corrections.push(...corrections);if(keys.length>1)previous.witness_keys=[...keys];}
     else (translationPackets[name]??={})[lang]={absent,unsearched,record:sourceRecord,corrections};
     if(record.witness?.mexico_quotation){const provenance=translationPackets[name][lang];provenance.mexico_quotations??=[];provenance.mexico_quotations.push({record:sourceRecord,assessment:record.witness.mexico_quotation,review:record.review?.mexico_quotation??null});}
     fragments.works[name].absent=(fragments.works[name].absent??[]).filter(item=>item.language!==lang);
@@ -171,16 +192,23 @@ for(const name of packets){
     for(const [loc,translated] of Object.entries(record.places??{})){
       const place=fragments.places[name]?.[loc];if(!place)fail(`packet ${name}: translation ${lang} names unknown place ${loc}`);
       if(place.texts?.[lang])fail(`packet ${name}: translation ${lang} duplicates place ${loc}`);
+      ((translationLocations[name]??={})[lang]??={})[loc]=sourceRecord;
       place.texts[lang]=translated.text;place.links??={};place.links[lang]=translated.url;
+      if(witnessKey!==lang){place.witness??={};place.witness[lang]=witnessKey;}
+      if(translated.emphasis?.length){place.emphasis??={};place.emphasis[lang]=translated.emphasis.map(mark=>mark.text);}
       if(translated.address){place.addresses??={};place.addresses[lang]=translated.address;}
       const extraPages=translated.extra_pages??[];
-      place.refs??=[];place.refs.push([lang,`${record.witness.edition}, ${[translated.page,...extraPages.map(page=>page.page)].join(', ')}`]);
+      const lines=translated.line_locator?`, lines ${translated.line_locator.start}–${translated.line_locator.end}`:'';
+      const section=translated.line_locator?.section?`${translated.line_locator.section}, `:'';
+      const pages=[`${section}${translated.page}${lines}`,...extraPages.map(page=>page.page)].join(', ');
+      place.refs??=[];place.refs.push([lang,translated.transcription?.kind==='new-translation'?`${record.witness.edition}; original source ${pages}`:`${record.witness.edition}, ${pages}`]);
       if(extraPages.length){
         const provenance=translationPackets[name][lang];provenance.page_sources??={};
         provenance.page_sources[loc]=[{page:translated.page,url:translated.url,image_sha256:translated.image_sha256},...extraPages.map(({page,url,image_sha256})=>({page,url,image_sha256}))];
       }
       if(translated.justification){place.quotation_justification??={};place.quotation_justification[lang]=translated.justification;}
     }
+    if(keys.length>1)translationPackets[name][lang].place_sources={...translationLocations[name][lang]};
   }
   const searchDir=join(at,'language-searches');
   for(const file of existsSync(searchDir)?readdirSync(searchDir).filter(file=>file.endsWith('.json')).sort():[]){

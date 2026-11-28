@@ -147,6 +147,7 @@ body:has(#public-reader-host :is(.rb-contents,.rb-article)){background:radial-gr
 /* The epigraph reads as the quotation, its source and its voice in one column; the tools of the place come last. */
 .rb-article .rb-epigraph>.ps-fragment{display:contents}
 .rb-article .rb-epigraph .ps-fragment-text{order:1;margin:0;padding:0;border:0;font:italic var(--rb-body)/1.65 var(--rb-serif);color:var(--rb-text)}
+.rb-article .rb-epigraph .ps-fragment-text em{font-style:normal}
 .rb-article .rb-epigraph .ps-fragment-cite{order:2;margin:.55rem 0 0;padding:0}
 .rb-article .rb-epigraph>.ps-core-voice{order:3;margin:.1rem 0 0;font:italic var(--rb-micro)/1.45 var(--rb-sans);color:var(--rb-faint)}
 .rb-article .rb-epigraph .ps-fragment-tools{order:4;margin:.2rem 0 0}

@@ -1,7 +1,6 @@
 # AGENTS.md
 
-This card applies to `bonsai/review/aesthetics/planting/`: the line that plants
-the Aesthetics bonsai one work at a time.
+This card governs `bonsai/review/aesthetics/planting/`.
 
 ## Role
 
@@ -10,34 +9,34 @@ second reader. `kit.py` is the line's tool; `drive.py` starts readers.
 
 | File | Holds | Written by |
 | --- | --- | --- |
-| `places.json` | the edition read, its rights, the places: whole sentences of the original | maker, the texts through `kit.py cut` |
-| `reading.json` | conceptions and links grown from the register readings; under `left` every reading not grown, with the reason | maker |
-| `evidence.json` | fetched files, every place beside the scan, the judgment of every difference | `kit.py` only |
-| `review.json` | the second reader's answer to every conception and link | second reader |
-| `blocked.json` | `{ground, reason, tried}` in place of the rest, when the work cannot be planted by this card; `ground` is `rights`, `sources`, `reading` or `kit` | maker |
-| `witnesses/<language>.json` | an independently sourced translation and its page review | `kit.py` only |
-| `accepted.json` | who let the packet onto the map and on what basis | the line, never a reader |
+| `places.json` | edition, rights and whole-sentence original places | maker, text through `kit.py cut` |
+| `reading.json` | register-based conceptions and links; `left` records omissions and reasons | maker |
+| `evidence.json` | fetched files, scans and judgments of differences | `kit.py` only |
+| `review.json` | independent answers to conceptions and links | second reader |
+| `blocked.json` | `{ground, reason, tried}` when planting fails; ground: `rights`, `sources`, `reading` or `kit` | maker |
+| `witnesses/<language>.json` | independently sourced translation and page review | `kit.py` only |
+| `accepted.json` | who accepted the packet and on what basis | line, never reader |
 
 `../plant.mjs` plants accepted packets into `bonsai/aesthetics/`.
 
 ## Laws
 
-1. **Words come from files.** The text of a place is written by `kit.py cut`
-   out of a transcription fetched by `kit.py fetch`, or, where no
-   transcription holds the passage, out of the scan's own OCR. It is never typed,
-   recalled, translated, modernised or mended by hand. Where the printed page
-   reads otherwise, `kit.py correct` changes the text and records the change.
-   For translation without usable transcription, `witness-transcribe-page`
-   records a human reading, independently checked against the same image;
-   it is not a downloaded transcription.
+1. **Words come from files.** `kit.py cut` uses a fetched transcription or the
+   scan's OCR. Never recall, modernise or mend words by hand; use `kit.py correct`
+   for page-supported differences. Without a faithful transcription,
+   `witness-transcribe-page` and `transcribe-original-page` record human
+   readings and independent checks of the exact image; original transcription
+   also records the reader and punctuation. These are not downloads or licences.
+   `witness-new-translation` requires a sourced creator, licence, exact original
+   and page, and independent linguistic and adaptation-rights review; identify
+   it as new work. See [MAKER](MAKER.md) for these routes.
    In a print with the long s, ſ is s and ſs is the print's ß.
 2. **The page decides.** `kit.py compare` sets every place beside the scan.
    Every difference is looked at on the page image, then judged with
-   `kit.py judge`. A judgment given without looking is the one fault this line
-   cannot repair afterwards. A correction that changes a letter where the
-   OCR of the page gives it no support is read on the line at the size of the
-   scan (`kit.py image … --zoom`), by the maker and again by the second
-   reader: on the whole page *possimus* and *possumus* look alike.
+   `kit.py judge`. A judgment without looking cannot be repaired afterwards.
+   Where OCR does not support a changed letter, maker and second reader inspect
+   the line at scan size (`kit.py image … --zoom`): on a whole page *possimus*
+   and *possumus* look alike.
 3. **A place is a formula:** the whole sentences in which the work says the
    thing, and no more of them than say it.
 4. **Nothing is planted that no register read.** Every conception and link
@@ -54,6 +53,9 @@ second reader. `kit.py` is the line's tool; `drive.py` starts readers.
    lawful copy, with the source page and an independent second reading. A
    locator needs the edition and the searches performed. Unknown is not a
    finding of absence.
+   A born-digital source may use its exact URL and structural address with
+   separately captured and reviewed browser views; its capture index is not a
+   printed page number.
 7. **Facts are fetched.** An edition, a year, a page number, an address is
    taken from a page opened in this session, never from memory.
 8. **One reader, one packet.** Write inside your packet directory only. No git
@@ -62,19 +64,15 @@ second reader. `kit.py` is the line's tool; `drive.py` starts readers.
 
 ## Done
 
-The maker is done when `python3 ../../kit.py gate .` prints `gate: open`; the
-second reader when `python3 ../../kit.py gate . --second` does. The gate
-recomputes the comparison from the fetched files and checks rights, coverage
-of the register readings, the affirming style and the planting itself; each
-line it prints is one thing to settle.
+The maker finishes when `python3 ../../kit.py gate .` prints `gate: open`; the
+second reader uses the same command with `--second`. The gate recomputes source
+comparison and checks rights, register coverage, affirming style and planting.
 
 An honest `blocked.json` is a finished packet. Never invent a page judgment,
 date or reading. Stop at `gate: open` or `blocked.json`.
 
-A gate line that begins `line:` names a fault of the line itself: the checkout
-or the corpus the planting reads. The packet stands as it is. Write no
-`blocked.json`, change nothing, say the line in the last message and stop; the
-operator mends the checkout and the packet goes on from where it stands.
+A `line:` gate finding names a checkout or corpus fault. Leave the packet
+unchanged, write no `blocked.json`, report the line and stop for operator repair.
 
 [MAKER](MAKER.md) and [SECOND-READER](SECOND-READER.md) give each reader's
 route.
