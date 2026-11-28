@@ -244,3 +244,49 @@ method, image digest and separate maker/second-reader evidence. This should
 not turn a screenshot into proof of authority, text accuracy, equivalence,
 or permission to quote; the reader must still inspect the page and assess
 rights in each jurisdiction.
+
+## Modern translator identified by library and contemporary review
+
+For Kenkō's *Tsurezuregusa* §137, the publisher-hosted journal article
+https://clc.shisu.edu.cn/CN/article/downloadArticleFile.do?attachType=PDF&id=35
+credits its Chinese quotation to 王新禧 in its note on printed p. 138 and
+shows all three selected sentences on p. 145. CiNii's authority record
+https://ci.nii.ac.jp/author/DA17317409 identifies that translator and his
+2011 translation of *Tsurezuregusa* and *Hōjōki*; the contemporary review
+https://wyb.chinawriter.com.cn/Pad/content/201202/01/content33096.html
+identifies him as a gardener under 30 when that edition appeared. The
+article cites a 2016 edition; neither source establishes its exact page or
+proves identity of every word with the 2011 edition. A current, identifiable
+translator's works cannot be treated as public domain on the strength of the
+ancient author's date.
+
+`witness-person-source` rejects CiNii and the journal review's domain, while
+no confidently matched Wikidata identity has been found. Please support an
+auditable, bounded identification and rights assessment for a named living or
+recent translator, backed by suitable national library authority and primary
+bibliographic evidence, without requiring an invented exact date or an
+unverified QID. The review must retain source URLs and the distinction between
+bibliographic identity, corroborated age, present-day status and any legal
+basis. A short-quotation assessment remains specific to the actual three
+sentences and independently reviewed use; this request does not itself admit
+or license them. The separate PDF-derivative evidence gap also remains.
+
+## Exclusive death-year bound from a Julian Wikidata claim
+
+For the English witness of Kenkō's *Tsurezuregusa*, Wikidata Q372772 gives
+P570 in Julian 1350 with year precision. `death_bound` correctly widens the
+latest possible Gregorian calendar year to 1351, but `witness-person
+--bounded` stores that inclusive latest year as `died_before: 1351`. The
+second-reader instructions require evidence that death happened **before**
+the recorded year; a death in January 1351 is not before 1351. The online and
+offline gates nevertheless report open after the review. The same field is
+used by original-person handling, and Vitruvius has also been represented
+through a computed bound; please audit both routes and existing readers.
+
+Please make the semantics explicit and consistent: either record the strict
+exclusive bound 1352, or use an accurately named inclusive-latest-year
+representation everywhere. Preserve the Julian calendar, precision and
+original claim evidence; update review and acceptance invalidation as needed.
+The distinction does not change the public-domain conclusion for this ancient
+hand, but a gate must not accept a statement stronger than its evidence. This
+request is separate from the modern translator's own quotation-rights review.

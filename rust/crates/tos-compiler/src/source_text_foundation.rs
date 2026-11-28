@@ -986,16 +986,35 @@ mod tests {
                 .is_valid_raw(uri, &encode(&native_packet, false).unwrap())
                 .unwrap()
         );
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .unwrap();
+        let schema_ctx = ResearchExecution::new(&root, 30).unwrap();
+        let mut with_additional_locators = native_packet.clone();
+        with_additional_locators["anchors"][0]["source_return"]["additional_locator_refs"] =
+            json!([
+                "https://example.org/volume-2",
+                "https://example.org/volume-3"
+            ]);
+        unit_packet_schema(&schema_ctx, &with_additional_locators).unwrap();
+        with_additional_locators["anchors"][0]["source_return"]["additional_locator_refs"] =
+            json!([
+                "https://example.org/volume-2",
+                "https://example.org/volume-2"
+            ]);
+        assert!(unit_packet_schema(&schema_ctx, &with_additional_locators).is_err());
     }
 }
 
 const UNIT_PACKET_SCHEMA_SHA: &str =
-    "6ba96f4298cf5e88ae261c53c46c7d51681d0f0f0faf3bcecce2e309a0e071ab";
+    "c2662f85afd2176bd7437f3d55011db120901f08a63a689f0995f5f4119e94e6";
 pub(super) fn unit_packet_schema(ctx: &ResearchExecution, p: &Value) -> Result<()> {
     use tos_validation::{FormatProfile, SchemaBackendProbe, SchemaResource};
     let raw = ctx.read("ToS/contracts/source-text-unit-packet-v1.schema.json")?;
     // V1 is an exact retained contract. Its two large arrays have only
     // minItems:1/items constraints and no global uniqueness/cardinality clause.
+    // Additional locator uniqueness applies inside one anchor, not across chunks.
     // A changed schema must receive a new decomposition review, never silently
     // weaken its new law to fit the backend's 1MiB instance cap.
     ensure(
