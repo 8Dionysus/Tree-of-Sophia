@@ -2344,7 +2344,8 @@ def cmd_mexico_quotation(args):
     digest=hashlib.sha256(raw).hexdigest();filename=f'mexico-law-{digest}.pdf'
     Path(witness_cache(path,args.language,filename) if args.language else cache(path,filename)).write_bytes(raw)
     proof={'law_url':MEXICO_LFDA,'law_file':filename,'law_sha256':digest,'scope_sha256':mexico_scope(witness,places),'non_substantial':args.non_substantial,'normal_exploitation':args.normal_exploitation,'source_integrity':args.source_integrity}
-    witness['mexico_quotation']=proof;review.pop('mexico_quotation',None)
+    witness['mexico_quotation']=proof;previous=review.pop('mexico_quotation',None)
+    if previous:review.setdefault('mexico_quotation_history',[]).append(previous)
     issues=mexico_problems(witness,places,review,maker,path=path,lang=args.language)
     if issues:die('Mexico quotation assessment is incomplete: '+'; '.join(issues))
     if args.language:data['review']=review;save(witness_file(path,args.language),data)

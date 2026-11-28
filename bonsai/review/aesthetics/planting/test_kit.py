@@ -653,6 +653,7 @@ class MexicoQuotationTest(unittest.TestCase):
                     self.assertTrue(any('Mexico quotation assessment needs a distinct second reader' in issue for issue in kit.witness_problems(str(path),'en',data,second=True,offline=True)))
                 kit.cmd_mexico_quotation_review(argparse.Namespace(packet=str(path),language='en',outcome='pending',assessment='The quotation requires further assessment of the published display and its cumulative extent.'))
                 pending=json.loads(file.read_text());self.assertTrue(any('pending' in issue for issue in kit.mexico_problems(pending['witness'],pending['places'],pending['review'],'maker',second=True)))
+                kit.cmd_mexico_quotation(args);self.assertEqual(json.loads(file.read_text())['review']['mexico_quotation_history'][0]['outcome'],'pending')
                 kit.cmd_mexico_quotation_review(argparse.Namespace(packet=str(path),language='en',outcome='approved',assessment='I independently checked the source, integrity, proportion and normal exploitation for this exact quotation.'))
                 data=json.loads(file.read_text());self.assertEqual(data['review']['mexico_quotation_history'][0]['outcome'],'pending');self.assertEqual(kit.mexico_problems(data['witness'],data['places'],data['review'],'maker',second=True,path=str(path),lang='en'),[])
                 negative=dict(data['review']);negative['mexico_quotation']={**negative['mexico_quotation'],'outcome':'rejected'}
