@@ -54,3 +54,7 @@ In `friedrich-schiller.ueber-das-erhabene/witnesses/ru.json`, the maker inadvert
 ## 2026-11-27 — a spread image covering two printed pages
 
 The RSL public image API returns one scanned spread per image, for example Kant/Sokolov 1898 `https://viewer.rsl.ru/api/v1/document/rsl01003683011/page/29` visibly holds pp. 54–55. `witness-gate` requires a separate page record for each number in a range while `witness-add-page` rejects a second page backed by the same image hash as already recorded. Please provide a source-bound route to record two printed pages on the same genuine spread image, with page spans and independent second reading; preserve the one real URL and digest without fabricating or relabelling an image. This affects Kant `§7 212.30-34` and other places crossing an RSL spread. The place remains unaccepted while this is unresolved.
+
+## 2026-11-27 — Russian pre-reform particle hyphen
+
+The Sokolov 1898 witness at `§26 254.28-32`, printed p. 111 (`https://viewer.rsl.ru/api/v1/document/rsl01003683011/page/57`), reads `въ томъ-же родѣ`; `witness-transcribe-page` currently modernizes this as `в том-же роде`, retaining the historical hyphen. Modern Russian spelling writes the particle separately: `в том же роде`. Please provide a recorded orthographic normalization for this case, retaining the exact source reading and invalidating prior reviews, without silently changing words. The witness remains unaccepted and needs independent review.
