@@ -110,3 +110,19 @@ A person with `died_before` carries the claims or the reference the bound
 rests on. Open the Wikidata item or the fetched reference and confirm that it
 bounds the death before the recorded year; a bound you cannot confirm is a
 `no` on the rights.
+
+## Reopened findings
+
+For every numbered finding in `reopen-history.json`, read the source passage,
+the maker's recorded response and the current packet. After importing the
+complete review, record your independent assessment:
+
+```sh
+K reopen-review . 1 --reader READER_ID --resolved --assessment 'What the source says, and whether the present reading addresses the finding.'
+```
+
+Use `--resolved` only when the finding is actually resolved; otherwise return
+it to the maker. The assessment binds to the exact maker response, reading,
+places and review answers. The line may stamp model and effort without changing
+those answers. A substantive change requires review again; a recorded assessment is not a
+substitute for reading the source page.

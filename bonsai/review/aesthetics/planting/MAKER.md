@@ -450,6 +450,17 @@ clears the second reading. Correct the reading through the kit and obtain a
 new independent review. This route refuses already planted works and packets
 with accepted translation witnesses or correction receipts.
 
+After `reopen`, read every numbered finding in `reopen-history.json` and
+address it in the actual reading or explain with source evidence why it does
+not hold. The packet maker records each response and its exact reading scope:
+
+```sh
+K reopen-response . 1 --maker MAKER_ID --assessment 'Specific response to the finding and the source words that support it.'
+```
+
+Changing the reading or places invalidates this response. A different second
+reader must assess the finding after their complete packet review.
+
 For a work already in `fragments.json` that predates the line and has no
 packet, run `K witness-parent WORK` first. It creates a witness-only parent;
 it does not manufacture a reading or an acceptance. Open and review the

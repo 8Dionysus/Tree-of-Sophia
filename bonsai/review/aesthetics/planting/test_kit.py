@@ -1099,6 +1099,28 @@ class HtmlTranscriptionTest(unittest.TestCase):
         self.assertNotIn('Contents',text)
         self.assertNotIn('Footer',text)
 
+class ReopenedFindingRouteTest(unittest.TestCase):
+    def test_finding_requires_maker_and_independent_current_review(self):
+        import argparse,json,tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp);finding={'reader':'second','finding':'The thesis omits the essential words only when from the printed passage.'}
+            def put(name,value):(path/name).write_text(json.dumps(value))
+            put('reopen-history.json',[finding]);put('reading.json',{'reader':{'id':'maker'},'conceptions':[]});put('places.json',{'places':{}})
+            self.assertTrue(kit.reopen_problems(tmp))
+            response=argparse.Namespace(packet=tmp,index=1,maker='maker',assessment='The source says only when; the current thesis now preserves this condition in both languages.')
+            kit.cmd_reopen_response(response);self.assertEqual(kit.reopen_problems(tmp),[]);self.assertTrue(kit.reopen_problems(tmp,second=True))
+            review={'reader':{'id':'second'},'accept':True};put('review.json',review)
+            answer=argparse.Namespace(packet=tmp,index=1,reader='second',resolved=True,assessment='The page says only when and both versions of the revised thesis preserve this condition.')
+            kit.cmd_reopen_review(answer);self.assertEqual(kit.reopen_problems(tmp,second=True),[])
+            reading=json.loads((path/'reading.json').read_text());reading['reader'].update(model='gpt-6.1-terra',effort='high');put('reading.json',reading)
+            review['reader'].update(model='gpt-6.1-terra',effort='high');put('review.json',review);self.assertEqual(kit.reopen_problems(tmp,second=True),[])
+            resolutions=json.loads((path/'reopen-resolutions.json').read_text());put('accepted.json',{'reopen_sha256':kit.page_number_digest({'history':[finding],'resolutions':resolutions})})
+            self.assertEqual(kit.reopen_problems(tmp,second=True),[])
+            review['accept']=False;put('review.json',review);self.assertTrue(kit.reopen_problems(tmp,second=True))
+            put('reading.json',{'reader':{'id':'maker'},'conceptions':[{'id':'changed'}]});self.assertTrue(kit.reopen_problems(tmp))
+            with self.assertRaises(SystemExit):kit.cmd_reopen_response(response)
+
 class TranslationSourceBlockTest(unittest.TestCase):
     def test_original_ocr_does_not_resolve_a_translation_search(self):
         import json,tempfile

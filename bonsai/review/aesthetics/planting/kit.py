@@ -1612,6 +1612,7 @@ def gate(path,second=False,offline=False):
             file=os.path.join(directory,name);raw=open(file,'rb').read();receipt=load(file+'.accepted')
             if receipt.get('sha256')!=hashlib.sha256(raw).hexdigest():add(f'{name}: witness changed since acceptance');continue
             for problem in witness_problems(path,name[:-5],json.loads(raw),second=True,offline=offline):add(f'{name}: {problem}')
+    problems.extend(reopen_problems(path,second=second))
     if second and not problems:problems.extend(second_gate(path,reading,ev,locs,owe,locator_only=locator_only))
     return problems,'open' if not problems else 'shut'
 
@@ -1759,8 +1760,58 @@ def cmd_accept(args):
     ev['sources']=[source for source in ev['sources'] if source['role']!='transcription' or source['file'] in used or (None in used and source['file']==first)];save(os.path.join(path,'evidence.json'),ev)   # a place that names no transcription was cut from the first
     basis=args.basis or f"Made by {reading['reader']['id']}; every conception and link read a second time by {review['reader']['id']}, who confirms each; the gate recomputed the comparison with the scan."
     prior=part(path,'accepted.json') or {}
-    save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[])),**{key:prior[key] for key in ('page_number_reviews','text_correction_reviews') if prior.get(key)}})
+    save(os.path.join(path,'accepted.json'),{'by':args.by,'date':today(),'basis':basis,'conceptions':len(reading['conceptions']),'links':len(reading['links']),'left':len(reading.get('left',[])),**({'reopen_sha256':page_number_digest({'history':part(path,'reopen-history.json',[]),'resolutions':part(path,'reopen-resolutions.json',{})})} if part(path,'reopen-history.json',[]) else {}),**{key:prior[key] for key in ('page_number_reviews','text_correction_reviews') if prior.get(key)}})
     print(f'accepted: {work_of(path)}')
+
+def reopen_reader_scope(value):
+    # The line stamps model and effort after each gate; these are execution metadata,
+    # not a change to the maker's or second reader's substantive answers.
+    value=json.loads(json.dumps(value)) if value is not None else None
+    if isinstance(value,dict) and isinstance(value.get('reader'),dict):
+        value['reader'].pop('model',None);value['reader'].pop('effort',None)
+    return value
+
+def reopen_scope(path,record):
+    return page_number_digest({'finding':record.get('finding'),'reader':record.get('reader'),'reading':reopen_reader_scope(part(path,'reading.json')),'places':part(path,'places.json')})
+
+def reopen_problems(path,second=False):
+    history=part(path,'reopen-history.json',[]);resolutions=part(path,'reopen-resolutions.json',{})
+    if not isinstance(history,list) or not isinstance(resolutions,dict):return ['reopen: invalid finding or resolution history']
+    problems=[];review=part(path,'review.json') or {};maker=((part(path,'reading.json') or {}).get('reader') or {}).get('id')
+    accepted=part(path,'accepted.json')
+    if history and accepted is not None and accepted.get('reopen_sha256')!=page_number_digest({'history':history,'resolutions':resolutions}):problems.append('reopen: the acceptance must bind the exact finding and independent resolutions')
+    for index,record in enumerate(history,1):
+        if not isinstance(record,dict) or not record.get('finding'):problems.append(f'reopen {index}: invalid finding');continue
+        key=page_number_digest(record);response=resolutions.get(key) or {};scope=reopen_scope(path,record)
+        if response.get('maker')!=maker or not maker or response.get('scope_sha256')!=scope or len(str(response.get('assessment','')).strip())<60:
+            problems.append(f'reopen {index}: maker must address this finding with kit.py reopen-response: {record["finding"]}');continue
+        if second:
+            answer=response.get('review') or {};reader=(review.get('reader') or {}).get('id')
+            if not reader or reader==maker or answer.get('reader')!=reader or answer.get('review_sha256')!=page_number_digest(reopen_reader_scope(review)) or answer.get('resolved') is not True or len(str(answer.get('assessment','')).strip())<60:
+                problems.append(f'reopen {index}: independent reader must assess the finding with kit.py reopen-review: {record["finding"]}')
+    return problems
+
+def cmd_reopen_response(args):
+    path=packet(args.packet);history=part(path,'reopen-history.json',[])
+    if not isinstance(history,list) or not 1<=args.index<=len(history):die('choose a recorded reopen finding by its 1-based index')
+    maker=((part(path,'reading.json') or {}).get('reader') or {}).get('id')
+    if not maker or args.maker!=maker or len(args.assessment.strip())<60:die('the packet maker must give a specific assessment of at least 60 characters')
+    record=history[args.index-1];resolutions=part(path,'reopen-resolutions.json',{})
+    if not isinstance(record,dict) or not record.get('finding') or not isinstance(resolutions,dict):die('invalid reopening record')
+    if part(path,'accepted.json') is not None:die('an accepted packet cannot change its reopening resolutions')
+    resolutions[page_number_digest(record)]={'maker':maker,'assessment':args.assessment,'scope_sha256':reopen_scope(path,record),'date':today()}
+    save(os.path.join(path,'reopen-resolutions.json'),resolutions);print('finding addressed; independent re-review is required')
+
+def cmd_reopen_review(args):
+    path=packet(args.packet);history=part(path,'reopen-history.json',[])
+    if not isinstance(history,list) or not 1<=args.index<=len(history):die('choose a recorded reopen finding by its 1-based index')
+    record=history[args.index-1];resolutions=part(path,'reopen-resolutions.json',{});response=resolutions.get(page_number_digest(record)) or {}
+    review=part(path,'review.json') or {};reader=(review.get('reader') or {}).get('id')
+    if part(path,'accepted.json') is not None:die('an accepted packet cannot change its reopening resolutions')
+    if response.get('scope_sha256')!=reopen_scope(path,record) or not response.get('maker'):die('the maker must address the current finding first')
+    if not reader or args.reader!=reader or reader==response['maker'] or not args.resolved or len(args.assessment.strip())<60:die('the independent packet reader must confirm resolution and give a specific assessment of at least 60 characters')
+    response['review']={'reader':reader,'assessment':args.assessment,'resolved':True,'review_sha256':page_number_digest(reopen_reader_scope(review)),'date':today()}
+    save(os.path.join(path,'reopen-resolutions.json'),resolutions);print('independent finding review recorded for this exact packet reading')
 
 def cmd_reopen(args):
     """Withdraw an unplanted acceptance with its independent finding and predecessor."""
@@ -2596,6 +2647,8 @@ def main():
     sub('compare',cmd_compare,P);sub('judge',cmd_judge,P,(('loc',),{}),(('which',),{}),(('stands',),{'choices':['transcription','print']}),(('note',),{'nargs':'?'}))
     sub('correct',cmd_correct,P,(('loc',),{}),(('from',),{}),(('to',),{}),(('evidence',),{}))
     sub('gate',cmd_gate,P,(('--second',),{'action':'store_true'}),(('--offline',),{'action':'store_true'}))
+    sub('reopen-response',cmd_reopen_response,P,(('index',),{'type':int}),(('--maker',),{'required':True}),(('--assessment',),{'required':True}))
+    sub('reopen-review',cmd_reopen_review,P,(('index',),{'type':int}),(('--reader',),{'required':True}),(('--resolved',),{'action':'store_true','required':True}),(('--assessment',),{'required':True}))
     sub('settle',cmd_settle,P);sub('accept',cmd_accept,P,(('--by',),{'required':True}),(('--basis',),{}),(('--offline',),{'action':'store_true'}));sub('reopen',cmd_reopen,P,(('--reader',),{'required':True}),(('--finding',),{'required':True}))
     args=p.parse_args();args.fn(args)
 

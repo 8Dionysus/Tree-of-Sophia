@@ -112,6 +112,13 @@ SECOND_ON="""You are the second reader of the packet in this directory (../../AG
 Settle each line as ../../SECOND-READER.md says, then run `python3 ../../kit.py gate . --second` again."""
 
 def have(work,name):return os.path.exists(os.path.join(PACKETS,work,name))
+def reopen_findings(work):
+    path=os.path.join(PACKETS,work,'reopen-history.json')
+    if not os.path.isfile(path):return ''
+    with open(path,encoding='utf-8') as file:history=json.load(file)
+    if not isinstance(history,list):raise ValueError('invalid reopen history')
+    return '\n'.join(f'{index}. {item.get("finding", "invalid finding")}' for index,item in enumerate(history,1))
+
 OUTSIDE=('limit','line-broken')          # ends that say nothing about the packet: it goes on from where it stands
 
 def until_open(work,role,first,again,turns,second=False,thread=None):
@@ -154,13 +161,17 @@ def run(work,retake=False):
         owes=not shut and bool(re.search(r'gate: open, owes [1-9]',gate_text))
         if (retake and disputed(work)) or shut or owes:          # an open gate without owes goes straight to its second reader
             first=MAKER.format(work=work)+('\n\n'+RETAKE if retake and disputed(work) else '')+('\n\n'+OWES.format(gate='\n'.join(gate_text.splitlines()[:60])) if owes else '')
+            findings=reopen_findings(work)
+            if findings:first+='\n\nAddress each recorded reopening finding using kit.py reopen-response before handoff:\n'+findings
             maker,got=until_open(work,'maker',first,MAKER_ON,MAKER_TURNS)
             if got=='blocked':return run(work)                   # the block gets its second look
             if got!='open':return end(got if got in OUTSIDE else 'maker-stuck')
     for round_ in range(1,RETURNS+2):
         review=os.path.join(PACKETS,work,'review.json')
         if os.path.exists(review):os.replace(review,out(work,f'review-{round_-1}.json'))
-        _,got=until_open(work,'second',SECOND.format(work=work),SECOND_ON,SECOND_TURNS,second=True)
+        findings=reopen_findings(work)
+        second_prompt=SECOND.format(work=work)+(('\n\nIndependently assess every reopening finding using kit.py reopen-review after completing the packet review:\n'+findings) if findings else '')
+        _,got=until_open(work,'second',second_prompt,SECOND_ON,SECOND_TURNS,second=True)
         if got!='open':return end(got if got in OUTSIDE else 'second-stuck')
         if json.load(open(review)).get('accept'):
             code,text=kit('accept',os.path.join(PACKETS,work),'--by','planting-line')
