@@ -244,3 +244,23 @@ method, image digest and separate maker/second-reader evidence. This should
 not turn a screenshot into proof of authority, text accuracy, equivalence,
 or permission to quote; the reader must still inspect the page and assess
 rights in each jurisdiction.
+
+## Exclusive death-year bound from a Julian Wikidata claim
+
+For the English witness of Kenkō's *Tsurezuregusa*, Wikidata Q372772 gives
+P570 in Julian 1350 with year precision. `death_bound` correctly widens the
+latest possible Gregorian calendar year to 1351, but `witness-person
+--bounded` stores that inclusive latest year as `died_before: 1351`. The
+second-reader instructions require evidence that death happened **before**
+the recorded year; a death in January 1351 is not before 1351. The online and
+offline gates nevertheless report open after the review. The same field is
+used by original-person handling, and Vitruvius has also been represented
+through a computed bound; please audit both routes and existing readers.
+
+Please make the semantics explicit and consistent: either record the strict
+exclusive bound 1352, or use an accurately named inclusive-latest-year
+representation everywhere. Preserve the Julian calendar, precision and
+original claim evidence; update review and acceptance invalidation as needed.
+The distinction does not change the public-domain conclusion for this ancient
+hand, but a gate must not accept a statement stronger than its evidence. This
+request is separate from the modern translator's own quotation-rights review.
