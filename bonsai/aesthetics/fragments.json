@@ -2117,6 +2117,17 @@
      }
     }
    },
+   "david-hume.of-tragedy": {
+    "ru": {
+     "absent": {
+      "language": "ru",
+      "reason": "No Russian text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/david-hume.of-tragedy/witnesses/ru.json",
+     "corrections": []
+    }
+   },
    "friedrich-nietzsche.die-froehliche-wissenschaft": {
     "en": {
      "absent": {
@@ -7524,15 +7535,147 @@
        ]
       }
      ]
+    },
+    "ru": {
+     "edition": "Д. Юм, Рассуждение о трагедии, вольное переложение В. А. Жуковского // Вестник Европы, 1811, ч. LVI, № 8, с. 292–306.",
+     "year": 1811,
+     "url": "https://imwerden.de/publ-3667",
+     "licence": "Public-domain historical translation published 1811; even a conservative 100-year post-mortem term has expired for Hume (1776), Zhukovsky (1852) and editor Kachenovsky (1842). Scope is the 1811 text, not later editorial contributions.",
+     "attribution": "Дэвид Юм, Рассуждение о трагедии, вольное переложение В. А. Жуковского, Вестник Европы, 1811, ч. LVI, № 8.",
+     "maker": "codex-01a2201e",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q37160",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "born": 1711,
+       "died": 1776,
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "evidence": {
+        "file": "wikidata-Q37160.json",
+        "sha256": "8286cadd63aabcb3fe74a8b8801e2b1bd1d81d5954568e68cc60b142a7275d30",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q37160.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q157623",
+       "name": {
+        "en": "Vasily Zhukovsky",
+        "ru": "Василий Андреевич Жуковский"
+       },
+       "born": null,
+       "died": 1852,
+       "source": "https://www.wikidata.org/wiki/Q157623",
+       "evidence": {
+        "file": "wikidata-Q157623.json",
+        "sha256": "687378871625199edd7eecced47cf376de207b095c0a64204f3b55187301b1c5",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q157623.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q1964709",
+       "name": {
+        "en": "Mikhail Katchenovski",
+        "ru": "Михаил Трофимович Каченовский"
+       },
+       "born": 1775,
+       "died": 1842,
+       "source": "https://www.wikidata.org/wiki/Q1964709",
+       "evidence": {
+        "file": "wikidata-Q1964709.json",
+        "sha256": "a67ddbdb074c65b1a5684ed08f8fb5b038622ca808360c5dbe60685a5e8b7bf7",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q1964709.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "The translation was first published in 1811; the conservative 95-year United States publication term for pre-1978 works has expired."
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "ГК РФ ст. 1281 и закон 231-ФЗ ст. 6: автор Юм умер в 1776, переводчик Жуковский в 1852, редактор Каченовский в 1842; срок истёк до 1993 года."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: the ordinary 70-year term expired for Hume (1776), Zhukovsky (1852) and editor Kachenovsky (1842)."
+      }
+     },
+     "normalization": "Russian spelling modernized from the page by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged.",
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "David Hume",
+        "ru": "Дэвид Юм"
+       },
+       "qid": "Q37160",
+       "source": "https://www.wikidata.org/wiki/Q37160",
+       "born": [
+        {
+         "time": "+1711-04-26T00:00:00Z",
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786",
+         "qualifiers": [
+          "Q38173183",
+          "Q26877143"
+         ]
+        }
+       ],
+       "died": [
+        {
+         "time": "+1776-08-25T00:00:00Z",
+         "precision": 11,
+         "qualifiers": [
+          "Q26877139"
+         ]
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Vasily Zhukovsky",
+        "ru": "Василий Андреевич Жуковский"
+       },
+       "qid": "Q157623",
+       "source": "https://www.wikidata.org/wiki/Q157623",
+       "born": [],
+       "died": [
+        {
+         "year": 1852
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Mikhail Katchenovski",
+        "ru": "Михаил Трофимович Каченовский"
+       },
+       "qid": "Q1964709",
+       "source": "https://www.wikidata.org/wiki/Q1964709",
+       "born": [
+        {
+         "year": 1775
+        }
+       ],
+       "died": [
+        {
+         "year": 1842
+        }
+       ]
+      }
+     ]
     }
    },
-   "absent": [],
-   "unsearched": [
-    {
-     "language": "ru",
-     "reason": "No Russian text is taken in this pass: the line plants the original first."
-    }
-   ]
+   "absent": []
   },
   "david-hume.of-the-delicacy-of-taste-and-passion": {
    "author": {
@@ -14340,15 +14483,21 @@
      "en": "Diss. III, p. 185"
     },
     "texts": {
-     "en": "It seems an unaccountable pleasure, which the spectators of a well-wrote tragedy receive from sorrow, terror, anxiety, and other passions, which are in themselves disagreeable and uneasy. The more they are touched and affected, the more are they delighted with the spectacle, and as soon as the uneasy passions cease to operate, the piece is at an end."
+     "en": "It seems an unaccountable pleasure, which the spectators of a well-wrote tragedy receive from sorrow, terror, anxiety, and other passions, which are in themselves disagreeable and uneasy. The more they are touched and affected, the more are they delighted with the spectacle, and as soon as the uneasy passions cease to operate, the piece is at an end.",
+     "ru": "Удовольствие, которое во время представления хорошей трагедии зритель находит в ощущениях ужаса, горести, сострадания, по натуре своей неприятных, может с первого взгляда показаться неизъяснимым. Чем более сердце наше растрогано, тем привлекательнее для нас и самое зрелище; конец пиесы есть та минута, в которую перестают в нас действовать сии неприятные страсти."
     },
     "links": {
-     "en": "https://archive.org/details/fourdissertatio00humegoog/page/n199/mode/1up"
+     "en": "https://archive.org/details/fourdissertatio00humegoog/page/n199/mode/1up",
+     "ru": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf"
     },
     "refs": [
      [
       "en",
       "First edition (London 1757), p. 185"
+     ],
+     [
+      "ru",
+      "Д. Юм, Рассуждение о трагедии, вольное переложение В. А. Жуковского // Вестник Европы, 1811, ч. LVI, № 8, с. 292–306., 292"
      ]
     ]
    },
@@ -14412,15 +14561,21 @@
      "en": "Diss. III, pp. 187–188"
     },
     "texts": {
-     "en": "There is, however, a difficulty of applying to the present subject, in its full extent, this solution, however ingenious and satisfactory it may appear. It is certain, that the same object of distress which pleases in a tragedy, were it really set before us, would give the most unfeigned uneasiness, tho' it be then the most effectual cure of languor and indolence."
+     "en": "There is, however, a difficulty of applying to the present subject, in its full extent, this solution, however ingenious and satisfactory it may appear. It is certain, that the same object of distress which pleases in a tragedy, were it really set before us, would give the most unfeigned uneasiness, tho' it be then the most effectual cure of languor and indolence.",
+     "ru": "Есть однако одно обстоятельство, которое препятствует нам его остроумное мнение вполне применить к рассматриваемому нами предмету. Мы уверены, что зрелище трагическое, производящее в нас приятный ужас или приятное сожаление, возбудило бы в нашей душе совершенно противные чувства, когда бы из вымышленного обратилось в существенное; но сему последнему, по наружности, надлежало бы быть самым действительным лекарством от скуки и усыпления."
     },
     "links": {
-     "en": "https://archive.org/details/fourdissertatio00humegoog/page/n201/mode/1up"
+     "en": "https://archive.org/details/fourdissertatio00humegoog/page/n201/mode/1up",
+     "ru": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf"
     },
     "refs": [
      [
       "en",
       "First edition (London 1757), pp. 187–188"
+     ],
+     [
+      "ru",
+      "Д. Юм, Рассуждение о трагедии, вольное переложение В. А. Жуковского // Вестник Европы, 1811, ч. LVI, № 8, с. 292–306., 295"
      ]
     ]
    }

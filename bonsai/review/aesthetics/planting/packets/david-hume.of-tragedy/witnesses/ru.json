@@ -1,11 +1,11 @@
 {
  "language": "ru",
  "witness": {
-  "edition": "Д. Юм, Рассуждение о трагедии, пер. В. А. Жуковского // Вестник Европы, 1811, ч. LVI, № 8, с. 292–306.",
+  "edition": "Д. Юм, Рассуждение о трагедии, вольное переложение В. А. Жуковского // Вестник Европы, 1811, ч. LVI, № 8, с. 292–306.",
   "year": 1811,
   "url": "https://imwerden.de/publ-3667",
   "licence": "Public-domain historical translation published 1811; even a conservative 100-year post-mortem term has expired for Hume (1776), Zhukovsky (1852) and editor Kachenovsky (1842). Scope is the 1811 text, not later editorial contributions.",
-  "attribution": "Дэвид Юм, Рассуждение о трагедии, перевод В. А. Жуковского, Вестник Европы, 1811, ч. LVI, № 8.",
+  "attribution": "Дэвид Юм, Рассуждение о трагедии, вольное переложение В. А. Жуковского, Вестник Европы, 1811, ч. LVI, № 8.",
   "maker": "codex-01a2201e",
   "persons": [
    {
@@ -70,7 +70,8 @@
     "basis": "public-domain",
     "law": "Directive 2006/116/EC article 1: the ordinary 70-year term expired for Hume (1776), Zhukovsky (1852) and editor Kachenovsky (1842)."
    }
-  }
+  },
+  "normalization": "Russian spelling modernized from the page by the 1918 reform rules in access/web/src/public-research/orthography.mjs, with ѵ rendered as и; wording unchanged."
  },
  "sources": [
   {
@@ -86,9 +87,149 @@
    "fetched": "2026-11-28"
   }
  ],
- "images": [],
- "places": {},
- "review": {},
+ "images": [
+  {
+   "file": "pdf-page-aabc63c756ce9563-1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893-292-1c9b4805803c966a24a57b20244f49ce4093a59e71907cd96753cfea115467c7-maker.png",
+   "url": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf",
+   "sha256": "1c9b4805803c966a24a57b20244f49ce4093a59e71907cd96753cfea115467c7",
+   "by": "maker",
+   "derived_from": {
+    "file": "zhukovsky-1811.pdf",
+    "sha256": "1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 292,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-aabc63c756ce9563-1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893-293-d754b86cc1a67655e02d4273ea28f85964b6a7b5ff32728a881684784ddf91fc-maker.png",
+   "url": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf",
+   "sha256": "d754b86cc1a67655e02d4273ea28f85964b6a7b5ff32728a881684784ddf91fc",
+   "by": "maker",
+   "derived_from": {
+    "file": "zhukovsky-1811.pdf",
+    "sha256": "1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 293,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-aabc63c756ce9563-1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893-295-c1e6ff0661e211e959d93c564e5238d95e2f04b7a9040b4043ae9d7393e20972-maker.png",
+   "url": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf",
+   "sha256": "c1e6ff0661e211e959d93c564e5238d95e2f04b7a9040b4043ae9d7393e20972",
+   "by": "maker",
+   "derived_from": {
+    "file": "zhukovsky-1811.pdf",
+    "sha256": "1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 295,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-aabc63c756ce9563-1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893-297-7271d8e43fdbe03d2576c098b0b2bc554a6428d28cfd9ea03f8178c947805949-maker.png",
+   "url": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf",
+   "sha256": "7271d8e43fdbe03d2576c098b0b2bc554a6428d28cfd9ea03f8178c947805949",
+   "by": "maker",
+   "derived_from": {
+    "file": "zhukovsky-1811.pdf",
+    "sha256": "1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 297,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-aabc63c756ce9563-1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893-298-997627bbbccf10748bf432b7970d2648dae5a24f69f54fb047f39280412806fa-maker.png",
+   "url": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf",
+   "sha256": "997627bbbccf10748bf432b7970d2648dae5a24f69f54fb047f39280412806fa",
+   "by": "maker",
+   "derived_from": {
+    "file": "zhukovsky-1811.pdf",
+    "sha256": "1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 298,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-aabc63c756ce9563-1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893-292-1c9b4805803c966a24a57b20244f49ce4093a59e71907cd96753cfea115467c7-second.png",
+   "url": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf",
+   "sha256": "1c9b4805803c966a24a57b20244f49ce4093a59e71907cd96753cfea115467c7",
+   "by": "second",
+   "derived_from": {
+    "file": "zhukovsky-1811.pdf",
+    "sha256": "1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 292,
+    "dpi": 150
+   }
+  },
+  {
+   "file": "pdf-page-aabc63c756ce9563-1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893-295-c1e6ff0661e211e959d93c564e5238d95e2f04b7a9040b4043ae9d7393e20972-second.png",
+   "url": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf",
+   "sha256": "c1e6ff0661e211e959d93c564e5238d95e2f04b7a9040b4043ae9d7393e20972",
+   "by": "second",
+   "derived_from": {
+    "file": "zhukovsky-1811.pdf",
+    "sha256": "1cb609de7373b6cc5d3d4cafd721447e86a2e8ebc52b5e8b29bef54995bcb893",
+    "tool": "pdftoppm",
+    "version": "pdftoppm version 26.05.0",
+    "page": 295,
+    "dpi": 150
+   }
+  }
+ ],
+ "places": {
+  "III p185a": {
+   "text": "Удовольствие, которое во время представления хорошей трагедии зритель находит в ощущениях ужаса, горести, сострадания, по натуре своей неприятных, может с первого взгляда показаться неизъяснимым. Чем более сердце наше растрогано, тем привлекательнее для нас и самое зрелище; конец пиесы есть та минута, в которую перестают в нас действовать сии неприятные страсти.",
+   "transcription": {
+    "kind": "human-page",
+    "reason": "Скан выпуска не содержит пригодного проверенного текстового слоя; слова вручную прочитаны по изображению страницы.",
+    "original_text": "Удовольствіе, которое во время представленія хорошей трагедіи зритель находитъ въ ощущеніяхъ ужаса, горести, состраданія, по натурѣ своей непріятныхъ, можетъ съ перваго взгляда показаться неизъяснимымъ. Чѣмъ болѣе сердце наше растрогано, тѣмъ привлекательнѣе для насъ и самое зрѣлище; конецъ піесы есть та минута, въ которую перестаютъ въ насъ дѣйствовать сіи непріятныя страсти."
+   },
+   "page": "292",
+   "url": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf",
+   "image_sha256": "1c9b4805803c966a24a57b20244f49ce4093a59e71907cd96753cfea115467c7",
+   "alignment": "Вольное переложение первых двух предложений: тревога заменена состраданием, качество написания и субъект обобщены; порядок конца пьесы и прекращения страстей переставлен, совпадение времени сохранено."
+  },
+  "III p187": {
+   "text": "Есть однако одно обстоятельство, которое препятствует нам его остроумное мнение вполне применить к рассматриваемому нами предмету. Мы уверены, что зрелище трагическое, производящее в нас приятный ужас или приятное сожаление, возбудило бы в нашей душе совершенно противные чувства, когда бы из вымышленного обратилось в существенное; но сему последнему, по наружности, надлежало бы быть самым действительным лекарством от скуки и усыпления.",
+   "transcription": {
+    "kind": "human-page",
+    "reason": "Скан выпуска не содержит пригодного проверенного текстового слоя; слова вручную прочитаны по изображению страницы.",
+    "original_text": "Есть однако одно обстоятельство, которое препятствуетъ намъ его остроумное мнѣніе вполнѣ примѣнить къ разсматриваемому нами предмету. Мы увѣрены, что зрѣлище трагическое, производящее въ насъ пріятный ужасъ или пріятное сожалѣніе, возбудило бы въ нашей душѣ совершенно противныя чувства, когда бы изъ вымышленнаго обратилось въ существенное; но сему послѣднему, по наружности, надлежало бы быть самымъ дѣйствительнымъ лѣкарствомъ отъ скуки и усыпленія."
+   },
+   "page": "295",
+   "url": "https://imwerden.de/pdf/vestnik_evropy_1811_05-08.pdf",
+   "image_sha256": "c1e6ff0661e211e959d93c564e5238d95e2f04b7a9040b4043ae9d7393e20972",
+   "alignment": "Вольное соответствие двум предложениям: обобщены неподдельное тягостное чувство и бездеятельность; добавлено по наружности; противопоставление трагического зрелища и реального страдания сохранено."
+  }
+ },
+ "review": {
+  "reader": "codex-independent-hume-1811",
+  "model": "gpt-6.1-terra",
+  "date": "2026-11-28",
+  "places": {
+   "III p185a": {
+    "reads": "as the packet",
+    "alignment": "Лично прочитана с. 292, модернизация и границы совпадают. Соответствие вольное: anxiety заменена состраданием, отсутствует other passions, хорошо написанная трагедия стала хорошей; наслаждение стало привлекательностью; конец пьесы и прекращение страстей переставлены при сохранении одновременности.",
+    "image_sha256": "1c9b4805803c966a24a57b20244f49ce4093a59e71907cd96753cfea115467c7"
+   },
+   "III p187": {
+    "reads": "as the packet",
+    "alignment": "Лично прочитана с. 295, модернизация и границы совпадают. Соответствие вольное: опущена удовлетворительность объяснения, добавлены приятный ужас и сожаление и по наружности; неподдельная тягость передана как совершенно противные чувства, indolence как усыпление. Контраст вымышленной трагедии и действительного страдания сохранён.",
+    "image_sha256": "c1e6ff0661e211e959d93c564e5238d95e2f04b7a9040b4043ae9d7393e20972"
+   }
+  }
+ },
  "candidate": {
   "file": "research-candidate.json",
   "sha256": "44df47a7752f12f98db8e82d96b3969e62ed0bdf39fb4b30642569e0bfc482ea",
