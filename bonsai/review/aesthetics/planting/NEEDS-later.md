@@ -157,3 +157,18 @@ it to Lovecraft. Please provide an evidence-bound representation of this case,
 so both sentence completeness and exact source punctuation can be reviewed.
 The parent work, this partial Spanish witness, the Mexico quotation assessment,
 and the remaining language searches are not yet accepted.
+
+## Recover a source scan binding after external page registration — 28 November
+
+In the local `george-santayana.the-sense-of-beauty` packet the maker compared
+both places against page-indexed Archive OCR, then used `kit.py page --file`
+with an image from that very Archive scan. This assigns the synthetic
+`external` scan to each place; `scan` changes only the default, `image` uses
+`setdefault`, `cut` retains the old binding, and `scan-withdraw external`
+refuses while places reference it. `compare` consequently does not use the
+available Archive OCR even when `find` locates the same text in the named
+scan. Please provide a source-evidenced, history-preserving kit command to
+rebind a place to an already registered scan, retaining its page images and
+requiring recomparison and a fresh second reading. Do not treat a supported
+rebind as proof of textual agreement. The local packet remains blocked; its
+translations and independent review are incomplete.
