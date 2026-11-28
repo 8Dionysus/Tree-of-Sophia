@@ -1406,9 +1406,13 @@ fn stated_years(text: &str) -> Vec<i64> {
     ]
     .iter()
     .any(|marker| words.contains(marker));
-    let common = [" ad ", " ce ", " a d ", " c e ", " n chr ", " ap j c "]
+    let tokens: Vec<_> = words.split_whitespace().collect();
+    let common = [" ad ", " ce ", " a d ", " n chr ", " ap j c "]
         .iter()
         .any(|marker| words.contains(marker))
+        || tokens.windows(2).enumerate().any(|(index, pair)| {
+            pair == ["c", "e"] && (index == 0 || tokens[index - 1] != "b")
+        })
         || words.matches(" н э ").count() > words.matches(" до н э ").count();
     if before && common {
         return Vec::new();
@@ -3845,6 +3849,10 @@ mod tests {
     fn a_page_dating_keeps_its_era() {
         assert_eq!(stated_years("c. 450 BC"), [-450]);
         assert_eq!(stated_years("450–440 B.C."), [-450, -440]);
+        assert_eq!(stated_years("450 B.C.E."), [-450]);
+        assert_eq!(stated_years("450 C.E."), [450]);
+        assert!(stated_years("450 B.C.E. to 120 C.E.").is_empty());
+        assert!(stated_years("450 B.C.E. C.E.").is_empty());
         assert_eq!(stated_years("um 450 v. Chr."), [-450]);
         assert_eq!(stated_years("около 450 до н. э."), [-450]);
         assert_eq!(stated_years("1880s"), [1880, 1889]);
