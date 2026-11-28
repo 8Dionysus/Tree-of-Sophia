@@ -1,0 +1,59 @@
+{
+ "reader": {
+  "id": "codex-2026-11-27-poetics-metaphor",
+  "model": "Codex",
+  "date": "2026-11-27",
+  "reads": "Aristotle, Poetics XXI, in the Greek public corpus, beside the register reading and its English and Russian translations."
+ },
+ "library": {
+  "agents": {
+   "aristotle": {
+    "tree": "tos.agent.aristotle"
+   }
+  },
+  "works": {
+   "aristotle.poetics": {
+    "title": {
+     "ru": "Поэтика",
+     "en": "Poetics"
+    },
+    "original": "grc",
+    "tree": "tos.work.retained-antiquity.poetics"
+   }
+  }
+ },
+ "conceptions": [
+  {
+   "id": "aristotle.poetics:metaphor",
+   "of": [
+    "C:A-C023"
+   ],
+   "areas": [
+    "AE23"
+   ],
+   "work": "aristotle.poetics",
+   "locus": "XXI, 1457b",
+   "voice": {
+    "ru": "Аристотель",
+    "en": "Aristotle"
+   },
+   "formula": [
+    {
+     "unit": "Глава 21",
+     "from": "μεταφορὰ δέ ἐστιν",
+     "to": "ἢ κατὰ τὸ ἀνάλογον."
+    }
+   ],
+   "thesis": {
+    "ru": "Аристотель определяет метафору как перенос чужого имени с рода на вид, с вида на род, с вида на вид или по аналогии.",
+    "en": "Aristotle defines metaphor as the transfer of an alien name from genus to species, species to genus, species to species, or by analogy."
+   },
+   "status": "text",
+   "verdict": "confirmed",
+   "from": [
+    "C:A-I080"
+   ]
+  }
+ ],
+ "links": []
+}
