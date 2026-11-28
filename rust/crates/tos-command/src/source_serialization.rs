@@ -484,6 +484,7 @@ pub(crate) fn capture_derived_text_layer(
             operation,
             "text-layer.correct"
                 | "text-layer.normalize"
+                | "text-layer.normalize-editorial"
                 | "text-layer.record-transcription"
                 | "text-layer.record-ocr"
                 | "text-layer.record-owner-ocr"
@@ -520,7 +521,10 @@ pub(crate) fn capture_derived_text_layer(
                     | "text-layer.record-owner-page-ocr"
             ) {
                 "annotation"
-            } else if operation == "text-layer.normalize" {
+            } else if matches!(
+                operation,
+                "text-layer.normalize" | "text-layer.normalize-editorial"
+            ) {
                 "normalization"
             } else {
                 "correction"

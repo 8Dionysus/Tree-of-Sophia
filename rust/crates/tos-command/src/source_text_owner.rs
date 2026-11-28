@@ -771,6 +771,7 @@ impl OwnerTextDerivedSelection {
         let expected = match operation {
             "text-layer.correct"
             | "text-layer.normalize"
+            | "text-layer.normalize-editorial"
             | "text-layer.record-transcription"
             | "text-layer.record-ocr" => "tos_local_text_layer_derive_owner_v1",
             "text-layer.record-owner-ocr" => "tos_local_text_layer_record_owner_ocr_v1",
@@ -906,6 +907,7 @@ impl OwnerTextDerivedSelection {
                 != match operation {
                     "text-layer.correct" => "correction",
                     "text-layer.normalize" => "unicode_normalization",
+                    "text-layer.normalize-editorial" => "editorial_normalization",
                     "text-layer.record-transcription" => {
                         cmd::text(cmd::field(&config, "policy")?, "method")?
                     }

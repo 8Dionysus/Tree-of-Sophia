@@ -69,12 +69,22 @@ const INITIAL_CONFIG: &str = "tos_local_text_layer_create_owner_v1";
 const DERIVED_CONFIG: &str = "tos_local_text_layer_derive_owner_v1";
 const OWNER_OCR_CONFIG: &str = "tos_local_text_layer_record_owner_ocr_v1";
 const OWNER_PAGE_OCR_CONFIG: &str = "tos_local_text_layer_record_owner_page_ocr_v1";
-const DERIVED_OPERATIONS: [&str; 4] = [
+const DERIVED_OPERATIONS: [&str; 5] = [
     "text-layer.correct",
     "text-layer.normalize",
+    "text-layer.normalize-editorial",
     "text-layer.record-transcription",
     "text-layer.record-ocr",
 ];
+const DERIVED_TRANSFORM_OPERATIONS: [&str; 3] = [
+    "text-layer.correct",
+    "text-layer.normalize",
+    "text-layer.normalize-editorial",
+];
+
+fn is_derived_transform_operation(operation: &str) -> bool {
+    DERIVED_TRANSFORM_OPERATIONS.contains(&operation)
+}
 const MAX_SELECTION_BYTES: usize = MAX_RECORD_BYTES;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -3158,7 +3168,7 @@ fn compare_derived_layer(
             ));
         }
         let input = cmd::field(config, "input")?;
-        if operation == "text-layer.correct" || operation == "text-layer.normalize" {
+        if is_derived_transform_operation(operation) {
             if cmd::text(input, "kind")? != "text_layer" {
                 return Err(SourceCommandError::Conflict(
                     "private assessment transform lineage lacks exact TextLayer predecessor",
@@ -3940,6 +3950,16 @@ mod owner_page_ocr_preflight_tests {
     const LAYER_ID: &str = "tos.text-layer.sid-cccccccccccccccccccccccccccccccc";
     const RETAINED: &str = "tos_retained_page_ocr_image_comparison_v1";
     const SYNTHETIC: &str = "tos_operator_synthetic_png_ocr_image_comparison_v1";
+
+    #[test]
+    fn editorial_normalization_is_assessed_through_its_exact_text_layer_predecessor() {
+        let operation = "text-layer.normalize-editorial";
+        assert!(DERIVED_OPERATIONS.contains(&operation));
+        assert!(is_derived_transform_operation(operation));
+        assert!(!is_derived_transform_operation(
+            "text-layer.record-transcription"
+        ));
+    }
 
     fn source(value: &Value) -> JsonValue {
         cmd::parse(&serde_json::to_vec(value).expect("encode source test value"))

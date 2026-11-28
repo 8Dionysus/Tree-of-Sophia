@@ -951,7 +951,10 @@ fn verify_retained(
             | "text-layer.record-owner-page-ocr"
     ) {
         "annotation"
-    } else if prepared.grant.operation == "text-layer.normalize" {
+    } else if matches!(
+        prepared.grant.operation.as_str(),
+        "text-layer.normalize" | "text-layer.normalize-editorial"
+    ) {
         "normalization"
     } else {
         "correction"

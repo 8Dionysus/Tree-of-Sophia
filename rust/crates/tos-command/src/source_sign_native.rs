@@ -3,6 +3,7 @@
 //! source admission, publication permission or an authenticated provider claim.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
+use crate::source_text_layer_derived_proposal::MAX_EDITS;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -17,7 +18,6 @@ const MAX_INPUT_FILES: usize = 128;
 const MAX_METADATA_BYTES: usize = 8_388_608;
 const MAX_CONTENT_BYTES: usize = 8_388_608;
 const MAX_DERIVED_TEXT_BYTES: usize = 131_072;
-const MAX_EDITS: usize = 128;
 const ASSESSMENT_SCHEMA: &str = "native-text-unit-assessment-subject.schema.json";
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 
@@ -920,6 +920,7 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         let ordinary = match operation {
             "text-layer.correct" => "correction",
             "text-layer.normalize" => "unicode_normalization",
+            "text-layer.normalize-editorial" => "editorial_normalization",
             "text-layer.record-transcription" => "manual_transcription",
             "text-layer.record-ocr" => "ocr",
             _ if observed => "ocr",
@@ -950,7 +951,10 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             Some(cmd::text(policy_ref, "policy_sha256")?),
         )?;
         let method = cmd::text(derivation, "method")?;
-        let role = if operation == "text-layer.normalize" {
+        let role = if matches!(
+            operation,
+            "text-layer.normalize" | "text-layer.normalize-editorial"
+        ) {
             "normalized_text"
         } else if operation == "text-layer.record-ocr" || observed {
             "raw_ocr"
@@ -1003,7 +1007,13 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                 "derived native layer differs from retained exact configuration",
             ));
         }
-        if ["text-layer.correct", "text-layer.normalize"].contains(&operation) {
+        if [
+            "text-layer.correct",
+            "text-layer.normalize",
+            "text-layer.normalize-editorial",
+        ]
+        .contains(&operation)
+        {
             let binding = cmd::field(cmd::field(config, "input")?, "binding")?;
             let target = cmd::field(binding, "text_layer")?;
             if previous.len() != 1 {
@@ -1044,12 +1054,14 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
                     "derived native predecessor version lineage or source scope differs",
                 ));
             }
-            if operation == "text-layer.correct"
-                && (cmd::text(prior, "layer_role")? == "normalized_text"
-                    || cmd::text(
-                        cmd::field(prior, "representation")?,
-                        "character_normalization",
-                    )? != "none")
+            if matches!(
+                operation,
+                "text-layer.correct" | "text-layer.normalize-editorial"
+            ) && (cmd::text(prior, "layer_role")? == "normalized_text"
+                || cmd::text(
+                    cmd::field(prior, "representation")?,
+                    "character_normalization",
+                )? != "none")
             {
                 return Err(SourceCommandError::Denied(
                     "source-near native correction cannot erase predecessor normalization",
@@ -1312,12 +1324,20 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         Ok(layer)
     }
     fn derived_content(&mut self, layer: &JsonValue, text: &str) -> SourceCommandResult<()> {
+        let rep = cmd::field(layer, "representation")?;
+        let editorial = cmd::text(rep, "character_normalization")? == "editorial";
         let maker = cmd::field(cmd::field(layer, "derivation")?, "maker")?;
         let Some(name) = maker
             .object_get("configuration_ref")
             .filter(|v| **v != JsonValue::Null)
         else {
-            return Ok(());
+            return if editorial {
+                Err(SourceCommandError::Denied(
+                    "editorial layer lacks retained derivation",
+                ))
+            } else {
+                Ok(())
+            };
         };
         let raw = self.read(
             name.as_str().ok_or(SourceCommandError::Invalid(
@@ -1328,9 +1348,14 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             false,
         )?;
         let Some(config) = optional_configuration(&raw).filter(retained_configuration) else {
-            return Ok(());
+            return if editorial {
+                Err(SourceCommandError::Denied(
+                    "editorial layer lacks retained derivation",
+                ))
+            } else {
+                Ok(())
+            };
         };
-        let rep = cmd::field(layer, "representation")?;
         let scope = cmd::field(rep, "text_scope")?;
         if text.len() > MAX_DERIVED_TEXT_BYTES
             || cmd::integer(scope, "start")? != 0
@@ -1346,7 +1371,18 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             .ok_or(SourceCommandError::Invalid(
                 "retained derived native content operation",
             ))?;
-        if !["text-layer.correct", "text-layer.normalize"].contains(&operation) {
+        if editorial && operation != "text-layer.normalize-editorial" {
+            return Err(SourceCommandError::Denied(
+                "editorial layer requires editorial derivation replay",
+            ));
+        }
+        if ![
+            "text-layer.correct",
+            "text-layer.normalize",
+            "text-layer.normalize-editorial",
+        ]
+        .contains(&operation)
+        {
             if text.len() as u64 != cmd::integer(cmd::field(&config, "material")?, "byte_size")? {
                 return Err(SourceCommandError::Conflict(
                     "native supplied result size differs from retained material",
@@ -1961,7 +1997,9 @@ pub(crate) fn verified_representation_scope<'a>(
 fn check_normalization(text: &str, form: &str) -> SourceCommandResult<()> {
     use unicode_normalization::UnicodeNormalization;
     let same = match form {
-        "none" => true,
+        // Editorial normalization is an explicit edit policy, not a Unicode
+        // normalization form. The retained derivation is checked separately.
+        "none" | "editorial" => true,
         "NFC" => text.nfc().eq(text.chars()),
         "NFD" => text.nfd().eq(text.chars()),
         "NFKC" => text.nfkc().eq(text.chars()),
@@ -3586,6 +3624,24 @@ mod legacy_dta_return_tests {
     }
 
     #[test]
+    fn editorial_content_requires_retained_derivation_before_read_acceptance() {
+        let cancelled = AtomicBool::new(false);
+        let mut reader = SelectedReader {
+            independent: false,
+            cut: None,
+            source: Vec::new(),
+            reads: Vec::new(),
+        };
+        let mut worker = NoSchemaExecution;
+        let mut native = selected_native(&mut reader, &mut worker, &cancelled);
+        let layer = cmd::parse(br#"{"representation":{"character_normalization":"editorial"},"derivation":{"maker":{"configuration_ref":null}}}"#).unwrap();
+        assert!(matches!(
+            native.derived_content(&layer, "text"),
+            Err(SourceCommandError::Denied(_))
+        ));
+    }
+
+    #[test]
     fn cached_metadata_cannot_replace_a_different_selected_authority() {
         let cancelled = AtomicBool::new(false);
         let schema = "ToS/contracts/test.schema.json";
@@ -3686,5 +3742,22 @@ mod legacy_dta_return_tests {
         assert!(!legacy_dta_anchor_matches(&profile, &rep, &wrong_ref).unwrap());
         assert!(!legacy_dta_anchor_matches(&profile, &rep, &wrong_digest).unwrap());
         assert!(!legacy_dta_anchor_matches(&profile, &rep, &no_fragment).unwrap());
+    }
+}
+
+#[cfg(test)]
+mod editorial_normalization_read_tests {
+    use super::*;
+
+    #[test]
+    fn editorial_scope_preserves_bytes_without_claiming_a_unicode_form() {
+        let rep = cmd::parse(
+            br#"{"text_scope":{"start":0,"end":3},"character_normalization":"editorial"}"#,
+        )
+        .unwrap();
+        let text = "e\u{301}!";
+        assert_eq!(verified_representation_scope(text, &rep).unwrap(), text);
+        assert!(check_normalization(text, "NFC").is_err());
+        assert!(check_normalization(text, "unknown").is_err());
     }
 }

@@ -12,7 +12,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue};
 
 const MAX_TEXT: usize = 131_072;
-const MAX_EDITS: usize = 128;
+pub(crate) const MAX_EDITS: usize = 128;
 const MAX_RECORD: usize = 1_048_576;
 const LAYER_SCHEMA: &str =
     "https://tree-of-sophia.local/ToS/contracts/source-text-layer.schema.json";
@@ -64,17 +64,20 @@ fn policy(operation: &str, form: &str, transcription: &str) -> SourceCommandResu
         operation,
         "text-layer.record-owner-ocr" | "text-layer.record-owner-page-ocr"
     );
-    let normalize = operation == "text-layer.normalize";
+    let unicode_normalize = operation == "text-layer.normalize";
+    let editorial_normalize = operation == "text-layer.normalize-editorial";
     if !matches!(
         operation,
         "text-layer.correct"
             | "text-layer.normalize"
+            | "text-layer.normalize-editorial"
             | "text-layer.record-transcription"
             | "text-layer.record-ocr"
             | "text-layer.record-owner-ocr"
             | "text-layer.record-owner-page-ocr"
-    ) || normalize && !matches!(form, "NFC" | "NFD" | "NFKC" | "NFKD")
-        || !normalize && form != "none"
+    ) || unicode_normalize && !matches!(form, "NFC" | "NFD" | "NFKC" | "NFKD")
+        || editorial_normalize && form != "editorial"
+        || !unicode_normalize && !editorial_normalize && form != "none"
         || operation == "text-layer.record-transcription"
             && !matches!(
                 transcription,
@@ -91,29 +94,41 @@ fn policy(operation: &str, form: &str, transcription: &str) -> SourceCommandResu
         match operation {
             "text-layer.correct" => "correction",
             "text-layer.normalize" => "unicode_normalization",
+            "text-layer.normalize-editorial" => "editorial_normalization",
             "text-layer.record-ocr" => "ocr",
             _ => return Err(bad()),
         }
     };
-    Ok(
-        json!({"schema_version":"tos_native_text_layer_derivation_policy_v1",
+    let mut result = json!({"schema_version":"tos_native_text_layer_derivation_policy_v1",
         "operation":operation,"method":method,"encoding":"UTF-8-strict",
         "text_max_bytes":MAX_TEXT,"edits_max_count":MAX_EDITS,
         "input_scope":if supplied {"exact-source-anchor"} else {"whole-exact-representation"},
         "unicode_normalization":form,
-        "unicode_database_version":if normalize {Some("16.0.0")} else {None},
+        "unicode_database_version":if unicode_normalize {Some("16.0.0")} else {None},
         "edits":if supplied {"not-applicable"} else {"ordered-explicit-half-open-code-point-proposals-no-diff"},
         "whitespace":"unchanged-except-explicit-edits-or-selected-Unicode-form",
         "result_origin":if observed {"authenticated-owner-execution-receipt"}
             else if supplied {"supplied-result-not-provider-execution"}
-            else if normalize {"executed-Unicode-transform"}
+            else if unicode_normalize {"executed-Unicode-transform"}
+            else if editorial_normalize {"applied-explicit-editorial-edits"}
             else {"applied-supplied-edit-proposals"},
         "provider_execution_verified":observed,
         "source_layout_fidelity":"not-assessed","quality_assessment":"not-performed",
         "inherited_quality":"not-transferred",
         "uncertainty":if supplied {"supplied-none-recorded-is-not-reviewed-absence"}
-            else {"source-annotations-retained-without-resolution"}}),
-    )
+            else {"source-annotations-retained-without-resolution"}});
+    if editorial_normalize {
+        result["editorial_normalization_policy"] = json!({
+            "schema_version":"tos_native_editorial_normalization_policy_v1",
+            "policy_id":"tos.editorial-normalization.explicit-edits",
+            "policy_version":1,
+            "scope":"apply-only-explicit-digest-bound-ordered-edits",
+            "implicit_changes_allowed":false,
+            "preserve_unmentioned_input":true,
+            "acceptance":"separate-source-visible-review-required"
+        });
+    }
+    Ok(result)
 }
 
 fn edited(
@@ -121,11 +136,12 @@ fn edited(
     edits: &[Value],
     maker: &Value,
     anchors: &[Value],
-    normalize: bool,
+    max_edits: usize,
+    unicode_normalize: bool,
     deadline: Instant,
     cancelled: &AtomicBool,
 ) -> SourceCommandResult<(String, Value)> {
-    if edits.is_empty() || edits.len() > MAX_EDITS {
+    if edits.is_empty() || edits.len() > max_edits {
         return Err(bad());
     }
     let mut output = String::new();
@@ -178,7 +194,7 @@ fn edited(
             || reason.is_empty()
             || reason.len() > 2048
             || replacement.contains('\0')
-            || !normalize && replacement == exact
+            || !unicode_normalize && replacement == exact
         {
             return Err(bad());
         }
@@ -196,7 +212,7 @@ fn edited(
         output.push_str(unchanged);
         output.push_str(replacement);
         output_cursor += unchanged.chars().count();
-        let operation = if normalize {
+        let operation = if unicode_normalize {
             "unicode_normalization"
         } else if start == end {
             "insert"
@@ -259,7 +275,12 @@ pub(crate) fn build_derived_layer(
             | "text-layer.record-owner-ocr"
             | "text-layer.record-owner-page-ocr"
     );
-    let normalize = operation == "text-layer.normalize";
+    let normalize = matches!(
+        operation,
+        "text-layer.normalize" | "text-layer.normalize-editorial"
+    );
+    let unicode_normalize = operation == "text-layer.normalize";
+    let editorial_normalize = operation == "text-layer.normalize-editorial";
     let form = config["policy"]["unicode_normalization"]
         .as_str()
         .ok_or(bad())?;
@@ -329,7 +350,7 @@ pub(crate) fn build_derived_layer(
             || rep["content_sha256"] != Digest256::of_bytes(input.as_bytes()).to_hex()
             || rep["text_scope"] != span(0, input.chars().count())
             || prior["layer_id"] == config["identities"]["layer_id"]
-            || !normalize
+            || (operation == "text-layer.correct" || editorial_normalize)
                 && (prior["layer_role"] == "normalized_text"
                     || rep["character_normalization"] != "none")
         {
@@ -337,7 +358,7 @@ pub(crate) fn build_derived_layer(
                 "native TextLayer predecessor differs",
             ));
         }
-        let edits = if normalize {
+        let edits = if unicode_normalize {
             let result = normalize_whole_predecessor(input, form, "16.0.0", deadline, cancelled)?;
             vec![
                 json!({"start":0,"end":input.chars().count(),"input_exact":input,
@@ -348,7 +369,14 @@ pub(crate) fn build_derived_layer(
             config["material"]["edits"].as_array().ok_or(bad())?.clone()
         };
         let (text, change) = edited(
-            input, &edits, &maker, &anchors, normalize, deadline, cancelled,
+            input,
+            &edits,
+            &maker,
+            &anchors,
+            MAX_EDITS,
+            unicode_normalize,
+            deadline,
+            cancelled,
         )?;
         let input_binding = json!({"layer_id":target["layer_id"],"record_ref":target["record_ref"],
             "record_sha256":target["record_sha256"],"content_sha256":rep["content_sha256"]});
@@ -401,7 +429,7 @@ pub(crate) fn build_derived_layer(
             "rights_record_refs":config["derivation_access"]["rights_record_refs"],
             "publication_authority_refs":[]},
         "derivation":{"method":selected_policy["method"],"input_layers":inputs,"maker":maker,
-            "preservation_goal":if normalize {"normalized_for_search"}else{"source_near"},
+            "preservation_goal":if editorial_normalize {"editorial_reading"}else if unicode_normalize {"normalized_for_search"}else{"source_near"},
             "loss_posture":if normalize {"normalization_intended"}else if supplied {"unknown"}else{"preservation_intended"},
             "silent_changes_allowed":false,"change_payload":change},
         "editorial_policy":{"policy_ref":policy_ref,
