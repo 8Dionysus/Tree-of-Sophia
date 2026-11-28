@@ -2484,6 +2484,17 @@
      ]
     }
    },
+   "henri-bergson.le-rire": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/henri-bergson.le-rire/witnesses/en.json",
+     "corrections": []
+    }
+   },
    "henri-poincare.l-invention-mathematique": {
     "en": {
      "absent": {
@@ -4057,6 +4068,140 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911).",
+     "year": 1911,
+     "url": "https://archive.org/details/laughteressayonm00berguoft",
+     "licence": "Historical English translation public domain in stated jurisdictions; faithful page transcription supplied by English Wikisource, see https://en.wikisource.org/wiki/Wikisource:Reusing_Wikisource_content. Historical image and Wikisource annotations are distinct rights objects.",
+     "attribution": "Henri Bergson (Wikidata Q42156); translated by Cloudesley Brereton (Q29186572) and Fred Rothwell (Q21552575). Individual English Wikisource page revision histories are retained as transcription provenance.",
+     "maker": "codex-2026-11-19-bergson-en-maker",
+     "normalization": "Whitespace and typographical emphasis normalized from versioned Wikisource page transcriptions; historical wording and punctuation checked on the 1911 print.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q42156",
+       "name": {
+        "en": "Henri Bergson",
+        "ru": "Анри Бергсон"
+       },
+       "born": 1859,
+       "died": 1941,
+       "source": "https://www.wikidata.org/wiki/Q42156",
+       "evidence": {
+        "file": "wikidata-Q42156.json",
+        "sha256": "14cffc5da94503b16109d7b1625ea68ab25178228c5abade42a627a09f9befef",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q42156.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q29186572",
+       "name": {
+        "en": "Cloudesley Brereton",
+        "ru": "Cloudesley Brereton"
+       },
+       "born": 1863,
+       "died": 1937,
+       "source": "https://www.wikidata.org/wiki/Q29186572",
+       "evidence": {
+        "file": "wikidata-Q29186572.json",
+        "sha256": "3a1f174751441e245506ec3c703ac9e3dc2da6d259beb45b3a64c1f1d1c6e32e",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q29186572.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q21552575",
+       "name": {
+        "en": "Fred Rothwell",
+        "ru": "Fred Rothwell"
+       },
+       "born": 1869,
+       "died": 1934,
+       "source": "https://www.wikidata.org/wiki/Q21552575",
+       "evidence": {
+        "file": "wikidata-Q21552575.json",
+        "sha256": "60505035fa705cb5fb51d0342eef6aadabd302e846d463950dde8960ade2980d",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q21552575.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "17 USC 304: the 1911 published translation is outside the maximum 95-year U.S. copyright term. https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: life plus 70 years for the author and translation contributors; latest death 1941. https://eur-lex.europa.eu/eli/dir/2006/116/oj/eng"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code Article 1281: life plus 70 years, conservatively allowing four additional wartime years; latest known death 1941; rehabilitation uncertainty remains. https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Henri Bergson",
+        "ru": "Анри Бергсон"
+       },
+       "qid": "Q42156",
+       "source": "https://www.wikidata.org/wiki/Q42156",
+       "born": [
+        {
+         "time": "+1859-10-18T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1941-01-04T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Cloudesley Brereton",
+        "ru": "Cloudesley Brereton"
+       },
+       "qid": "Q29186572",
+       "source": "https://www.wikidata.org/wiki/Q29186572",
+       "born": [
+        {
+         "year": 1863
+        }
+       ],
+       "died": [
+        {
+         "year": 1937
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Fred Rothwell",
+        "ru": "Fred Rothwell"
+       },
+       "qid": "Q21552575",
+       "source": "https://www.wikidata.org/wiki/Q21552575",
+       "born": [
+        {
+         "year": 1869
+        }
+       ],
+       "died": [
+        {
+         "year": 1934
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -4064,10 +4209,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -10861,15 +11002,21 @@
      "en": "Ch. I, p. 3"
     },
     "texts": {
-     "fr": "Il n’y a pas de comique en dehors de ce qui est proprement humain."
+     "fr": "Il n’y a pas de comique en dehors de ce qui est proprement humain.",
+     "en": "The first point to which attention should be called is that the comic does not exist outside the pale of what is strictly human."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n16/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n16/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n14/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 3"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 3"
      ]
     ]
    },
@@ -10879,15 +11026,21 @@
      "en": "Ch. I, p. 4"
     },
     "texts": {
-     "fr": "Je voudrais signaler maintenant, comme un symptôme non moins digne de remarque, l’insensibilité qui accompagne d’ordinaire le rire. Il semble que le comique ne puisse produire son ébranlement qu’à la condition de tomber sur une surface d’âme bien calme, bien unie. L’indifférence est son milieu naturel."
+     "fr": "Je voudrais signaler maintenant, comme un symptôme non moins digne de remarque, l’insensibilité qui accompagne d’ordinaire le rire. Il semble que le comique ne puisse produire son ébranlement qu’à la condition de tomber sur une surface d’âme bien calme, bien unie. L’indifférence est son milieu naturel.",
+     "en": "Here I would point out, as a symptom equally worthy of notice, the absence of feeling which usually accompanies laughter. It seems as though the comic could not produce its disturbing effect unless it fell, so to say, on the surface of a soul that is thoroughly calm and unruffled. Indifference is its natural environment, for laughter has no greater foe than emotion."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n17/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n17/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n15/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 4"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 4"
      ]
     ]
    },
@@ -10897,15 +11050,21 @@
      "en": "Ch. II, p. 95–96"
     },
     "texts": {
-     "fr": "Imaginez certains personnages dans une certaine situation : vous obtiendrez une scène comique en faisant que la situation se retourne et que les rôles soient intervertis."
+     "fr": "Imaginez certains personnages dans une certaine situation : vous obtiendrez une scène comique en faisant que la situation se retourne et que les rôles soient intervertis.",
+     "en": "Picture to yourself certain characters in a certain situation: if you reverse the situation and invert the rôles, you obtain a comic scene."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n108/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n108/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n105/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), pp. 95–96"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 94"
      ]
     ]
    },
@@ -10915,15 +11074,21 @@
      "en": "Ch. II, p. 98"
     },
     "texts": {
-     "fr": "Une situation est toujours comique quand elle appartient en même temps à deux séries d’événements absolument indépendantes, et qu’elle peut s’interpréter à la fois dans deux sens tout différents."
+     "fr": "Une situation est toujours comique quand elle appartient en même temps à deux séries d’événements absolument indépendantes, et qu’elle peut s’interpréter à la fois dans deux sens tout différents.",
+     "en": "A situation is invariably comic when it belongs simultaneously to two altogether independent series of events and is capable of being interpreted in two entirely different meanings at the same time."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n111/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n111/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n107/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 98"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 96"
      ]
     ]
    },
@@ -10969,15 +11134,21 @@
      "en": "Ch. II, p. 124"
     },
     "texts": {
-     "fr": "Le jeu de mots trahit donc toujours une distraction momentanée du langage, et c’est d’ailleurs par là qu’il est amusant."
+     "fr": "Le jeu de mots trahit donc toujours une distraction momentanée du langage, et c’est d’ailleurs par là qu’il est amusant.",
+     "en": "And so the play upon words always betrays a momentary lapse of attention in language, and it is precisely on that account that it is amusing."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n137/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n137/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n132/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 124"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 121"
      ]
     ]
    },
@@ -10987,15 +11158,21 @@
      "en": "Ch. III, p. 181"
     },
     "texts": {
-     "fr": "Or le rire a justement pour fonction de réprimer toute tendance séparatiste. Son rôle est de corriger la raideur en souplesse, de réadapter chacun à tous, enfin d’arrondir partout les angles."
+     "fr": "Or le rire a justement pour fonction de réprimer toute tendance séparatiste. Son rôle est de corriger la raideur en souplesse, de réadapter chacun à tous, enfin d’arrondir partout les angles.",
+     "en": "Now, it is the business of laughter to repress any separatist tendency. Its function is to convert rigidity into plasticity, to readapt the individual to the whole, in short, to round off the corners wherever they are met with."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n194/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n194/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n188/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 181"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 177"
      ]
     ]
    },
@@ -11005,15 +11182,21 @@
      "en": "Ch. I, p. 50"
     },
     "texts": {
-     "fr": "II. — Du mécanique plaqué sur du vivant, voilà encore notre point de départ. D’où venait ici le comique ? De ce que le corps vivant se raidissait en machine."
+     "fr": "II. — Du mécanique plaqué sur du vivant, voilà encore notre point de départ. D’où venait ici le comique ? De ce que le corps vivant se raidissait en machine.",
+     "en": "Our starting-point is again \"something mechanical encrusted upon the living.\" Where did the comic come from in this case? It came from the fact that the living body became rigid, like a machine."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n63/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n63/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n60/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 50"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 49"
      ]
     ]
    },
@@ -11023,15 +11206,21 @@
      "en": "Ch. II, p. 126"
     },
     "texts": {
-     "fr": "Transpose-t-on en familier le solennel ? On a la parodie."
+     "fr": "Transpose-t-on en familier le solennel ? On a la parodie.",
+     "en": "Transpose the solemn into the familiar and the result is parody."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n139/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n139/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n134/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 126"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 123"
      ]
     ]
    },
@@ -11041,15 +11230,21 @@
      "en": "Ch. II, p. 89"
     },
     "texts": {
-     "fr": "Le comique est ce côté de la personne par lequel elle ressemble à une chose, cet aspect des événements humains qui imite, par sa raideur d’un genre tout particulier le mécanisme pur et simple, l’automatisme, enfin le mouvement sans la vie."
+     "fr": "Le comique est ce côté de la personne par lequel elle ressemble à une chose, cet aspect des événements humains qui imite, par sa raideur d’un genre tout particulier le mécanisme pur et simple, l’automatisme, enfin le mouvement sans la vie.",
+     "en": "The comic is that side of a person which reveals his likeness to a thing, that aspect of human events which, through its peculiar inelasticity, conveys the impression of pure mechanism, of automatism, of movement without life."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n102/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n102/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n98/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 89"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 87"
      ]
     ]
    },
@@ -11059,15 +11254,21 @@
      "en": "Ch. II, p. 124"
     },
     "texts": {
-     "fr": "Inversion et interférence, en somme, ne sont que des jeux d’esprit aboutissant à des jeux de mots."
+     "fr": "Inversion et interférence, en somme, ne sont que des jeux d’esprit aboutissant à des jeux de mots.",
+     "en": "Inversion and reciprocal interference, after all, are only a certain playfulness of the mind which ends at playing upon words."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n137/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n137/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n132/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 124"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 121"
      ]
     ]
    },
@@ -11077,15 +11278,21 @@
      "en": "Ch. I, p. 50"
     },
     "texts": {
-     "fr": "Ainsi, pour tout résumer, le même effet va toujours se subtilisant, depuis l’idée d’une mécanisation artificielle du corps humain, si l’on peut s’exprimer ainsi, jusqu’à celle d’une substitution quelconque de l’artificiel au naturel."
+     "fr": "Ainsi, pour tout résumer, le même effet va toujours se subtilisant, depuis l’idée d’une mécanisation artificielle du corps humain, si l’on peut s’exprimer ainsi, jusqu’à celle d’une substitution quelconque de l’artificiel au naturel.",
+     "en": "To sum up, then, we have one and the same effect, which assumes ever subtler forms as it passes from the idea of an artificial mechanisation of the human body, if such an expression is permissible, to that of any substitution whatsoever of the artificial for the natural."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n63/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n63/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n59/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 50"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 48"
      ]
     ]
    }
