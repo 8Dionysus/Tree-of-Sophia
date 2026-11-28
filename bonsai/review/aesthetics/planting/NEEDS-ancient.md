@@ -201,3 +201,24 @@ with independently reviewable evidence and all translator/editor rights kept
 separate. The available alternative of quotation or licence still needs
 assessment for the actual passages; this request asserts neither public
 domain for an edition nor absence of other sources.
+
+## Original text transcribed directly from a printed page
+
+For the butterfly dream in the Zhuangzi packet, a dated 1445 printing of
+Lin Xiyi's *Nanhua zhenjing kouyi* is available as page 57 of the copy
+recorded at https://commons.wikimedia.org/wiki/Special:Redirect/page/201074579.
+The print reads 翔翔 where a separately sourced Wikisource transcription
+reads 栩栩, and the scanned edition also varies 胡蝶/蝴蝶. The maker has
+visually located the passage, but has not completed a character-by-character
+reading or established all contributors' rights. The separately acquired
+transcription cannot be claimed as this printing without an explicit collation.
+
+The current original `cut` route requires a fetched machine-readable source or
+page-indexed OCR, and `witness-transcribe-page` records a translation witness
+with translator requirements. Please provide an auditable original-language
+page transcription route, recording the exact page image, the transcriber's
+identity, any editorial punctuation, and an independent second reader;
+retain the source and edition distinction. Alternatively, a documented way to
+collate an existing transcription against a different printing must preserve
+both sources and each correction. A transcription or scan alone establishes
+neither a verified reading nor the contributors' rights.
