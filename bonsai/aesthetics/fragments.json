@@ -3080,6 +3080,37 @@
      ]
     }
    },
+   "thomas-aquinas.summa-theologiae": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/thomas-aquinas.summa-theologiae/witnesses/en.json",
+     "corrections": [],
+     "mexico_quotations": [
+      {
+       "record": "bonsai/review/aesthetics/planting/packets/thomas-aquinas.summa-theologiae/witnesses/en.json",
+       "assessment": {
+        "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+        "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+        "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+        "scope_sha256": "888b99d894b55b8ba6bd67eece7bf196a5fb41ae34dff6666805003f84d36164",
+        "non_substantial": "One complete sentence of 19 words is selected from a substantial translation of the Summa for a specific comparison with the Latin. It does not reproduce the argument surrounding the image or serve as a substitute for the translated work.",
+        "normal_exploitation": "The single credited sentence is presented alongside the original and project interpretation for scholarly comparison, and does not replace the translated volume or harm its ordinary exploitation.",
+        "source_integrity": "The whole sentence, wording, spelling and punctuation follow the scanned 1912 printing without alteration; the author, translator, source and page are credited."
+       },
+       "review": {
+        "reader": "codex-2026-11-28-aquinas-en-second",
+        "date": "2026-11-28",
+        "sha256": "2795835117283dcd1350019ed4909754ea4bc1261e4d17fa2785692773b4c2b0",
+        "assessment": "Independent reader examined LFDA article 148(I) and this 19-word sentence in the comparative research context. The complete sentence is short relative to the work and does not substitute for it; the published wording and attribution must remain intact. The precise context and Mexican transitional term must be assessed separately; this is not a claim that the translation is in the Mexican public domain."
+       }
+      }
+     ]
+    }
+   },
    "victor-hugo.preface-de-cromwell": {
     "en": {
      "absent": {
@@ -4182,6 +4213,114 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Thomas Aquinas, The Summa Theologica, Part I, Second Number (QQ. XXVII–LXXIV), translated by Laurence Shapcote as Fathers of the English Dominican Province (New York: Benziger Brothers, 1912), p. 144.",
+     "year": 1912,
+     "url": "https://archive.org/details/summatheologicao02thom_0",
+     "licence": "1912 printed translation in the public domain in the United States; the translator Laurence Shapcote died in 1947. The selected short scholarly quotation is also reviewed for Mexico.",
+     "attribution": "Thomas Aquinas, The Summa Theologica, Part I, Second Number, translated by Laurence Shapcote, credited as Fathers of the English Dominican Province (New York: Benziger Brothers, 1912), p. 144.",
+     "maker": "codex-2026-11-28-aquinas-en-maker",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q9438",
+       "name": {
+        "en": "Thomas Aquinas",
+        "ru": "Фома Аквинский"
+       },
+       "born": 1225,
+       "died": 1274,
+       "source": "https://www.wikidata.org/wiki/Q9438",
+       "evidence": {
+        "file": "wikidata-Q9438.json",
+        "sha256": "2a253fef28ec23d76bbe4b2f75edbd3bd64a5c32f15d48c18445e0687dfbb1bf",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q9438.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q112492947",
+       "name": {
+        "en": "Laurence Shapcote",
+        "ru": "Laurence Shapcote"
+       },
+       "born": 1864,
+       "died": 1947,
+       "source": "https://www.wikidata.org/wiki/Q112492947",
+       "evidence": {
+        "file": "wikidata-Q112492947.json",
+        "sha256": "955ef11ba039a288719475c45c7220e884997168a2f0f357ced5558ec31f3e52",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q112492947.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "The 1912 printing was published before 1931 and is in the United States public domain."
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "The author died in 1274 and identified translator Laurence Shapcote in 1947, more than 70 years ago; Directive 2006/116/EC art. 1."
+      },
+      "russia": {
+       "basis": "short-quotation",
+       "law": "Russian Civil Code article 1274(1)(1) permits attributed quotation for scholarship to the extent justified by its aim. The author died in 1274 and identified translator in 1947; the separate Mexican quotation review is recorded for this display."
+      }
+     },
+     "mexico_quotation": {
+      "law_url": "https://www.diputados.gob.mx/LeyesBiblio/pdf/LFDA.pdf",
+      "law_file": "mexico-law-1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5.pdf",
+      "law_sha256": "1844f4e56b279c17061db90f4ab7970df3794e3a5ae10d74a0aec1f12641e7a5",
+      "scope_sha256": "888b99d894b55b8ba6bd67eece7bf196a5fb41ae34dff6666805003f84d36164",
+      "non_substantial": "One complete sentence of 19 words is selected from a substantial translation of the Summa for a specific comparison with the Latin. It does not reproduce the argument surrounding the image or serve as a substitute for the translated work.",
+      "normal_exploitation": "The single credited sentence is presented alongside the original and project interpretation for scholarly comparison, and does not replace the translated volume or harm its ordinary exploitation.",
+      "source_integrity": "The whole sentence, wording, spelling and punctuation follow the scanned 1912 printing without alteration; the author, translator, source and page are credited."
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Thomas Aquinas",
+        "ru": "Фома Аквинский"
+       },
+       "qid": "Q9438",
+       "source": "https://www.wikidata.org/wiki/Q9438",
+       "born": [
+        {
+         "time": "+1225-01-01T00:00:00Z",
+         "precision": 9
+        }
+       ],
+       "died": [
+        {
+         "time": "+1274-03-07T00:00:00Z",
+         "precision": 11,
+         "calendar_model": "http://www.wikidata.org/entity/Q1985786"
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Laurence Shapcote",
+        "ru": "Laurence Shapcote"
+       },
+       "qid": "Q112492947",
+       "source": "https://www.wikidata.org/wiki/Q112492947",
+       "born": [
+        {
+         "year": 1864
+        }
+       ],
+       "died": [
+        {
+         "year": 1947
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -4189,10 +4328,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -13008,15 +13143,21 @@
      "en": "Part I, q. 39, art. 8, p. 318"
     },
     "texts": {
-     "la": "Unde videmus, quod aliqua imago dicitur esse pulchra, si perfecte repraesentat rem, quamvis turpem."
+     "la": "Unde videmus, quod aliqua imago dicitur esse pulchra, si perfecte repraesentat rem, quamvis turpem.",
+     "en": "Hence we see that an image is said to be beautiful, if it perfectly represents even an ugly thing."
     },
     "links": {
-     "la": "https://archive.org/details/summatheologicae0001thom/page/n331/mode/1up"
+     "la": "https://archive.org/details/summatheologicae0001thom/page/n331/mode/1up",
+     "en": "https://archive.org/download/summatheologicao02thom_0/page/n157.jpg"
     },
     "refs": [
      [
       "la",
       "Editio altera Romana (Rome 1894), p. 318"
+     ],
+     [
+      "en",
+      "Thomas Aquinas, The Summa Theologica, Part I, Second Number (QQ. XXVII–LXXIV), translated by Laurence Shapcote as Fathers of the English Dominican Province (New York: Benziger Brothers, 1912), p. 144., p. 144"
      ]
     ]
    }
