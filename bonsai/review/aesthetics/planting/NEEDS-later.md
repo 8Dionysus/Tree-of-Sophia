@@ -186,3 +186,7 @@ faithful complete Spanish punctuation in the owner's sentence validator, with
 appropriate focused coverage. Do not drop `¿` or alter the witness to pass.
 The witness remains unaccepted until the owner fix and renewed gate; the
 parent packet and other languages remain incomplete.
+
+## Kendall L. Walton: conflicting register life date
+
+`registry/B/agents.jsonl` row C-A013 says `1939–2013`, while his University of Michigan curriculum vitae lists Stanford visiting professorships in 2015–2019 and an emeritus position from 2012 onwards: https://sites.lsa.umich.edu/kendallwalton/wp-content/uploads/sites/225/2025/10/Kendall-Walton-CV.pdf. The CV was opened and read; it contradicts death in 2013, but does not itself establish a current death date. Register C separately says born 1939. The registry preserves workbook rows as imported, so its historical text should not be silently rewritten. Please resolve the conflicting author date through the owning source/correction mechanism and refresh any affected derived chronology or rights classification. Until resolved, do not treat 2013 as an established death year or infer public-domain status from it.
