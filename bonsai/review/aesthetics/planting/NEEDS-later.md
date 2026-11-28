@@ -209,20 +209,21 @@ URL and structural location to both independent readers and preserves checks
 of text, context, lawful quotation and currentness. A screenshot alone should
 not pretend to be a printed edition or serve as proof of rights. The packet is
 not accepted: language searches and an independent assessment of the Mexican
-quotation, including the effect of two sentences out of the seven-sentence
-summary, remain open. The current gate did not itself emit a `line:` prefix.
+quotation, including the effect of the selected quotation on the seven-sentence
+summary, remain open. The first draft used two sentences; it was subsequently
+reduced to one, which still requires a fresh independent assessment. The current gate did not itself emit a `line:` prefix.
 
 ## Independent Mexico assessment needs an explicit outcome
 
-The second reader of the Harb HTML summary could not affirm that the current
-quotation satisfies the Mexican requirements: it reproduces the whole second
-paragraph, 74 of 184 words of the short summary, and the final display and any
-other quotations are not yet known. `mexico-quotation-review` currently records
+The second reader could not affirm that the first Harb HTML quotation satisfied
+the Mexican requirements: it reproduced the whole second paragraph, 74 of 184
+words of the summary. The maker then reduced it to one 45-word sentence; a
+fresh second reading confirms the wording but leaves the legal assessment
+unresolved because the final display and other quotations are not yet known. `mexico-quotation-review` currently records
 an arbitrary assessment string; `mexico_problems` checks its length, reviewer,
 date and digest but does not distinguish approval from rejection or pending.
 Please support an explicit evidence-bound approval, rejection or pending
 outcome, and require approval for a clean gate without converting uncertainty
 into approval. The reader did not invoke the command, so no approval has been
-recorded; the local packet remains unaccepted. The maker is examining whether
-one complete sentence can support a narrower conception; any revised quote
-needs its own fresh assessment, not automatic legal clearance.
+recorded; the local packet remains unaccepted. The one-sentence revision supports a narrower conception, but its reduced
+length does not itself establish legal clearance.
