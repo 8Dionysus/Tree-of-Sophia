@@ -2126,6 +2126,29 @@ class PageDifferenceAcceptanceTest(unittest.TestCase):
                 kit.cmd_accept(argparse.Namespace(packet=tmp,offline=True,by='line',basis=None))
             self.assertFalse((Path(tmp)/'accepted.json').exists())
 
+class MexicoOutcomeDriverTest(unittest.TestCase):
+    def test_unresolved_outcome_returns_to_maker_without_opening_gate(self):
+        import drive
+        with patch.object(drive,'codex',return_value=('reader',None)),patch.object(drive,'kit',return_value=(1,'- Mexico quotation assessment is pending; independent approval is required\ngate: shut')):
+            self.assertEqual(drive.until_open('work','second','first','{gate}',2,second=True),('reader','mexico-unresolved'))
+
+    def test_unresolved_review_is_sent_to_maker_and_never_accepted(self):
+        import json,tempfile
+        from pathlib import Path
+        import drive
+        with tempfile.TemporaryDirectory() as tmp:
+            packet=Path(tmp)/'work';packet.mkdir();events=[];calls=[]
+            def kit_call(*args):
+                calls.append(args[0]);return (1,'- Mexico quotation assessment is pending; independent approval is required') if '--second' in args else (0,'gate: open')
+            def reader(work,role,first,again,turns,**kwargs):
+                events.append((role,first))
+                if role=='second':(packet/'review.json').write_text(json.dumps({'accept':False}));return None,'mexico-unresolved'
+                return None,'stuck'
+            with patch.object(drive,'PACKETS',tmp),patch.object(drive,'OUT',str(Path(tmp)/'out')),patch.object(drive,'state',return_value={}),patch.object(drive,'kit',side_effect=kit_call),patch.object(drive,'until_open',side_effect=reader),patch.object(drive,'have',side_effect=lambda w,n:n in ('places.json','reading.json')):
+                self.assertEqual(drive.run('work'),'maker-stuck')
+            self.assertEqual([role for role,_ in events],['second','maker']);self.assertIn('pending',events[1][1]);self.assertNotIn('accept',calls)
+
+
 class ReopenedFindingDriverTest(unittest.TestCase):
     def test_settled_reopened_reading_gets_maker_and_fresh_independent_review(self):
         import json,tempfile

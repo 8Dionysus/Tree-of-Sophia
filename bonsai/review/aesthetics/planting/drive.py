@@ -202,6 +202,7 @@ def until_open(work,role,first,again,turns,second=False,thread=None):
         if limit:return thread,'limit'
         code,text=kit('gate',os.path.join(PACKETS,work),*(['--second'] if second else []))
         if code==3:BROKEN.set();return thread,'line-broken'       # the checkout fails, not the packet: no reader can mend it
+        if second and code and re.search(r'Mexico quotation assessment is (?:pending|rejected); independent approval is required',text):return thread,'mexico-unresolved'
         if not second and not have(work,'blocked.json'):
             stop,feedback,changed=review_prepared_languages(work,text,attempted)
             if stop:
@@ -254,6 +255,12 @@ def run(work,retake=False):
         findings=reopen_findings(work)
         second_prompt=SECOND.format(work=work)+(('\n\nIndependently assess every reopening finding using kit.py reopen-review after completing the packet review:\n'+findings) if findings else '')
         _,got=until_open(work,'second',second_prompt,SECOND_ON,SECOND_TURNS,second=True)
+        if got=='mexico-unresolved':
+            if round_>RETURNS:return end('mexico-unresolved')
+            feedback=kit('gate',os.path.join(PACKETS,work),'--second')[1]
+            maker,got=until_open(work,'maker',MAKER_BACK+'\n\nThe independent Mexico assessment is unresolved; address the finding without treating it as approval:\n'+feedback,MAKER_ON,MAKER_TURNS,thread=maker)
+            if got!='open':return end(got if got in OUTSIDE or got=='blocked' else 'maker-stuck')
+            continue
         if got!='open':return end(got if got in OUTSIDE else 'second-stuck')
         if json.load(open(review)).get('accept'):
             code,text=kit('accept',os.path.join(PACKETS,work),'--by','planting-line')
