@@ -138,3 +138,27 @@ owner-reviewed route for a translation genuinely published anonymously, when
 its identity and applicable publication-based terms are actually established.
 This request does not claim the legal conditions are already satisfied and does
 not propose inventing a person, date of death or licence.
+
+## Add places to an accepted partial translation
+
+On current main, Bergson's accepted French packet has 13 places and no waiting
+register readings or links (`kit task` reports zero). The independently reviewed
+English witness for 11 places is in PR #518; its two remaining existing original
+places, `I p39a` and `II p89a`, cross printed pages and remain unfilled. Once
+the witness is accepted, `witness-open` refuses to replace it. The documented
+extension route requires waiting register keys in `extension-open`; there are
+none for these already planted places. Please provide or identify the reviewed
+route for adding non-overlapping translations of existing original places to
+an accepted partial witness, preserving the accepted witness and binding new
+page evidence and an independent review. This does not request changes to the
+original places or assert that the remaining translations have been reviewed.
+
+## Wikidata multilingual labels
+
+`witness-person` selected `Q18910535` (Joseph Ward Swain) with correct dates,
+but emitted the QID as the participant name: the entity has its name under
+Wikidata's `mul` label, without an `en` or `ru` label. A source-based named
+record against the same Wikidata EntityData allowed this draft to proceed.
+Please consider recognizing the `mul` label in the person route, without
+changing death-date or independent-review checks. The Swain draft was not
+accepted for a separate semantic reason.
