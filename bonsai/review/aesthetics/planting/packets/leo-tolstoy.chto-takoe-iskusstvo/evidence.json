@@ -1,0 +1,469 @@
+{
+ "sources": [
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/whatisar00tols/whatisar00tols_hocr_searchtext.txt.gz",
+   "file": "whatisar00tols.ocr.txt",
+   "sha256": "7ae50928a519d8af86de9945a60d057c011d04b0cb777e24e9a5a611d90c12c3",
+   "bytes": 492527,
+   "fetched": "2026-11-19"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/whatisar00tols/whatisar00tols_hocr_pageindex.json.gz",
+   "file": "whatisar00tols.index.json",
+   "sha256": "419f1fd68843fa9eb9944accd965fae1349f24501052eed1f5035e99d827738a",
+   "bytes": 9202,
+   "fetched": "2026-11-19"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/whatisar00tols/whatisar00tols_page_numbers.json",
+   "file": "whatisar00tols.pages.json",
+   "sha256": "4f177b959c5f536b65034f1b8342d652a0570ee0bb55367a33065f5556ec3e16",
+   "bytes": 43534,
+   "fetched": "2026-11-19"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/chtotakoeiskusst01tols/chtotakoeiskusst01tols_hocr_searchtext.txt.gz",
+   "file": "chtotakoeiskusst01tols.ocr.txt",
+   "sha256": "46d89e778946c0dfc8d0ae40ccbf52b7f171111e45f19641f1d7ca4f7445941e",
+   "bytes": 42585,
+   "fetched": "2026-11-19"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/chtotakoeiskusst01tols/chtotakoeiskusst01tols_hocr_pageindex.json.gz",
+   "file": "chtotakoeiskusst01tols.index.json",
+   "sha256": "14a664a91c084bccb95b2f8117cba52efe892f321765545ff94770b4d4e32074",
+   "bytes": 745,
+   "fetched": "2026-11-19"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/chtotakoeiskusst01tols/chtotakoeiskusst01tols_page_numbers.json",
+   "file": "chtotakoeiskusst01tols.pages.json",
+   "sha256": "a6ba8890b99017890bcef1507ae53f173f5964263021f8c40bb26ec83ee0a840",
+   "bytes": 4197,
+   "fetched": "2026-11-19"
+  },
+  {
+   "role": "transcription",
+   "url": "https://ru.wikisource.org/wiki/%D0%A7%D1%82%D0%BE_%D1%82%D0%B0%D0%BA%D0%BE%D0%B5_%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE%3F_(%D0%A2%D0%BE%D0%BB%D1%81%D1%82%D0%BE%D0%B9)",
+   "file": "-D0-A7-D1-82-D0-BE_-D1-82-D0-B0-D0-BA-D0-BE-D0-B5_-D0-B8-D1-81-D0-BA-D1-83-D1-81-D1-81-D1-82-D0-B2-D0-BE-3F_-D0-A2-D0-BE-D0-BB-D1-81-D1-82-D0-BE-D0-B9-",
+   "sha256": "61b2759c39044df12fbb3a255490023bfee2da1f24d866754c57ad36eafd6059",
+   "bytes": 80446,
+   "fetched": "2026-11-19",
+   "text": "-D0-A7-D1-82-D0-BE_-D1-82-D0-B0-D0-BA-D0-BE-D0-B5_-D0-B8-D1-81-D0-BA-D1-83-D1-81-D1-81-D1-82-D0-B2-D0-BE-3F_-D0-A2-D0-BE-D0-BB-D1-81-D1-82-D0-BE-D0-B9-.txt"
+  },
+  {
+   "role": "transcription",
+   "url": "https://ru.wikisource.org/wiki/%D0%A7%D1%82%D0%BE_%D1%82%D0%B0%D0%BA%D0%BE%D0%B5_%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE%3F_(%D0%A2%D0%BE%D0%BB%D1%81%D1%82%D0%BE%D0%B9)/V?action=render",
+   "file": "chapter-v.html",
+   "sha256": "47d9337142726411b31c786846c8c01e819c6cc7505981057a130f3a243a1bd8",
+   "bytes": 29464,
+   "fetched": "2026-11-19",
+   "text": "chapter-v.html.txt"
+  },
+  {
+   "role": "scan-ocr",
+   "url": "https://archive.org/download/sochineniagrafa01tolsgoog/sochineniagrafa01tolsgoog_hocr_searchtext.txt.gz",
+   "file": "sochineniagrafa01tolsgoog.ocr.txt",
+   "sha256": "13693b88f8f59f3de616f35d8785c1631badb354b901bc36eb3c9ff779e7f7a1",
+   "bytes": 1735904,
+   "fetched": "2026-11-19"
+  },
+  {
+   "role": "scan-index",
+   "url": "https://archive.org/download/sochineniagrafa01tolsgoog/sochineniagrafa01tolsgoog_hocr_pageindex.json.gz",
+   "file": "sochineniagrafa01tolsgoog.index.json",
+   "sha256": "808d7af9b3ba297a97635a01e4a60fef899913b397050ae1d3866f4c0eafb3dd",
+   "bytes": 19987,
+   "fetched": "2026-11-19"
+  },
+  {
+   "role": "scan-pages",
+   "url": "https://archive.org/download/sochineniagrafa01tolsgoog/sochineniagrafa01tolsgoog_page_numbers.json",
+   "file": "sochineniagrafa01tolsgoog.pages.json",
+   "sha256": "37e781fae58cb3ff550e8ef969c6f006433fc60c5f7e3104089e9a8e49cfcf6e",
+   "bytes": 93569,
+   "fetched": "2026-11-19"
+  },
+  {
+   "role": "transcription",
+   "url": "https://ru.wikisource.org/wiki/%D0%A7%D1%82%D0%BE_%D1%82%D0%B0%D0%BA%D0%BE%D0%B5_%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE%3F_(%D0%A2%D0%BE%D0%BB%D1%81%D1%82%D0%BE%D0%B9)/IV?action=render",
+   "file": "chapter-IV.html",
+   "sha256": "f94cf691f2d357afd65f73e1a329efc2d91fde2dbb6479f36f30975abe40ba4b",
+   "bytes": 29887,
+   "fetched": "2026-11-19",
+   "text": "chapter-IV.html.txt"
+  },
+  {
+   "role": "transcription",
+   "url": "https://ru.wikisource.org/wiki/%D0%A7%D1%82%D0%BE_%D1%82%D0%B0%D0%BA%D0%BE%D0%B5_%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE%3F_(%D0%A2%D0%BE%D0%BB%D1%81%D1%82%D0%BE%D0%B9)/VIII?action=render",
+   "file": "chapter-VIII.html",
+   "sha256": "45ba7e3ffda7ed380123c2b41199bcb34089e9d087dd07d36062763856ee08b9",
+   "bytes": 25308,
+   "fetched": "2026-11-19",
+   "text": "chapter-VIII.html.txt"
+  },
+  {
+   "role": "transcription",
+   "url": "https://ru.wikisource.org/wiki/%D0%A7%D1%82%D0%BE_%D1%82%D0%B0%D0%BA%D0%BE%D0%B5_%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE%3F_(%D0%A2%D0%BE%D0%BB%D1%81%D1%82%D0%BE%D0%B9)/XI?action=render",
+   "file": "chapter-XI.html",
+   "sha256": "0f5a34f956387dbcac65ca74c5ad7afaa87487c1494da85979865b78a40fa204",
+   "bytes": 48372,
+   "fetched": "2026-11-19",
+   "text": "chapter-XI.html.txt"
+  },
+  {
+   "role": "transcription",
+   "url": "https://ru.wikisource.org/wiki/%D0%A7%D1%82%D0%BE_%D1%82%D0%B0%D0%BA%D0%BE%D0%B5_%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE%3F_(%D0%A2%D0%BE%D0%BB%D1%81%D1%82%D0%BE%D0%B9)/XV?action=render",
+   "file": "chapter-XV.html",
+   "sha256": "fdef828b6fd5715d9b59169ace55c4f0ab78b68250f1d6728958462e67b36b00",
+   "bytes": 18777,
+   "fetched": "2026-11-19",
+   "text": "chapter-XV.html.txt"
+  },
+  {
+   "role": "transcription",
+   "url": "https://ru.wikisource.org/wiki/%D0%A7%D1%82%D0%BE_%D1%82%D0%B0%D0%BA%D0%BE%D0%B5_%D0%B8%D1%81%D0%BA%D1%83%D1%81%D1%81%D1%82%D0%B2%D0%BE%3F_(%D0%A2%D0%BE%D0%BB%D1%81%D1%82%D0%BE%D0%B9)/XVI?action=render",
+   "file": "chapter-XVI.html",
+   "sha256": "347f61befee4f66fcc46a42ca1f4e16c022562e8362f8d82ed5afa5c6cdb6ee3",
+   "bytes": 72628,
+   "fetched": "2026-11-19",
+   "text": "chapter-XVI.html.txt"
+  },
+  {
+   "role": "other",
+   "url": "https://archive.org/download/bub_gb_JWlEAAAAIAAJ/bub_gb_JWlEAAAAIAAJ_djvu.txt",
+   "file": "german-1902.txt",
+   "sha256": "dde6fffa6984c90a27fca0782d667f2333b0345ef94f536f19434a157702e819",
+   "bytes": 483087,
+   "fetched": "2026-11-19"
+  }
+ ],
+ "scan": {
+  "item": "sochineniagrafa01tolsgoog",
+  "ocr": true,
+  "long_s": false,
+  "image_offset": 0
+ },
+ "persons": [
+  {
+   "qid": "Q7243",
+   "name": {
+    "en": "Leo Tolstoy",
+    "ru": "Лев Николаевич Толстой"
+   },
+   "role": "author",
+   "died": 1910,
+   "source": "https://www.wikidata.org/wiki/Q7243"
+  }
+ ],
+ "published": 1903,
+ "images": [
+  {
+   "n": 273,
+   "item": "sochineniagrafa01tolsgoog",
+   "file": "sochineniagrafa01tolsgoog-n273.jpg",
+   "sha256": "7c1e8910b559833a33cd6c77776dd6169d14b53981abd53a87d828f3d25d182f",
+   "by": "maker"
+  },
+  {
+   "n": 275,
+   "item": "sochineniagrafa01tolsgoog",
+   "file": "sochineniagrafa01tolsgoog-n275.jpg",
+   "sha256": "3399f4d936e6c636d2fcd47addd5f9c067d4c99507b3e3da0a8043f25e13a928",
+   "by": "maker"
+  },
+  {
+   "n": 4,
+   "item": "sochineniagrafa01tolsgoog",
+   "file": "sochineniagrafa01tolsgoog-n4.jpg",
+   "sha256": "37fe4b4ada3f5f93a6cebcf5c3c621e439d7a1a6f2b72c87f2c9d6ee1ca3487c",
+   "by": "maker"
+  },
+  {
+   "n": 5,
+   "item": "sochineniagrafa01tolsgoog",
+   "file": "sochineniagrafa01tolsgoog-n5.jpg",
+   "sha256": "5f08aeefc7f52ccd1bc478dfda9fcf4c9f258fed6a29daed42a5e17f5564abdb",
+   "by": "maker"
+  },
+  {
+   "n": 321,
+   "item": "sochineniagrafa01tolsgoog",
+   "file": "sochineniagrafa01tolsgoog-n321.jpg",
+   "sha256": "9bf5fd9cd8baf20c07e3afef6cce282924d78bdc6235ccb5a4bd3e4953174a29",
+   "by": "maker",
+   "loc": "V p317"
+  },
+  {
+   "n": 414,
+   "item": "sochineniagrafa01tolsgoog",
+   "file": "sochineniagrafa01tolsgoog-n414.jpg",
+   "sha256": "5f31d456eb9f9c913f254fb9e078026c56d0af9ff7fcefaa1ca6976b42da5804",
+   "by": "maker",
+   "loc": "XV p410"
+  },
+  {
+   "n": 418,
+   "item": "sochineniagrafa01tolsgoog",
+   "file": "sochineniagrafa01tolsgoog-n418.jpg",
+   "sha256": "12b0b063c11783bfb7152a6d946929a9491aef7e1bb627f9ed235147a05124eb",
+   "by": "maker",
+   "loc": "XVI p414"
+  },
+  {
+   "n": 320,
+   "item": "sochineniagrafa01tolsgoog",
+   "file": "sochineniagrafa01tolsgoog-n320.jpg",
+   "sha256": "eff848220183f5300ba0c5e9d5d164ce51472cd1040f063336b3528c3f7184ca",
+   "by": "maker",
+   "loc": "V p316"
+  },
+  {
+   "n": 378,
+   "item": "sochineniagrafa01tolsgoog",
+   "file": "sochineniagrafa01tolsgoog-n378.jpg",
+   "sha256": "d2305a80a79a29dcd967523b90b551d4132e11b363c93efc23ecd03e3098e741",
+   "by": "maker",
+   "loc": "XI interest"
+  },
+  {
+   "n": 340,
+   "item": "sochineniagrafa01tolsgoog",
+   "file": "sochineniagrafa01tolsgoog-n340.jpg",
+   "sha256": "7de4ca2c7525545e87b6079929950ceb72d33d577a3e6ed2fc876a26b31d6ba1",
+   "by": "maker",
+   "loc": "VIII p336"
+  }
+ ],
+ "places": {
+  "V p317": {
+   "transcription": "chapter-v.html",
+   "scan": "sochineniagrafa01tolsgoog",
+   "whole": {
+    "stands": "transcription",
+    "note": "Прочитано полное предложение курсивом на печатной странице 317, включая начало в конце строки и окончание переживают их; дореформенная орфография приведена к современной."
+   },
+   "images": [
+    321
+   ],
+   "method": "image",
+   "share": 0.656
+  },
+  "XV p410": {
+   "transcription": "chapter-XV.html",
+   "scan": "sochineniagrafa01tolsgoog",
+   "whole": {
+    "stands": "transcription",
+    "note": "Сверено целое предложение в начале главы XV на печатной странице 410, с учётом современной орфографии."
+   },
+   "images": [
+    414
+   ],
+   "method": "image",
+   "share": 0.733
+  },
+  "XVI p414": {
+   "transcription": "chapter-XVI.html",
+   "scan": "sochineniagrafa01tolsgoog",
+   "images": [
+    418
+   ],
+   "method": "ocr",
+   "share": 0.886,
+   "leaves": [
+    418
+   ],
+   "printed": [
+    "414"
+   ],
+   "differences": [
+    {
+     "transcription": "же",
+     "ocr": "ж 6",
+     "leaf": 418,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "признание",
+     "ocr": "признате",
+     "leaf": 418,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "религиозным сознанием",
+     "ocr": "религюзнымъ сознашемъ",
+     "leaf": 418,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "V p316": {
+   "transcription": "chapter-v.html",
+   "scan": "sochineniagrafa01tolsgoog",
+   "images": [
+    320
+   ],
+   "method": "ocr",
+   "share": 0.808,
+   "leaves": [
+    320
+   ],
+   "printed": [
+    "316"
+   ],
+   "differences": [
+    {
+     "transcription": "человек",
+     "ocr": "челов'Ькъ",
+     "leaf": 320,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "целью",
+     "ocr": "ирблью",
+     "leaf": 320,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "себе",
+     "ocr": "006 * 6",
+     "leaf": 320,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "известными внешними",
+     "ocr": "изв'Ьстныни вн ^ Ьшними",
+     "leaf": 320,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "XI p373": {
+   "scan": "sochineniagrafa01tolsgoog",
+   "method": "ocr",
+   "share": 0.86,
+   "leaves": [
+    377
+   ],
+   "printed": [
+    "373"
+   ],
+   "differences": [
+    {
+     "transcription": "Третий прием подделки",
+     "ocr": "а о поддгЬлк'Ь",
+     "leaf": 377,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "",
+     "ocr": "него . Тр & п & пр 1 емъ подд - Ёлки подь",
+     "leaf": 377,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "понятием",
+     "ocr": "поият 1 енъ",
+     "leaf": 377,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "потому",
+     "ocr": "потону",
+     "leaf": 377,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "нет",
+     "ocr": "н'Ьтъ",
+     "leaf": 377,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "воздействие",
+     "ocr": "возд'Ьйствхе",
+     "leaf": 377,
+     "stands": "transcription"
+    }
+   ]
+  },
+  "XI p374": {
+   "scan": "sochineniagrafa01tolsgoog",
+   "method": "image",
+   "share": 0.647,
+   "whole": {
+    "stands": "transcription",
+    "note": "Прочитано целиком на печатных страницах 374–375: от интересного произведения до художественного впечатления, с современной орфографией."
+   }
+  },
+  "VIII p336": {
+   "scan": "sochineniagrafa01tolsgoog",
+   "method": "ocr",
+   "share": 0.811,
+   "leaves": [
+    340
+   ],
+   "printed": [
+    "336"
+   ],
+   "differences": [
+    {
+     "transcription": "огромного",
+     "ocr": "огронваго",
+     "leaf": 340,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "дороговизне",
+     "ocr": "дороговизнЬ",
+     "leaf": 340,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "содержанию",
+     "ocr": "содержанш",
+     "leaf": 340,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "удаленных от",
+     "ocr": "удаленныгь оть",
+     "leaf": 340,
+     "stands": "transcription"
+    },
+    {
+     "transcription": "человечеству условий",
+     "ocr": "челов ^ Ьчеству условШ",
+     "leaf": 340,
+     "stands": "transcription"
+    }
+   ]
+  }
+ },
+ "scans": {
+  "whatisar00tols": {
+   "item": "whatisar00tols",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": null
+  },
+  "chtotakoeiskusst01tols": {
+   "item": "chtotakoeiskusst01tols",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": null
+  },
+  "sochineniagrafa01tolsgoog": {
+   "item": "sochineniagrafa01tolsgoog",
+   "ocr": true,
+   "long_s": false,
+   "image_offset": 0
+  }
+ }
+}
