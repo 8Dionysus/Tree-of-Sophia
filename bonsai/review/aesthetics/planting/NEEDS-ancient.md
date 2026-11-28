@@ -43,6 +43,17 @@ independently inspected page to the original PDF bytes, or an exact-edition
 machine-readable transcription with its own truthful source. Such extraction
 must not itself establish fidelity, translation alignment or quotation rights.
 
+Independent image review has the same gap even when the PDF already has a
+searchable text layer: in `bhatta-nayaka.hrdayadarpana`, the second reader
+found that the previously recorded page image for Sheldon Pollock's
+[university-hosted article](https://www.columbia.edu/cu/mesaas/faculty/directory/pollock_pub/pollock_What%20was%20Bhatta%20Nayaka%20Saying.pdf),
+p. 163, now returns HTTP 410, and `witness-image` cannot register the PDF as
+a page image. Please allow each reader to generate and register the selected
+page image from independently fetched, digest-verified PDF bytes, with the
+page number, render method, resulting image digest and separate reader
+identity preserved. A successful render is evidence of an image, not an
+independent reading, textual acceptance or permission to quote.
+
 ## Anonymous ancient author
 
 The author of *On the Sublime* is unknown, according to the Cambridge
