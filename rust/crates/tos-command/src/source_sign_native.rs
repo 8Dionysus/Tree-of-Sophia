@@ -1324,12 +1324,20 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         Ok(layer)
     }
     fn derived_content(&mut self, layer: &JsonValue, text: &str) -> SourceCommandResult<()> {
+        let rep = cmd::field(layer, "representation")?;
+        let editorial = cmd::text(rep, "character_normalization")? == "editorial";
         let maker = cmd::field(cmd::field(layer, "derivation")?, "maker")?;
         let Some(name) = maker
             .object_get("configuration_ref")
             .filter(|v| **v != JsonValue::Null)
         else {
-            return Ok(());
+            return if editorial {
+                Err(SourceCommandError::Denied(
+                    "editorial layer lacks retained derivation",
+                ))
+            } else {
+                Ok(())
+            };
         };
         let raw = self.read(
             name.as_str().ok_or(SourceCommandError::Invalid(
@@ -1340,9 +1348,14 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             false,
         )?;
         let Some(config) = optional_configuration(&raw).filter(retained_configuration) else {
-            return Ok(());
+            return if editorial {
+                Err(SourceCommandError::Denied(
+                    "editorial layer lacks retained derivation",
+                ))
+            } else {
+                Ok(())
+            };
         };
-        let rep = cmd::field(layer, "representation")?;
         let scope = cmd::field(rep, "text_scope")?;
         if text.len() > MAX_DERIVED_TEXT_BYTES
             || cmd::integer(scope, "start")? != 0
@@ -1358,6 +1371,11 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
             .ok_or(SourceCommandError::Invalid(
                 "retained derived native content operation",
             ))?;
+        if editorial && operation != "text-layer.normalize-editorial" {
+            return Err(SourceCommandError::Denied(
+                "editorial layer requires editorial derivation replay",
+            ));
+        }
         if ![
             "text-layer.correct",
             "text-layer.normalize",
@@ -1979,7 +1997,9 @@ pub(crate) fn verified_representation_scope<'a>(
 fn check_normalization(text: &str, form: &str) -> SourceCommandResult<()> {
     use unicode_normalization::UnicodeNormalization;
     let same = match form {
-        "none" => true,
+        // Editorial normalization is an explicit edit policy, not a Unicode
+        // normalization form. The retained derivation is checked separately.
+        "none" | "editorial" => true,
         "NFC" => text.nfc().eq(text.chars()),
         "NFD" => text.nfd().eq(text.chars()),
         "NFKC" => text.nfkc().eq(text.chars()),
@@ -3604,6 +3624,24 @@ mod legacy_dta_return_tests {
     }
 
     #[test]
+    fn editorial_content_requires_retained_derivation_before_read_acceptance() {
+        let cancelled = AtomicBool::new(false);
+        let mut reader = SelectedReader {
+            independent: false,
+            cut: None,
+            source: Vec::new(),
+            reads: Vec::new(),
+        };
+        let mut worker = NoSchemaExecution;
+        let mut native = selected_native(&mut reader, &mut worker, &cancelled);
+        let layer = cmd::parse(br#"{"representation":{"character_normalization":"editorial"},"derivation":{"maker":{"configuration_ref":null}}}"#).unwrap();
+        assert!(matches!(
+            native.derived_content(&layer, "text"),
+            Err(SourceCommandError::Denied(_))
+        ));
+    }
+
+    #[test]
     fn cached_metadata_cannot_replace_a_different_selected_authority() {
         let cancelled = AtomicBool::new(false);
         let schema = "ToS/contracts/test.schema.json";
@@ -3704,5 +3742,22 @@ mod legacy_dta_return_tests {
         assert!(!legacy_dta_anchor_matches(&profile, &rep, &wrong_ref).unwrap());
         assert!(!legacy_dta_anchor_matches(&profile, &rep, &wrong_digest).unwrap());
         assert!(!legacy_dta_anchor_matches(&profile, &rep, &no_fragment).unwrap());
+    }
+}
+
+#[cfg(test)]
+mod editorial_normalization_read_tests {
+    use super::*;
+
+    #[test]
+    fn editorial_scope_preserves_bytes_without_claiming_a_unicode_form() {
+        let rep = cmd::parse(
+            br#"{"text_scope":{"start":0,"end":3},"character_normalization":"editorial"}"#,
+        )
+        .unwrap();
+        let text = "e\u{301}!";
+        assert_eq!(verified_representation_scope(text, &rep).unwrap(), text);
+        assert!(check_normalization(text, "NFC").is_err());
+        assert!(check_normalization(text, "unknown").is_err());
     }
 }
