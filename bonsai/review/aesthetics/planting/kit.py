@@ -1319,8 +1319,18 @@ def gate(path,second=False,offline=False):
     if blocked is not None:
         if len(str(blocked.get('reason','')))<40 or not blocked.get('tried'):add('blocked.json: give the reason in a full sentence and list under tried what was looked at (with URLs)')
         if blocked.get('ground') not in GROUNDS:add('blocked.json: ground wants one of '+'; '.join(f'{name} ({what})' for name,what in GROUNDS.items()))
-        if blocked.get('ground')=='sources' and any(scan.get('ocr') for scan in scans(part(path,'evidence.json') or {}).values()):
-            add('blocked.json: the packet holds a scan with page-indexed OCR, so the words can be cut from the page itself (kit.py cut . ocr …, MAKER.md step 3). A project whose site did not answer is named in kit.py why; it does not close this road. Take blocked.json away and make the packet')
+        if blocked.get('ground')=='sources':
+            scope=blocked.get('source_scope','original')
+            if scope not in ('original','translation'):add('blocked.json: source_scope must be original or translation')
+            if scope=='translation':
+                language=blocked.get('language');original=((part(path,'places.json') or {}).get('entry') or {}).get('original')
+                fragments=os.path.join(HOME,'fragments.json')
+                if not original and os.path.isfile(fragments):original=((load(fragments).get('works') or {}).get(work) or {}).get('original')
+                tried=blocked.get('tried') or []
+                if not original or language not in ('ru','en','es','de','zh-Hans') or language==original:add('blocked.json: translation source scope needs a known original and a different interface language')
+                if not isinstance(tried,list) or not tried or any(not isinstance(item,dict) or not lawful_url(item.get('url')) or len(str(item.get('outcome','')).strip())<20 for item in tried):add('blocked.json: translation source scope needs searched HTTPS sources with specific outcomes')
+            elif scope=='original' and any(scan.get('ocr') for scan in scans(part(path,'evidence.json') or {}).values()):
+                add('blocked.json: the packet holds a scan with page-indexed OCR, so the words can be cut from the page itself (kit.py cut . ocr …, MAKER.md step 3). A project whose site did not answer is named in kit.py why; it does not close this road. Take blocked.json away and make the packet')
         if blocked.get('ground')=='rights':
             ev=part(path,'evidence.json') or {};people=ev.get('persons') or [];printed=ev.get('published')
             if people and all(public_domain_by_dates(people,printed).values()):
@@ -2123,13 +2133,25 @@ def cmd_witness_person_remove(args):
     path=packet(args.packet);file=witness_file(path,args.language)
     if os.path.isfile(file+'.accepted'):die('an accepted witness cannot be changed; retain its acceptance and seek a reviewed correction')
     data=witness_data(path,args.language);people=data['witness'].get('persons') or []
-    removed=[p for p in people if p.get('role')==args.role and p.get('qid')==args.qid]
+    removed=[p for p in people if isinstance(p,dict) and p.get('role')==args.role and p.get('qid')==args.qid]
     if len(removed)!=1:die('exactly one person with that role and QID must be present')
     if len(args.reason.strip())<30:die('give the reason in a full sentence')
     data['witness']['persons']=[p for p in people if p is not removed[0]]
     data.setdefault('person_corrections',[]).append({'removed':removed[0],'reason':args.reason,'date':today()})
     data['review']={};save(file,data)
     print('person removed with history; independent review must be renewed')
+
+def cmd_witness_person_remove_legacy(args):
+    """Remove one exact unsupported string, retaining it and the reason for review."""
+    path=packet(args.packet);file=witness_file(path,args.language)
+    if os.path.isfile(file+'.accepted'):die('an accepted witness cannot be changed; retain its acceptance and seek a reviewed correction')
+    data=witness_data(path,args.language);people=data['witness'].get('persons') or []
+    matches=[i for i,p in enumerate(people) if isinstance(p,str) and p==args.name]
+    if len(matches)!=1:die('exactly one matching legacy string must be present')
+    if len(args.reason.strip())<30:die('give the reason in a full sentence')
+    removed=people.pop(matches[0]);data.setdefault('person_corrections',[]).append({'removed':removed,'reason':args.reason,'date':today()})
+    data['review']={};save(file,data)
+    print('legacy person removed with history; independent review must be renewed')
 
 def cmd_witness_person_source(args):
     path=packet(args.packet);data=witness_data(path,args.language)
@@ -2543,6 +2565,7 @@ def main():
     sub('witness-candidate',cmd_witness_candidate,P,(('language',),{}),(('file',),{}));
     sub('witness-person',cmd_witness_person,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}),(('--bounded',),{'action':'store_true'}));
     sub('witness-person-source',cmd_witness_person_source,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('name',),{}),(('url',),{}),(('--ru',),{}),(('--born',),{'type':int}),(('--died',),{'type':int}),(('--file',),{}));sub('witness-person-remove',cmd_witness_person_remove,P,(('language',),{}),(('role',),{'choices':list(ROLES)}),(('qid',),{}),(('--reason',),{'required':True}))
+    sub('witness-person-remove-legacy',cmd_witness_person_remove_legacy,P,(('language',),{}),(('name',),{}),(('--reason',),{'required':True}))
     sub('witness-fetch',cmd_witness_fetch,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}))
     sub('witness-image',cmd_witness_image,P,(('language',),{}),(('url',),{}),(('--name',),{'required':True}),(('--file',),{}),(('--by',),{'choices':['maker','second'],'default':'maker'}))
     sub('witness-cut',cmd_witness_cut,P,(('language',),{}),(('source',),{}),(('open',),{}),(('close',),{}),(('--loc',),{'required':True}),(('--page',),{}),(('--address-kind',),{'choices':ADDRESS_KINDS}),(('--address-value',),{}),(('--image',),{'required':True}),(('--alignment',),{'required':True}),(('--lines',),{}),(('--justification',),{}))

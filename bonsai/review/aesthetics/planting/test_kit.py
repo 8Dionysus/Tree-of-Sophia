@@ -1099,6 +1099,23 @@ class HtmlTranscriptionTest(unittest.TestCase):
         self.assertNotIn('Contents',text)
         self.assertNotIn('Footer',text)
 
+class TranslationSourceBlockTest(unittest.TestCase):
+    def test_original_ocr_does_not_resolve_a_translation_search(self):
+        import json,tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'work';path.mkdir()
+            (path/'places.json').write_text(json.dumps({'entry':{'original':'grc'}}))
+            (path/'evidence.json').write_text(json.dumps({'scan':{'item':'book','ocr':True}}))
+            block={'ground':'sources','reason':'The translation passage and its corresponding page remain unlocated.','tried':[{'url':'https://example.org/catalogue','outcome':'The catalogue does not show the requested translation page.'}]}
+            file=path/'blocked.json';file.write_text(json.dumps(block))
+            self.assertEqual(kit.gate(str(path))[1],'shut')
+            block.update(source_scope='translation',language='ru');file.write_text(json.dumps(block))
+            self.assertEqual(kit.gate(str(path)),([],'blocked'))
+            block['tried']=[];file.write_text(json.dumps(block));self.assertEqual(kit.gate(str(path))[1],'shut')
+            block['tried']=[{'url':'https://example.org','outcome':'The source was searched for the relevant translation.'}];block['language']='grc';file.write_text(json.dumps(block))
+            self.assertEqual(kit.gate(str(path))[1],'shut')
+
 class ReaderOutputReservationTest(unittest.TestCase):
     def test_existing_and_concurrent_outputs_are_never_overwritten(self):
         import concurrent.futures, tempfile
@@ -1244,7 +1261,13 @@ class UnknownParticipantTest(unittest.TestCase):
             self.assertEqual(result['witness']['persons'],[right])
             self.assertEqual(result['person_corrections'][0]['removed'],wrong)
             self.assertEqual(result['review'],{})
+            result['witness']['persons'].insert(0,'Unsupported name');result['review']={'reader':'second'};file.write_text(json.dumps(result))
+            legacy=argparse.Namespace(packet=tmp,language='ru',name='Unsupported name',reason='An unsupported duplicate of the independently sourced participant.')
+            kit.cmd_witness_person_remove_legacy(legacy)
+            result=json.loads(file.read_text());self.assertEqual(result['witness']['persons'],[right])
+            self.assertEqual(result['person_corrections'][-1]['removed'],'Unsupported name');self.assertEqual(result['review'],{})
             (path/'witnesses/ru.json.accepted').write_text('{}')
+            with self.assertRaises(SystemExit):kit.cmd_witness_person_remove_legacy(legacy)
             args.qid='Q35802'
             with self.assertRaises(SystemExit):kit.cmd_witness_person_remove(args)
 

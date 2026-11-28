@@ -15,6 +15,12 @@ for every concept its key and its slug. A register reading is what a research
 register wrote about a place of the work: locus, thesis, concepts. It tells
 you where to look and what to test. It is no ground: the place is.
 
+A `sources` block defaults to the original work. If the remaining obstacle is
+a translation source, record `source_scope: "translation"`, the interface
+`language`, and `tried` entries with an HTTPS `url` and specific `outcome`.
+An incomplete search is a block, never an absent-language finding; original
+OCR does not supply the translation.
+
 ## 2. The edition
 
 Find, by fetching pages (law 7):
@@ -427,6 +433,12 @@ fetches the trusted reference, checks that the name stands in it and records
 its digest; `--anonymous` marks the unnamed hand of a text (a scholiast, a
 compiler) whose dating the reference gives. Every metadata change
 requires a fresh independent reading before acceptance.
+For a legacy unsupported participant stored as a string, remove only the exact
+string with `witness-person-remove-legacy . en 'Name' --reason '…'`. The
+command preserves the removed value and reason, leaves sourced participants in
+place and requires a fresh second reading; duplicate identical strings must be
+resolved explicitly rather than guessed.
+
 For an unaccepted witness, `witness-person-remove . ru author Q123 --reason
 'Reason for removing this mistaken identity.'` preserves the removed record
 and clears the second reading; verify the replacement before reviewing again.
