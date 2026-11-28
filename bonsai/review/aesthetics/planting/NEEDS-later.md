@@ -230,3 +230,38 @@ into approval. The reader did not invoke the command, so no approval has been
 recorded; the local packet remains unaccepted. The one-sentence revision
 supports a narrower conception, but its reduced length does not itself
 establish legal clearance.
+
+## Welsch journal translator and edition chronology
+
+`registry/D/works.jsonl` row `B-W068` attributes the 1996 *Theory, Culture &
+Society* article to translator Andrew Inkpin. The publisher's catalogue
+https://uk.sagepub.com/sites/default/files/tcs-catalogue_0.pdf credits Inkpin
+for the 1997 book *Undoing Aesthetics*, which includes a chapter with a similar
+title. Two readers inspected the 1996 journal scan at
+https://www.welsch.uni-jena.de/papers/W_Welsch_aestheticization_processes.pdf:
+its translator notes refer to a German original, but the inspected pages do not
+name Inkpin or establish that the book and journal use the same translation.
+An INIST/CNRS record https://pascal-francis.inist.fr/vibad/index.php?action=getRecordDetail&idt=4278536
+also describes a German article with the same title in 1993; its relation to
+the 1996 German chapter and English article remains to be checked. Please
+verify the actual 1996 journal translator and edition history, and resolve the
+imported attribution through the owning correction process. Until then the
+translator remains unidentified; neither the absence of an attribution on
+inspected pages nor the 1997 book credit proves who translated the 1996 text.
+The local packet and its rights and language searches remain blocked.
+
+## External image command prints an invented Archive link
+
+In `joseph-kosuth.art-after-philosophy`, the maker used `kit.py image ...
+--file` for a local copy of a Studio International page while the selected
+scan was `external`. The command saved an `external-n55.jpg` image without a
+source URL and printed an `archive.org/details/external/page/n55` link even
+though the image is from Studio, not Internet Archive. The maker subsequently
+used `kit.py page` to record the actual Studio URLs; the place links now point
+to Studio, and no Archive provenance is claimed. `cmd_image` currently
+constructs its printed URL unconditionally from the scan item. Please have
+the owner prevent invented Archive links for external scans and preserve or
+request the exact source URL for file-backed images, including an independent
+reader's matching provenance. A printed link or a hash alone does not establish
+source authority. The local packet remains unaccepted; its changed places
+need fresh independent review, a Mexico assessment and language searches.

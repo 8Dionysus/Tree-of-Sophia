@@ -1705,7 +1705,31 @@
       "areas": [
         "AE20"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "Hamlet on the Holodeck, MIT Press; institutional course scan labels the source 1998",
+          "url": "https://is.cuni.cz/studium/predmety/index.php?did=28742&do=download&kod=JJM169",
+          "sha256": "dc981b86a0821499d0a996ca474813a0173f29778ea0b5fd501d418d31c3b734",
+          "status": "Researcher personally read printed spread pp98–99, PDF leaf 2, covering the three requested readings. The PDF labels the edition 1998 but its title and copyright pages were not inspected; access through a university does not establish public redistribution or quotation rights."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Hamlet en la holocubierta, Paidós 1999, translated Susana Pajares Tosca",
+          "translator": "https://jamillan.com/hamlet.htm",
+          "secondary_quote": "https://dialnet.unirioja.es/descarga/articulo/7739864.pdf",
+          "status": "Translator identifies the translation and a scholarly source cites p111 for I049; the translated book page and rights remain unverified."
+        }
+      ],
+      "requested_places": [
+        "B:B-I026 p98",
+        "B:B-I038 p99",
+        "B:B-I049 p99"
+      ],
+      "remaining": "Review the exact edition and scan authority, compare all language candidates and assess quotation rights independently; no absence finding."
     },
     {
       "work": "jean-paul-sartre.l-imaginaire",
@@ -1814,7 +1838,30 @@
       "areas": [
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "Art After Philosophy, part I, Studio International 178(915), October 1969, pp134–137",
+          "url": "https://www.studiointernational.com/studio-international-october-1969-volume-178-number-915/",
+          "facsimile": "https://archive.studiointernational.com/SI1969/october/vol178-no915.html#p=54",
+          "status": "Researcher inspected publisher facsimile pp134–136. The readymade passage on p135 has a full stop before Which means, unlike some later transcriptions; do not merge sentences across editions. Reading access is not a reuse licence; publisher reserves rights. Other parts of the series are separate issues."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "ru",
+          "edition": "Искусство после философии, translated A. A. Kurbanovsky, Искусствознание 2001 no. 1",
+          "catalogue": "https://artstudies.sias.ru/upload/isk/isk_2025_2_37.pdf",
+          "status": "Bibliographic lead; secondary page ranges conflict and target passages and rights remain unverified. A separately mentioned 1979 translation is not assumed identical."
+        }
+      ],
+      "requested_places": [
+        "B-I135 aesthetics and art, pp134–135",
+        "B-I136 readymade and language of art, p135",
+        "B-I137 works of art as analytic propositions, p136"
+      ],
+      "remaining": "Independently review facsimile and minimum complete passages in context, search translations and establish rights. Later transcripts and reprints must not substitute for the 1969 sentence boundaries; no absence finding."
     },
     {
       "work": "karl-rosenkranz.aesthetik-des-haesslichen",
@@ -2700,7 +2747,16 @@
       "areas": [
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [{"name": "Colin Radford", "role": "author of part I", "dates_status": "not yet checked"}, {"name": "Michael Weston", "role": "author of part II", "dates_status": "not yet checked"}],
+      "original_candidates": [
+        {"edition": "Aristotelian Society Supplementary Volume 49(1), 1975, Radford part I and Weston part II", "doi": "https://doi.org/10.1093/aristoteliansupp/49.1.67", "publisher": "https://academic.oup.com/aristoteliansupp/article-abstract/49/1/67/1774156", "status": "Researcher checked publisher metadata, giving pp67–94, and a separately accessible scan with pp67–93; the scan's distribution authority is unverified. The distinct arguments and page ranges require lawful first-hand page and rights review."},
+        {"edition": "Radford p78 quoted in an Oxford thesis", "url": "https://ora.ox.ac.uk/objects/uuid%3A641778db-e3a1-41c9-b7c8-719ef497bfa0/files/m71104a4ff2cd1bf206f285e81780812e", "status": "Researcher located a complete attributed quotation; a direct fetch by the direction lead returned 403. This is a secondary quotation, not the 1975 page itself."},
+        {"edition": "Weston p81 quoted in a University of Antwerp thesis", "url": "https://pure.uvt.nl/ws/portalfiles/portal/68735905/the_paradox_of_interactive_fiction.pdf", "status": "A complete attributed quotation was located on printed p90. Weston states a premise Radford would need to establish, not a conclusion endorsed by Weston. Verify the image and quotation rights."}
+      ],
+      "requested_places": ["B:D-I055 Radford part I §8 p78", "B:D-I075 Weston part II pp81–82; B:D-R032 is a compiler relation"],
+      "remaining": "Verify each author's actual pages and individual rights, assess quotation in each jurisdiction, and search all required translations. An embedded partial Spanish translation is not a complete independent sentence. No absence finding."
     },
     {
       "work": "e-h-gombrich.art-and-illusion",
@@ -2760,7 +2816,31 @@
       "areas": [
         "AE18"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "Illusion and Art, in R. L. Gregory and E. H. Gombrich (eds.), Illusion in Nature and Art, London 1973, pp193–243",
+          "author_archive": "https://gombricharchive.files.wordpress.com/2011/04/showdis24.pdf",
+          "bibliography": "https://gombricharchive.wordpress.com/bibliography/",
+          "status": "Researcher personally read PDF pp1 and 15–16 of the retyped archive text, not a scan of printed book pages. In the driver example an illusion can be evoked again after the error is recognized; the author does not claim it must persist continuously. Archive pagination must not be silently mapped onto the 1973 edition, and reuse rights are unverified. Archive reports permission from heirs and efforts to secure other rights; this is not a general republication licence.",
+          "archive_rights": "https://gombricharchive.wordpress.com/"
+        }
+      ],
+      "requested_places": [
+        "B:B-D-I076 Plato",
+        "B:B-D-I073 recognition and appearance",
+        "B:B-D-R026"
+      ],
+      "remaining": "Independently compare the actual edition and passages, research translations and all applicable rights. Illusion in Nature and Art is not Art and Illusion. No absence finding.",
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Teresa de Lauretis, Alicia ya no, translated Silvia Iglesias Recuero, Cátedra 1992, pp99–100",
+          "catalogue": "https://pmbhum.unsa.edu.ar/opac_css/index.php?id=496&lvl=categ_see",
+          "status": "A secondary discussion includes short translated fragments and cites the 1973 chapter; attribution of the specific quotation and correspondence to a complete source sentence are unverified."
+        }
+      ]
     },
     {
       "work": "erwin-panofsky.meaning-in-the-visual-arts",
@@ -2769,7 +2849,48 @@
       "areas": [
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "Meaning in the Visual Arts, 1955, chapter I pp28–32",
+          "secondary_excerpt": "https://critique-of-ar.net/excerpts/Panofsky.htm",
+          "edition_history": "https://www.alianzaeditorial.es/primer_capitulo/el-significado-en-las-artes-visuales.pdf",
+          "status": "Researcher inspected secondary excerpts, not images of target pages. Publisher preview says chapter I revises and adds to Studies in Iconology (1939); a Cambridge study notes the third level is designated differently. An OCR lead indicates the conventional secondary level can be absent in some works; verify the printed context before treating analytical levels as universally sequential."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "El significado en las artes visuales, translated Nicanor Ancochea Millet, Alianza 1979",
+          "publisher": "https://www.alianzaeditorial.es/libro/alianza-forma-af/el-significado-en-las-artes-visuales-erwin-panofsky-9788420686523/",
+          "status": "Publisher preview identifies edition but omits target passages."
+        },
+        {
+          "language": "ru",
+          "edition": "Смысл и толкование изобразительного искусства, translated V. V. Simonov, Akademichesky Proekt 1999, from the 1957 English edition",
+          "catalogue": "https://opac.liart.ru/record/307/52534c412f3335363833",
+          "status": "Bibliographic lead; target pages and rights unverified."
+        },
+        {
+          "language": "de",
+          "edition": "Sinn und Deutung in der bildenden Kunst, translated Wilhelm Höck, DuMont 1975/1978",
+          "catalogue": "https://www.khist.uzh.ch/dam/jcr%3A00000000-5531-7893-0000-0000431c0274/Richtlinien%202.3.pdf",
+          "status": "University documentation identifies edition and translator; target pages not checked. The later Studien zur Ikonologie uses the 1955 chapter in Höck’s translation, not automatically the 1939 text."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "Translations associated with 傅志强 (1987) and 邵宏 (2024)",
+          "publisher": "https://www.cp.com.cn/book/4d87a2a8-1.html",
+          "status": "Catalogue leads; target pages, edition correspondence and rights unverified."
+        }
+      ],
+      "requested_places": [
+        "B:C-A-I107 pp28–32",
+        "B:C-A-I108 pp28–30",
+        "B:C-A-R052"
+      ],
+      "remaining": "Inspect actual English pages and distinguish 1939, 1955 and later translations. Assess rights and exact translation passages; no absence finding."
     },
     {
       "work": "fredric-jameson.postmodernism-or-the-cultural-logic-of-late",
@@ -3052,7 +3173,40 @@
       "areas": [
         "AE20"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "de",
+      "original_candidates": [
+        {
+          "edition": "Atmosphäre als Grundbegriff einer neuen Ästhetik, Kunstforum International 120, 247–255, 1992",
+          "publisher": "https://www.kunstforum.de/en/article/atmosphare-als-grundbegriff-einer-neuen-asthetik/",
+          "author_bibliography": "https://www.philosophie.tu-darmstadt.de/media/institut_fuer_philosophie/pdf/Publikationen_Boehme.pdf",
+          "status": "The author’s institutional bibliography and publisher list the German original in 1992. The publisher preview and personally inspected English p113 use different examples (thunderstorm sky versus domestic garden); this is not a word-for-word match. The German journal §6 image and rights remain unverified."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "Atmosphere as the Fundamental Concept of a New Aesthetics, translated David Roberts, Thesis Eleven 36, 113–126, 1993",
+          "url": "https://www.hse.ru/data/2013/12/09/1339377124/Boehme_atmosphere.pdf",
+          "status": "The author bibliography calls this a shortened version; the 2018 edition preview identifies an omitted section. Researcher personally inspected printed pp113, 122 and 125, the latter credits translator David Roberts. The printed and archival overlays name different copyright holders; reuse and distribution rights need verification."
+        },
+        {
+          "language": "ru",
+          "url": "https://metamodernizm.ru/atmosphere-and-a-new-aesthetics/",
+          "status": "Initial OCR wrongly inserted a negation into the English leaf example; the researcher personally checked p122 and confirmed that the Russian agrees on that point. In the next example the Russian attributes serenity to the evening and omits the garden; judgmental is also rendered subjective in section 2. Translator and publication authority unestablished; compare each passage before use."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "气氛美学, translated 贾红雨, 中国社会科学出版社 2018, ISBN 9787520315050",
+          "catalogue": "https://resource4.gzlib.org.cn/opac/book/3003413921?globalSearchWay=author",
+          "status": "Catalogue lead for a translation of the German book; target section, precise text and rights unverified. A separate 2003 Taiwan version is not assumed to be simplified Chinese."
+        }
+      ],
+      "requested_places": [
+        "B-I021 pp113–126, especially p122",
+        "B-I048 §6 p122"
+      ],
+      "remaining": "Inspect original and translation page images and distinguish the shortened English article from the German original and the 1995 book. Verify all required languages and applicable quotation rights; no absence finding."
     },
     {
       "work": "gian-carlo-rota.the-phenomenology-of-mathematical-beauty",
@@ -3065,8 +3219,9 @@
       "original_language": "en",
       "people": [{"name": "Gian-Carlo Rota", "role": "author", "birth": 1932, "death": 1999, "evidence": ["https://news.mit.edu/1999/rota"]}],
       "original_candidates": [
-        {"edition": "Synthese 111(2), 171–182, 1997", "doi": "https://doi.org/10.1023/A:1004930722234", "publisher": "https://link.springer.com/article/10.1023/A:1004930722234", "status": "Publisher confirms article and pages; full text is subscription content. No general open licence has been established."},
-        {"edition": "Scholarly quotation of the Synthese article p181", "url": "https://www.pure.ed.ac.uk/ws/portalfiles/portal/537459690/manuscript-unblinded-clean.pdf", "status": "Researcher found complete adjacent sentences in an Edinburgh University manuscript, with an exact article-page reference; assess their precise wording, scholarly context and quotation rights separately."}
+        {"edition": "Synthese 111(2), 171–182, 1997", "doi": "https://doi.org/10.1023/A:1004930722234", "publisher": "https://link.springer.com/article/10.1023/A:1004930722234", "status": "Publisher confirms article and pages; full text is subscription content. Crossref lists Springer text-and-data-mining terms, not a general republication licence; OpenAlex reports closed access with no repository full text. These metadata do not establish general reuse permission."},
+        {"edition": "Scholarly quotation of the Synthese article p181", "url": "https://www.pure.ed.ac.uk/ws/portalfiles/portal/537459690/manuscript-unblinded-clean.pdf", "status": "Researcher found complete adjacent sentences in an Edinburgh University manuscript, with an exact article-page reference; assess their precise wording, scholarly context and quotation rights separately."},
+        {"edition": "Indiscrete Thoughts, chapter X, Springer 1997, publisher preview pp121–122", "url": "https://page-one.springer.com/pdf/preview/10.1007/978-0-8176-4781-0_10", "sha256": "705bb5eb2936b34ed2d2aa8808459a81baf1d0b66b1a9ee1567c73fa372fb460", "status": "Maker and direction lead inspected the two preview page images: the list of mathematical objects and the theorem/proof contrast are present. This is the book edition, distinct from the journal wording; p122 also asserts the asymmetric converse that beautiful proofs of ugly theorems cannot be found. The preview does not contain the enlightenment passage. Rights assessment remains open."}
       ],
       "translation_candidates": [
         {"language": "es", "url": "https://backend.educ.ar/refactor_resource/get-attachment/23962", "edition": "Pensamientos indiscretos, A. Martín and A. Villaveces, quoted in Argentinian educational material pp45–46", "status": "Researcher found sentence-level candidates in an official educational source. A passage substitutes beautiful theorems for beautiful theories and the book edition differs from the journal; inspect images, translator attribution, precise alignment and rights."}
@@ -3499,7 +3654,28 @@
       "areas": [
         "AE32"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "Moderate Moralism, British Journal of Aesthetics 36(3), July 1996, pp223–238",
+          "doi": "https://doi.org/10.1093/bjaesthetics/36.3.223",
+          "publisher": "https://academic.oup.com/bjaesthetics/article-abstract/36/3/223/9474",
+          "research_scan": "https://laurenralpert.wordpress.com/wp-content/uploads/2015/04/carroll-moderate-moralism.pdf",
+          "status": "Researcher personally inspected pp233–236 of a CUNY-labelled copy hosted on WordPress; public redistribution authority is unverified. The publisher identifies the work but exposes only the first page. Carroll allows a counterfactual impediment for a morally sensitive audience, describes moral learning as a possible by-product, and explicitly does not treat every moral defect as an aesthetic defect."
+        },
+        {
+          "edition": "Moderate Moralism, Beyond Aesthetics, Cambridge University Press 2001, pp293–306",
+          "doi": "https://doi.org/10.1017/CBO9780511605970.019",
+          "publisher": "https://www.cambridge.org/core/books/abs/beyond-aesthetics/moderate-moralism/1C9501D64CA08EB441F68B2C880FF6BD",
+          "status": "Publisher shows the beginning of the reprint, not the target pages; edition correspondence and rights need checking."
+        }
+      ],
+      "requested_places": [
+        "B:D-I027 pp233–235",
+        "B:D-I028 pp235–236"
+      ],
+      "remaining": "Find a lawful source for exact passages, independently review context and rights, and research all requested translations. No absence finding."
     },
     {
       "work": "noel-carroll.the-philosophy-of-horror-or-paradoxes",
@@ -3616,7 +3792,43 @@
       "areas": [
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "Feeling and Form, Scribner, ©1953; date of the scanned printing unestablished",
+          "research_scan": "https://static1.squarespace.com/static/60257c7124e2f158591b8ad2/t/60259a96a9551722187fd711/1613077147822/Langer_FeelingForm.pdf",
+          "controlled_borrowing": "https://openlibrary.org/books/OL58834913M/feeling_and_form",
+          "status": "Researcher personally inspected pp25–26, 28 and 52 in a third-party scan; its title and copyright page show 1953 but its E-5.69[MC] printing code may indicate a later printing. Distribution authority is unverified. The controlled library loan was not opened for these pages. Langer allows art sometimes to be symptomatic of the artist’s feelings but distinguishes that symptom from specifically artistic value; p28 uses music, while p52 discusses art forms more broadly."
+        }
+      ],
+      "requested_places": [
+        "B:C-A-I105",
+        "B:C-A-I106",
+        "B:C-A-R051"
+      ],
+      "remaining": "Find a lawful readable source for exact passages and review independently; distinguish Feeling and Form from Philosophy in a New Key and search translations and quotation rights. No absence finding.",
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Sentimiento y forma, UNAM 1967, translated Mario Cárdenas and Luis Octavio Hernández",
+          "publisher": "https://www.filosoficas.unam.mx/catalogo/?autores=langer-susanne-k",
+          "secondary_quote": "https://tesiunamdocumentos.dgb.unam.mx/pd2007/0618314/0618314.pdf",
+          "status": "Publisher identifies the translators; dissertation pp99–100 quotes the Spanish p36 on music. The book itself and rights were not checked. Another quote at p39 is about music in the English p32 and should not be silently generalized to all art."
+        },
+        {
+          "language": "de",
+          "edition": "Fühlen und Form, translated Christiana Goldmann and Christian Grüny, Meiner 2018",
+          "publisher": "https://meiner.de/fmv_de/fa-hlen-und-form-15660",
+          "status": "Publisher preview confirms edition and contributors; target pages and rights unverified."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "Chinese editions 1986 and 2013",
+          "catalogue": "https://www.sklib.cn/booklib/bookPreview?ID=6278839&SiteID=122&fromSubID=729",
+          "status": "Publisher catalogue confirms the 1986 edition; secondary bibliography names several contributors and 高艳萍 for 2013. Exact contributors per text, original pages and rights need verification."
+        }
+      ]
     },
     {
       "work": "suzanne-keen.a-theory-of-narrative-empathy",
@@ -3678,7 +3890,41 @@
         "AE18",
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "The Reading Process: A Phenomenological Approach, New Literary History 3(2), Winter 1972, pp279–299",
+          "secondary_quotation": "https://escholarship.org/content/qt3c0838zx/qt3c0838zx_noSplash_64ec5f1cee8aabd424f031e00d023d9b.pdf?t=rdo53s",
+          "status": "Researcher found an indexed university dissertation p10 note 18 reproducing a sentence attributed to journal p281; its PDF did not download and the journal image has not been inspected. An indexed institutional copy of the journal now returns 404. Do not present either as a personally checked original or transplant pagination from The Implied Reader."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "ru",
+          "edition": "Процесс чтения, in Современная литературная теория, ed. and translated I. V. Kabanova, Flinta/Nauka 2004, pp201–224",
+          "catalogue": "https://visnik.org.ua/pdf/v2017-04-04-tkachuk.pdf",
+          "status": "Bibliographic lead; target passages and rights unverified."
+        },
+        {
+          "language": "es",
+          "edition": "Estética de la recepción, ed. Mayoral 1987 pp215–243; separate Warning edition 1989 pp149–164",
+          "catalogue": "https://dialnet.unirioja.es/descarga/tesis/25229.pdf",
+          "status": "Bibliographic leads; translator and target passages not confirmed. El acto de leer is a different book."
+        },
+        {
+          "language": "de",
+          "edition": "Der Lesevorgang: Eine phänomenologische Perspektive, in Warning, Rezeptionsästhetik 1975, pp253–276",
+          "catalogue": "https://www.smb.museum/fileadmin/website/Institute/Institut_fuer_Museumsforschung/Publikationen/Mitteilungen/MIT053.pdf",
+          "status": "Bibliographic lead; source text, translation status and rights unverified."
+        }
+      ],
+      "requested_places": [
+        "B:D-I031 section I pp279–280",
+        "B:D-I032 pp280–281",
+        "B:D-R020"
+      ],
+      "remaining": "Find a lawful readable journal image and verify exact sentence boundaries, context and edition relationships. Investigate all requested languages and rights; no absence finding."
     },
     {
       "work": "wolfgang-welsch.aestheticization-processes",
@@ -3688,7 +3934,39 @@
         "AE32",
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "de",
+      "original_candidates": [
+        {
+          "edition": "Aestheticization Processes: Phenomena, Distinctions and Prospects, Theory, Culture & Society 13(1), 1–24, 1996",
+          "doi": "https://doi.org/10.1177/026327696013001001",
+          "author_site_pdf": "https://www.welsch.uni-jena.de/papers/W_Welsch_aestheticization_processes.pdf",
+          "status": "Researcher personally inspected journal pp18–19 on the author’s university site. The scan carries © 1996 Theory, Culture & Society and no open licence; availability does not establish reuse or distribution authority. It contains translator notes referring to a German original; translator of this specific journal edition not established. Andrew Inkpin is credited in the 1997 book, but its identity with this 1996 translation remains to be checked."
+        },
+        {
+          "edition": "Ästhetisierungsprozesse – Phänomene, Unterscheidungen, Perspektiven, Grenzgänge der Ästhetik, Reclam 1996, pp9–61",
+          "catalogue": "https://media.suhrkamp.de/mediadelivery/asset/666bad9b94444fdb9a386d77fb2b4116/die-kunst-der-freiheit_9783518296134_leseprobe.pdf",
+          "status": "Bibliographic lead; original page images and relative publication order within 1996 not verified."
+        },
+        {
+          "edition": "Ästhetisierungsprozesse – Phänomene, Unterscheidungen und Perspektiven, Deutsche Zeitschrift für Philosophie 41(1), pp7–29, 1993",
+          "catalogue": "https://pascal-francis.inist.fr/vibad/index.php?action=getRecordDetail&idt=4278536",
+          "status": "Institutional bibliographic lead; the relationship to the 1996 German chapter and English journal edition needs comparison, and pages have not been inspected."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "zh-Hans",
+          "edition": "重构美学, 2002 and 2006 editions, chapter 审美化过程：现象、区分和前景",
+          "catalogue": "https://wapbaike.baidu.com/item/%E9%87%8D%E6%9E%84%E7%BE%8E%E5%AD%A6/3500517",
+          "status": "Secondary bibliographic lead; catalogs disagree on contributors and the target pages and rights are not checked."
+        }
+      ],
+      "requested_places": [
+        "B:D-I131 p18",
+        "B:D-I132 p19"
+      ],
+      "remaining": "Inspect the German source and independently review the English pages and translator; evaluate precise quotation rights and research ru/es/de/zh-Hans. No absence finding."
     },
     {
       "work": "akane-ohashi.beyond-the-baby-schema",
@@ -4330,7 +4608,20 @@
       "areas": [
         "AE21"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "D. E. Berlyne, Novelty, Complexity, and Hedonic Value, Perception & Psychophysics 8(5A), 279–286, 1970",
+          "doi": "https://doi.org/10.3758/BF03212593",
+          "publisher_pdf": "https://link.springer.com/content/pdf/10.3758/BF03212593.pdf",
+          "status": "Researcher personally inspected the publisher scan p279: the abstract distinguishes homogeneous sequences and simple versus complex stimuli; complex stimuli declined less in pleasantness or became more pleasant. Do not turn this experimental result into a universal curve. The PDF was obtainable without login although the landing page advertises subscription; scan copyright is marked Psychonomic Journals 1970 and no open reuse licence has been established."
+        }
+      ],
+      "requested_places": [
+        "C:A-I054, novelty, complexity and hedonic value"
+      ],
+      "remaining": "Independently inspect the full page and context, prepare source-bound evidence and review rights. Search translations in all required languages; no absence finding. The 1960 book is a separate work."
     },
     {
       "work": "david-comer-kidd.reading-literary-fiction-and-theory-of-mind",
@@ -4552,7 +4843,48 @@
       "areas": [
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "What Metaphors Mean, Critical Inquiry 5(1), 31–47, 1978",
+          "doi": "https://doi.org/10.1086/447971",
+          "publisher": "https://www.journals.uchicago.edu/doi/10.1086/447971",
+          "educational_scan": "https://moodle.bezalel.ac.il/pluginfile.php/112165/mod_resource/content/2/davidson%20what%20metaphors%20mean.pdf",
+          "status": "Researcher inspected images pp31–32 and 46–47 in an institutional JSTOR scan; the full central sentence crosses pp31–32, and p47 includes the critic’s help in seeing as well as Davidson’s distinction. The scan’s public distribution authority is unverified. Publisher webpage attributes copyright to University of Chicago, whereas printed p31 states © 1978 Donald Davidson; do not resolve this conflict by assumption."
+        }
+      ],
+      "requested_places": [
+        "C:A-I061 pp32 and 46–47",
+        "C:A-R030"
+      ],
+      "remaining": "Review the complete passage and concrete quotation rights independently; do not read Davidson as forbidding critical explanation. Research all requested translations and their rights, no absence finding.",
+      "translation_candidates": [
+        {
+          "language": "ru",
+          "edition": "Что означают метафоры, translated M. A. Dmitrovskaya, Теория метафоры, Progress 1990, pp173–193",
+          "catalogue": "https://iza.tj/sites/default/files/documents/Stati/muruvatiyon_sabrina_1.pdf",
+          "status": "Bibliographic lead; target pages and rights unverified."
+        },
+        {
+          "language": "es",
+          "edition": "Qué significan las metáforas, in De la verdad y de la interpretación, Gedisa 1990",
+          "catalogue": "https://www.revistadelibros.com/donald-davidson-vida-y-obra/?pdf=5681",
+          "status": "Guido Filippi is named for the volume; verify chapter attribution and exact pages and rights."
+        },
+        {
+          "language": "de",
+          "edition": "Was Metaphern bedeuten, in Wahrheit und Interpretation, Suhrkamp 1986",
+          "publisher": "https://www.suhrkamp.de/buch/donald-davidson-wahrheit-und-interpretation-t-9783518284964",
+          "status": "Joachim Schulte is named for the volume; verify chapter attribution and exact pages and rights."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "隐喻的含意, in 语言哲学, Commercial Press 1998, pp843–870",
+          "catalogue": "https://journal.bisu.edu.cn/article/2020/1003-6539/1003-6539-42-2-104.shtml",
+          "status": "Bibliographic lead; the volume has several translators, and this chapter’s translator, target passage and rights are not established."
+        }
+      ]
     },
     {
       "work": "e-h-gombrich.preface-to-art-and-illusion2000",
@@ -4612,7 +4944,34 @@
       "areas": [
         "AE16"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "General Criteria and Reasons in Aesthetics, Approach to Aesthetics, Oxford University Press 2001, ch. 8, pp104–118",
+          "doi": "https://doi.org/10.1093/0198238991.003.0008",
+          "publisher": "https://academic.oup.com/book/2663/chapter-abstract/143088018",
+          "status": "Publisher search-indexed abstract describes shared general reasons and Sibley’s objections to Beardsley’s stronger criteria. The direct publisher page redirected to an inaccessible endpoint; full chapter was not read, and the abstract author is not independently established. Its availability is not a reuse licence. SEP reproduces several sentences from pp107–108 but is a secondary quotation, not inspection of the book; distinguish the author’s words from Shelley’s own interpretation.",
+          "secondary_quote": "https://plato.stanford.edu/archives/fall2022/entries/aesthetic-concept/"
+        },
+        {
+          "edition": "Essays on Aesthetics: Perspectives on the Work of Monroe C. Beardsley, Temple University Press, 1983, pp3–20",
+          "catalogue": "https://philpapers.org/rec/SIBGCA",
+          "status": "Bibliographic lead; not inspected against the 2001 reprint and not used as interchangeable pagination."
+        }
+      ],
+      "requested_places": [
+        "C-I066, 2001 pp104–118; registry claim based only on publisher abstract"
+      ],
+      "remaining": "Locate lawful full text, compare edition and precise passage, research translations and rights; no absence finding. Do not infer that each general reason is a mechanical sufficient rule.",
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Fernando Infante del Rosal, Cartaphilus 18 (2020), printed p159, quotation attributed to Sibley 2001 pp107–108",
+          "url": "https://idus.us.es/server/api/core/bitstreams/214e6445-935b-463b-9f39-1371d6935def/content",
+          "status": "Researcher personally viewed the article page and compared the passage to SEP. The quotation translator is not named, and this is not evidence of a complete translated edition or of reuse rights."
+        }
+      ]
     },
     {
       "work": "gary-d-sherman.viewing-cute-images-increases-behavioral",
@@ -4807,7 +5166,14 @@
       "areas": [
         "AE13"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [{"name": "Harry McGurk", "role": "coauthor", "dates_status": "not yet checked"}, {"name": "John MacDonald", "role": "coauthor", "dates_status": "not yet checked"}],
+      "original_candidates": [
+        {"edition": "Nature 264(5588), 746–748, 23 December 1976", "doi": "https://doi.org/10.1038/264746a0", "publisher": "https://www.nature.com/articles/264746a0", "status": "Publisher metadata and indexed abstract support the audiovisual observation; researcher checked the publisher record. Direct browser navigation timed out. Reversed dubbing yields additional responses, so one fusion must not be presented as the only outcome. The public abstract is not a general reuse licence and the registry's third-party full PDF has unverified distribution authority."}
+      ],
+      "requested_places": ["B:A-I022, pp746–748 audiovisual speech observation; B:A-R006 is a compiler's comparison with synaesthesia, not an experimental claim of the paper"],
+      "remaining": "Identify all participants and rights in each jurisdiction, verify exact lawful pages and search requested translations. The later label McGurk effect must not be attributed to the 1976 article without evidence. No absence finding."
     },
     {
       "work": "heinrich-woelfflin.kunstgeschichtliche-grundbegriffe",
@@ -5534,7 +5900,19 @@
       "areas": [
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [{"name": "Max Black", "role": "author", "birth": 1909, "death": 1988, "evidence": ["https://ecommons.cornell.edu/entities/publication/e27e42dd-8c04-4ddb-9eb2-901ec58471b1"]}],
+      "original_candidates": [
+        {"edition": "XII.—Metaphor, Proceedings of the Aristotelian Society 55(1), 273–294, 1955; volume season 1954–1955", "doi": "https://doi.org/10.1093/aristotelian/55.1.273", "publisher": "https://academic.oup.com/aristotelian/article-abstract/55/1/273/1802110", "scholarly_quote": "https://arcjournal.library.mcgill.ca/article/download/733/748", "status": "Publisher lists the 1955 issue; the register year 1954 should not be treated as a verified publication date. A scientific article quotes the wolf metaphor through a book reprint, with spelling differing from the journal. The journal copy's distribution authority, actual page image, text alignment and rights remain to be verified."}
+      ],
+      "translation_candidates": [
+        {"language": "ru", "edition": "Метафора, translated M. A. Dmitrovskaya, in Теория метафоры, 1990, pp153–172", "catalogue": "https://www.iza.tj/sites/default/files/documents/Stati/muruvatiyon_sabrina_1.pdf", "status": "Bibliographic lead; target text and rights unverified."},
+        {"language": "es", "edition": "Modelos y metáforas, translated Víctor Sánchez de Zavala, Tecnos 1966, from the 1962 book", "catalogue": "https://diposit.ub.edu/dspace/bitstream/2445/35645/3/03.RGH_3de4.pdf", "status": "Bibliographic lead; a scholarly review criticizes translation errors, while the target page and rights are unverified."},
+        {"language": "de", "edition": "Die Metapher, translated Margit Smuda, in Theorie der Metapher, 1983, pp55–79", "catalogue": "https://www.academia.edu/100792835/Zentrum_und_Peripherie_Theologische_Perspektiven_auf_Kirche_und_Gesellschaft_Festschrift_f%C3%BCr_Otmar_Meuffels", "status": "Researcher found a bibliographic attribution in a scholarly volume; target text and rights unverified."}
+      ],
+      "requested_places": ["C:A-I060 pp287–289, associated implications and metaphor"],
+      "remaining": "Verify actual original and translated passages and all jurisdictional rights. The associated implications may be erroneous and may be specially constructed; do not reduce the argument to fixed stereotypes. Search remaining languages; no absence finding."
     },
     {
       "work": "melanie-c-green.transportation-into-narrative-worlds",
@@ -5823,7 +6201,19 @@
       "areas": [
         "AE24"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [{"name": "Nelson Goodman", "role": "author", "birth": 1906, "death": 1998, "evidence": ["https://hollisarchives.lib.harvard.edu/catalog/hua30020"]}],
+      "original_candidates": [
+        {"edition": "Ways of Worldmaking, Hackett, 1978", "publisher": "https://hackettpublishing.com/literature/aesthetics/ways-of-worldmaking", "scholarly_quote": "https://www.pure.ed.ac.uk/ws/portalfiles/portal/186010194/FormilanASM2020StyleTypologies.pdf#page=6", "status": "The researcher read a complete quotation attributed to book p27 in a university manuscript; the selected register range pp32–40 and the book image itself are not verified. Chapter II also appeared as a distinct 1975 article; their page numbers must not be mixed."}
+      ],
+      "translation_candidates": [
+        {"language": "ru", "edition": "Способы создания миров, translated M. V. Lebedev, 2001", "status": "Scholarly quotations found as text-layer candidates; actual book pages and rights not verified. A separate online text says it corrects editorial errors and cannot automatically be identified with print."},
+        {"language": "es", "edition": "Maneras de hacer mundos, translated Carlos Thiebaut, Visor 1990", "catalogue": "https://isegoria.revistas.csic.es/index.php/isegoria/article/download/303/304", "status": "Bibliographical evidence only; target pages and rights unverified."},
+        {"language": "de", "edition": "Weisen der Welterzeugung, translated Max Looser, Suhrkamp 1984", "catalogue": "https://gams.uni-graz.at/o:reko.good.1978", "status": "University record includes other chapters, not the target style passage; rights unverified."}
+      ],
+      "requested_places": ["C:A-I057 style, book pp32–40; precise sentence and edition to be established"],
+      "remaining": "Verify original and translated pages, distinguish the 1975 and 1978 texts, assess rights and search remaining languages. No absence finding."
     },
     {
       "work": "noel-carroll.the-grotesque-today",
@@ -6058,7 +6448,17 @@
       "areas": [
         "AE22"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [{"name": "Richard Wollheim", "role": "author", "birth": 1923, "death": 2003, "evidence": ["https://press.princeton.edu/books/paperback/9780691252292/painting-as-an-art"]}],
+      "original_candidates": [
+        {"edition": "Painting as an Art, Princeton University Press, copyright 1987; 2023 reissue", "publisher": "https://press.princeton.edu/books/paperback/9780691252292/painting-as-an-art", "scholarly_quote": "https://repository.up.ac.za/server/api/core/bitstreams/664d152d-e5e5-4d81-8b89-95a412446527/content", "status": "A Pretoria thesis quotes a complete sentence attributed to book p46, but its pronoun requires surrounding context. The book page, edition alignment and rights remain unverified; the London 1987 edition is separate."}
+      ],
+      "translation_candidates": [
+        {"language": "es", "edition": "La pintura como arte, translated Bernardo Moreno Carrillo, Madrid: Visor, 1997", "catalogue": "https://biblioteca.unap.edu.pe/opac_css/index.php?lvl=notice_display&id=16623", "status": "Catalogued translation; target page and rights unverified."}
+      ],
+      "requested_places": ["C:A-I058 seeing-in, p46 and the distinction between configurational and recognitional aspects"],
+      "remaining": "Verify the cited book edition, complete contextual sentences, contributors and rights; search the other translations. A Chinese translation of Art and Its Objects is a different work. No absence finding."
     },
     {
       "work": "robert-hopkins.picture-image-and-experience",
@@ -6403,7 +6803,13 @@
       "areas": [
         "AE03"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "ru",
+      "original_candidates": [
+        {"edition": "В. В. Бычков, «Безобразное», Новая философская энциклопедия, ИФ РАН electronic text", "url": "https://iphras.ru/elib/0371.html", "edition_context": "https://iphlib.ru/library/collection/newphilenc/page/about", "status": "The personally read institutional article illustrates aesthetic representation through Bychkov's reconstruction of Aristotle, not an unconditional claim about all depictions. The queue year 2026 denotes the recorded electronic state, not an established composition date. The encyclopedia describes editions of 2000–2001 and 2010; the specific print edition and page have not been compared. The site reserves rights; open reading is not a general reuse licence."}
+      ],
+      "requested_places": ["A:E062 distinction between the ugly object and its artistic representation"],
+      "remaining": "Identify contributors and jurisdictional rights, inspect the exact print edition and research all requested translations. A similarly named textbook section is a different publication. No absence finding."
     },
     {
       "work": "vladimir-j-konecni.being-moved-as-one-of-the-major-aesthetic",
@@ -6622,7 +7028,27 @@
       "areas": [
         "AE23"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "W. K. Wimsatt Jr. and M. C. Beardsley, The Intentional Fallacy, The Sewanee Review 54(3), 1946, pp468–488",
+          "publisher_preview": "https://catalogimages.wiley.com/images/db/pdf/9781119622604.c01.5.pdf",
+          "status": "Researcher found the central complete sentence reproduced in a publisher preview matching the 1946 journal wording. The preview bibliographic note incorrectly dates the original article 1949. The 1954 book version is revised; the registry refers to a 1987 reprint pp367–369, whose web transcription differs from the 1946 and 1954 wording. The 1987 printed image has not been checked, so the source of that difference remains uncertain. Read access does not establish reuse rights."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "La falacia intencional, translated José María Valverde, Papeles de Son Armadans no. 8, November 1956, p170",
+          "catalogue": "https://www.cervantesvirtual.com/portales/archivo_fundacion_publica_cela/papeles_son_armadans_v/",
+          "status": "Bibliographic attribution and issue lead; target passage, underlying revision and translation rights not verified."
+        }
+      ],
+      "requested_places": [
+        "C:A-I079, section I, 1987 reprint pp367–369"
+      ],
+      "remaining": "Compare the requested reprint against an image and distinguish its revision from 1946. Verify translations, attribution and rights; searches are incomplete and no absence is asserted."
     },
     {
       "work": "winfried-menninghaus.the-distancing-embracing-model-of-the-enjoyment",
