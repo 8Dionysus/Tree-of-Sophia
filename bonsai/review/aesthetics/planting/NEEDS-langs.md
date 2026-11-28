@@ -226,3 +226,25 @@ attribution, distinct rights and page evidence and each independent review.
 Do not merge texts from editions or assume one translation's legal status
 covers another. This is separate from the existing request to extend a partial
 witness with places from the same edition.
+
+## Translation attributed to a named author collective
+
+For Schiller's *Über den Grund des Vergnügens an tragischen Gegenständen*,
+`III p150`, [Menninghaus, Wagner, Hanich, Wassiliwizky, Kuehnast and
+Jacobsen's 2015 research article](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0128451)
+prints a complete English rendering on pp. 1–2 and calls it “our translation”.
+The article names six authors and lists writing contributions for four, but
+neither identifies the individual translator nor states that all six personally
+translated it. An independent reader has compared the original and both
+published pages: the sense matches; the printed closing quote precedes the
+source citation and final period, so a freestanding final period requires an
+explicit normalization. The article's own page links CC BY 4.0 and identifies
+the rendering as the authors' translation; any use must credit the source and
+record changes. Source-bound PDF-page evidence is separately needed.
+
+Please identify or provide a reviewed way to represent an explicitly collective
+attribution, naming the article's six authors as the source collective without
+asserting that each was personally a translator or inventing a single person.
+Preserve exact edition, licence and page evidence and independent review. The
+candidate is not accepted and this request does not assert a particular
+individual's contribution or waive the source-page gate.
