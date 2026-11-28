@@ -4536,7 +4536,7 @@ For `text-layer.normalize-editorial`, the exact `policy` value is:
   "method": "editorial_normalization",
   "encoding": "UTF-8-strict",
   "text_max_bytes": 131072,
-  "edits_max_count": 256,
+  "edits_max_count": 128,
   "input_scope": "whole-exact-representation",
   "unicode_normalization": "editorial",
   "unicode_database_version": null,
@@ -4589,7 +4589,7 @@ assessment. No trimming, whitespace collapse or unrelated editorial
 rewrite is performed.
 
 Editorial normalization uses the same digest-bound edit shape, with at most
-256 ordered, nonoverlapping half-open code-point edits. Each edit binds the
+128 ordered, nonoverlapping half-open code-point edits. Each edit binds the
 exact predecessor substring and its SHA-256; output preserves every
 unmentioned byte. The version 1 policy forbids implicit changes. The
 predecessor must be unnormalized and remains retained unchanged. Its private
@@ -4625,8 +4625,8 @@ It cannot substitute a declared provider name for observed execution evidence.
 ##### Bounds, retained evidence and downstream route
 
 Input and output text are each at most 128 KiB, further narrowed by the grant;
-correction has at most 128 edits and editorial normalization at most 256,
-with per-reason length bounded at 2,048
+correction and editorial normalization have at most 128 edits, with
+per-reason length bounded at 2,048
 characters. This also bounds explicit input/output strings in the layer record.
 No quadratic edit search runs. Original acquired Files retain the 512 MiB
 streamed-fixity ceiling; no image/PDF decompression or provider process is run.

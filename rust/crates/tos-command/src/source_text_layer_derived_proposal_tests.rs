@@ -212,7 +212,7 @@ fn editorial_normalization_uses_only_digest_bound_ordered_edits_and_preserves_pr
     let policy: Value = serde_json::from_slice(&output.files["derivation-policy.json"]).unwrap();
     assert_eq!(policy["operation"], "text-layer.normalize-editorial");
     assert_eq!(policy["method"], "editorial_normalization");
-    assert_eq!(policy["edits_max_count"], MAX_EDITORIAL_EDITS);
+    assert_eq!(policy["edits_max_count"], MAX_EDITS);
     assert_eq!(
         policy["editorial_normalization_policy"]["schema_version"],
         "tos_native_editorial_normalization_policy_v1"
@@ -278,8 +278,8 @@ fn editorial_normalization_rejects_bad_digest_order_normalized_predecessor_and_e
         ))
     ));
 
-    let text = "a ".repeat(MAX_EDITORIAL_EDITS);
-    let edits = (0..MAX_EDITORIAL_EDITS)
+    let text = "a ".repeat(MAX_EDITS);
+    let edits = (0..MAX_EDITS)
         .map(|index| {
             edit(
                 &text,
@@ -292,8 +292,8 @@ fn editorial_normalization_rejects_bad_digest_order_normalized_predecessor_and_e
         .collect();
     assert!(Input::editorial(&text, edits).run().is_ok());
 
-    let text = "a ".repeat(MAX_EDITORIAL_EDITS + 1);
-    let edits = (0..MAX_EDITORIAL_EDITS + 1)
+    let text = "a ".repeat(MAX_EDITS + 1);
+    let edits = (0..MAX_EDITS + 1)
         .map(|index| {
             edit(
                 &text,

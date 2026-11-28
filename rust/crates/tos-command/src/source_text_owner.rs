@@ -918,13 +918,6 @@ impl OwnerTextDerivedSelection {
                 "native derived TextLayer derivation grant",
             ));
         }
-        if operation == "text-layer.normalize-editorial"
-            && cmd::array(cmd::field(&config, "material")?, "edits")?.len() > 256
-        {
-            return Err(SourceCommandError::Unsupported(
-                "native editorial normalization edit budget",
-            ));
-        }
         cmd::validate_expiry(
             cmd::text(derive, "expires_at")?,
             &crate::source_serialization::instant()?,

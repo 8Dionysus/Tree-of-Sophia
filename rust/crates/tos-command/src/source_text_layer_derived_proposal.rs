@@ -12,8 +12,7 @@ use std::time::Instant;
 use tos_foundation::{Digest256, JsonValue};
 
 const MAX_TEXT: usize = 131_072;
-const MAX_EDITS: usize = 128;
-const MAX_EDITORIAL_EDITS: usize = 256;
+pub(crate) const MAX_EDITS: usize = 128;
 const MAX_RECORD: usize = 1_048_576;
 const LAYER_SCHEMA: &str =
     "https://tree-of-sophia.local/ToS/contracts/source-text-layer.schema.json";
@@ -102,7 +101,7 @@ fn policy(operation: &str, form: &str, transcription: &str) -> SourceCommandResu
     };
     let mut result = json!({"schema_version":"tos_native_text_layer_derivation_policy_v1",
         "operation":operation,"method":method,"encoding":"UTF-8-strict",
-        "text_max_bytes":MAX_TEXT,"edits_max_count":if editorial_normalize {MAX_EDITORIAL_EDITS} else {MAX_EDITS},
+        "text_max_bytes":MAX_TEXT,"edits_max_count":MAX_EDITS,
         "input_scope":if supplied {"exact-source-anchor"} else {"whole-exact-representation"},
         "unicode_normalization":form,
         "unicode_database_version":if unicode_normalize {Some("16.0.0")} else {None},
@@ -374,11 +373,7 @@ pub(crate) fn build_derived_layer(
             &edits,
             &maker,
             &anchors,
-            if editorial_normalize {
-                MAX_EDITORIAL_EDITS
-            } else {
-                MAX_EDITS
-            },
+            MAX_EDITS,
             unicode_normalize,
             deadline,
             cancelled,

@@ -3,6 +3,7 @@
 //! source admission, publication permission or an authenticated provider claim.
 
 use crate::source_command::{self as cmd, SourceCommandError, SourceCommandResult};
+use crate::source_text_layer_derived_proposal::MAX_EDITS;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -17,8 +18,6 @@ const MAX_INPUT_FILES: usize = 128;
 const MAX_METADATA_BYTES: usize = 8_388_608;
 const MAX_CONTENT_BYTES: usize = 8_388_608;
 const MAX_DERIVED_TEXT_BYTES: usize = 131_072;
-const MAX_EDITS: usize = 128;
-const MAX_EDITORIAL_EDITS: usize = 256;
 const ASSESSMENT_SCHEMA: &str = "native-text-unit-assessment-subject.schema.json";
 const OWNER_CONTEXT_SCHEMA: &str = "ToS/contracts/owner-local-source-context.schema.json";
 
@@ -1399,14 +1398,9 @@ impl<R: SignNativeRead + ?Sized> Native<'_, R> {
         })?;
         let changes = cmd::field(cmd::field(layer, "derivation")?, "change_payload")?;
         let operations = cmd::array(changes, "operations")?;
-        let max_edits = if operation == "text-layer.normalize-editorial" {
-            MAX_EDITORIAL_EDITS
-        } else {
-            MAX_EDITS
-        };
         if cmd::text(changes, "kind")? != "explicit_operations"
             || operations.is_empty()
-            || operations.len() > max_edits
+            || operations.len() > MAX_EDITS
         {
             return Err(SourceCommandError::Invalid(
                 "native derived changes leave exact explicit operation profile",
