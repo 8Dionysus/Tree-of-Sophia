@@ -2063,6 +2063,31 @@
      "corrections": []
     }
    },
+   "friedrich-nietzsche.die-froehliche-wissenschaft": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the original is planted first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-nietzsche.die-froehliche-wissenschaft/witnesses/en.json",
+     "corrections": [],
+     "page_sources": {
+      "§290 p207b": [
+       {
+        "page": "p. 223",
+        "url": "https://archive.org/download/NietzscheJoyfulWisdom/page/n235.jpg",
+        "image_sha256": "c46d0d510c9b73ce4db8fa2c0c19beee79dcf330079bdf18b45fbd9aed522d13"
+       },
+       {
+        "page": "p. 224",
+        "url": "https://archive.org/download/NietzscheJoyfulWisdom/page/n236.jpg",
+        "image_sha256": "4154389fe2008e0ad4a6e32c125b209f8e9a6c20afee6100860c57bfaa85fd50"
+       }
+      ]
+     }
+    }
+   },
    "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen": {
     "en": {
      "absent": {
@@ -7456,6 +7481,139 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Nietzsche, The Joyful Wisdom, translated by Thomas Common, edited by Oscar Levy, Edinburgh and London: T. N. Foulis, 1910, pp. 223–224.",
+     "year": 1910,
+     "url": "https://archive.org/details/NietzscheJoyfulWisdom",
+     "licence": "Public-domain historical prose translation in the listed jurisdictions; scan supplied by Internet Archive from a Google digitisation.",
+     "attribution": "Friedrich Nietzsche, translated by Thomas Common; edited by Oscar Levy.",
+     "maker": "codex-2026-11-27-nietzsche-en-maker",
+     "persons": [
+      {
+       "role": "translator",
+       "qid": "Q5611223",
+       "name": {
+        "en": "Thomas Common",
+        "ru": "Thomas Common"
+       },
+       "born": 1850,
+       "died": 1919,
+       "source": "https://www.wikidata.org/wiki/Q5611223",
+       "evidence": {
+        "file": "wikidata-Q5611223.json",
+        "sha256": "dfe30700edb5cdb358f351434312c6c6ada56cf0e020ebe3254a3ac3879b6ded",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q5611223.json"
+       }
+      },
+      {
+       "role": "author",
+       "qid": "Q9358",
+       "name": {
+        "en": "Friedrich Nietzsche",
+        "ru": "Фридрих Ницше"
+       },
+       "born": 1844,
+       "died": 1900,
+       "source": "https://www.wikidata.org/wiki/Q9358",
+       "evidence": {
+        "file": "wikidata-Q9358.json",
+        "sha256": "0460c77c598958521cdf24abd8cc8c339df66eb760cae2637db45c4abe2faeb4",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q9358.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q101732",
+       "name": {
+        "en": "Oscar Levy",
+        "ru": "Oscar Levy"
+       },
+       "born": 1867,
+       "died": 1946,
+       "source": "https://www.wikidata.org/wiki/Q101732",
+       "evidence": {
+        "file": "wikidata-Q101732.json",
+        "sha256": "35d91943e281a86e05bdc1466b8be9b27c33029a6d35c969565acf39ca902899",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q101732.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published 1910, before 1931, 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1; author died 1900, prose translator 1919, editor 1946, all over 70 years: https://eur-lex.europa.eu/eli/dir/2006/116/oj"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code article 1281, conservatively 70 years plus four wartime years after latest death 1946: https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Thomas Common",
+        "ru": "Thomas Common"
+       },
+       "qid": "Q5611223",
+       "source": "https://www.wikidata.org/wiki/Q5611223",
+       "born": [
+        {
+         "year": 1850
+        }
+       ],
+       "died": [
+        {
+         "year": 1919
+        }
+       ]
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Nietzsche",
+        "ru": "Фридрих Ницше"
+       },
+       "qid": "Q9358",
+       "source": "https://www.wikidata.org/wiki/Q9358",
+       "born": [
+        {
+         "time": "+1844-10-15T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1900-08-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Oscar Levy",
+        "ru": "Oscar Levy"
+       },
+       "qid": "Q101732",
+       "source": "https://www.wikidata.org/wiki/Q101732",
+       "born": [
+        {
+         "year": 1867
+        }
+       ],
+       "died": [
+        {
+         "year": 1946
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -7463,10 +7621,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the original is planted first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the original is planted first."
     }
    ]
   },
@@ -13546,15 +13700,21 @@
      "en": "§ 290, p. 207"
     },
     "texts": {
-     "de": "Hier ist das Hässliche, welches sich nicht abtragen liess, versteckt, dort ist es in's Erhabene umgedeutet."
+     "de": "Hier ist das Hässliche, welches sich nicht abtragen liess, versteckt, dort ist es in's Erhabene umgedeutet.",
+     "en": "Here the ugly, which does not permit of being taken away, has been concealed, there it has been re-interpreted into the sublime."
     },
     "links": {
-     "de": "https://archive.org/details/bub_gb_LNEuAAAAYAAJ/page/n215/mode/1up"
+     "de": "https://archive.org/details/bub_gb_LNEuAAAAYAAJ/page/n215/mode/1up",
+     "en": "https://archive.org/download/NietzscheJoyfulWisdom/page/n235.jpg"
     },
     "refs": [
      [
       "de",
       "Neue Ausgabe (Leipzig 1887), p. 207"
+     ],
+     [
+      "en",
+      "Friedrich Nietzsche, The Joyful Wisdom, translated by Thomas Common, edited by Oscar Levy, Edinburgh and London: T. N. Foulis, 1910, pp. 223–224., p. 223, p. 224"
      ]
     ]
    }
