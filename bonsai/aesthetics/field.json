@@ -143,6 +143,13 @@
    "record": "bonsai/review/aesthetics/readings/2026-11-12-sophist.json"
   },
   {
+   "id": "codex-2026-11-27-poetics-metaphor",
+   "model": "Codex",
+   "date": "2026-11-27",
+   "reads": "Aristotle, Poetics XXI, in the Greek public corpus, beside the register reading and its English and Russian translations.",
+   "record": "bonsai/review/aesthetics/readings/2026-11-27-poetics-metaphor.json"
+  },
+  {
    "id": "terra-2026-11-10-aesthetica",
    "model": "gpt-6.1-terra",
    "date": "2026-11-10",
@@ -12192,6 +12199,51 @@
    "grew_from": [
     "C:A-I010",
     "C:A-I011"
+   ]
+  },
+  {
+   "id": "aristotle.poetics:metaphor",
+   "type": "tos.entity.conception",
+   "of": [
+    "metaphor"
+   ],
+   "areas": [
+    "area-expression-and-meaning"
+   ],
+   "work": "aristotle.poetics",
+   "agents": [
+    "aristotle"
+   ],
+   "voice": {
+    "ru": "Аристотель",
+    "en": "Aristotle"
+   },
+   "locus": "XXI, 1457b",
+   "formula": {
+    "cite": [
+     {
+      "w": "aristotle.poetics",
+      "u": [
+       "tos.text-unit.sid-560a1783ff584faa8830f83d752365bf",
+       "tos.text-unit.sid-560a1783ff584faa8830f83d752365bf"
+      ],
+      "s": 650,
+      "e": 798
+     }
+    ]
+   },
+   "thesis": {
+    "ru": "Аристотель определяет метафору как перенос чужого имени с рода на вид, с вида на род, с вида на вид или по аналогии.",
+    "en": "Aristotle defines metaphor as the transfer of an alien name from genus to species, species to genus, species to species, or by analogy."
+   },
+   "status": "text",
+   "reading": {
+    "reader": "codex-2026-11-27-poetics-metaphor",
+    "verdict": "confirmed"
+   },
+   "admission": "map",
+   "grew_from": [
+    "C:A-I080"
    ]
   },
   {

@@ -43,6 +43,17 @@ independently inspected page to the original PDF bytes, or an exact-edition
 machine-readable transcription with its own truthful source. Such extraction
 must not itself establish fidelity, translation alignment or quotation rights.
 
+Independent image review has the same gap even when the PDF already has a
+searchable text layer: in `bhatta-nayaka.hrdayadarpana`, the second reader
+found that the previously recorded page image for Sheldon Pollock's
+[university-hosted article](https://www.columbia.edu/cu/mesaas/faculty/directory/pollock_pub/pollock_What%20was%20Bhatta%20Nayaka%20Saying.pdf),
+p. 163, now returns HTTP 410, and `witness-image` cannot register the PDF as
+a page image. Please allow each reader to generate and register the selected
+page image from independently fetched, digest-verified PDF bytes, with the
+page number, render method, resulting image digest and separate reader
+identity preserved. A successful render is evidence of an image, not an
+independent reading, textual acceptance or permission to quote.
+
 ## Anonymous ancient author
 
 The author of *On the Sublime* is unknown, according to the Cambridge
@@ -131,3 +142,105 @@ Please provide a supported, audited way to remove or replace an erroneous
 provisional witness participant, invalidating the second review as needed.
 Do not silently equate names or suppress unsupported participants; the maker's
 error and every identity still require review.
+
+## Preserve existing reader logs when resuming a line
+
+On 27 November the `aristotle.de-anima` output directory already contained
+`01-maker.jsonl` and `01-maker.md`, while its `state.json` had no recorded
+sessions. `drive.py` chooses the next filename from `len(sessions) + 1` and
+opens the JSONL with mode `w`. A retake consequently overwrote the earlier
+`01-maker.jsonl`; the old final message and the directed continuation's
+JSONL and message remain. The current session is writing to the same name,
+so the previous event log cannot be inferred from it.
+
+Please make allocation of reader log and final-message names collision-safe
+against files already present, even when state is missing, stale, or an
+interrupted reader has not yet been recorded. Preserve existing evidence and
+concurrent readers; report a failure instead of overwriting. A new output
+directory is the interim workaround, not a recovery of the lost log.
+
+## Pliny witness: repair unsupported legacy participants
+
+On fresh main `d5471497`, the Pliny retake confirmed that
+`witness-person-remove` requires a QID. The three original English witness
+participant records are strings without QIDs, while independently sourced
+structured participants were subsequently added alongside them. The supported
+command cannot select the unsupported records, so the witness gate still
+fails. Please provide an auditable correction for these exact pre-existing
+records without deleting the evidenced participants or changing the source
+witness. The packet also reports a separate imprecise-death-date mismatch and
+an English two-page image binding to resolve; Spanish and other translations
+remain unfinished.
+
+## A translation-source block and original-language OCR
+
+The `aristotle.de-anima` retake verified that the footnote boundary is fixed:
+the English and German witness maker gates now pass. Russian, Spanish and
+Chinese witness searches remain incomplete. A `sources` block explaining
+that those translation pages have not been established was rejected because
+the packet has page-indexed OCR of its Greek original. The check in
+`gate` applies to any OCR scan without considering which language the
+blocked source must supply. Original Greek OCR cannot provide a translated
+witness. The maker recorded a `kit` block with the exact reproduction; the
+blocked state does not claim that any translation is absent.
+
+Please distinguish a missing original transcription, where the OCR fallback
+is appropriate, from an identified translation-source obstacle. Preserve the
+requirement for an actual documented search and do not turn incomplete search
+into a finding of absence.
+
+## Sourced ancient author bounds in translation witnesses
+
+For Pseudo-Longinus, the fresh retake confirmed that `person --died-before`
+can represent an anonymous original author with a sourced bound. Translation
+witnesses also record the original author, but `witness-person-source` only
+accepts an exact `--died` year, and `witness-person` cannot recover a usable
+bound from the anonymous Wikidata identity. Please support the same sourced,
+uncertainty-preserving bound and anonymity in the translation-witness route,
+with independently reviewable evidence and all translator/editor rights kept
+separate. The available alternative of quotation or licence still needs
+assessment for the actual passages; this request asserts neither public
+domain for an edition nor absence of other sources.
+
+## Original text transcribed directly from a printed page
+
+For the butterfly dream in the Zhuangzi packet, a dated 1445 printing of
+Lin Xiyi's *Nanhua zhenjing kouyi* is available as page 57 of the copy
+recorded at https://commons.wikimedia.org/wiki/Special:Redirect/page/201074579.
+The print reads 翔翔 where a separately sourced Wikisource transcription
+reads 栩栩, and the scanned edition also varies 胡蝶/蝴蝶. The maker has
+visually located the passage, but has not completed a character-by-character
+reading or established all contributors' rights. The separately acquired
+transcription cannot be claimed as this printing without an explicit collation.
+
+The current original `cut` route requires a fetched machine-readable source or
+page-indexed OCR, and `witness-transcribe-page` records a translation witness
+with translator requirements. Please provide an auditable original-language
+page transcription route, recording the exact page image, the transcriber's
+identity, any editorial punctuation, and an independent second reader;
+retain the source and edition distinction. Alternatively, a documented way to
+collate an existing transcription against a different printing must preserve
+both sources and each correction. A transcription or scan alone establishes
+neither a verified reading nor the contributors' rights.
+
+## Independent image of a lawful web edition
+
+The Sophocles *Antigone* packet has identified an authorized electronic
+edition at https://yunqi.qq.com/read/25912987/5; its
+https://yunqi.qq.com/detail/25912987 catalogue names the translator, publisher
+and the digital rights provider's authorization. Both short prologue passages
+are visible in the HTML chapter. The edition does not show print pagination,
+but chapter 5 is an exact structural locator; the maker fetched the HTML through
+the kit and has not claimed to inspect a printed page.
+
+`witness-cut` still requires a registered page image. `witness-image` can
+record an image URL and optional supplied image bytes, but does not represent
+a browser screenshot as a derivative of an independently visited HTML URL:
+using the HTML URL as if it delivered those image bytes would obscure their
+origin. Please provide a verifiable route for recording a browser-rendered
+page screenshot or other independently inspectable visual evidence of an
+unpaginated lawful electronic edition, with source URL, capture time and
+method, image digest and separate maker/second-reader evidence. This should
+not turn a screenshot into proof of authority, text accuracy, equivalence,
+or permission to quote; the reader must still inspect the page and assess
+rights in each jurisdiction.
