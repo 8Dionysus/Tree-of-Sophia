@@ -336,9 +336,11 @@
         {
           "name": "Michael Koseler",
           "role": "German translator",
-          "dates_status": "not established",
+          "birth": 1950,
+          "dates_status": "DNB gives 1950– and no death date; this alone does not establish whether the translator is living",
           "evidence": [
-            "https://www.suhrkamp.de/buch/h-p-lovecraft-die-literatur-der-angst-t-9783518389225"
+            "https://www.suhrkamp.de/buch/h-p-lovecraft-die-literatur-der-angst-t-9783518389225",
+            "https://d-nb.info/gnd/115706577"
           ]
         },
         {
@@ -356,9 +358,10 @@
           "scan": "https://archive.org/details/therecluse",
           "metadata": "https://archive.org/metadata/therecluse",
           "ocr": "https://archive.org/download/therecluse/9923699973506421_djvu.txt",
-          "status": "images personally inspected; both target places visible across pp24–25. The 1927 printed page has the ae ligature in daemons; do not assume OCR spelling is decisive.",
+          "status": "images personally inspected; both target places visible across pp24–25. The 1927 printed page has the ae ligature in dæmons where Wikisource reads demons; preserve the scan reading. The masthead says issued by W. Paul Cook, Athol, Massachusetts, first number 1927; any editorial contribution to this essay remains to be established.",
           "pages": "Introduction pp24–25, image n28–n29",
           "page_images": [
+            "https://archive.org/download/therecluse/page/n5_w1600.jpg",
             "https://archive.org/download/therecluse/page/n28_w1600.jpg",
             "https://archive.org/download/therecluse/page/n29_w1600.jpg"
           ]
@@ -401,6 +404,37 @@
           "source": "Suhrkamp publisher preview",
           "result": "PDF page 13, printed p12, contains German counterparts for both target readings; visual inspection, no quoted text copied into registry",
           "url": "https://res.cloudinary.com/suhrkamp/images/q_auto/v1742126141/51772/die-literatur-der-angst_9783518389225_leseprobe.pdf"
+        },
+        {
+          "source": "German National Library authority record",
+          "query": "per=Koseler",
+          "result": "Michael Koseler, translator, 1950–; no death date is recorded. The publisher preview names him on its title page.",
+          "url": "https://d-nb.info/gnd/115706577"
+        },
+        {
+          "source": "Biblioteca Nacional de España and Google Books",
+          "query": "Lovecraft horror sobrenatural literatura; ISBN 9788477026679, 9789509546844, 9788417726324, 9788420673523",
+          "result": "BNE identifies Valdemar 2010 ISBN 9788477026679 as a Spanish edition, with Juan Antonio Molina Foix as editor, but does not identify a translator; its copies are in Alcalá. BNE identifies Eneida 2021 ISBN 9788417726324 and translator Javier R. Huesca. Google Books identifies Leviatán 1998 ISBN 9789509546844 with translator Roberto Dulce and Alianza 2002 ISBN 9788420673523; the four Google cards offer no preview in this session. None establishes the target pages or permission for a translation.",
+          "url": "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991025095909708606&context=L&vid=34BNE_INST:CATALOGO",
+          "other_urls": [
+            "https://catalogo.bne.es/discovery/fulldisplay?docid=alma991047542429708606&context=L&vid=34BNE_INST:CATALOGO",
+            "https://books.google.com.mx/books?id=A21YMQAACAAJ",
+            "https://books.google.com.mx/books?id=moVLAAAACAAJ",
+            "https://books.google.com.mx/books?id=tVFVzwEACAAJ",
+            "https://books.google.com.mx/books?id=KfahvwEACAAJ"
+          ]
+        },
+        {
+          "source": "Penumbria and Secretaría de Educación de Coahuila",
+          "result": "Penumbria's 2014 article quotes a Spanish counterpart of A:E128, but does not identify the translator or page for this quotation. The Coahuila-hosted PDF contains counterparts of both places; its metadata names Libros Tauro and its preface is signed Roberto Dulce, which does not by itself identify the translator or establish authorized provenance. Compare against an authorized edition and confirm contributor and permissions before use.",
+          "url": "https://www.penumbria.mx/h-p-lovecraft/",
+          "other_urls": ["https://web.seducoahuila.gob.mx/biblioweb/upload/Lovecraft,%20H.P.%20-%20El%20horror%20sobrenatural%20en.pdf"]
+        },
+        {
+          "source": "Laertes publisher and Universitat Autònoma de Barcelona",
+          "result": "A university dissertation cites a 2019 Laertes book and p12 for a paraphrase. The publisher identifies its 2019 ISBN 9788416783953 as a Catalan translation by Jordi Llavoré Pons; the dissertation's Spanish title does not establish a Spanish-language edition or a verbatim target passage.",
+          "url": "https://www.laertes.es/libro/horror-sobrenatural-en-la-literatura/",
+          "other_urls": ["https://ddd.uab.cat/pub/tfg/2020/tfg_282373/Ciencia_y_Narrativa_en_Lovecraft.pdf"]
         },
         {
           "source": "SPbGUPTD institutional journal article",
