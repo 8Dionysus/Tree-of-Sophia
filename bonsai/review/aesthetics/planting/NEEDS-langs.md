@@ -162,3 +162,21 @@ record against the same Wikidata EntityData allowed this draft to proceed.
 Please consider recognizing the `mul` label in the person route, without
 changing death-date or independent-review checks. The Swain draft was not
 accepted for a separate semantic reason.
+
+## Meaningful emphasis in translated quotations
+
+In Alix Strachey's 1925 translation of Freud's *Das Unheimliche*, the
+independently inspected [p. 401](https://archive.org/download/freud-1925-cp-5/page/n404.jpg)
+prints `real experience` in italics for original place `III p319b`, and
+[p. 403](https://archive.org/download/freud-1925-cp-5/page/n406.jpg) prints
+`belief` in italics for `III p320`; the latter corresponds to emphasized
+`Glaubens` in the German original. The independent reader found the words and
+alignment otherwise acceptable but withheld approval because this emphasis is
+meaningful. The research stand currently renders fragment text through
+`textContent`, so the contrast is not displayed. Please advise an
+owner-reviewed representation and display of semantic emphasis, or an explicit
+review route for when a particular typographic normalization preserves the
+meaning and integrity of a quotation. This is a request to assess the concrete
+case, not a legal conclusion that all italic text must be retained. Neither
+place has been accepted; the draft is preserved in
+`ae-langs-freud-uncanny-emphasis-pending-20261127`.
