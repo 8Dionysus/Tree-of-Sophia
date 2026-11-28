@@ -1603,7 +1603,33 @@
       "areas": [
         "AE13"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "George Dickie",
+          "role": "author",
+          "birth": 1926,
+          "death": 2020,
+          "evidence": [
+            "https://entities.oclc.org/worldcat/entity/E39PBJhhrR63RTdTYdvHPTw3cP.html",
+            "https://cdn.ymaws.com/aesthetics-online.org/resource/resmgr/files/memorials/GeorgeDickie.pdf"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "American Philosophical Quarterly 1(1), January 1964, pp.56–65",
+          "catalogue": "https://www.jstor.org/stable/20009119",
+          "status": "Bibliography identified by researcher; DOI and lawful full text remain unverified."
+        },
+        {
+          "edition": "Quotation from p.58 in Cardiff University dissertation, p.24",
+          "url": "https://orca.cardiff.ac.uk/id/eprint/55805/1/U584333.pdf",
+          "status": "Researcher found a complete quotation about listening to music; independent page inspection, source comparison and rights assessment still required. A direct request in this run returned HTTP 403."
+        }
+      ],
+      "remaining": "Verify original evidence for all three readings and the relation, evaluate quotation rights, and search the five interface languages. No conclusion of absence."
     },
     {
       "work": "j-r-r-tolkien.on-fairy-stories",
@@ -1951,7 +1977,29 @@
       "areas": [
         "AE19"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Kendall L. Walton",
+          "role": "author",
+          "birth": 1939,
+          "death_status": "unknown; imported registry B states 2013 but this is contradicted by the university CV",
+          "evidence": [
+            "https://sites.lsa.umich.edu/kendallwalton/wp-content/uploads/sites/225/2025/10/Kendall-Walton-CV.pdf",
+            "https://philosophy.stanford.edu/people/kendall-walton"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "The Journal of Philosophy 75(1), 1978, pp.5–27",
+          "doi": "https://doi.org/10.2307/2025831",
+          "scan": "https://web.mit.edu/bskow/www/130/walton_fearing-fictions.pdf",
+          "status": "Institutional PDF: printed p.6 (PDF p.3), p.11 (PDF p.8), and pp.17–18 (PDF pp.14–15) personally inspected. They respectively introduce quasi-fear, explain implicit game principles through an example, and distinguish public and personal games and their fictional worlds; exact formulas, rights and independent reading remain open. PDF access is not an open licence."
+        }
+      ],
+      "remaining": "Check pp.6–7, 10–12 and 13–18 completely against the register; identify lawful quotations and all translations and rights. Do not infer a death date or absence of translations."
     },
     {
       "work": "mikhail-bakhtin.slovo-v-romane",
@@ -2434,6 +2482,15 @@
           "catalogue": "https://catalog.hathitrust.org/api/volumes/full/oclc/9395776.json",
           "scan": "https://catalog.hathitrust.org/Record/102452106",
           "status": "Hathi MARC identifies third edition and a US full-view copy; Open Library describes a second edition under the same OCLC. The title page and pp54–55 have not been verified in the viewer; access encountered a security challenge."
+        },
+        {
+          "edition": "Über das Geistige in der Kunst, third edition, Munich: R. Piper & Co., 1912, Guggenheim Museum Library copy",
+          "scan": "https://archive.org/details/berdas00kand",
+          "images": [
+            "https://archive.org/download/berdas00kand/page/n77_w2000.jpg",
+            "https://archive.org/download/berdas00kand/page/n78_w2000.jpg"
+          ],
+          "status": "Printed pp.54–55 are present as n77–78 and were personally inspected; an independent reader confirmed the title page and pp.53–56. Page 56 is needed for the combination of abstract and material forms, p.53 for the colour examples, and the claim about mechanical theory still requires chapter VII. Texts, rights and translations remain under review."
         }
       ],
       "translation_candidates": [
@@ -2734,7 +2791,48 @@
       "areas": [
         "AE31"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Frits Staal",
+          "role": "author",
+          "birth": 1930,
+          "death": 2012,
+          "evidence": [
+            "https://www.wikidata.org/wiki/Q972829"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "Numen 26(1), 1979, pp. 2–22",
+          "doi": "https://doi.org/10.1163/156852779X00244",
+          "alternative_doi": "https://doi.org/10.2307/3269623",
+          "status": "Crossref lists no open licence; OpenAlex marks the work closed. The University of Alabama PDF cited in the register returned HTTP 202 and a blank browser view. Full text and required pages are not confirmed."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "ru",
+          "url": "https://musalm.ru/assets/almanac/2020-1/3-1.pdf",
+          "pages": "Krylova 2020, printed p.31, PDF p.5",
+          "status": "A Russian quotation from Staal p.4 personally checked on the page; translator of the excerpt is not identified. The passage is about ritual as rule-governed activity and does not by itself establish either of the two more specific register claims."
+        }
+      ],
+      "searches": [
+        {
+          "source": "Publisher preview",
+          "url": "https://api.pageplace.de/preview/DT0400.9783515130912_A42528415/preview-9783515130912_A42528415.pdf",
+          "result": "Printed p.49, PDF p.50, personally checked: three English sentences quoted from Staal p.4; the author discusses them critically. No licence to reproduce the article as a whole is established."
+        },
+        {
+          "source": "OpenAlex",
+          "url": "https://api.openalex.org/works/https://doi.org/10.1163/156852779X00244",
+          "result": "Metadata marks the article closed and identifies no full-text repository; this does not establish absence of lawful copies."
+        }
+      ],
+      "remaining": "Find lawful primary pages on Vedic performers and syntax, evaluate quotation rights and independently verify them; search all five interface languages. Partial translated and cited material does not establish completeness."
     },
     {
       "work": "g-h-hardy.a-mathematicians-apology",
@@ -2882,7 +2980,70 @@
       "areas": [
         "AE20"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "fr",
+      "people": [
+        {
+          "name": "Gaston Bachelard",
+          "role": "author",
+          "birth": 1884,
+          "death": 1962,
+          "evidence": [
+            "https://catalogue.bnf.fr/ark:/12148/cb31748646f"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "La poétique de l’espace, Paris: Presses universitaires de France, 1957, 214 pp.",
+          "catalogue": "https://catalogue.bnf.fr/ark:/12148/cb31748646f",
+          "status": "First edition identified by researcher from BnF. Confirm source pages and rights before admission."
+        },
+        {
+          "edition": "Third edition 1961, electronic transcription",
+          "url": "https://www.gastonbachelard.org/wp-content/uploads/2015/07/BACHELARD-Gaston-La-poetique-de-l-espace.pdf",
+          "pages": "printed pp.130–131 and 168–169; PDF pp.163–164 and 209–210",
+          "status": "Personally read beginning of both chapters in the transcription; this is not a facsimile and does not alone establish rights or the full correspondence of the register claims."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "en",
+          "edition": "The Poetics of Space, translation Maria Jolas; Beacon Press, 1994 edition cited by UFSC",
+          "translator_authority": "https://ead-pdfs.library.yale.edu/532.pdf",
+          "corner_quote": "https://infoscience.epfl.ch/bitstreams/125fe1aa-a80f-4629-8c99-8acfa36b9cda/download#page=44",
+          "reverie_quote": "https://periodicos.ufsc.br/index.php/fragmentos/article/download/8843/8190#page=6",
+          "status": "Researcher independently read the images of the two scholarly quotations, not the translated book. The English corner calls solitude a symbol; the reverie sentence combines two French sentences, so its second half is not a whole English sentence. Book images, punctuation and quotation rights remain to be checked."
+        },
+        {
+          "language": "es",
+          "edition": "La poética del espacio, translation Ernestina de Champourcin, FCE Argentina, 2000 reprint of 1975 edition",
+          "url": "https://admin.banrepcultural.org/sites/default/files/minisitios/file-attached/bachelard_gaston_la_poetica_del_espacio.pdf",
+          "translator_authority": "https://www.bne.es/es/autores/champourcin-ernestina",
+          "status": "Researcher read title and corresponding passages about the corner and reverie on PDF pp62 and 80; this electronic reset is not a facsimile and has visible transcription errors. Approximate printed page numbers, exact wording, original edition and reuse rights require verification."
+        },
+        {
+          "language": "ru",
+          "edition": "Поэтика пространства, translated Nina Kulish, Ad Marginem, 2014",
+          "catalogue": "https://lib.mmoma.ru/catalog/11962/",
+          "status": "Identified by researcher; target pages and rights unverified."
+        },
+        {
+          "language": "de",
+          "edition": "Poetik des Raumes, translated Kurt Leonhard",
+          "catalogue": "https://toc.uni.li/FLMF048355.pdf",
+          "reverie_quote": "https://repositum.tuwien.at/bitstream/20.500.12708/19406/1/Kong%20Chanhyuk%20-%202022%20-%20An%20der%20Schwelle%20wacher%20Traeume%20ein%20Haus%20der%20Traeumerei.pdf#page=8",
+          "corner_quote": "https://bilder.deutschlandfunk.de/5a/2e/58/b5/5a2e58b5-8886-4812-8394-5022015cb3ba/lange-nacht-vom-alleinsein-manuskript-100.pdf#page=40",
+          "status": "Researcher read the complete reverie sentence in a TU Wien thesis and the incomplete corner quotation in a Deutschlandfunk manuscript. These are images of secondary sources, not the translated book. Verify title-page attribution for the cited edition, the full corner sentence and quotation rights."
+        },
+        {
+          "language": "ru",
+          "edition": "Избранное: Поэтика пространства, РОССПЭН, 2004, pp.161–162, as quoted in Elena Andreianova, Slavica Tergestina 35 (2025/II), p.15",
+          "url": "https://www.openstarts.units.it/server/api/core/bitstreams/79acccad-8ab4-47c6-845e-1d9c552bed90/content",
+          "status": "Complete sentence about reverie personally and independently read in the article image (PDF p.8) and compared to the French electronic transcription. The sentence begins with an anaphoric pronoun; the article supplies the antecedent. N. V. Kislova is named as translator by a separate scholarly bibliography, not the directly viewed title. Original printed page, actual translation edition and quotation rights remain to be checked; not an accepted witness."
+        }
+      ],
+      "remaining": "Verify exact original and translated passages for both readings, identify all text contributors and rights in each jurisdiction, and search all five interface languages."
     },
     {
       "work": "gernot-boehme.atmosphere-as-the-fundamental-concept-of-a-new",
@@ -2900,7 +3061,18 @@
       "areas": [
         "AE18"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [{"name": "Gian-Carlo Rota", "role": "author", "birth": 1932, "death": 1999, "evidence": ["https://news.mit.edu/1999/rota"]}],
+      "original_candidates": [
+        {"edition": "Synthese 111(2), 171–182, 1997", "doi": "https://doi.org/10.1023/A:1004930722234", "publisher": "https://link.springer.com/article/10.1023/A:1004930722234", "status": "Publisher confirms article and pages; full text is subscription content. No general open licence has been established."},
+        {"edition": "Scholarly quotation of the Synthese article p181", "url": "https://www.pure.ed.ac.uk/ws/portalfiles/portal/537459690/manuscript-unblinded-clean.pdf", "status": "Researcher found complete adjacent sentences in an Edinburgh University manuscript, with an exact article-page reference; assess their precise wording, scholarly context and quotation rights separately."}
+      ],
+      "translation_candidates": [
+        {"language": "es", "url": "https://backend.educ.ar/refactor_resource/get-attachment/23962", "edition": "Pensamientos indiscretos, A. Martín and A. Villaveces, quoted in Argentinian educational material pp45–46", "status": "Researcher found sentence-level candidates in an official educational source. A passage substitutes beautiful theorems for beautiful theories and the book edition differs from the journal; inspect images, translator attribution, precise alignment and rights."}
+      ],
+      "requested_places": ["B:D-I072 pp171–172 mathematical objects and beauty", "B:D-I071 pp181–182 enlightenment and meaning"],
+      "remaining": "Find lawful original images for exact sentences, independently compare the journal and book editions, assess quotation in each jurisdiction and search the other translations. No absence finding."
     },
     {
       "work": "giorgio-agamben.elogio-della-profanazione",
@@ -3182,7 +3354,33 @@
       "areas": [
         "AE35"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "Technologies of the Self: A Seminar with Michel Foucault, University of Massachusetts Press, 1988",
+          "publisher": "https://www.umasspress.com/9780870235931/technologies-of-the-self/",
+          "scan_candidate": "https://bildungsportal.sachsen.de/opal/auth/RepositoryEntry/38358122498/CourseNode/1686796132075267012/Foucault%2B1988%2B-%2BTechnologies%2Bof%2Bthe%2BSelf.pdf",
+          "pages": "chapter pp16–49; requested definition p18",
+          "status": "Publisher describes a partial transcript of the 1982 Vermont seminar; a researcher inspected the target scan. The language of the oral presentation, authorial manuscript, reuse rights and all contributing hands remain to be established."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "es",
+          "edition": "Tecnologías del yo y otros textos afines, Paidós, 1990, translation by Mercedes Allendesalazar",
+          "catalogue": "https://ci.nii.ac.jp/ncid/BA72541214?l=en",
+          "quotation_candidate": "https://refubium.fu-berlin.de/bitstream/handle/fub188/1792/chapter3.pdf?isAllowed=y&sequence=4",
+          "status": "University dissertation printed p176 footnote 4, inspected as indexed text only, quotes the entire four-item list and cites the 1990 edition p48 and translator; inspect image and assess quotation scope and rights. The target item is part of a larger sentence."
+        },
+        {
+          "language": "de",
+          "edition": "Technologien des Selbst, S. Fischer, 1993, translation by Michael Bischoff",
+          "catalogue": "https://ci.nii.ac.jp/ncid/BA21929005?l=en",
+          "status": "Catalogue candidate only; target passage and rights not checked."
+        }
+      ],
+      "remaining": "Verify the target scan and rights and all five required language searches; similar Russian wording from a different 1980 lecture is not evidence of this seminar's translation. No absence finding."
     },
     {
       "work": "milena-ivanova.beauty-truth-and-understanding",
@@ -3205,7 +3403,53 @@
       "areas": [
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {
+          "name": "Morris Weitz",
+          "role": "author",
+          "birth": 1916,
+          "death": 1981,
+          "evidence": [
+            "https://entities.oclc.org/worldcat/entity/E39PBJkTb3pQXDPPTYdr3QKmVC.html"
+          ]
+        }
+      ],
+      "original_candidates": [
+        {
+          "edition": "The Journal of Aesthetics and Art Criticism 15(1), September 1956, pp.27–35",
+          "doi": "https://doi.org/10.2307/427491",
+          "publisher": "https://academic.oup.com/jaac/article-abstract/15/1/27/6332155",
+          "scan": "https://dl1.cuni.cz/pluginfile.php/1631962/mod_resource/content/1/Weitz-The_Role_of_Theory_in_Aesthetics.pdf",
+          "status": "Researcher identified target pp.31–32 and 34–35. The institutional site redirects to login, offers guest access, and returned a blank PDF viewer in the current browser; the maker has not personally read the scan. Publisher copyright and quotation rights require evaluation."
+        }
+      ],
+      "translation_candidates": [
+        {
+          "language": "ru",
+          "edition": "Translation attributed to A. L. Kozlova, in American Philosophy of Art, 1997",
+          "status": "Bibliographic lead only; lawful scan, translator attribution for exact text, target pages and rights are not confirmed."
+        },
+        {
+          "language": "de",
+          "edition": "Translated Hans Gerd Schütte, in Wolfhart Henckmann (ed.), Ästhetik, Darmstadt 1979, pp.193–208",
+          "catalogue": "https://www.fernuni-hagen.de/KSW/opencontent/musealisierung/pdf/Collenberg-Plotnikov_Kunst_zeigen.pdf",
+          "status": "Researcher found bibliographic reference; actual translated passages and rights remain unverified."
+        },
+        {
+          "language": "zh-Hans",
+          "edition": "理论在美学中的作用, translated 程介未, 江淮论坛 1988 no.1",
+          "catalogue": "https://www.chinawriter.com.cn/n1/2016/0712/c404039-28548630.html",
+          "status": "Bibliographic lead identified by researcher; full text, pagination and rights unverified."
+        },
+        {
+          "language": "es",
+          "url": "https://repositorio.uca.edu.ar/bitstream/123456789/9214/1/vigencia-teoria-institucional-arte.pdf",
+          "status": "Researcher located Spanish quotations attributed to p.32, with ellipsis between extracts; translator, exact whole-sentence boundaries and rights remain unverified."
+        }
+      ],
+      "remaining": "Personally inspect original pages and independent translation evidence, assess rights and perform all required language searches; partial and inaccessible results are not absence."
     },
     {
       "work": "nelson-goodman.when-is-art",
@@ -3297,7 +3541,22 @@
       "areas": [
         "AE36"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "people": [
+        {"name": "Sol LeWitt", "role": "author", "birth": 1928, "death": 2007, "evidence": ["https://www.moma.org/artists/3528-sol-lewitt"], "status": "MoMA gives 1928–2007; the Russian journal introduction says 1929, so preserve the discrepancy for independent authority review."}
+      ],
+      "original_candidates": [
+        {"edition": "Artforum 5(10), June 1967, reprinted in the 1978 MoMA exhibition catalogue, pp166–167", "url": "https://www.moma.org/documents/moma_catalogue_1971_300297572.pdf", "sha256": "0c0fc44de4d2924d3fb5d31cc67328496f2b76a3b4130a9127a5ca130f0de6e3", "status": "Maker and independent reader checked the PDF page images for six selected sentences. MoMA reorders paragraphs and is not a facsimile of the 1967 Artforum issue; rights, the final display and shortened selection need fresh review. The Proa English transcription contains typographical differences."}
+      ],
+      "translation_candidates": [
+        {"language": "ru", "url": "https://www.moscowartmagazine.com/article/366", "publisher_pdf": "https://firebasestorage.googleapis.com/v0/b/moscowartmagazine.firebasestorage.app/o/issues%2F69%2Fissue.pdf?alt=media", "edition": "Художественный журнал no.69, August 2008, pp17–20; translation Polina Zhurakovskaya", "status": "Independent researcher checked the publisher's printed issue pp17, 20 and 21. The translator credit follows a second 1969 text; scholarly bibliographies separately attribute the 1967 Paragraphs to her. Selected sentences omit or alter some original conditions and wording; evaluate exact alignment and quotation rights independently."},
+        {"language": "es", "url": "https://proa.org/esp/exhibicion-proa-sol-lewitt--wall-drawings--textos.php", "translator": "Florencia Fragasso", "status": "Fundación Proa publishes a Spanish version and a translator credit; personally checked the paragraphs on idea, planning and intuition. Match exact sentence boundaries to the MoMA edition and independently assess translation and quotation rights."},
+        {"language": "de", "url": "https://edoc.hu-berlin.de/server/api/core/bitstreams/6742bb69-bfe0-409c-8aa1-4b5828d036fb/content#page=74", "status": "Researcher inspected the thesis image, printed p70 footnote 1, citing a complete sentence from a 1974 anthology; translator not named. The wording intensifies the original perfunctory to purely mechanical. Later sentence and rights remain incomplete."},
+        {"language": "zh-Hans", "url": "https://www.scfai.edu.cn/__local/4/54/2B/53CA83A9FBF86CE2C080264B0DB_59C22B54_1DABC6.pdf#page=2", "status": "Researcher inspected the 2024 scholarly article image, printed p87; two complete semantic correspondences cite an English 2002 anthology without identifying the Chinese translator. The sentence on execution omits its opening condition; other places, translator and rights remain unverified."}
+      ],
+      "requested_places": ["D:B-I133 idea and execution, D:B-I134 intuition and limits of artist's claims"],
+      "remaining": "Check actual images and exact pages of the chosen original edition, independently review alignment, search de and zh-Hans and assess all required rights. No absence finding."
     },
     {
       "work": "susan-sontag.against-interpretation",
@@ -3959,7 +4218,19 @@
       "areas": [
         "AE17"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "British Journal of Aesthetics 56(4), pp367–381, issue dated 2016",
+          "doi": "https://doi.org/10.1093/aesthj/ayw053",
+          "publisher": "https://academic.oup.com/bjaesthetics/article-abstract/56/4/367/2937987",
+          "archive_candidate": "https://philpapers.org/archive/MOLROB.pdf",
+          "status": "Publisher lists all rights reserved and a 2017 online publication date; registry's journal issue is 2016. Search index exposed text of an Oxford publisher PDF carrying an institutional download watermark, but live image fetch returned 403; uploader authorization and lawful source for quotation are not established. Do not assume an open licence or that this is an author-uploaded manuscript."
+        }
+      ],
+      "requested_places": ["B:C-I070 objectivity, contextualism and beauty; exact sentences and pages still to be verified"],
+      "remaining": "Find a lawful inspectable copy and evaluate quotation separately for each jurisdiction, identify exact places and search all required translations. No absence finding."
     },
     {
       "work": "claire-horisk.dangerous-jokes",
@@ -5104,7 +5375,19 @@
       "areas": [
         "AE21"
       ],
-      "status": "research-pending"
+      "status": "research-in-progress",
+      "original_language": "en",
+      "original_candidates": [
+        {
+          "edition": "Arabic Poetics: Aesthetic Experience in Classical Arabic Literature, Cambridge University Press, 2020, chapter 5 pp203–251",
+          "doi": "https://doi.org/10.1017/9781108780483.007",
+          "publisher_summary": "https://www.cambridge.org/core/books/abs/arabic-poetics/nazm-wonder-and-the-inimitability-of-the-quran/B980231F9936B751EF11029D69CF4554",
+          "copyright_page": "https://assets.cambridge.org/97811084/90214/copyright/9781108490214_copyright_info.pdf",
+          "status": "The publisher's open chapter summary discusses nazm, implicit meanings, omission and word order. It is Harb's summary, not evidence that chapter pp203–251 were read; the cited medieval authors remain primary for their own views. Copyright page identifies author copyright and permission subject to statutory exceptions; no open licence verified."
+        }
+      ],
+      "requested_places": ["C:A-I102 and C:A-E102, chapter 5 on nazm; establish exact chosen sentences and whether the summary itself covers the reading"],
+      "remaining": "Inspect a lawful copy and assess quotations by jurisdiction, and search all requested translations. Open introduction preview pp1–10 does not include chapter 5. No absence finding."
     },
     {
       "work": "leonard-b-meyer.emotion-and-meaning-in-music",

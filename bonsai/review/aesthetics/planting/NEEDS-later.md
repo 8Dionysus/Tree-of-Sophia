@@ -186,3 +186,47 @@ faithful complete Spanish punctuation in the owner's sentence validator, with
 appropriate focused coverage. Do not drop `¿` or alter the witness to pass.
 The witness remains unaccepted until the owner fix and renewed gate; the
 parent packet and other languages remain incomplete.
+
+## Kendall L. Walton: conflicting register life date
+
+`registry/B/agents.jsonl` row C-A013 says `1939–2013`, while his University of Michigan curriculum vitae lists Stanford visiting professorships in 2015–2019 and an emeritus position from 2012 onwards: https://sites.lsa.umich.edu/kendallwalton/wp-content/uploads/sites/225/2025/10/Kendall-Walton-CV.pdf. The CV was opened and read; it contradicts death in 2013, but does not itself establish a current death date. Register C separately says born 1939. The registry preserves workbook rows as imported, so its historical text should not be silently rewritten. Please resolve the conflicting author date through the owning source/correction mechanism and refresh any affected derived chronology or rights classification. Until resolved, do not treat 2013 as an established death year or infer public-domain status from it.
+
+## Mexico quotation where the three recorded bases are public domain
+
+Kandinsky's 1912 German text is recorded as public domain in Russia, the USA and the EU; that does not establish Mexican public-domain status. The maker needs to assess a short quotation under Mexico's LFDA article 148(I) for the exact selected places. `kit.py mexico-quotation` currently rejects the assessment with `record a short-quotation basis before the Mexican quotation assessment` unless at least one of those other three jurisdictions is marked `short-quotation`. Please allow a separate Mexican assessment and independent review without misclassifying a public-domain basis elsewhere. Until then the Mexican assessment remains open; the source and the other jurisdictional bases must not be falsified to open the gate.
+
+## Publisher-authored HTML summary as the original source
+
+The local Lara Harb `arabic-poetics` packet draws C:A-I102 from the publisher's
+chapter 5 Summary published at https://www.cambridge.org/core/books/abs/arabic-poetics/nazm-wonder-and-the-inimitability-of-the-quran/B980231F9936B751EF11029D69CF4554.
+The source is the publisher's HTML summary itself, with the structural locator
+`Chapter 5 Summary`, paragraph 2; it is not a scan or a claim that book pages
+203–251 were read. The current gate reports `no scan is named`, requires a
+scan and a transcription as witness sources, and requires a maker-fetched
+raster page image digest for quotation evidence. Please assess an owner route
+for a genuine born-digital source that binds exact fetched HTML bytes, source
+URL and structural location to both independent readers and preserves checks
+of text, context, lawful quotation and currentness. A screenshot alone should
+not pretend to be a printed edition or serve as proof of rights. The packet is
+not accepted: language searches and an independent assessment of the Mexican
+quotation, including the effect of the selected quotation on the seven-sentence
+summary, remain open. The first draft used two sentences; it was subsequently
+reduced to one, which still requires a fresh independent assessment. The current
+gate did not itself emit a `line:` prefix.
+
+## Independent Mexico assessment needs an explicit outcome
+
+The second reader could not affirm that the first Harb HTML quotation satisfied
+the Mexican requirements: it reproduced the whole second paragraph, 74 of 184
+words of the summary. The maker then reduced it to one 45-word sentence; a
+fresh second reading confirms the wording but leaves the legal assessment
+unresolved because the final display and other quotations are not yet known.
+`mexico-quotation-review` currently records
+an arbitrary assessment string; `mexico_problems` checks its length, reviewer,
+date and digest but does not distinguish approval from rejection or pending.
+Please support an explicit evidence-bound approval, rejection or pending
+outcome, and require approval for a clean gate without converting uncertainty
+into approval. The reader did not invoke the command, so no approval has been
+recorded; the local packet remains unaccepted. The one-sentence revision
+supports a narrower conception, but its reduced length does not itself
+establish legal clearance.
