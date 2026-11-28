@@ -2164,8 +2164,9 @@ def cmd_witness_cut(args):
     if args.loc not in original:die('the original place is not in the bonsai')
     source=next((item for item in data['sources'] if item['file']==args.source),None)
     if not source:die('fetch the source first')
-    raw=open(witness_cache(path,args.language,args.source),'rb').read()
+    raw=Path(witness_cache(path,args.language,args.source)).read_bytes()
     if hashlib.sha256(raw).hexdigest()!=source['sha256']:die('source bytes have changed')
+    if raw.startswith(b'%PDF-'):die('derive PDF text with kit.py pdf-text before cutting a witness')
     text=plain(raw,args.source)
     pattern=lambda phrase:re.compile(r'\s+'.join(re.escape(word) for word in phrase.split()))
     opens=list(pattern(args.open).finditer(text))
@@ -2453,8 +2454,10 @@ def witness_problems(path,lang,data,second=False,offline=False):
                     if hashlib.sha256(raw).hexdigest()!=record.get('sha256'):add(f"{loc}: {record['file']} changed")
                     elif record in images and not valid_page_image(raw):add(f'{loc}: maker page image is invalid')
                     elif record is source:
-                        problem=in_transcription(back,modern_russian(plain(raw,record['file'])) if lang=='ru' else plain(raw,record['file']))
-                        if problem:add(f'{loc}: {problem}')
+                        if raw.startswith(b'%PDF-'):add(f'{loc}: derive the PDF text before cutting a witness')
+                        else:
+                            problem=in_transcription(back,modern_russian(plain(raw,record['file'])) if lang=='ru' else plain(raw,record['file']))
+                            if problem:add(f'{loc}: {problem}')
                 except (OSError,KeyError):add(f'{loc}: local source or image is missing')
         if quote:
             if not place.get('lines'):add(f'{loc}: quotation lines are missing')

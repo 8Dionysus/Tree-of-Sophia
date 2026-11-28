@@ -1115,6 +1115,8 @@ class DerivedPdfTest(unittest.TestCase):
                 witness_path.write_text(json.dumps({'language':'en','sources':[source],'images':[],'review':{'reader':'old'}}))
                 Path(kit.witness_cache(str(path),'en','book.pdf')).write_bytes(pdf)
                 kit.cmd_pdf_text(argparse.Namespace(packet=str(path),source='book.pdf',language='en'))
+                with patch.object(kit,'world',return_value={'fragments':{'places':{'work':{}}}}), self.assertRaises(SystemExit):
+                    kit.cmd_witness_cut(argparse.Namespace(packet=str(path),language='en',source='book.pdf',loc='p1'))
                 if shutil.which('pdftoppm'):
                     kit.cmd_pdf_page(argparse.Namespace(packet=str(path),source='book.pdf',page=1,language='en',loc=None,by='maker'))
                     data=json.loads(witness_path.read_text());self.assertFalse(data['review'])
