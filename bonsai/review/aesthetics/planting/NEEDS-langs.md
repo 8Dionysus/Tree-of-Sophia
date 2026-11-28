@@ -203,3 +203,26 @@ and exact source evidence, preserving uncertainty and independent review. This
 is not a request to treat arbitrary URLs as authoritative or invent Wikidata
 records or dates. The source readings and rights of the proposed translations
 remain separate work.
+
+## Different translated editions for different original places
+
+The accepted Cooper English witness for Buffon's *Discours sur le style* has
+`Discours p5a`; a separate translation of `p5b` in Cooper's 1930 printing was
+not accepted after an independent reader found that it changes `plus fixe`
+into “more absolute” and makes the writer develop ideas which in the French
+arise. A different published scholarly rendering in Joanna Stalnaker,
+*The Unfinished Enlightenment* (Cornell University Press),
+[p. 66](https://books.google.com/books?id=q_ytDwAAQBAJ&pg=PA66), preserves
+both the fixed order and the arising of the ideas. The maker inspected the
+publisher-authorized page and the 1829 French p. 5; the translator attribution,
+quotation rights, independent reading and formal witness are still to be
+completed. The 1930 Cooper witness is accepted only locally, not yet merged.
+
+The documented translated-place extension requires the same edition,
+participants, rights and source metadata as the accepted witness and refuses a
+different edition. Please provide or identify a reviewed per-place route for
+non-overlapping translations from a second edition, preserving each edition's
+attribution, distinct rights and page evidence and each independent review.
+Do not merge texts from editions or assume one translation's legal status
+covers another. This is separate from the existing request to extend a partial
+witness with places from the same edition.
