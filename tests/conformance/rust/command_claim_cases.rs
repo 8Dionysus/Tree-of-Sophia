@@ -10172,9 +10172,40 @@ fn native_claim_cli_creates_revises_and_cold_replays_original_bytes() {
         assert_eq!(revised["result"]["receipt"]["grants_admission"], false);
         if let Some(template) = &history_template {
             let receipt = &revised["result"]["receipt"];
+            // The template records the request's SourceCommandInputV1 digest; a receipt written now
+            // carries the jcs1 digest of the same request, a number JCS refuses read as its exact
+            // decimal spelling (TOS-D-0088).
+            let limits = tos_foundation::JsonLimits {
+                max_bytes: 8_388_608,
+                ..tos_foundation::JsonLimits::default()
+            };
+            let request = tos_foundation::parse_json(
+                &serde_json::to_vec(&receipt["request"]).unwrap(),
+                tos_foundation::JsonMode::PublishedStrict,
+                limits,
+            )
+            .unwrap();
+            let legacy = tos_foundation::canonical_bytes_v1(
+                request.root(),
+                tos_foundation::CanonicalProfile::SourceCommandInputV1,
+                limits,
+            )
+            .unwrap();
+            assert_eq!(
+                template["emitted_owner_request_sha256"],
+                tos_foundation::Digest256::of_bytes(&legacy)
+                    .to_prefixed()
+                    .as_str()
+            );
+            let jcs1 = tos_foundation::jcs_digest_v1(
+                &tos_foundation::stringify_non_jcs_numbers_v1(request.root(), limits).unwrap(),
+                limits,
+            )
+            .unwrap();
+            assert_eq!(receipt["request_digest_profile"], "jcs1");
             assert_eq!(
                 receipt["request_digest"],
-                template["emitted_owner_request_sha256"]
+                jcs1.digest.to_prefixed().as_str()
             );
             assert_eq!(
                 source_bytes(&source_value(&receipt["request"])),
