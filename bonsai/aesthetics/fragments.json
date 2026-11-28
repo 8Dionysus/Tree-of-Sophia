@@ -2063,6 +2063,31 @@
      "corrections": []
     }
    },
+   "friedrich-nietzsche.die-froehliche-wissenschaft": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the original is planted first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/friedrich-nietzsche.die-froehliche-wissenschaft/witnesses/en.json",
+     "corrections": [],
+     "page_sources": {
+      "§290 p207b": [
+       {
+        "page": "p. 223",
+        "url": "https://archive.org/download/NietzscheJoyfulWisdom/page/n235.jpg",
+        "image_sha256": "c46d0d510c9b73ce4db8fa2c0c19beee79dcf330079bdf18b45fbd9aed522d13"
+       },
+       {
+        "page": "p. 224",
+        "url": "https://archive.org/download/NietzscheJoyfulWisdom/page/n236.jpg",
+        "image_sha256": "4154389fe2008e0ad4a6e32c125b209f8e9a6c20afee6100860c57bfaa85fd50"
+       }
+      ]
+     }
+    }
+   },
    "friedrich-schiller.gedanken-ueber-den-gebrauch-des-gemeinen": {
     "en": {
      "absent": {
@@ -2484,6 +2509,17 @@
      ]
     }
    },
+   "henri-bergson.le-rire": {
+    "en": {
+     "absent": {
+      "language": "en",
+      "reason": "No English text is taken in this pass: the line plants the original first."
+     },
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/henri-bergson.le-rire/witnesses/en.json",
+     "corrections": []
+    }
+   },
    "henri-poincare.l-invention-mathematique": {
     "en": {
      "absent": {
@@ -2544,6 +2580,28 @@
        "image_sha256": "90728a0f2d9f93b3235d0fed29ae730ee7ba47778cabd6fbf22eea9c84b4e797"
       }
      ]
+    }
+   },
+   "joseph-addison.the-pleasures-of-the-imagination": {
+    "es": {
+     "absent": null,
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/joseph-addison.the-pleasures-of-the-imagination/witnesses/es.json",
+     "corrections": [],
+     "page_sources": {
+      "No. 412 p717a": [
+       {
+        "page": "p. 33",
+        "url": "https://bibliotecalectura18.net/books/ensayo-sobre-los-placeres-de-la-imaginacion/p034.jpg",
+        "image_sha256": "e311c8058ca81fa0bf96ba3d82c7d45e25ca10b8a3a0a4805f3fabdc5b335dd2"
+       },
+       {
+        "page": "p. 34",
+        "url": "https://bibliotecalectura18.net/books/ensayo-sobre-los-placeres-de-la-imaginacion/p035.jpg",
+        "image_sha256": "2756c2f1786a427fc6fca484dda4dde1aeebc74eb56f855a89bf30b72a19f0e0"
+       }
+      ]
+     }
     }
    }
   }
@@ -3354,6 +3412,105 @@
        ]
       }
      ]
+    },
+    "es": {
+     "edition": "Joseph Addison, Ensayo sobre los placeres de la imaginacion, translated by José Luis Munárriz, Variedades de ciencias, literatura y artes, vol. III, no. XIII (Madrid: Benito García y Compañía, 1804), pp. 33–34.",
+     "year": 1804,
+     "url": "https://bibliotecalectura18.net/d/ensayo-sobre-los-placeres-de-la-imaginacion",
+     "licence": "Historical translation public domain in listed jurisdictions; page image supplied by Biblioteca de la Lectura en la Ilustración from a Google digitisation, image rights separately unasserted.",
+     "attribution": "Joseph Addison, translated by José Luis Munárriz. Words transcribed from the 1804 print image supplied by Biblioteca de la Lectura en la Ilustración.",
+     "maker": "codex-2026-11-27-addison-es-maker",
+     "normalization": "Printed historical spelling and punctuation retained; line breaks and whitespace normalized.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q206384",
+       "name": {
+        "en": "Joseph Addison",
+        "ru": "Джозеф Аддисон"
+       },
+       "born": 1672,
+       "died": 1719,
+       "source": "https://www.wikidata.org/wiki/Q206384",
+       "evidence": {
+        "file": "wikidata-Q206384.json",
+        "sha256": "34c4d29c8707f700d262d5012f9fc8d2ccac9003b7514d78a58035298a93c502",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q206384.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q6292807",
+       "name": {
+        "en": "José Luis Munárriz",
+        "ru": "José Luis Munárriz"
+       },
+       "born": 1762,
+       "died": 1830,
+       "source": "https://www.wikidata.org/wiki/Q6292807",
+       "evidence": {
+        "file": "wikidata-Q6292807.json",
+        "sha256": "b13a1e8a6e21b71807624ff702c6d2102268eb0ffec68f23ff8161a752051252",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q6292807.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published in 1804, outside the maximum 95-year term, 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: 70 years after death of author and translator, latest death 1830. https://eur-lex.europa.eu/eli/dir/2006/116/oj"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code article 1281: 70 years after death, conservatively adding four wartime years; latest death 1830. https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Joseph Addison",
+        "ru": "Джозеф Аддисон"
+       },
+       "qid": "Q206384",
+       "source": "https://www.wikidata.org/wiki/Q206384",
+       "born": [
+        {
+         "time": "+1672-05-01T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1719-06-17T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "José Luis Munárriz",
+        "ru": "José Luis Munárriz"
+       },
+       "qid": "Q6292807",
+       "source": "https://www.wikidata.org/wiki/Q6292807",
+       "born": [
+        {
+         "year": 1762
+        }
+       ],
+       "died": [
+        {
+         "year": 1830
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -4057,6 +4214,140 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911).",
+     "year": 1911,
+     "url": "https://archive.org/details/laughteressayonm00berguoft",
+     "licence": "Historical English translation public domain in stated jurisdictions; faithful page transcription supplied by English Wikisource, see https://en.wikisource.org/wiki/Wikisource:Reusing_Wikisource_content. Historical image and Wikisource annotations are distinct rights objects.",
+     "attribution": "Henri Bergson (Wikidata Q42156); translated by Cloudesley Brereton (Q29186572) and Fred Rothwell (Q21552575). Individual English Wikisource page revision histories are retained as transcription provenance.",
+     "maker": "codex-2026-11-19-bergson-en-maker",
+     "normalization": "Whitespace and typographical emphasis normalized from versioned Wikisource page transcriptions; historical wording and punctuation checked on the 1911 print.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q42156",
+       "name": {
+        "en": "Henri Bergson",
+        "ru": "Анри Бергсон"
+       },
+       "born": 1859,
+       "died": 1941,
+       "source": "https://www.wikidata.org/wiki/Q42156",
+       "evidence": {
+        "file": "wikidata-Q42156.json",
+        "sha256": "14cffc5da94503b16109d7b1625ea68ab25178228c5abade42a627a09f9befef",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q42156.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q29186572",
+       "name": {
+        "en": "Cloudesley Brereton",
+        "ru": "Cloudesley Brereton"
+       },
+       "born": 1863,
+       "died": 1937,
+       "source": "https://www.wikidata.org/wiki/Q29186572",
+       "evidence": {
+        "file": "wikidata-Q29186572.json",
+        "sha256": "3a1f174751441e245506ec3c703ac9e3dc2da6d259beb45b3a64c1f1d1c6e32e",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q29186572.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q21552575",
+       "name": {
+        "en": "Fred Rothwell",
+        "ru": "Fred Rothwell"
+       },
+       "born": 1869,
+       "died": 1934,
+       "source": "https://www.wikidata.org/wiki/Q21552575",
+       "evidence": {
+        "file": "wikidata-Q21552575.json",
+        "sha256": "60505035fa705cb5fb51d0342eef6aadabd302e846d463950dde8960ade2980d",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q21552575.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "17 USC 304: the 1911 published translation is outside the maximum 95-year U.S. copyright term. https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: life plus 70 years for the author and translation contributors; latest death 1941. https://eur-lex.europa.eu/eli/dir/2006/116/oj/eng"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code Article 1281: life plus 70 years, conservatively allowing four additional wartime years; latest known death 1941; rehabilitation uncertainty remains. https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Henri Bergson",
+        "ru": "Анри Бергсон"
+       },
+       "qid": "Q42156",
+       "source": "https://www.wikidata.org/wiki/Q42156",
+       "born": [
+        {
+         "time": "+1859-10-18T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1941-01-04T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Cloudesley Brereton",
+        "ru": "Cloudesley Brereton"
+       },
+       "qid": "Q29186572",
+       "source": "https://www.wikidata.org/wiki/Q29186572",
+       "born": [
+        {
+         "year": 1863
+        }
+       ],
+       "died": [
+        {
+         "year": 1937
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "Fred Rothwell",
+        "ru": "Fred Rothwell"
+       },
+       "qid": "Q21552575",
+       "source": "https://www.wikidata.org/wiki/Q21552575",
+       "born": [
+        {
+         "year": 1869
+        }
+       ],
+       "died": [
+        {
+         "year": 1934
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -4064,10 +4355,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the line plants the original first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the line plants the original first."
     }
    ]
   },
@@ -7194,6 +7481,139 @@
        ]
       }
      ]
+    },
+    "en": {
+     "edition": "Friedrich Nietzsche, The Joyful Wisdom, translated by Thomas Common, edited by Oscar Levy, Edinburgh and London: T. N. Foulis, 1910, pp. 223–224.",
+     "year": 1910,
+     "url": "https://archive.org/details/NietzscheJoyfulWisdom",
+     "licence": "Public-domain historical prose translation in the listed jurisdictions; scan supplied by Internet Archive from a Google digitisation.",
+     "attribution": "Friedrich Nietzsche, translated by Thomas Common; edited by Oscar Levy.",
+     "maker": "codex-2026-11-27-nietzsche-en-maker",
+     "persons": [
+      {
+       "role": "translator",
+       "qid": "Q5611223",
+       "name": {
+        "en": "Thomas Common",
+        "ru": "Thomas Common"
+       },
+       "born": 1850,
+       "died": 1919,
+       "source": "https://www.wikidata.org/wiki/Q5611223",
+       "evidence": {
+        "file": "wikidata-Q5611223.json",
+        "sha256": "dfe30700edb5cdb358f351434312c6c6ada56cf0e020ebe3254a3ac3879b6ded",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q5611223.json"
+       }
+      },
+      {
+       "role": "author",
+       "qid": "Q9358",
+       "name": {
+        "en": "Friedrich Nietzsche",
+        "ru": "Фридрих Ницше"
+       },
+       "born": 1844,
+       "died": 1900,
+       "source": "https://www.wikidata.org/wiki/Q9358",
+       "evidence": {
+        "file": "wikidata-Q9358.json",
+        "sha256": "0460c77c598958521cdf24abd8cc8c339df66eb760cae2637db45c4abe2faeb4",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q9358.json"
+       }
+      },
+      {
+       "role": "editor",
+       "qid": "Q101732",
+       "name": {
+        "en": "Oscar Levy",
+        "ru": "Oscar Levy"
+       },
+       "born": 1867,
+       "died": 1946,
+       "source": "https://www.wikidata.org/wiki/Q101732",
+       "evidence": {
+        "file": "wikidata-Q101732.json",
+        "sha256": "35d91943e281a86e05bdc1466b8be9b27c33029a6d35c969565acf39ca902899",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q101732.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published 1910, before 1931, 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1; author died 1900, prose translator 1919, editor 1946, all over 70 years: https://eur-lex.europa.eu/eli/dir/2006/116/oj"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code article 1281, conservatively 70 years plus four wartime years after latest death 1946: https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "translator",
+       "name": {
+        "en": "Thomas Common",
+        "ru": "Thomas Common"
+       },
+       "qid": "Q5611223",
+       "source": "https://www.wikidata.org/wiki/Q5611223",
+       "born": [
+        {
+         "year": 1850
+        }
+       ],
+       "died": [
+        {
+         "year": 1919
+        }
+       ]
+      },
+      {
+       "role": "author",
+       "name": {
+        "en": "Friedrich Nietzsche",
+        "ru": "Фридрих Ницше"
+       },
+       "qid": "Q9358",
+       "source": "https://www.wikidata.org/wiki/Q9358",
+       "born": [
+        {
+         "time": "+1844-10-15T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1900-08-25T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "editor",
+       "name": {
+        "en": "Oscar Levy",
+        "ru": "Oscar Levy"
+       },
+       "qid": "Q101732",
+       "source": "https://www.wikidata.org/wiki/Q101732",
+       "born": [
+        {
+         "year": 1867
+        }
+       ],
+       "died": [
+        {
+         "year": 1946
+        }
+       ]
+      }
+     ]
     }
    },
    "absent": [],
@@ -7201,10 +7621,6 @@
     {
      "language": "ru",
      "reason": "No Russian text is taken in this pass: the original is planted first."
-    },
-    {
-     "language": "en",
-     "reason": "No English text is taken in this pass: the original is planted first."
     }
    ]
   },
@@ -10299,15 +10715,21 @@
      "en": "No. 412, p. 717"
     },
     "texts": {
-     "en": "By Greatness, I do not only mean the Bulk of any single Object, but the Largeness of a whole View, considered as one entire Piece."
+     "en": "By Greatness, I do not only mean the Bulk of any single Object, but the Largeness of a whole View, considered as one entire Piece.",
+     "es": "Por grandeza no entiendo solamente el tamaño de un objeto peculiar, sino la anchura de una perspectiva entera considerada como una sola pieza."
     },
     "links": {
-     "en": "https://archive.org/details/cu31924064948734/page/n726/mode/1up"
+     "en": "https://archive.org/details/cu31924064948734/page/n726/mode/1up",
+     "es": "https://bibliotecalectura18.net/books/ensayo-sobre-los-placeres-de-la-imaginacion/p034.jpg"
     },
     "refs": [
      [
       "en",
       "The Spectator, ed. Henry Morley (London and New York, 1891), no. 412, p. 717"
+     ],
+     [
+      "es",
+      "Joseph Addison, Ensayo sobre los placeres de la imaginacion, translated by José Luis Munárriz, Variedades de ciencias, literatura y artes, vol. III, no. XIII (Madrid: Benito García y Compañía, 1804), pp. 33–34., p. 33, p. 34"
      ]
     ]
    },
@@ -10861,15 +11283,21 @@
      "en": "Ch. I, p. 3"
     },
     "texts": {
-     "fr": "Il n’y a pas de comique en dehors de ce qui est proprement humain."
+     "fr": "Il n’y a pas de comique en dehors de ce qui est proprement humain.",
+     "en": "The first point to which attention should be called is that the comic does not exist outside the pale of what is strictly human."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n16/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n16/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n14/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 3"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 3"
      ]
     ]
    },
@@ -10879,15 +11307,21 @@
      "en": "Ch. I, p. 4"
     },
     "texts": {
-     "fr": "Je voudrais signaler maintenant, comme un symptôme non moins digne de remarque, l’insensibilité qui accompagne d’ordinaire le rire. Il semble que le comique ne puisse produire son ébranlement qu’à la condition de tomber sur une surface d’âme bien calme, bien unie. L’indifférence est son milieu naturel."
+     "fr": "Je voudrais signaler maintenant, comme un symptôme non moins digne de remarque, l’insensibilité qui accompagne d’ordinaire le rire. Il semble que le comique ne puisse produire son ébranlement qu’à la condition de tomber sur une surface d’âme bien calme, bien unie. L’indifférence est son milieu naturel.",
+     "en": "Here I would point out, as a symptom equally worthy of notice, the absence of feeling which usually accompanies laughter. It seems as though the comic could not produce its disturbing effect unless it fell, so to say, on the surface of a soul that is thoroughly calm and unruffled. Indifference is its natural environment, for laughter has no greater foe than emotion."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n17/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n17/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n15/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 4"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 4"
      ]
     ]
    },
@@ -10897,15 +11331,21 @@
      "en": "Ch. II, p. 95–96"
     },
     "texts": {
-     "fr": "Imaginez certains personnages dans une certaine situation : vous obtiendrez une scène comique en faisant que la situation se retourne et que les rôles soient intervertis."
+     "fr": "Imaginez certains personnages dans une certaine situation : vous obtiendrez une scène comique en faisant que la situation se retourne et que les rôles soient intervertis.",
+     "en": "Picture to yourself certain characters in a certain situation: if you reverse the situation and invert the rôles, you obtain a comic scene."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n108/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n108/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n105/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), pp. 95–96"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 94"
      ]
     ]
    },
@@ -10915,15 +11355,21 @@
      "en": "Ch. II, p. 98"
     },
     "texts": {
-     "fr": "Une situation est toujours comique quand elle appartient en même temps à deux séries d’événements absolument indépendantes, et qu’elle peut s’interpréter à la fois dans deux sens tout différents."
+     "fr": "Une situation est toujours comique quand elle appartient en même temps à deux séries d’événements absolument indépendantes, et qu’elle peut s’interpréter à la fois dans deux sens tout différents.",
+     "en": "A situation is invariably comic when it belongs simultaneously to two altogether independent series of events and is capable of being interpreted in two entirely different meanings at the same time."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n111/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n111/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n107/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 98"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 96"
      ]
     ]
    },
@@ -10969,15 +11415,21 @@
      "en": "Ch. II, p. 124"
     },
     "texts": {
-     "fr": "Le jeu de mots trahit donc toujours une distraction momentanée du langage, et c’est d’ailleurs par là qu’il est amusant."
+     "fr": "Le jeu de mots trahit donc toujours une distraction momentanée du langage, et c’est d’ailleurs par là qu’il est amusant.",
+     "en": "And so the play upon words always betrays a momentary lapse of attention in language, and it is precisely on that account that it is amusing."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n137/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n137/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n132/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 124"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 121"
      ]
     ]
    },
@@ -10987,15 +11439,21 @@
      "en": "Ch. III, p. 181"
     },
     "texts": {
-     "fr": "Or le rire a justement pour fonction de réprimer toute tendance séparatiste. Son rôle est de corriger la raideur en souplesse, de réadapter chacun à tous, enfin d’arrondir partout les angles."
+     "fr": "Or le rire a justement pour fonction de réprimer toute tendance séparatiste. Son rôle est de corriger la raideur en souplesse, de réadapter chacun à tous, enfin d’arrondir partout les angles.",
+     "en": "Now, it is the business of laughter to repress any separatist tendency. Its function is to convert rigidity into plasticity, to readapt the individual to the whole, in short, to round off the corners wherever they are met with."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n194/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n194/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n188/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 181"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 177"
      ]
     ]
    },
@@ -11005,15 +11463,21 @@
      "en": "Ch. I, p. 50"
     },
     "texts": {
-     "fr": "II. — Du mécanique plaqué sur du vivant, voilà encore notre point de départ. D’où venait ici le comique ? De ce que le corps vivant se raidissait en machine."
+     "fr": "II. — Du mécanique plaqué sur du vivant, voilà encore notre point de départ. D’où venait ici le comique ? De ce que le corps vivant se raidissait en machine.",
+     "en": "Our starting-point is again \"something mechanical encrusted upon the living.\" Where did the comic come from in this case? It came from the fact that the living body became rigid, like a machine."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n63/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n63/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n60/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 50"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 49"
      ]
     ]
    },
@@ -11023,15 +11487,21 @@
      "en": "Ch. II, p. 126"
     },
     "texts": {
-     "fr": "Transpose-t-on en familier le solennel ? On a la parodie."
+     "fr": "Transpose-t-on en familier le solennel ? On a la parodie.",
+     "en": "Transpose the solemn into the familiar and the result is parody."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n139/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n139/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n134/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 126"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 123"
      ]
     ]
    },
@@ -11041,15 +11511,21 @@
      "en": "Ch. II, p. 89"
     },
     "texts": {
-     "fr": "Le comique est ce côté de la personne par lequel elle ressemble à une chose, cet aspect des événements humains qui imite, par sa raideur d’un genre tout particulier le mécanisme pur et simple, l’automatisme, enfin le mouvement sans la vie."
+     "fr": "Le comique est ce côté de la personne par lequel elle ressemble à une chose, cet aspect des événements humains qui imite, par sa raideur d’un genre tout particulier le mécanisme pur et simple, l’automatisme, enfin le mouvement sans la vie.",
+     "en": "The comic is that side of a person which reveals his likeness to a thing, that aspect of human events which, through its peculiar inelasticity, conveys the impression of pure mechanism, of automatism, of movement without life."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n102/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n102/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n98/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 89"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 87"
      ]
     ]
    },
@@ -11059,15 +11535,21 @@
      "en": "Ch. II, p. 124"
     },
     "texts": {
-     "fr": "Inversion et interférence, en somme, ne sont que des jeux d’esprit aboutissant à des jeux de mots."
+     "fr": "Inversion et interférence, en somme, ne sont que des jeux d’esprit aboutissant à des jeux de mots.",
+     "en": "Inversion and reciprocal interference, after all, are only a certain playfulness of the mind which ends at playing upon words."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n137/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n137/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n132/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 124"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 121"
      ]
     ]
    },
@@ -11077,15 +11559,21 @@
      "en": "Ch. I, p. 50"
     },
     "texts": {
-     "fr": "Ainsi, pour tout résumer, le même effet va toujours se subtilisant, depuis l’idée d’une mécanisation artificielle du corps humain, si l’on peut s’exprimer ainsi, jusqu’à celle d’une substitution quelconque de l’artificiel au naturel."
+     "fr": "Ainsi, pour tout résumer, le même effet va toujours se subtilisant, depuis l’idée d’une mécanisation artificielle du corps humain, si l’on peut s’exprimer ainsi, jusqu’à celle d’une substitution quelconque de l’artificiel au naturel.",
+     "en": "To sum up, then, we have one and the same effect, which assumes ever subtler forms as it passes from the idea of an artificial mechanisation of the human body, if such an expression is permissible, to that of any substitution whatsoever of the artificial for the natural."
     },
     "links": {
-     "fr": "https://archive.org/details/b21270545/page/n63/mode/1up"
+     "fr": "https://archive.org/details/b21270545/page/n63/mode/1up",
+     "en": "https://archive.org/download/laughteressayonm00berguoft/page/n59/mode/1up"
     },
     "refs": [
      [
       "fr",
       "First edition (Paris: Alcan, 1900), p. 50"
+     ],
+     [
+      "en",
+      "Henri Bergson, Laughter: An Essay on the Meaning of the Comic, authorized translation by Cloudesley Brereton and Fred Rothwell, London: Macmillan and Co., Limited, 1911, December reprint (first edition October 1911)., p. 48"
      ]
     ]
    }
@@ -13212,15 +13700,21 @@
      "en": "§ 290, p. 207"
     },
     "texts": {
-     "de": "Hier ist das Hässliche, welches sich nicht abtragen liess, versteckt, dort ist es in's Erhabene umgedeutet."
+     "de": "Hier ist das Hässliche, welches sich nicht abtragen liess, versteckt, dort ist es in's Erhabene umgedeutet.",
+     "en": "Here the ugly, which does not permit of being taken away, has been concealed, there it has been re-interpreted into the sublime."
     },
     "links": {
-     "de": "https://archive.org/details/bub_gb_LNEuAAAAYAAJ/page/n215/mode/1up"
+     "de": "https://archive.org/details/bub_gb_LNEuAAAAYAAJ/page/n215/mode/1up",
+     "en": "https://archive.org/download/NietzscheJoyfulWisdom/page/n235.jpg"
     },
     "refs": [
      [
       "de",
       "Neue Ausgabe (Leipzig 1887), p. 207"
+     ],
+     [
+      "en",
+      "Friedrich Nietzsche, The Joyful Wisdom, translated by Thomas Common, edited by Oscar Levy, Edinburgh and London: T. N. Foulis, 1910, pp. 223–224., p. 223, p. 224"
      ]
     ]
    }
