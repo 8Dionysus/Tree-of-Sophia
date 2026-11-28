@@ -145,6 +145,35 @@ describe('the corpus alignment of the stands',()=>{
     translation.units[0].text+=' Ещё предложение; затем названы два вида.';
     expect(align).toThrow(/Clause opening keywords are missing or ambiguous/);
   });
+  it('uses an evidenced print boundary without changing digital characters or offsets',()=>{
+    const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s',reference:'9',text:'λόγος Ἀγάθωνος.'}]};
+    const translation={id:'r',language:'ru',revision:'r-rev',units:[{id:'t',reference:'9',text:'📖 Прежде не было возможно, Однако у Агафона есть поэзия.'}]};
+    const read=()=>({id:'work',versions:[original,translation]});
+    const cited=new Map([['a',{original:'g',units:new Set(['s'])}]]);
+    const boundary={before:'не было возможно,',after:'Однако у Агафона',source:'https://example.test/print/page-52'};
+    const pair={originalUnitId:'s',translationUnitId:'t',verifiedTargetSentenceBreaks:[boundary],
+      sentenceAnchors:[{source:['λόγος','Ἀγάθωνος'],target:['Однако','Агафона','поэзия']}]};
+    const scope={work:'a',translationVersionId:'r',translationRevision:'r-rev',originalVersionId:'g',originalRevision:'g-rev',firstUnitId:'s',lastUnitId:'s',source:'https://example.test/digital',localReferencePairs:[pair]};
+    const align=()=>alignCorpus(cited,{a:'work'},read,[scope]);
+    const result=align(),entry=result.units.s.t.r;
+    const [,[ [,start,end] ]]=entry.pairs[0];
+    expect(Array.from(translation.units[0].text).slice(start,end).join('')).toBe('Однако у Агафона есть поэзия.');
+    expect(result.receipt['a:r'].sourceScope.localReferenceAlignments[0].verifiedTargetSentenceBreaks).toEqual([boundary]);
+    for(const invalid of [{source:'not-a-source'},{source:'https://'},{before:'neighbour, '},{after:' leading'}]){
+      const invalidPair={...pair,verifiedTargetSentenceBreaks:[{...boundary,...invalid}]};
+      expect(translationScopesIssues({schema:'tos.bonsai.translation-scopes.v1',scopes:[{...scope,localReferencePairs:[invalidPair]}]})).toContain('localReferencePairs');
+    }
+    for(const continuation of [{precedingTranslationSentences:1},{includeFollowingContinuation:true}]){
+      const invalidPair={...pair,...continuation};
+      expect(translationScopesIssues({schema:'tos.bonsai.translation-scopes.v1',scopes:[{...scope,localReferencePairs:[invalidPair]}]})).toContain('localReferencePairs');
+    }
+    translation.revision='changed';expect(align).toThrow(/invalid or stale translation scope/);translation.revision='r-rev';
+    expect(translation.units[0].text).toBe('📖 Прежде не было возможно, Однако у Агафона есть поэзия.');
+    translation.units[0].text=translation.units[0].text.replace('возможно,','возможно.');
+    expect(align).toThrow(/Verified sentence boundary is missing or ambiguous/);
+    translation.units[0].text='Прежде не было возможно, Однако у Агафона есть поэзия. Прежде не было возможно, Однако у Агафона есть поэзия.';
+    expect(align).toThrow(/Verified sentence boundary is missing or ambiguous/);
+  });
   it('aligns explicitly matched whole reference units without changing the original or other units',()=>{
     const original={id:'g',language:'grc',revision:'g-rev',units:[{id:'s1',reference:'Book 7 · 515',text:'λόγος.'},{id:'s2',reference:'Book 7 · 516',text:'ἄνω.'}]};
     const translation={id:'r',language:'ru',revision:'r-rev',units:[{id:'t1',reference:'515',text:'Слово.'},{id:'t2',reference:'516',text:'Выше.'}]};

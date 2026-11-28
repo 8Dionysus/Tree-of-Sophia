@@ -18,7 +18,7 @@
 
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
-import {ALIGNMENT,LexicalModel,alignAnchoredSentences,alignRun,sentencesOf,splitSentenceClauses} from './align.mjs';
+import {ALIGNMENT,LexicalModel,alignAnchoredSentences,alignRun,sentencesOf,splitSentenceClauses,splitVerifiedSentenceBreaks} from './align.mjs';
 import {CORPUS_ALIGNMENT_SCHEMA,validLocalSentenceOptions} from './fragments.mjs';
 
 const json=path=>JSON.parse(readFileSync(path,'utf8'));
@@ -103,7 +103,7 @@ const PERIODS=new Set(['grc','la']),LONG_PERIOD=[[1,4],[1,5],[1,6]];
 
 // Some editions join several short original sentences into one long translation sentence. The scope may
 // opt into larger groups for that exact pair of revisions; the aligner still chooses every correspondence.
-export function alignVersion(original,translation,cited,{maxSourceSentences=3,handoverUnitIds=[],completePreviousUnitIds=[],sentenceAnchors=[],sourceClauseStarts=[],targetClauseStarts=[]}={}){
+export function alignVersion(original,translation,cited,{maxSourceSentences=3,handoverUnitIds=[],completePreviousUnitIds=[],sentenceAnchors=[],sourceClauseStarts=[],targetClauseStarts=[],verifiedTargetSentenceBreaks=[]}={}){
   if(!Number.isInteger(maxSourceSentences)||maxSourceSentences<3||maxSourceSentences>6)throw new Error('Invalid maximum source sentence group');
   if(!Array.isArray(completePreviousUnitIds)||new Set(completePreviousUnitIds).size!==completePreviousUnitIds.length||completePreviousUnitIds.some(id=>!handoverUnitIds.includes(id)))throw new Error('Invalid preceding continuation scope');
   const beads=(PERIODS.has(original.language)?LONG_PERIOD:[]).concat(Array.from({length:Math.max(0,maxSourceSentences-3)},(_,i)=>[i+4,1]));
@@ -180,12 +180,12 @@ export function alignVersion(original,translation,cited,{maxSourceSentences=3,ha
     }
   }else groups=[{units:original.units,targets:translation.units.map(whole),whole:true}];
   // Every run: the sentences of its units of the original against those of its counterparts, an edition's notes left out.
-  if((sentenceAnchors.length||sourceClauseStarts.length||targetClauseStarts.length)&&groups.length!==1)throw new Error('Sentence keyword matches require one reference run');
+  if((sentenceAnchors.length||sourceClauseStarts.length||targetClauseStarts.length||verifiedTargetSentenceBreaks.length)&&groups.length!==1)throw new Error('Sentence keyword matches require one reference run');
   const runs=groups.map(group=>{
     const sourceSentences=sentencesOf(group.units.map((unit,index)=>({index,raw:chars(unit.text).slice(0,textEnd(unit.text)).join('')})),original.language);
     const targetSentences=sentencesOf(group.targets.map((target,index)=>({index,raw:chars(textOf.get(target.id)).slice(target.s,Math.min(target.e,textEnd(textOf.get(target.id)))).join('')})),translation.language);
     const S=splitSentenceClauses(sourceSentences,sourceClauseStarts,original.language);
-    const T=splitSentenceClauses(targetSentences,targetClauseStarts,translation.language);
+    const T=splitSentenceClauses(splitVerifiedSentenceBreaks(targetSentences,verifiedTargetSentenceBreaks,translation.language),targetClauseStarts,translation.language);
     const ratio=T.reduce((n,item)=>n+item.len,0)/Math.max(1,S.reduce((n,item)=>n+item.len,0));
     const one=group.units.length===1&&!group.whole;
     return {...group,S,T,ratio,variance:one?VARIANCE*ALIGNMENT.sentenceVariance:VARIANCE,band:one?ALIGNMENT.band:60};
@@ -345,7 +345,7 @@ export function alignCorpus(cited,works,read,scopes=[]){
         try{
           local=alignVersion({...source,units:[{...from,reference:to.reference}]},{...target,units:localTargets},new Set([from.id]),{
             maxSourceSentences:scope?.maxSourceSentences??3,sentenceAnchors:pair.sentenceAnchors,
-            sourceClauseStarts:pair.sourceClauseStarts,targetClauseStarts:pair.targetClauseStarts,
+            sourceClauseStarts:pair.sourceClauseStarts,targetClauseStarts:pair.targetClauseStarts,verifiedTargetSentenceBreaks:pair.verifiedTargetSentenceBreaks,
           });
         }catch(error){
           throw new Error(`${key}: sentence alignment for ${from.reference} / ${to.reference} failed: ${error.message}`,{cause:error});

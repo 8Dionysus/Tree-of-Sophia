@@ -334,7 +334,7 @@ fn creation_receipt_check(
             "Claim creation receipt absent",
         ))?;
     let receipt = parse(raw)?;
-    exact_keys(
+    claim_receipt_keys(
         &receipt,
         &[
             "schema_version",
@@ -358,7 +358,7 @@ fn creation_receipt_check(
             field(&receipt, "command_id")?,
             field(request, "command_id")?,
         )?
-        || text(&receipt, "request_digest")? != record_digest(request)?.to_prefixed()
+        || !verify_claim_request_digest(request, &receipt)?
         || !same(
             field(&receipt, "owner_configuration")?,
             field(request, "expected_configuration")?,

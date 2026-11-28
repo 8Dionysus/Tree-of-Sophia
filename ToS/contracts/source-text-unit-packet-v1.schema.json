@@ -460,7 +460,13 @@
           "required": ["required", "locator_ref"],
           "properties": {
             "required": {"const": true},
-            "locator_ref": {"$ref": "#/$defs/boundedRef"}
+            "locator_ref": {"$ref": "#/$defs/boundedRef"},
+            "additional_locator_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {"$ref": "#/$defs/boundedRef"}
+            }
           }
         }
       }
