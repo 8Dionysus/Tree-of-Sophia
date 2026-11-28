@@ -2556,6 +2556,28 @@
       }
      ]
     }
+   },
+   "joseph-addison.the-pleasures-of-the-imagination": {
+    "es": {
+     "absent": null,
+     "unsearched": null,
+     "record": "bonsai/review/aesthetics/planting/packets/joseph-addison.the-pleasures-of-the-imagination/witnesses/es.json",
+     "corrections": [],
+     "page_sources": {
+      "No. 412 p717a": [
+       {
+        "page": "p. 33",
+        "url": "https://bibliotecalectura18.net/books/ensayo-sobre-los-placeres-de-la-imaginacion/p034.jpg",
+        "image_sha256": "e311c8058ca81fa0bf96ba3d82c7d45e25ca10b8a3a0a4805f3fabdc5b335dd2"
+       },
+       {
+        "page": "p. 34",
+        "url": "https://bibliotecalectura18.net/books/ensayo-sobre-los-placeres-de-la-imaginacion/p035.jpg",
+        "image_sha256": "2756c2f1786a427fc6fca484dda4dde1aeebc74eb56f855a89bf30b72a19f0e0"
+       }
+      ]
+     }
+    }
    }
   }
  },
@@ -3361,6 +3383,105 @@
         {
          "time": "+1894-05-14T00:00:00Z",
          "precision": 11
+        }
+       ]
+      }
+     ]
+    },
+    "es": {
+     "edition": "Joseph Addison, Ensayo sobre los placeres de la imaginacion, translated by José Luis Munárriz, Variedades de ciencias, literatura y artes, vol. III, no. XIII (Madrid: Benito García y Compañía, 1804), pp. 33–34.",
+     "year": 1804,
+     "url": "https://bibliotecalectura18.net/d/ensayo-sobre-los-placeres-de-la-imaginacion",
+     "licence": "Historical translation public domain in listed jurisdictions; page image supplied by Biblioteca de la Lectura en la Ilustración from a Google digitisation, image rights separately unasserted.",
+     "attribution": "Joseph Addison, translated by José Luis Munárriz. Words transcribed from the 1804 print image supplied by Biblioteca de la Lectura en la Ilustración.",
+     "maker": "codex-2026-11-27-addison-es-maker",
+     "normalization": "Printed historical spelling and punctuation retained; line breaks and whitespace normalized.",
+     "persons": [
+      {
+       "role": "author",
+       "qid": "Q206384",
+       "name": {
+        "en": "Joseph Addison",
+        "ru": "Джозеф Аддисон"
+       },
+       "born": 1672,
+       "died": 1719,
+       "source": "https://www.wikidata.org/wiki/Q206384",
+       "evidence": {
+        "file": "wikidata-Q206384.json",
+        "sha256": "34c4d29c8707f700d262d5012f9fc8d2ccac9003b7514d78a58035298a93c502",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q206384.json"
+       }
+      },
+      {
+       "role": "translator",
+       "qid": "Q6292807",
+       "name": {
+        "en": "José Luis Munárriz",
+        "ru": "José Luis Munárriz"
+       },
+       "born": 1762,
+       "died": 1830,
+       "source": "https://www.wikidata.org/wiki/Q6292807",
+       "evidence": {
+        "file": "wikidata-Q6292807.json",
+        "sha256": "b13a1e8a6e21b71807624ff702c6d2102268eb0ffec68f23ff8161a752051252",
+        "url": "https://www.wikidata.org/wiki/Special:EntityData/Q6292807.json"
+       }
+      }
+     ],
+     "rights": {
+      "usa": {
+       "basis": "public-domain",
+       "law": "Published in 1804, outside the maximum 95-year term, 17 USC section 304: https://www.copyright.gov/title17/92chap3.html#304"
+      },
+      "eu": {
+       "basis": "public-domain",
+       "law": "Directive 2006/116/EC article 1: 70 years after death of author and translator, latest death 1830. https://eur-lex.europa.eu/eli/dir/2006/116/oj"
+      },
+      "russia": {
+       "basis": "public-domain",
+       "law": "Russian Civil Code article 1281: 70 years after death, conservatively adding four wartime years; latest death 1830. https://www.consultant.ru/document/cons_doc_LAW_64629/675b81f0bc9b8ecd68ea332ecfd9d1562541fb98/"
+      }
+     },
+     "participants": [
+      {
+       "role": "author",
+       "name": {
+        "en": "Joseph Addison",
+        "ru": "Джозеф Аддисон"
+       },
+       "qid": "Q206384",
+       "source": "https://www.wikidata.org/wiki/Q206384",
+       "born": [
+        {
+         "time": "+1672-05-01T00:00:00Z",
+         "precision": 11
+        }
+       ],
+       "died": [
+        {
+         "time": "+1719-06-17T00:00:00Z",
+         "precision": 11
+        }
+       ]
+      },
+      {
+       "role": "translator",
+       "name": {
+        "en": "José Luis Munárriz",
+        "ru": "José Luis Munárriz"
+       },
+       "qid": "Q6292807",
+       "source": "https://www.wikidata.org/wiki/Q6292807",
+       "born": [
+        {
+         "year": 1762
+        }
+       ],
+       "died": [
+        {
+         "year": 1830
         }
        ]
       }
@@ -10440,15 +10561,21 @@
      "en": "No. 412, p. 717"
     },
     "texts": {
-     "en": "By Greatness, I do not only mean the Bulk of any single Object, but the Largeness of a whole View, considered as one entire Piece."
+     "en": "By Greatness, I do not only mean the Bulk of any single Object, but the Largeness of a whole View, considered as one entire Piece.",
+     "es": "Por grandeza no entiendo solamente el tamaño de un objeto peculiar, sino la anchura de una perspectiva entera considerada como una sola pieza."
     },
     "links": {
-     "en": "https://archive.org/details/cu31924064948734/page/n726/mode/1up"
+     "en": "https://archive.org/details/cu31924064948734/page/n726/mode/1up",
+     "es": "https://bibliotecalectura18.net/books/ensayo-sobre-los-placeres-de-la-imaginacion/p034.jpg"
     },
     "refs": [
      [
       "en",
       "The Spectator, ed. Henry Morley (London and New York, 1891), no. 412, p. 717"
+     ],
+     [
+      "es",
+      "Joseph Addison, Ensayo sobre los placeres de la imaginacion, translated by José Luis Munárriz, Variedades de ciencias, literatura y artes, vol. III, no. XIII (Madrid: Benito García y Compañía, 1804), pp. 33–34., p. 33, p. 34"
      ]
     ]
    },
