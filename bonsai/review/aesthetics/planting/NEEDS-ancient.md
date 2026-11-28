@@ -324,27 +324,3 @@ The existing witness includes the page-verified OCR correction `atra- 25 bilious
 For `pseudo-longinus.peri-hypsous`, the original author's identity is disputed. The [Basel edition](https://www.ub.unibas.ch/cmsdata/spezialkataloge/gg/images/gg0233_001_tit.jpg) names Dionysius Longinus; its title and [1554 dedication](https://www.ub.unibas.ch/cmsdata/spezialkataloge/gg/images/gg0233_002_vor.jpg) support an early named edition, not an observed anonymous first publication. A historic attribution is not proof of authorship, an authorial pseudonym, lawful initial disclosure, or a death date. The named modern translator and the editor of a particular Greek text are separate contributors.
 
 The existing `witness-anonymous` route describes an anonymously published translation and cannot honestly represent this unknown original author. Please assess a source-backed representation of disputed or unknown original authorship and, where evidence permits, the relevant publication and jurisdiction-specific rights assessments, each with independent review. Alternatively, consider how a justified conservative historical death bound recorded for the original contributor can be carried into the witness without inventing a precise year. Keep the gate closed when the necessary facts or legal basis are not established; do not transfer an old original's status to a later translation, editorial text, or scan.
-
-## A named translator supported by a journal and national catalogue
-
-For `yoshida-kenko.tsurezuregusa` the Chinese witness is a short quotation
-from a translation by 王新禧 as quoted in Lu Wanxia's 2019 scholarly article.
-The article's PDF page 138, note 1, credits this translator for quotations from
-the work unless otherwise stated, and page 145 contains the three cited
-sentences. The kit now retains the original PDF and its derived text and page
-images with digests. The [CiNii catalogue](https://ci.nii.ac.jp/author/DA17317409)
-records a translator of the same name and work; an independent 2012 review
-identifies the translator of the 2011 book and indicates a recent living
-contributor, without establishing an exact birth year. The underlying book's
-page has not been inspected, and the article is the source actually quoted.
-
-`witness-person-source` restricts reference URLs to a fixed host list that
-does not include CiNii or the journal. A Library of Congress authority record
-with the same name was found, but its identity with this translator is not
-established and must not be substituted. Please assess a supported way to
-record and independently review an attributed translator using the exact
-publisher or catalogue evidence, without inventing dates or treating same
-names as identity. Keep quotation rights and lawful source, the intermediary
-attribution, the actual passage, and independent second reading separate. The
-maker's Mexico quotation assessment is recorded for the current scope; any
-participant change invalidates that scope and requires reassessment.
