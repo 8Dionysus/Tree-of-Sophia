@@ -10606,15 +10606,13 @@
   }
  },
  "mahima-bhatta": {
-  "item": null,
+  "item": "Q15140044",
   "label": {
-   "ru": "Махима Бхатта",
-   "en": "Mahima Bhaṭṭa"
+   "ru": null,
+   "en": "Mahimabhatta"
   },
   "born": [],
   "died": [],
-  "status": "unresolved",
-  "reason": "no unique catalogued identity in the listed works",
   "checked": "2026-11-13",
   "relation_search": {
    "complete": true,
@@ -10641,6 +10639,24 @@
    ],
    "source": "https://api.crossref.org/",
    "checked": "2026-11-13"
+  },
+  "fetched": "2026-11-27",
+  "identity_reference": {
+   "source": "https://sa.wikipedia.org/wiki/महिमभट्टः",
+   "person_url": "https://www.wikidata.org/wiki/Q15140044",
+   "catalogue_author": "https://openlibrary.org/authors/OL13268938A",
+   "catalogue_work": "https://openlibrary.org/works/OL42727040W",
+   "basis": "The Sanskrit article linked from Q15140044 names Mahima Bhatta and his Vyaktiviveka; the Open Library work and author records independently associate Mahimabhatta with that work. The Wikidata item has no dated life claims, so birth and death remain unknown. The opened 1909 edition preface explicitly attributes the Vyaktiviveka to Rajanaka Mahimabhatta; editorial contributions need separate assessment.",
+   "edition_scan": "https://archive.org/details/Vyaktiviveka/page/n3/mode/1up"
+  },
+  "historical_bound_reference": {
+   "url": "https://archive.org/details/Vyaktiviveka/page/n12/mode/1up",
+   "printed_page": "10",
+   "source": "M. T. Narasimha Iyengar, Journal of the Royal Asiatic Society, January 1908, quoted in the 1909 edition preface",
+   "claim": "The passage places Mahima-Bhatta’s literary activity in the early eleventh century, as a historical inference.",
+   "inference": "Taking the latest year of the eleventh century and the 122-year maximum lifespan gives a conservative upper bound of 1222; this is an inferred bound, not an exact death date.",
+   "died_before": 1223,
+   "checked": "2026-11-27"
   }
  },
  "marc-o-ernst": {

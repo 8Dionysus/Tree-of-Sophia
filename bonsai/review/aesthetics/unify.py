@@ -115,6 +115,22 @@ def write_json(path: Path, value) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 
+def apply_agent_date_corrections(agents, corrections, decisions):
+    """Apply sourced corrections while preserving the register's wording."""
+    for decision in decisions:
+        required=('target','agent','was','now','verified_at','source_sha256','statement','by')
+        if any(not decision.get(key) for key in required) or not re.fullmatch(r'[a-f0-9]{64}',decision['source_sha256']):raise ValueError('incomplete agent date correction')
+        matches=[agent for agent in agents if agent.get('id')==decision['agent'] and decision['target'] in agent.get('keys',[])]
+        if len(matches)!=1:raise ValueError('date correction must identify exactly one register-linked agent')
+        agent=matches[0];original={'key':decision['target'],'dates':decision['was']};record={'target':decision['target'],'kind':'author','field':'Даты','was':decision['was'],'now':decision['now'],'verified_at':decision['verified_at'],'source_sha256':decision['source_sha256'],'statement':decision['statement'],'by':decision['by'],'applied':True}
+        prior=[item for item in corrections if item.get('target')==record['target'] and item.get('kind')=='author' and item.get('field')=='Даты']
+        if prior:
+            if prior!=[record] or original not in agent.get('register_dates',[]) or decision['was'] in agent.get('dates',[]):raise ValueError('date correction disagrees with the existing projection')
+            continue
+        if decision['was'] not in agent.get('dates',[]):raise ValueError('the prior register date is absent')
+        agent['dates']=sorted(({value for value in agent['dates'] if value!=decision['was']})|{decision['now']})
+        agent.setdefault('register_dates',[]).append(original);corrections.append(record)
+
 
 def write_rows(path: Path, sheet: str, header, rows) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -704,9 +720,25 @@ def read_media(batch: Path, registers: dict) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    parser.add_argument('--batch', required=True, type=Path, help='folder holding the four register workbooks and media/')
+    parser.add_argument('--batch', type=Path, help='folder holding the four register workbooks and media/')
+    parser.add_argument('--refresh-agent-dates', action='store_true', help='apply sourced agent date corrections to the existing layer')
+    parser.add_argument('--check', action='store_true', help='check agent date corrections without writing')
     parser.add_argument('--out', type=Path, default=HERE, help='where registry/, layer/ and provenance.json are written')
     args = parser.parse_args()
+    if args.refresh_agent_dates:
+        if args.batch:parser.error('--refresh-agent-dates does not take --batch')
+        decisions=json.loads((HERE/'inputs'/'agents.json').read_text(encoding='utf-8')).get('date_corrections',[])
+        agents=json.loads((args.out/'layer'/'agents.json').read_text(encoding='utf-8'));corrections=json.loads((args.out/'layer'/'corrections.json').read_text(encoding='utf-8'));before=json.dumps([agents,corrections],ensure_ascii=False,sort_keys=True)
+        for decision in decisions:
+            register,identifier=decision['target'].split(':',1);rows=[json.loads(line) for line in (args.out/'registry'/register/'agents.jsonl').read_text(encoding='utf-8').splitlines()[1:]]
+            if not any(row.get('ID')==identifier and row.get('Даты')==decision['was'] for row in rows):raise ValueError('source register date differs from correction predecessor')
+        apply_agent_date_corrections(agents,corrections,decisions)
+        if args.check:
+            if before!=json.dumps([agents,corrections],ensure_ascii=False,sort_keys=True):raise ValueError('agent date corrections are not applied')
+            print('agent date corrections: as authored');return
+        write_json(args.out/'layer'/'agents.json',agents);write_json(args.out/'layer'/'corrections.json',corrections);print('agent date corrections applied');return
+    if args.check:parser.error('--check requires --refresh-agent-dates')
+    if not args.batch:parser.error('--batch is required unless --refresh-agent-dates is used')
     registers = {letter: read_register(args.batch, letter) for letter in REGISTERS}
     for letter, sheets in registers.items():
         for sheet_id, (name, header, rows) in sheets.items():
@@ -715,6 +747,7 @@ def main() -> None:
     media = read_media(args.batch, registers)
     inputs = {name: json.loads((HERE / 'inputs' / f'{name}.json').read_text(encoding='utf-8')) for name in ('areas', 'agents', 'works')}
     layer = unify(registers, media, inputs)
+    apply_agent_date_corrections(layer['agents'],layer['corrections'],inputs['agents'].get('date_corrections',[]))
     unresolved = layer.pop('_unresolved')
     for name, value in layer.items():
         write_json(args.out / 'layer' / f'{name}.json', value)

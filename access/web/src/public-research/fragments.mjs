@@ -128,6 +128,19 @@ function clip(nodes){
   return {nodes:kept,clipped:false};
 }
 
+// The packet supplies exact, uniquely located words; never interpret them as HTML.
+function showEmphasis(nodes,marks,fullText){
+  const paragraphs=fullText.split(/\n{2,}/).map(part=>part.trim()).filter(Boolean);
+  for(const [index,node] of nodes.entries()){
+    const text=node.textContent,original=paragraphs[index]??'',visible=text.endsWith(' …')?text.length-2:text.length;
+    const ranges=(marks??[]).map(mark=>{const start=original.indexOf(mark);return {start,end:Math.min(start+mark.length,visible)};}).filter(item=>item.start>=0&&item.start<item.end&&text.slice(item.start,item.end)===original.slice(item.start,item.end)).sort((a,b)=>a.start-b.start);
+    if(!ranges.length)continue;
+    const parts=[];let at=0;
+    for(const {start,end} of ranges){if(start<at)continue;parts.push(document.createTextNode(text.slice(at,start)),el('em','',text.slice(start,end)));at=end;}
+    parts.push(document.createTextNode(text.slice(at)));node.replaceChildren(...parts);
+  }
+}
+
 /**
  * Fragments of one stand. `t` gives the stand's words, `openAddress` opens a
  * place in the corpus reader, `hint` marks an element with a hint.
@@ -192,7 +205,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
     const copy=button(words('fragmentCopy'),'text-button ps-fragment-copy');
     copy.addEventListener('click',()=>{
       const [open,close]=String(locale()).startsWith('ru')?['«','»']:['“','”'],sources=[...figure.querySelectorAll('.ps-fragment-source')];
-      const text=[...figure.querySelectorAll('.ps-fragment-text')].map((quote,index)=>`${open}${quote.innerText.trim()}${close}${sources[index]?`\n— ${sources[index].textContent.trim()}`:''}`).join('\n\n');
+      const text=[...figure.querySelectorAll('.ps-fragment-text')].map((quote,index)=>{let content=quote.innerText;for(const emphasis of quote.querySelectorAll('em')){const words=emphasis.textContent,at=content.indexOf(words);if(at>=0&&at===content.lastIndexOf(words))content=content.slice(0,at)+`*${words}*`+content.slice(at+words.length);}return `${open}${content.trim()}${close}${sources[index]?`\n— ${sources[index].textContent.trim()}`:''}`;}).join('\n\n');
       void clipboard.writeText(text).then(()=>{copy.textContent=words('fragmentCopied');setTimeout(()=>{copy.textContent=words('fragmentCopy');},1600);}).catch(()=>{});
     });
     tools.append(copy);
@@ -386,10 +399,19 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
         const narrowed=shownIn(language,language===work.original&&Number.isInteger(cite.s)?text.slice(cite.s,Number.isInteger(cite.e)?cite.e:text.length):text);
         const quote=el('blockquote','ps-fragment-text');quote.lang=language==='zh-Hans'?'zh':language;quote.dataset.termWorks=cite.w;
         const {nodes}=clip(narrowed.split(/\n{2,}/).map(part=>el('p','ps-fragment-line',part.trim())).filter(node=>node.textContent));
+        if(profile==='aesthetics'&&narrowed===text)showEmphasis(nodes,place.emphasis?.[language],narrowed);
         quote.append(...nodes);
         const witness=witnessOf(language);
         const caption=el('figcaption','ps-fragment-cite');
-        caption.append(el('span','ps-fragment-source',[local(work.author),local(work.title),local(place.label),local(witness?.short),language==='ru'&&isPreReform(text)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
+        const attribution=profile==='aesthetics'&&language!==work.original?local(witness?.attribution)||local(witness?.short)||local(witness?.edition):local(witness?.short);
+        const translatedRefs=profile==='aesthetics'&&language!==work.original?(Array.isArray(place.refs)?place.refs:[]).filter(ref=>Array.isArray(ref)&&ref[0]===language&&typeof ref[1]==='string').map(ref=>ref[1]).join('; '):'';
+        const alreadyNamed=profile==='aesthetics'&&language!==work.original?`${attribution} ${translatedRefs}`.toLocaleLowerCase():'';
+        const author=local(work.author),title=local(work.title);
+        caption.append(el('span','ps-fragment-source',[author&&!alreadyNamed.includes(author.toLocaleLowerCase())?author:'',title&&!alreadyNamed.includes(title.toLocaleLowerCase())?title:'',translatedRefs?'':local(place.label),attribution,translatedRefs,language==='ru'&&isPreReform(text)?words('modernSpelling'):''].filter(Boolean).join(' · ')));
+        if(profile==='aesthetics'){
+          const [url,opens]=place.links?.[language]?[place.links[language],'quotation']:language===work.original&&place.url?[place.url,place.opens??'book']:[witness?.url,witness?.opens??'work'];
+          if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words({quotation:'fragmentQuoted',book:'fragmentBook'}[opens]??'fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';caption.append(el('span','',' · '),link);}
+        }
         figure.append(quote,caption);
       }
       if(profile==='aesthetics'&&resolveLocale(locale())!==work.original&&!available.includes(resolveLocale(locale())))figure.append(el('p','ps-fragment-wait',words('fragmentTranslationUnavailable')));
@@ -405,7 +427,7 @@ export function createFragments({profile='zarathustra',locale,t,provider=null,op
       // A link says what it opens: the whole work, the page a quotation is taken from, or where the book can be found.
       const witness=witnessOf(showing[0]);
       const [url,opens]=place.links?.[showing[0]]?[place.links[showing[0]],'work']:place.url?[place.url,place.opens??'book']:[witness?.url,witness?.opens??'work'];
-      if(typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words({quotation:'fragmentQuoted',book:'fragmentBook'}[opens]??'fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
+      if((profile!=='aesthetics'||!showing.length)&&typeof url==='string'&&/^https:\/\//.test(url)){const link=el('a','text-button ps-fragment-whole',`↗ ${words({quotation:'fragmentQuoted',book:'fragmentBook'}[opens]??'fragmentWhole')}`);link.href=url;link.target='_blank';link.rel='noopener noreferrer';tools.append(link);}
       copyTool(figure,tools);figure.append(tools);painted(figure);
     };
     paint();

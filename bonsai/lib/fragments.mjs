@@ -85,7 +85,7 @@ export function fragmentMayShow(witness){
 }
 // Sentence boundaries are shared by the original-place builder and its tests.
 export function wholeExternalSentence(text,language){
-  const start=String(text??'').trim().replace(/^[\s"“„«‚‘「『'([—–-]+/u,'');
+  const start=String(text??'').trim().replace(/^[\s"“„«‚‘「『'([—–¿¡-]+/u,'');
   const first=Array.from(start)[0]??'';
   // Editions of Greek verse can start a speaker's sentence in lower case.
   // The source and page review still determine the actual sentence boundary.
@@ -130,6 +130,11 @@ export function externalPlacesIssues(module){
       const validAddress=address=>['section','chapter','paragraph','folio','leaf','verse','manuscript'].includes(address?.kind)&&typeof address?.value==='string'&&address.value.trim()&&/^https:\/\//.test(address?.url??'');
       if(place.address!==undefined&&(!validAddress(place.address)||place.links?.[work.original]!==place.address.url))problems.push(`${id} ${loc} has an invalid original source address`);
       for(const [language,address] of Object.entries(place.addresses??{}))if(!witnessOf(language)||!validAddress(address)||place.links?.[language]!==address.url)problems.push(`${id} ${loc} has an invalid ${language} source address`);
+      for(const [language,marks] of Object.entries(place.emphasis??{})){
+        const text=place.texts?.[language];
+        if(typeof text!=='string'||!Array.isArray(marks)||!marks.length||marks.some(mark=>typeof mark!=='string'||!mark.trim()||mark.includes('\n')||text.indexOf(mark)<0||text.indexOf(mark)!==text.lastIndexOf(mark)))problems.push(`${id} ${loc} has invalid ${language} emphasis`);
+        else {const ranges=marks.map(mark=>[text.indexOf(mark),text.indexOf(mark)+mark.length]).sort((a,b)=>a[0]-b[0]);if(ranges.some((range,i)=>i&&range[0]<ranges[i-1][1]))problems.push(`${id} ${loc} has overlapping ${language} emphasis`);}
+      }
       if(place.url!==undefined&&!/^https:\/\//.test(place.url))problems.push(`${id} ${loc} has a URL that is not https`);
       if(place.opens!==undefined&&!OPENS.includes(place.opens))problems.push(`${id} ${loc} opens ${place.opens}`);
       for(const [language,text] of Object.entries(place.texts??{})){

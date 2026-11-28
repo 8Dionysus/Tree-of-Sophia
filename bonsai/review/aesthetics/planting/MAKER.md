@@ -277,9 +277,19 @@ is affected, and how attribution, source and unchanged wording are preserved:
 
 ```sh
 K mexico-quotation . --language ru --non-substantial '…' --normal-exploitation '…' --source-integrity '…'
-K mexico-quotation-review . --language ru --assessment 'Independent assessment of these exact places and the law.'
+K mexico-quotation-review . --language ru --outcome approved --assessment 'Independent assessment of these exact places and the law.'
 K witness-gate . ru --second --accept
 ```
+
+The independent reader chooses `approved`, `rejected` or `pending` according
+to the evidence. Only `approved` opens the second gate; a rejected or pending
+assessment is retained as such and can be reviewed again after correction.
+An older acceptance without an explicit outcome owes a new assessment.
+
+Mexico may require a quotation assessment even when the recorded Russian, US
+and EU bases are all public domain. Record the Mexican assessment directly; it
+does not change those three bases and it requires the same independent review.
+
 
 The first command fetches the official Cámara de Diputados law PDF, retains
 its digest and binds the assessment to the exact witness and places. The second
@@ -388,6 +398,12 @@ review. `K language-search-withdraw . es` removes the acceptance while keeping
 the evidence, so the search can be replaced. A subsequently accepted witness
 takes precedence over the search in the projection.
 
+For a legacy packet, `drive.py` sends a maker-ready unaccepted witness or
+complete language search to a fresh independent reader before the packet's
+second reading. It accepts that language only after its own second gate opens;
+a research candidate or failed review remains a debt. The line preserves a
+snapshot of the maker evidence and stops on an unexpected change to it.
+
 Leave the accepted packet and its review intact. To work on specific waiting
 register keys, make an independent extension:
 
@@ -411,6 +427,19 @@ that transcription. The original research note remains a candidate; the cut,
 page evidence, rights and independent review still go through the witness
 gate before acceptance.
 
+For one maker page without a usable transcription, `K witness-ocr . LANG
+PAGEFILE --model-dir DIR --model rus` runs locally installed Tesseract and
+records the raw OCR, exact page and model hashes, engine versions and default
+parameters. The URL remains the image's address; the text is explicitly
+derived, not downloaded. For a passage across pages, OCR each separately and
+prepare a JSON object `{"segments":[{"source":"FIRST.txt","open":"…",
+"close":"…"},{"source":"SECOND.txt","open":"…","close":"…"}],
+"reason":"…"}`. The reason explains the join and any omitted catchword;
+`K witness-ocr-join . LANG FILE` records exact raw character ranges, not a
+claimed downloaded transcription. Cut from the resulting file, add each page
+with `witness-add-page`, and correct every error against its own page. The
+second reader checks every page, the join and omissions separately.
+
 Use `witness-info` with a JSON object to update edition, URL, maker or
 normalization. `witness-rights . ru russia short-quotation 'legal basis …'`
 sets one jurisdiction at a time. For a person without a usable Wikidata item,
@@ -418,14 +447,53 @@ sets one jurisdiction at a time. For a person without a usable Wikidata item,
 fetches a trusted reference and records its digest. A missing death year stays
 unknown and cannot establish public domain by dates.
 
+CiNii Books and Cardiff Naturalists' Society are accepted reference sources.
+For each newly recorded person from either, the second reader must explicitly
+assess the match between the reference, the named person and this edition via
+`witness-reference-review`. An obituary alone does not establish that its
+subject is the translator named in an edition, and a catalogue without dates
+does not establish a death year or public-domain status.
+
+When a source explicitly calls a rendering its authors' collective translation
+without naming individual translators, record the exact article with
+`witness-fetch`, its place and page as usual, then `witness-collective . LANG
+LOC FILE`. FILE is a JSON object with `members` (all named source authors),
+`source` (the fetched filename), `claim` (the source's exact attribution) and
+`assessment` (how it attributes this passage to the collective). The witness
+attribution must name the whole collective without asserting each person's
+individual role. Record each place separately. Unknown contributors do not
+establish public domain by dates: assess the actual licence or quotation basis
+in every territory, and obtain independent page, licence and collective review.
+Use `witness-collective-clear` with a reason to withdraw an incorrect claim.
+
+If a place was tied to an external transcription although its maker page is
+from a registered Archive scan with indexed OCR, use `scan-rebind . LOC ITEM
+--image FILE --reason '…'`. The image must identify that Archive page and the
+OCR and scan offset must locate the place there. The former binding and review
+are retained, not silently rewritten. Run `compare` again and obtain a fresh
+independent reading; locating the place is not itself a textual comparison.
+
+When a Wikidata person has no death claim but its linked historical source
+establishes an ancient upper bound, keep both identities and source bytes:
+
+```sh
+K person . author Q123 --name 'Name in the linked source' --source https://en.wikipedia.org/wiki/Example --died-before 1223 --bound-note 'What the source establishes and how the conservative bound was derived.'
+```
+
+The source must be a trusted sitelink of that exact entity; its name, fetched
+bytes and entity bytes are retained. This route never invents a death year. A
+separate reader reviews the reference and the bound before packet acceptance.
+
 An ancient or medieval hand whose death is known within bounds is entered with
 `K person . author QID --bounded` (and `witness-person . LANG translator QID
 --bounded` for a witness). The kit reads the Wikidata date of death with its
 precision (year, decade, century, millennium) and its latest date; a date of
 death marked `circa` counts as alive about then. Without a date of death, a floruit or the end of a working period shows
 the person alive then, and the bound is that year plus the longest attested
-human life (122 years). The kit records `died_before` with the claims it rests
-on. A bound before 1800 establishes the
+human life (122 years), allowing an extra calendar year for the partial year of
+that lifespan. The kit records a strictly exclusive `died_before` with the
+claims and calendar it rests on: a latest possible Gregorian death in 1351 is
+recorded as before 1352. A bound before 1800 establishes the
 public domain by dates in every jurisdiction. For a hand without a usable
 Wikidata item, `K person . author --died-before YEAR --name 'Name' --source
 https://… --bound-note 'What the reference says that bounds the death.'`
@@ -438,6 +506,27 @@ string with `witness-person-remove-legacy . en 'Name' --reason '…'`. The
 command preserves the removed value and reason, leaves sourced participants in
 place and requires a fresh second reading; duplicate identical strings must be
 resolved explicitly rather than guessed.
+
+For an ancient original author recorded in a translation witness, a trusted
+reference may instead bound the death without inventing a year:
+
+```sh
+K witness-person-source . en author 'Name in reference' https://example.org/reference --died-before 1200 --bound-note 'What the source says that establishes this historical bound.' --anonymous
+```
+
+For an author already recorded with a Wikidata QID, first use `witness-person`,
+then attach a reference that is a sitelink of that exact entity:
+
+```sh
+K witness-person-bound . en author Q123 --name 'Name in reference' --source https://en.wikipedia.org/wiki/Example --died-before 1200 --bound-note 'What the source says that establishes this historical bound.'
+```
+
+Omit `--anonymous` for an identified author. The named translator and editors
+still need their own dates and rights. For an anonymous original, the bound
+alone does not establish the Russian or EU public-domain basis: first lawful
+publication and posthumous rights need separate evidence. Use a separately
+assessed quotation or licence until that evidence has its own reviewed route.
+The second reader verifies the reference and the bound.
 
 For an unaccepted witness, `witness-person-remove . ru author Q123 --reason
 'Reason for removing this mistaken identity.'` preserves the removed record
@@ -510,7 +599,9 @@ For a translation, use `witness-fetch` and add `--language en` to both
 commands; `pdf-page` then records an image usable by `witness-cut` and
 `witness-review`. The commands retain the PDF digest, extracted text or image
 digest, tool version and operation. The printed page in the edition may differ
-from the physical PDF page. Both readers must open and read the rendered image;
+from the physical PDF page. The second-reader command independently fetches the PDF and refuses a digest
+that differs from the maker's source; older accepted records without this fetch
+remain visible as a debt. Both readers must open and read the rendered image;
 rendering or matching hashes does not constitute a page reading. Licences and
 rights of the precise edition still require independent assessment.
 
@@ -536,10 +627,72 @@ search, edition and book locator required for a missing language; a later cut
 of that location replaces the gap. Accepted older works may still add a
 partial witness and retain their existing coverage debt.
 
-An extension may add translated places to an already accepted language when
-its witness records the same edition, participants, rights and source metadata;
-the maker may differ. Each extension is independently reviewed and signed.
-An overlapping place or a different edition is refused before acceptance.
+An extension may add disjoint translated places to an already accepted language
+from the same edition or a different edition. Record the actual edition, each
+contributor, source and territorial rights for that extension's witness; each
+extension is independently reviewed and signed. Planting assigns each place to
+its own witness. An overlapping place is refused before acceptance; a different
+edition does not inherit the original witness's rights or review.
+
+If the work is already planted and no new original reading is needed, open a
+witness-only extension from the parent packet:
+
+```sh
+K witness-extension-open . additional-ru
+cd extensions/additional-ru
+K witness-open . ru metadata.json
+```
+
+The path creates no reading or original acceptance. Use the normal witness
+commands and the online independent `witness-gate --second --accept`; only
+that exact accepted witness is planted. Its places must not overlap another
+accepted witness of the same language, even if its edition differs.
+
+An accepted witness is immutable. To recover a missing cached source or image
+without changing it, use `K witness-restore-evidence . ru source.txt`: the
+command restores only bytes matching the recorded SHA-256. For a browser capture
+or other derivative, provide the exact saved bytes with `--file`; the parent
+URL is not presented as the origin of those derivative bytes. An existing
+different file is preserved for inspection.
+
+### A new translation
+
+Only when the original edition permits adaptation, a new translation may be
+recorded as newly authored work. Open a separate witness whose edition says
+`New translation`, attribution names the creator, and URL points to the
+creator's exact licence declaration. Fetch that declaration, record `licensed`
+and its law for each jurisdiction, and bind the declaration with `licence`.
+Record the named translator with the normal person-source route, or use
+`K witness-creator . es 'Translator Name'` to bind their identity to the exact
+declaration itself. A different reader must verify the creator's authority;
+the declaration alone does not establish it. Fetch and inspect the original
+page as the witness maker, then:
+
+```sh
+K witness-new-translation . es 'LOC' --creator 'Translator Name' --text 'Una oración completa.' --image original-page.jpg --page '12' --alignment 'How these sentences correspond to the original.' --source-assessment 'Which original edition and each territorial basis permit creating this adaptation.' --image-assessment 'How this page image identifies the source edition and the original words.'
+```
+
+The kit records locally authored words as such, binds the exact original text,
+edition and page, and does not claim that the translation was downloaded.
+Source reuse, the translator's authority to license this new work, the licence,
+and the linguistic alignment need independent assessment. A new translation
+does not establish that no earlier translation exists.
+
+### An unidentified translator
+
+An attributed source can leave its individual translator unidentified without
+establishing anonymous publication. For that distinct case, fetch the exact
+source, document searches in two catalogues or publisher resources, and set
+each territorial basis to a separately justified short quotation. Prepare:
+
+```json
+{"finding":"The exact publication and documented searches do not name its individual translator.","sources":["edition.pdf"],"searches":[{"url":"https://example.org/catalogue","outcome":"The catalogue does not identify a translator."},{"url":"https://example.org/publisher","outcome":"The publisher does not identify a translator."}]}
+```
+
+`K witness-unidentified-translator . es identity.json` records the exact
+source hashes. It neither names a translator nor asserts public domain or
+anonymous publication. If later identified, use `witness-unidentified-clear`
+with a reason and record the actual person; both routes require renewed review.
 
 ### An anonymously published translation
 
@@ -573,3 +726,160 @@ not automatically classified public domain from this EU route: assess a
 separate lawful quotation or licence, or establish the translator's identity.
 If a translator is identified, use `witness-anonymous-clear PACKET LANG`,
 record the person and obtain a new independent review.
+
+To retire a superseded, unused transcription from an unaccepted witness, use
+`K witness-source-remove . ru filename.txt --reason 'Why this source is no longer used.'`.
+The recorded source and reason remain in the history, cached bytes are retained,
+and the independent review is cleared. Any remaining reference blocks removal.
+
+For context-sensitive Russian modernization, use `witness-correct` on the
+exact page image, explaining the historic form and its modern spelling. The
+original page transcription and correction remain recorded for the next reader;
+the command does not silently rewrite the source.
+
+For an erroneous source-backed participant with no QID, remove only its exact
+role and English catalogue name with `K witness-person-remove-source . de author
+'Pope, Alexander' --reason 'Why the participant record needs replacement.'`.
+The entire source-backed record and reason are retained in correction history;
+record the replacement identity and obtain a fresh independent review.
+
+For a defective place in an unaccepted witness, use `K witness-place-withdraw
+. ru 'LOC' --reason 'Why this edition cannot support this place as recorded.'`.
+The exact place, prior review and reason are retained in history; the existing
+source and page images remain. This is not a search finding: document the gap
+through `witness-missing` or provide a verified replacement, then obtain a fresh
+independent reading. Accepted witnesses need a separately reviewed correction.
+
+For an undated translator already recorded without a QID, the exact AST publisher
+card may expand an initialled name. Fetch the edition card as a witness source,
+include its ISBN in `witness.edition`, then use:
+
+```sh
+K witness-person-publisher . ru 'Е. Парахневич' --full-name 'Парахневич Елена Валерьевна' --source ast.html --isbn '978-5-17-179033-2' --reason 'The publisher card for this exact edition expands the translator’s initials.'
+```
+
+This route records an identity, not dates or rights. The former participant is
+retained in correction history; the independent reader must inspect the card.
+
+When the only evidence for an existing provisional participant is a printed
+page, first register its exact maker image with `witness-image`. Record only
+the name and death year actually visible, with a transcription and assessment:
+
+```sh
+K witness-person-image . ru editor 'M. Epstein' --name 'М. А. Эпштейн' --died 1901 --image contributor.jpg --page 501 --wording 'М. А. Эпштейнъ († 1901)' --assessment 'The printed page names the contributor and gives the year of death.' --reason 'Replace the provisional record with the initials and year actually printed.'
+```
+
+The previous record remains in correction history. This does not establish an
+unprinted full name, authorship beyond the stated contribution, or rights. The
+second reader must fetch and assess the same page independently.
+
+When printed italics carry meaning, preserve the exact words and their page
+without adding markup to the transcription:
+
+```sh
+K witness-emphasis . en 'III p319b' --text 'real experience' --page 401 --reason 'The printed italics distinguish actual experience from imagined events.'
+```
+
+The words must occur exactly once and lie on the selected maker page. Each
+emphasis record requires independent review. A mistaken record may be removed
+with `witness-emphasis-withdraw`, which retains the former record and review.
+
+### Original read directly from a page
+
+When no faithful machine transcription of this edition is available, a maker
+may record the exact original characters directly from a lawful image:
+
+```sh
+K transcribe-original-page . 'Dream p57' --url https://example.org/page.png --n 57 --reader MAKER_ID --text '…' --label-ru 'Сон, с. 57' --label-en 'Dream, p. 57' --why 'Which available transcriptions were searched, and why none gives this exact printing.' --punctuation 'Which punctuation is printed and which is editorial.'
+```
+
+`--file` may supply locally obtained image bytes from that URL. The text is
+recorded as a human transcription, not a downloaded transcription; its maker,
+source image, exact bytes and punctuation account are bound together. Run the
+usual comparison and whole-page judgement, and obtain a second reading of the
+same image. A page transcription establishes no rights or acceptance by itself.
+
+When a printed quotation closes before an attribution in parentheses and the
+sentence's punctuation follows that attribution, retain the quoted text as it
+stands. After cutting it from the exact source and recording the page image:
+
+```sh
+K witness-sentence-boundary . es 'I p24b' --suffix ' (traducción del autor).' --reason 'The printed stop follows the translator attribution outside the closing quotation mark.'
+```
+
+The suffix is source context, not part of the translation. The command checks
+that it immediately follows the quote in the fetched transcription and retains
+the source and page hashes. A distinct page reader must assess the boundary.
+
+### A lawful electronic edition without page images
+
+Fetch the exact HTML chapter with `witness-fetch`. After personally opening that
+same URL in the in-app Codex browser and saving a screenshot of the relevant
+passage, record the capture with its actual time and reader:
+
+```sh
+K witness-browser-capture . zh-Hans chapter.html --file /absolute/path/to/maker.png --by maker --reader MAKER_ID --captured-at '2026-11-28T05:00:00+00:00'
+```
+
+The capture is a human observation bound to the fetched HTML and URL, not image
+bytes downloaded from that URL. Use the resulting image in `witness-cut` with
+an exact structural address. The reader must inspect the page, attribution,
+translation and territorial rights; neither the screenshot nor its hash proves
+them. A second reader independently opens and captures the same chapter.
+
+For a born-digital original, fetch its exact HTML as a transcription and cut the
+original place normally. After inspecting the page in the in-app browser, save
+the screenshot and record the actual section and capture time:
+
+```sh
+K original-browser-capture . 'Discussion' article.html --file /absolute/path/to/maker.png --by maker --reader MAKER_ID --captured-at '2026-11-28T05:00:00+00:00' --n 1 --address-kind section --address-value 'Discussion'
+K compare .
+K judge . 'Discussion' whole transcription 'The visible section reads as this transcription.'
+```
+
+`--n` is only a capture index for the review workflow, not a printed page.
+The exact HTML, structural address, image and reader are bound; existing page
+review for the place is cleared. The independent reader must capture and read
+the same section, and the usual source, rights and language duties still apply.
+
+### Correcting a witness address or withdrawing an unplanted acceptance
+
+When a single printed page's old label mixes a page and a line range, keep the
+page separate from the lines. After inspecting the recorded maker image:
+
+```sh
+K witness-address-correct . en 'XXX.1 p953a' --section XXX.1 --page 953a --line-start 10 --line-end 14 --reason 'The inspected Bekker locator identifies lines on this single printed page.'
+```
+
+The complete predecessor and previous review are retained, including text
+corrections; the page image is checked and the independent reading must be
+renewed. A real page range still needs its separate page evidence.
+
+If the existing independent reader finds a problem in an accepted witness
+that has not been planted, `witness-withdraw . ru --reader READER_ID --finding
+'Specific finding of at least forty characters.'` preserves the exact witness
+and acceptance under `witness-history`, clears the review and reopens it. Add
+`--replace` to preserve the old files and open a different edition instead.
+The command refuses planted language records and changed acceptance bytes.
+The replacement needs its own source, rights and independent review.
+For an unaccepted, unplanted witness, its maker can instead use
+`witness-retire . ru --maker MAKER_ID --reason 'Explain the need for a different edition in detail.'`.
+This keeps the complete prior file and review under `retired-witnesses`;
+the replacement is opened and reviewed separately. Both history routes
+verify the saved predecessor's digest at the gate.
+
+When the independent reader retrieves a differently rendered image of the
+same page, retain it with `witness-image --by second` and use
+`witness-page-identity` with the printed page, that image filename, the
+reader's own archival reader URL, retrieval method and a detailed comparison
+of the page and edition. The assessment is bound to both actual images, their
+URLs and hashes, the page label and edition. It is a reader's judgment, not an
+automatic inference from matching URLs or page numbers. The reader must still
+review the passage and the territorial rights.
+
+If a PDF render was incorrectly registered as a directly retrieved external
+image, use `page-withdraw . LOC FILENAME --reason 'Explain the mistaken source and the needed correction.'`.
+The recorded image, bytes, prior place and review remain in history. Register
+the real PDF using `fetch` and `pdf-page`, then obtain a fresh page reading.
+When its physical PDF page differs from the old index, give `--replacement-page N`.
+The gate requires the replacement; the correction alone establishes no rights.
