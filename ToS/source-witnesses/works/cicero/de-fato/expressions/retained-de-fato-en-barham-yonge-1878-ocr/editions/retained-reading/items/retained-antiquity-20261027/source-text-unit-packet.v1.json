@@ -1,0 +1,1011 @@
+{
+  "$schema": "https://tree-of-sophia.local/ToS/contracts/source-text-unit-packet-v1.schema.json",
+  "schema_version": "tos_source_text_unit_packet_v1",
+  "packet_id": "tos.source-text-unit-packet.sid-912c8c662a244958a4d478c256612725",
+  "packet_version": 1,
+  "supersedes_packet_ref": null,
+  "content_posture": "source_bound",
+  "source_scope": {
+    "work_ref": "tos.work.retained-antiquity.de-fato",
+    "expression_ref": "tos.expression.retained.antiquity.de-fato.de-fato-en-barham-yonge-1878-ocr",
+    "edition_ref": "tos.edition.retained.antiquity.de-fato.de-fato-en-barham-yonge-1878-ocr",
+    "item_ref": "tos.item.retained.antiquity.de-fato.de-fato-en-barham-yonge-1878-ocr",
+    "file_ref": "tos.file.sha256.6349dd275bb7461cf78fc8a4fba8d6a56902f66f36c913af13cacca0333d6679",
+    "file_sha256": "6349dd275bb7461cf78fc8a4fba8d6a56902f66f36c913af13cacca0333d6679"
+  },
+  "source_layer": {
+    "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+    "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+    "language": "en",
+    "media_type": "text/plain; charset=utf-8",
+    "unicode_form": "source_preserved",
+    "position_unit": "unicode_code_point",
+    "interval": "half_open",
+    "immutable": true,
+    "visibility": "public",
+    "publication_authorized": true
+  },
+  "schemes": [
+    {
+      "scheme_id": "tos.text-unit-scheme.sid-d2aff9d1076d499b8774fff272d615d9",
+      "scheme_version": 1,
+      "supersedes_scheme_ref": null,
+      "identity_policy": "opaque-id-independent-of-name-label-text-ordinal-offset-and-current-analysis",
+      "scheme_name": "Retained source section and bounded reading chunk",
+      "analysis_role": "source_structure",
+      "boundary_basis": "rule_based",
+      "unit_kinds": [
+        "section"
+      ],
+      "method": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-fato-en-barham-yonge-1878-ocr.20261027",
+        "made_at": "2026-11-12T21:03:08+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "policies": {
+        "normalization": "no-text-mutation-separate-successor-layer",
+        "punctuation": "included_in_neighbor",
+        "whitespace": "included_in_neighbor",
+        "line_break": "included_in_neighbor",
+        "hyphenation": "preserve_source",
+        "unreported_gaps_allowed": false,
+        "overlap": "forbid"
+      },
+      "authority_limit": {
+        "algorithmic_output_is_source_truth": false,
+        "algorithmic_output_is_linguistic_truth": false,
+        "model_subword_is_lexeme": false,
+        "unit_identity_is_semantic_identity": false,
+        "text_mutation_allowed": false
+      }
+    }
+  ],
+  "anchors": [
+    {
+      "anchor_ref": "tos.anchor.sid-d7d99091ea5745f5b6ca282910e0c1c6",
+      "ordinal": 1,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 44057,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "anchor_role": "scope",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-13772b43cc1b4780abc975ec18494ba9",
+      "ordinal": 2,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 0,
+        "end": 2046,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "3cf4cfe5c379a68f30ccae64d230a6a93547ed557fe3f1446385142ccedcee42",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ce50044ee09e480f965a946f5ebadbe8",
+      "ordinal": 3,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 2046,
+        "end": 4148,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "df89e7860f9115405b4ba538f655289cd8ca990894ed86cd88e44e024ac9fa80",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-80c7df0328b049b18fcd429ad07f5928",
+      "ordinal": 4,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 4148,
+        "end": 6368,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "5e237621d6887eacc28bef02281eb460ffdaa202009c005b2490a93c7ad99f6c",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-905d5fba51394ece9737905559b3b17c",
+      "ordinal": 5,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 6368,
+        "end": 8236,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "db92f0eefbe7e74935c5d3546288d5cfc440ed81680b7fe70ed0d13b8b54f515",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-044399dff0424190ba82543c1103ae30",
+      "ordinal": 6,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 8236,
+        "end": 10481,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "221cbcfe78dca270c4daba57a59d6ef8c1f5cfc9e51f5676cbc0acb477fddeb9",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ac98d21fa1ab45468d476956e89a7ca4",
+      "ordinal": 7,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 10481,
+        "end": 11905,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "fb75bc80239a0bcb449c54dbd4befd44653ea14e0dd08a23b0dae769c7aefba5",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-35cb9867ceab4c709b848269bc8e54cc",
+      "ordinal": 8,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 11905,
+        "end": 13657,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "46654b3a958f0df56ab3de7e7acb46e548e4f116aa1a7ec9ad03d83ad5b71aa1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-3847fb4813fe4ad7a75eab98513b735b",
+      "ordinal": 9,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 13657,
+        "end": 15836,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b7fcec06c57f3cf30e998918f37ae4b0bafa381ea0b6a4d5e06cecbffd8f66ea",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-fb10f24de82f47f5afc14100c89a3fca",
+      "ordinal": 10,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 15836,
+        "end": 19570,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f37f73bf8b8f03dbf3637fb9fc126475e9c6a4069e1837328f439c3853e9ecc2",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-148c018986324f1496e772368fd1244c",
+      "ordinal": 11,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 19570,
+        "end": 22502,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "b6687024846602f562d0148b705919786ca89ed2dd4cf31b0e18046efb71ff61",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-65a4b8d7b76c40e3bf946af0b8eba110",
+      "ordinal": 12,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 22502,
+        "end": 24980,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e68460160c72e366b064c447e41ad73a83b4ae015b07bf41de97c01486df1c0f",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f3c45860d09c4c06b51a591f1f1ade9c",
+      "ordinal": 13,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 24980,
+        "end": 27287,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "52d607c61629534898426fa7d15f39ed9b00a85a7915566c06f589b13d665b71",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-f0ef0bdde5a849d9a5daab4ea941b688",
+      "ordinal": 14,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 27287,
+        "end": 29002,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "901146408631fc9fb6093240626170c0dccf9163c445d79c74434befdefc4cd0",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-7eb8fc8fe8de4b2f93f463759abd86ef",
+      "ordinal": 15,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 29002,
+        "end": 31107,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "f3e77a122e7883d0e3a8d6235b2ef944f04992a9d689556e30e58a1f13175a85",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-36d3821debf54393acaa9eb3cbe505dd",
+      "ordinal": 16,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 31107,
+        "end": 33196,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "1d7c49effa8bdccc12e3cb2a5d217725defa02a96a31ed5714b856b0cd9d7d30",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-ad86dd6fe34d4c8d807bab94afd8e555",
+      "ordinal": 17,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 33196,
+        "end": 35397,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "e0046c4ea9e4e90bed835434d231bc7c2866e1b25226d2fcaea67c8851a63850",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-92cde48ae788480a8bd4095e80a3b95a",
+      "ordinal": 18,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 35397,
+        "end": 37370,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "c0f455989a20ddceea21632f1044efeab9740e99252e394e3363eabad8f0e235",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-310caaa4c87f4c9095ef3607661ed7ba",
+      "ordinal": 19,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 37370,
+        "end": 39316,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "9033a3cc6eed9209c609076915a0279d59e8f17ed953f6640cf88e1e5c9f72d1",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-63d63a77ee3a49f1b435563c35e72384",
+      "ordinal": 20,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 39316,
+        "end": 41843,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "d90cc3ef70352907e96b251623968a1e037516c3b115143396b7788140790402",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    },
+    {
+      "anchor_ref": "tos.anchor.sid-18d8a2ac7be94bc5b1697b706b064722",
+      "ordinal": 21,
+      "text_layer_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/payload/reading-layer.txt",
+      "text_layer_sha256": "3045fa99d197c9023d753e73c8b2c13b13be7d90a005a28133241dc04cb7eca4",
+      "selector": {
+        "type": "text_position",
+        "start": 41843,
+        "end": 44057,
+        "position_unit": "unicode_code_point",
+        "interval": "half_open"
+      },
+      "exact_sha256": "6d5955105ad51e7984abb35b46fbe9fb15ac157a0b08278e98658278f677b3cd",
+      "anchor_role": "content",
+      "source_return": {
+        "required": true,
+        "locator_ref": "https://archive.org/details/treatisesofcicer00ciceuoft"
+      }
+    }
+  ],
+  "units": [
+    {
+      "unit_id": "tos.text-unit.sid-81279784a7d84b7997a1a4155e78a6bc",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-13772b43cc1b4780abc975ec18494ba9"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1b5dd75c7ecd47c49854706d41e76361",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ce50044ee09e480f965a946f5ebadbe8"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d3bf6caff667413c936169fd7eecc264",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-80c7df0328b049b18fcd429ad07f5928"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-2cefbcf39d3344e0ba793fb225f06f5c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-905d5fba51394ece9737905559b3b17c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-9ed1451e1d5b4db0b2035dfd12fc1486",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-044399dff0424190ba82543c1103ae30"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-1d9c652507c4400f80d3abf74d3474ef",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ac98d21fa1ab45468d476956e89a7ca4"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b37ac8cf43574a3580dad4518609716b",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-35cb9867ceab4c709b848269bc8e54cc"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-e1de3c8edfeb43138858a7e212cc6f91",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-3847fb4813fe4ad7a75eab98513b735b"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-d0e16725e03f4f0ea767dbcf95dddb1c",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-fb10f24de82f47f5afc14100c89a3fca"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-a7b4720eb209416ca0f141a80bc3a402",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-148c018986324f1496e772368fd1244c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-8e8508ea300b44a9b5476442a409f479",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-65a4b8d7b76c40e3bf946af0b8eba110"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-aab4c56deb544e849400fbfd3c8b78a1",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f3c45860d09c4c06b51a591f1f1ade9c"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-959d8dbc43ec495f924f3cc5421b6b41",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-f0ef0bdde5a849d9a5daab4ea941b688"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-5724a64bb93249b5864bf22ea91a7304",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-7eb8fc8fe8de4b2f93f463759abd86ef"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-ac380b43f7ec4c06ae46f934395f50dd",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-36d3821debf54393acaa9eb3cbe505dd"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-b429b5d1897a47b9afd55dd6a88f60ea",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-ad86dd6fe34d4c8d807bab94afd8e555"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-032d214e407f4d33b76eed014dd39b95",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-92cde48ae788480a8bd4095e80a3b95a"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-80f3e3b431fa4578b1914a4bb5df1fcf",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-310caaa4c87f4c9095ef3607661ed7ba"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-c151744609294c4ab4fe361b5ab0f89f",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-63d63a77ee3a49f1b435563c35e72384"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    },
+    {
+      "unit_id": "tos.text-unit.sid-7047dfb9c3fc4e1197b62e2a7e07bac4",
+      "unit_version": 1,
+      "supersedes_unit_ref": null,
+      "identity_policy": "opaque-id-independent-of-text-label-ordinal-offset-and-current-analysis",
+      "unit_kind": "section",
+      "surface_posture": "source_bearing",
+      "continuity": "contiguous",
+      "ordered_anchor_refs": [
+        "tos.anchor.sid-18d8a2ac7be94bc5b1697b706b064722"
+      ],
+      "parent_unit_refs": [],
+      "ordered_child_unit_refs": [],
+      "boundary_posture": "method_proposed",
+      "certainty": {
+        "value": 1,
+        "meaning": "maker-declared-boundary-confidence-not-truth-probability"
+      },
+      "status_reason": "Deterministic retained-JSON section chunk; not a reviewed linguistic boundary.",
+      "source_text_mutated": false,
+      "semantic_promotion": false
+    }
+  ],
+  "segmentations": [
+    {
+      "segmentation_id": "tos.text-segmentation.sid-b3412c0dce82448a9f8ae6222024cb97",
+      "segmentation_version": 1,
+      "supersedes_segmentation_ref": null,
+      "identity_policy": "opaque-id-independent-of-scheme-name-unit-order-text-and-current-boundaries",
+      "scheme_ref": "tos.text-unit-scheme.sid-d2aff9d1076d499b8774fff272d615d9",
+      "ordered_unit_refs": [
+        "tos.text-unit.sid-81279784a7d84b7997a1a4155e78a6bc",
+        "tos.text-unit.sid-1b5dd75c7ecd47c49854706d41e76361",
+        "tos.text-unit.sid-d3bf6caff667413c936169fd7eecc264",
+        "tos.text-unit.sid-2cefbcf39d3344e0ba793fb225f06f5c",
+        "tos.text-unit.sid-9ed1451e1d5b4db0b2035dfd12fc1486",
+        "tos.text-unit.sid-1d9c652507c4400f80d3abf74d3474ef",
+        "tos.text-unit.sid-b37ac8cf43574a3580dad4518609716b",
+        "tos.text-unit.sid-e1de3c8edfeb43138858a7e212cc6f91",
+        "tos.text-unit.sid-d0e16725e03f4f0ea767dbcf95dddb1c",
+        "tos.text-unit.sid-a7b4720eb209416ca0f141a80bc3a402",
+        "tos.text-unit.sid-8e8508ea300b44a9b5476442a409f479",
+        "tos.text-unit.sid-aab4c56deb544e849400fbfd3c8b78a1",
+        "tos.text-unit.sid-959d8dbc43ec495f924f3cc5421b6b41",
+        "tos.text-unit.sid-5724a64bb93249b5864bf22ea91a7304",
+        "tos.text-unit.sid-ac380b43f7ec4c06ae46f934395f50dd",
+        "tos.text-unit.sid-b429b5d1897a47b9afd55dd6a88f60ea",
+        "tos.text-unit.sid-032d214e407f4d33b76eed014dd39b95",
+        "tos.text-unit.sid-80f3e3b431fa4578b1914a4bb5df1fcf",
+        "tos.text-unit.sid-c151744609294c4ab4fe361b5ab0f89f",
+        "tos.text-unit.sid-7047dfb9c3fc4e1197b62e2a7e07bac4"
+      ],
+      "coverage": {
+        "scope_anchor_ref": "tos.anchor.sid-d7d99091ea5745f5b6ca282910e0c1c6",
+        "coverage_posture": "exhaustive_nonoverlapping",
+        "excluded_anchor_refs": [],
+        "unreported_gaps_allowed": false,
+        "overlap_requires_declaration": true,
+        "source_reconstruction_required": true
+      },
+      "status": "proposed",
+      "status_reason": "Deterministic display and navigation segmentation; no textual, linguistic or semantic acceptance.",
+      "maker": {
+        "maker_kind": "software",
+        "agent_ref": "codex.retained-antiquity-publication.20261027",
+        "method_name": "retained-json-reading-layer",
+        "method_version": "1",
+        "software_refs": [
+          "Python 3 stdlib"
+        ],
+        "model_ref": null,
+        "configuration_ref": "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/provenance.jsonl",
+        "locale": "en",
+        "unicode_version": null,
+        "unicode_revision": null,
+        "tailoring_ref": null,
+        "provenance_event_ref": "tos.event.retained-segmentation.de-fato-en-barham-yonge-1878-ocr.20261027",
+        "made_at": "2026-11-12T21:03:08+00:00",
+        "output_posture": "method_result_not_source_or_linguistic_truth"
+      },
+      "competing_segmentation_refs": [],
+      "review_refs": [],
+      "declared_uses": [
+        "navigation",
+        "source_observation"
+      ],
+      "source_text_authority": false,
+      "linguistic_authority": false,
+      "semantic_authority": false
+    }
+  ],
+  "reviews": [],
+  "projections": [],
+  "rights_and_visibility": {
+    "source_visibility": "public",
+    "packet_visibility": "public",
+    "effective_visibility": "public",
+    "rights_record_refs": [
+      "ToS/source-witnesses/works/cicero/de-fato/expressions/retained-de-fato-en-barham-yonge-1878-ocr/editions/retained-reading/items/retained-antiquity-20261027/rights.json"
+    ],
+    "private_source_used": false,
+    "publication_authorized": true,
+    "inheritance_policy": "most-restrictive-source-packet-and-destination-wins"
+  },
+  "authority_boundary": {
+    "tree_role": "orientation",
+    "graph_role": "relation",
+    "source_role": "authority",
+    "validators_prove_mechanics_not_truth": true,
+    "segmentation_is_method_result_not_source_truth": true,
+    "source_unit_is_not_lexeme_sign_or_concept": true,
+    "model_token_is_not_linguistic_token": true,
+    "projection_is_owner_truth": false,
+    "legacy_bulk_migration_authorized": false
+  }
+}
